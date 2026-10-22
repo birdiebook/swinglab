@@ -1,0 +1,181 @@
+import AVFoundation
+import CoreGraphics
+import Foundation
+import Observation
+import UIKit
+import Capture
+
+/// Passets analys (S2_SPEC §4.3, §6, §8.2, §12 S2e): serien → klicken → det glesa
+/// Vision-passet och domen → det täta passet med lederna → klippen kring slagen →
+/// passet. Ordningen, fönstren, personvalet och domen står i SwingLabKit (`ShotPlan`,
+/// `PoseTrack`, `SwingCheck`); här körs stegen med AVFoundation och Vision.
+///
+/// I förgrunden med skärmen på, ett steg i taget, och passet sparas efter varje steg:
+/// avbryts appen fortsätter analysen nästa gång från första slag som saknar något.
+/// Ett fel stoppar analysen på slaget och visas; ingenting sväljs. BESLUT B25. METOD MS12
+@MainActor
+@Observable
+final class Analysis {
+    private(set) var running = false
+    private(set) var step: AnalysisStep?
+    /// Slagets plats i listan och antalet slag ("Shot 7 of 23").
+    private(set) var shotNumber = 0
+    private(set) var shotTotal = 0
+    /// Stegen gjorda och alla steg, och hur långt det pågående steget kommit (0–1).
+    private(set) var done = 0
+    private(set) var total = 0
+    private(set) var stepFraction = 0.0
+    /// Felet som stoppade analysen, för vyn och provet.
+    private(set) var problem: String?
+    private(set) var lastError: Error?
+    /// Stegen som gjordes i den senaste körningen (provet prövar återupptagningen med dem).
+    private(set) var stepsRun: [AnalysisStep] = []
+
+    var fraction: Double { total > 0 ? min(1, (Double(done) + stepFraction) / Double(total)) : 0 }
+
+    /// Kör alla steg som saknas och svarar passet som det står på disken efteråt.
+    @discardableResult
+    func run(passID: String, store: Store, source: PoseSource = VisionPoseSource()) async -> PassState? {
+        guard !running, var pass = store.load(passID) else { return nil }
+        running = true
+        problem = nil
+        lastError = nil
+        stepsRun = []
+        UIApplication.shared.isIdleTimerDisabled = true
+        defer {
+            running = false
+            step = nil
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+        pass.shots = ShotPlan.sync(pass)
+        store.save(pass)
+        while let next = ShotPlan.next(pass), !Task.isCancelled {
+            step = next
+            stepFraction = 0
+            let p = ShotPlan.progress(pass)
+            done = p.done
+            total = p.total
+            shotNumber = next.shot + 1
+            shotTotal = pass.shots.count
+            do {
+                pass = try await perform(next, pass: pass, store: store, source: source)
+            } catch {
+                lastError = error
+                problem = String(localized: "Shot \(shotNumber) could not be analyzed: \(error.localizedDescription)")
+                store.save(pass)
+                return pass
+            }
+            stepsRun.append(next)
+            store.save(pass)
+        }
+        if ShotPlan.next(pass) == nil, pass.status == .recorded {
+            pass.status = .analyzed
+            store.save(pass)
+        }
+        let p = ShotPlan.progress(pass)
+        done = p.done
+        total = p.total
+        return pass
+    }
+
+    enum AnalysisError: LocalizedError {
+        case outsideFile
+        var errorDescription: String? { String(localized: "The click is outside the file.") }
+    }
+
+    /// Ett steg: Vision-passet (domen eller lederna) eller klippet.
+    private func perform(_ step: AnalysisStep, pass: PassState, store: Store,
+                         source: PoseSource) async throws -> PassState {
+        var pass = pass
+        let i = step.shot
+        let shot = pass.shots[i]
+        guard let serie = pass.series.first(where: { $0.nr == shot.series }) else { return pass }
+        let file = store.url(serie.file, in: pass.id)
+        switch step {
+        case .sparse, .dense:
+            guard let request = ShotPlan.request(step, pass: pass, file: file) else { throw AnalysisError.outsideFile }
+            let scan = try await Task.detached(priority: .userInitiated) { [weak self] in
+                try await source.scan(request) { f in
+                    Task { @MainActor in self?.stepFraction = f }
+                }
+            }.value
+            let series = PoseTrack.series(scan.frames, click: shot.click.time, width: serie.uprightWidth,
+                                          height: serie.uprightHeight)
+            var stats = pass.vision ?? VisionStats()
+            stats.add(scan)
+            pass.vision = stats
+            if case .sparse = step {
+                pass.shots[i].verdict = SwingCheck.verdict(series)
+            } else {
+                pass.shots[i].joints = try store.writeJoints(series, shot: shot.id, in: pass.id)
+                pass.shots[i].jointFrames = series.frames.count
+                pass.shots[i].orientationSuspect = series.orientationSuspect
+            }
+        case .clip:
+            guard let w = ShotPlan.window(ShotPlan.clipWindow, click: shot.click.time, duration: serie.duration) else {
+                throw AnalysisError.outsideFile
+            }
+            let rel = ShotRecord.clipPath(shot.id)
+            let url = store.url(rel, in: pass.id)
+            try await Clips.export(file, range: w, to: url)
+            let klick = try await MediaReader.clicks(url)
+            let m = ClipCheck.measure(klick, expected: shot.click.time - w.lowerBound)
+            pass.shots[i].clip = rel
+            pass.shots[i].clipStart = w.lowerBound
+            pass.shots[i].clickInClip = m.time
+            pass.shots[i].clipFlagged = m.flagged
+        }
+        return pass
+    }
+}
+
+/// Klippen kring slagen (S2_SPEC §8.2): passthrough, utan omkodning. Var klippet exakt
+/// börjar är inte dokumenterat; därför mäts klicket om i klippet (METOD MS12).
+enum Clips {
+    enum ClipError: LocalizedError {
+        case cannotExport
+        var errorDescription: String? { String(localized: "The clip could not be saved.") }
+    }
+
+    static func export(_ source: URL, range: ClosedRange<Double>, to url: URL) async throws {
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let asset = AVURLAsset(url: source)
+        guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetPassthrough) else {
+            throw ClipError.cannotExport
+        }
+        session.timeRange = CMTimeRange(start: CMTime(seconds: range.lowerBound, preferredTimescale: 48_000),
+                                        end: CMTime(seconds: range.upperBound, preferredTimescale: 48_000))
+        try await session.export(to: url, as: .mov)
+    }
+}
+
+/// Miniatyren vid träffen: rutan ur seriens fil (eller klippet, om originalet är borttaget,
+/// BESLUT B26) och de uppmätta linjerna ur lederna (BESLUT B13: ingen figur).
+enum ShotImages {
+    /// Den upprätta rutan vid träffen, högst `maxSize` punkter. nil = ingen fil att läsa.
+    static func impactFrame(pass: PassState, shot: ShotRecord, store: Store,
+                            maxSize: CGSize = CGSize(width: 270, height: 480)) async throws -> CGImage? {
+        guard let serie = pass.series.first(where: { $0.nr == shot.series }) else { return nil }
+        var url = store.url(serie.file, in: pass.id)
+        var t = shot.impact
+        if !FileManager.default.fileExists(atPath: url.path) {
+            guard let clip = shot.clip, let start = shot.clipStart else { return nil }
+            url = store.url(clip, in: pass.id)
+            t = shot.impact - start
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let g = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        g.appliesPreferredTrackTransform = true
+        g.requestedTimeToleranceBefore = .zero
+        g.requestedTimeToleranceAfter = .zero
+        g.maximumSize = maxSize
+        return try await g.image(at: CMTime(seconds: max(0, t), preferredTimescale: 48_000)).image
+    }
+
+    /// Linjerna vid träffen ur slagets leder, eller nil före det täta passet.
+    static func overlay(shot: ShotRecord, pass: PassState, store: Store) -> ImpactOverlay? {
+        guard let rel = shot.joints, let series = store.joints(rel, in: pass.id) else { return nil }
+        return ImpactOverlay.at(series, t: shot.impact - shot.click.time)
+    }
+}

@@ -14,12 +14,18 @@ struct SwingLabApp: App {
 }
 
 /// Startvyn (S2_SPEC §12). Nytt pass (S2c) och Hämta ur Bilder (S2d) öppnar
-/// uppställningen; Hämta Att jobba på öppnas i S2f. Formspråket är BESLUT B13:
+/// uppställningen; Hämta Att jobba på öppnas i S2f. Under dem passen, och ett tryck
+/// öppnar slagen med analysen (S2e). Formspråket är BESLUT B13:
 /// bara etiketter, ingen beskrivande text. Texterna är engelska och står i
 /// Localizable.xcstrings (BESLUT B30, B33).
 struct StartView: View {
     @Environment(Store.self) private var store
     @State private var flow: PassFlowView.Mode?
+    @State private var opened: OpenPass?
+
+    struct OpenPass: Identifiable {
+        let id: String
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -48,6 +54,14 @@ struct StartView: View {
                     .padding(.top, 12)
             }
 
+            // Passen och deras slag (S2e).
+            if !store.index.passes.isEmpty {
+                ScrollView {
+                    PassListSection(entries: store.index.passes) { opened = OpenPass(id: $0) }
+                }
+                .padding(.top, 22)
+            }
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
@@ -55,6 +69,10 @@ struct StartView: View {
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .fullScreenCover(item: $flow) { mode in
             PassFlowView(mode: mode) { flow = nil }
+                .environment(store)
+        }
+        .fullScreenCover(item: $opened) { p in
+            PassShotsView(passID: p.id) { opened = nil }
                 .environment(store)
         }
     }

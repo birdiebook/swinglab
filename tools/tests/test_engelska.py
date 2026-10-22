@@ -91,7 +91,7 @@ INTE_TEXT = {
     "", "s", "cm", "0 cm", "°", "mov", "pass", "installningar", "pass.json", "installningar.json",
     "SwingLab", "Export", "Pass", "Video", "Klipp", "swinglab.kamera", "arrow.right", "chevron.left",
     "square.and.arrow.up", "\\(…)", "\\(…) m", "\\(…) · ", "\\(…) · \\(…)", "\\(…): \\(…)",
-    "\\(…), \\(…) cm", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
+    "\\(…), \\(…) cm", "pencil", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
 }
 
 
