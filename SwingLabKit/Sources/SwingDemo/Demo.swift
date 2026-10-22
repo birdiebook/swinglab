@@ -139,46 +139,55 @@ public enum Demo {
         }
     }
 
-    /// Att jobba på efter passet 12 dec, i S5:s format (docs/FORMAT.md, Att jobba på):
-    /// swayen med sina följdfel, och early extension med en rörlighetsövning.
-    /// Övningarna är katalogens ordagrant (kalla "katalog").
+    /// Att jobba på efter det senaste passet (9 jan), i S5:s kontrakt (docs/FORMAT.md,
+    /// Att jobba på): swayen med sin kedja av följdfel, och early extension med en
+    /// rörlighetsövning. Talen är passens medianer; övningarna katalogens ordagrant.
     public static let attJobbaPaJSON = #"""
     {
      "format": "swinglab-att-jobba-pa/1",
-     "pass": "20261212-180000",
-     "skapad": "2026-12-12T21:15:00+01:00",
+     "pass": "20270109-180000",
+     "skapad": "2027-01-09T21:15:00+01:00",
      "saker": [
       {
        "ordning": 1,
        "fel": "sway_topp",
        "namn": "Bäckenet glider bakåt i baksvingen",
        "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
-       "nu": -5.9, "spann": [0, null], "markning": "B10",
+       "nu": -2.4, "spann": [0, null], "markning": "B10",
        "ovning": {
         "text": "Käpp i marken utanför bakre höften. Baksving till toppen och stopp: höften roterar, käppen står kvar. Sedan fötterna ihop, 3/4-svingar.",
         "tanke": "Rör inte käppen.",
-        "kalla": "katalog"
+        "kalla": "katalog",
+        "steg": "halv_fart"
        },
        "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
-       "foljdfel": ["backens_resa_framat", "sway_gap"],
+       "foljdfel": [
+        {"fel": "reverse_spine", "namn": "Reverse spine: överkroppen lutar mot målet i toppen", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
+        {"fel": "backens_resa_framat", "namn": "För liten resa framåt från toppen", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},
+        {"fel": "tappad_hallning", "namn": "Tappad hållning: bröstet reser sig", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 2.0, "enhet": "°"},
+        {"fel": "sway_gap", "namn": "Sway gap vid träffen", "vag": ["sway_topp", "sway_gap"], "nu": 4.1, "enhet": "cm"}
+       ],
        "typ": "teknik",
-       "fysik": null
+       "fysik": null,
+       "block": {"start": "2026-12-12", "vecka": 5}
       },
       {
        "ordning": 2,
        "fel": "early_extension",
        "namn": "Early extension: bäckenet mot bollen",
        "vy": "dtl", "matt": "backen_thrust_traff", "enhet": "cm",
-       "nu": 1.9, "spann": null, "markning": "egen",
+       "nu": 2.6, "spann": null, "markning": "egen",
        "ovning": {
         "text": "Stjärten mot en stol bakom dig i adressen. Långsamma svingar som håller kontakten till träffen, och bäckenet roterar samtidigt.",
         "tanke": "Stolen ska känna stjärten hela vägen.",
-        "kalla": "katalog"
+        "kalla": "katalog",
+        "steg": "langsamt_med_foremal"
        },
        "klart_nar": {"villkor": "<=", "grans": 1.5, "pa": "forsta_serien", "pass_i_rad": 2},
-       "foljdfel": ["tappad_hallning"],
+       "foljdfel": [],
        "typ": "teknik_kroppen_gor_det_svart",
-       "fysik": {"test": "Toe touch", "treregeln": [true, true, false], "ovning": "Raka ben, händerna mot tårna, 2 × 10 långsamt."}
+       "fysik": {"test": "Toe touch", "treregeln": [true, true, false], "ovning": "Raka ben, händerna mot tårna, långsamt och utan gungning."},
+       "block": {"start": "2027-01-02", "vecka": 2}
       }
      ]
     }

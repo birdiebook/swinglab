@@ -1,9 +1,10 @@
 import Foundation
 
 /// `att_jobba_pa.json`: det PC:n och Claude valt efter ett pass (PLAN S5, BESLUT B28).
-/// Formen ägs av S5 och står i docs/FORMAT.md (Att jobba på); `tools/pc/att_jobba_pa.py`
-/// kontrollerar den på PC:n. Telefonen kräver formatet och det vyn läser, och
-/// felet nämner fältet, aldrig värdet (CLAUDE.md, Dataregeln).
+/// Formen ägs av S5 och är kontraktet i docs/FORMAT.md (Att jobba på); vyn visar den
+/// som den är, utan att räkna om något. `tools/pc/att_jobba_pa.py` kontrollerar den
+/// på PC:n; telefonen kräver formatet och fälten vyn läser, och felet nämner
+/// fältet, aldrig värdet (CLAUDE.md, Dataregeln).
 public struct AttJobbaPa: Decodable, Sendable {
     public static let formatPrefix = "swinglab-att-jobba-pa/"
 
@@ -30,23 +31,45 @@ public struct AttJobbaPa: Decodable, Sendable {
         public let markning: String?
         public let ovning: Ovning
         public let klartNar: KlartNar
-        /// Fel som mäts men inte övas, ett led efter saken.
-        public let foljdfel: [String]
+        /// Fel som mäts men inte övas, ett eller flera led efter saken (kedjan).
+        public let foljdfel: [Foljdfel]
         /// "teknik", "teknik_kroppen_gor_det_svart" eller "troligen_rorlighet".
         public let typ: String
         public let fysik: Fysik?
+        public let block: Block
 
         enum CodingKeys: String, CodingKey {
-            case ordning, fel, namn, vy, matt, enhet, nu, spann, markning, ovning, foljdfel, typ, fysik
+            case ordning, fel, namn, vy, matt, enhet, nu, spann, markning, ovning, foljdfel, typ, fysik, block
             case klartNar = "klart_nar"
         }
     }
 
     public struct Ovning: Decodable, Sendable {
+        /// Stegen i ordning (METOD MT10 i S5).
+        public static let stegen = ["langsamt_med_foremal", "halv_fart", "full_fart", "varierat"]
+
         public let text: String
         public let tanke: String
         /// "katalog" eller "research3".
         public let kalla: String
+        /// Ett av `stegen`: var Johannes är.
+        public let steg: String
+    }
+
+    public struct Foljdfel: Decodable, Sendable {
+        public let fel: String
+        public let namn: String
+        /// Kedjans väg från saken till följdfelet, saken först.
+        public let vag: [String]
+        public let nu: Double?
+        public let enhet: String
+    }
+
+    /// Blocket: dagen felet först valdes och veckan i blocket.
+    public struct Block: Decodable, Sendable {
+        /// "2026-11-03"
+        public let start: String
+        public let vecka: Int
     }
 
     public struct Fysik: Decodable, Sendable {
@@ -138,6 +161,9 @@ public struct AttJobbaPa: Decodable, Sendable {
         }
         guard a.format.hasPrefix(formatPrefix) else { throw FormatFel("att_jobba_pa: format: ska börja med \(formatPrefix)") }
         guard (1...3).contains(a.saker.count) else { throw FormatFel("att_jobba_pa: saker: ska vara 1–3") }
+        for (i, s) in a.saker.enumerated() where !Ovning.stegen.contains(s.ovning.steg) {
+            throw FormatFel("att_jobba_pa: saker[\(i)].ovning.steg: ska vara ett av \(Ovning.stegen.joined(separator: ", "))")
+        }
         return a
     }
 
