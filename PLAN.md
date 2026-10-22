@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -15,7 +15,7 @@ beviset på att kedjan räcker för tre saker att jobba på.
 **Underlaget** är tre research-rapporter (2026-10-22) i `docs/research/`:
 måtten och gränserna, tekniken, och tolkningen och apparna. Källsidorna gick
 inte att läsa från molnet, så varje siffra är "ej läst i original" tills den
-kontrollerats (BESLUT B10).
+kontrollerats (BESLUT B10). Jämförelsen med Sportsbox AI:s mått står i `docs/research/4_sportsbox_matt.md`.
 
 ## S0 — Kontrollera oktobers mått
 
@@ -56,6 +56,19 @@ Ett Swift-paket med bara Foundation, testat på Linux i Actions:
 **Klart när:** `swift test` är grönt, och Swift ger samma tal som Python på
 samma påhittade leder (fixturer genererade av PC-verktyget, inga riktiga
 svingar).
+
+## S1b — Små tillägg mot Sportsbox i 2D
+
+Ur jämförelsen med Sportsbox AI ([docs/research/4_sportsbox_matt.md](docs/research/4_sportsbox_matt.md)):
+mått som går att räkna ur dagens leder i en vy, i Python och Swift med samma tal
+(B12), med METOD-rader och katalogens positioner (B32): bäckenets böjning (DTL),
+bröstets lyft, handens lyft, främre knäets böjning (DTL), knänas sway (FO),
+follow-through-tid, handfart (max och tidpunkten före träffen) och vänsterarmens
+vinkelfart. Farterna kräver skarp bild (B11) och märks osäkra tills de provats
+på telefonen. Sportsbox definitioner är ej lästa i original (B10).
+
+**Klart när:** måtten finns i båda språken med samma tal, i katalogen med
+positioner, och syns i passet och granskningen.
 
 ## S2 — Appskalet och första bygget
 
@@ -140,6 +153,9 @@ någon fil behövt redigeras för hand.
 
 ## S6 — Två kameror: vridningen och X-factor
 
+Sportsbox-måtten som kräver S6 (turn, X-factor, vridfarter, core och shoulder
+gain factor): [docs/research/4_sportsbox_matt.md](docs/research/4_sportsbox_matt.md).
+
 Två iPhones filmar samtidigt, DTL och FO med cirka 90° mellan sig (60–120°
 går), 3 m bort och i höfthöjd. Synken tas på klicket och finjusteras på
 minsta återprojektionsfel (2 ms; korskorrelation av farten ger 7–13 ms).
@@ -173,6 +189,9 @@ utan markörer ligger passets median inom 5° från markörernas median på samm
 pass; och vyn visar läget (markör eller trend).
 
 ## S7 — Klubban
+
+Sportsbox-måtten som kräver S7 (club-hand gap, skaftets fart, wrist och release
+factor, P2/P6/P8): [docs/research/4_sportsbox_matt.md](docs/research/4_sportsbox_matt.md).
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget
