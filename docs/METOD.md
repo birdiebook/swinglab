@@ -609,6 +609,40 @@ värden i `CaptureTests`.
   `detectSegmented` på hela signalen och som PC:ns `klick_i_bitar`, provat med
   buffertar av slumpad storlek på recepten `lang` och `bitgrans`. **räkning.**
 
+## MS12 — Slagen: Vision-passen, klippen och tiden per ruta
+
+- **Ordningen** (S2_SPEC §4.3, §6.4, `ShotPlan`): först domen på alla slag (det
+  glesa passet, var **8:e** ruta i [−1,6; +0,1] s, MS5), sedan för varje
+  bekräftat eller osäkert slag lederna (det täta passet, **varje** ruta i
+  [−2,5; +1,5] s) och klippet. Fönstren kapas vid filens början och slut. Varje
+  steg avgörs av det som står i `pass.json`, så att en avbruten analys
+  fortsätter från första slag som saknar något. Ett slags id (`s01` …) ges en
+  gång och återanvänds aldrig. **räkning.**
+- **Personen genom serien** (`PoseTrack`): PosePicker (MS8) per ruta, med
+  föregående rutas höfter. En ruta utan säker person behålls med 13 saknade
+  leder, så att tiden och andelen hela rutor (MS5) syns. Lederna sparas
+  avrundade som i paketet: **0,1 px**, konfidensen på **3** decimaler, tiderna
+  på **4**. **räkning.**
+- **Klippet** (S2_SPEC §8.2): passthrough av [klick − 2,5; klick + 1,5] s,
+  kapat vid filens början och slut. Klicket mäts om i klippet med samma
+  klickjakt (MS4), det närmast det väntade (seriens klick − klippets begärda
+  start); över **10 ms** därifrån, eller inget klick, märks slaget.
+  **antagande** (gränsen).
+- **Tiden per ruta** (`VisionStats`): `msPerFrame` = Visions egen tid
+  (`perform` och avläsningen) per analyserad ruta; `wallMsPerFrame` räknar med
+  avkodningen, även av rutorna som det glesa passet hoppar över. Över
+  **20 ms** per ruta kan det täta passet ta var 2:a ruta (S2_SPEC §6.1),
+  Johannes beslut. **mäts på telefonen** (T2); simulatorns tal säger inget om
+  telefonen.
+- **Vad som provas var.** Linux (`SlagTests`): ordningen, återupptagningen,
+  fönstren, personvalet och domen genom en serie, klippets kontroll,
+  avrundningen, linjerna vid träffen och listans rader. Simulatorn
+  (`SwingLabProvSlag`): appens egen kedja på en påhittad film — Vision körs på
+  riktigt men hittar ingen i en genererad bild, och med påhittade leder i
+  Visions ställe (`PoseSource`) prövas domen, lederna på disk, klippen och
+  passet. **Visions leder själva provas bara på telefonen** (T2, och oktobers
+  41 slag i S2h).
+
 ---
 
 # Tolkningen (S5)

@@ -26,9 +26,11 @@ let package = Package(
         .target(name: "Capture", dependencies: ["Swing"]),
         // KlickFixturer.swift är Pythons tal (tools/pc/klickljud.py --swift), BESLUT B12.
         // Swing behövs bara för att pröva att ledernas namn är formatets (docs/FORMAT.md).
-        .testTarget(name: "CaptureTests", dependencies: ["Capture", "Swing"]),
+        // SwingDemo ger de påhittade lederna som analysens kedja prövas med (S2e, DemoLeder).
+        .testTarget(name: "CaptureTests", dependencies: ["Capture", "Swing", "SwingDemo"]),
         // Vyernas data (S4): Swing/Visning räknar texten och lägena, SwingDemo är provets påhittade pass.
-        .target(name: "SwingDemo", dependencies: ["Swing"]),
+        // Capture för DemoLeder: påhittade Vision-leder till simulatorprovet av slagens kedja (S2e).
+        .target(name: "SwingDemo", dependencies: ["Swing", "Capture"]),
         .testTarget(name: "VisningTests", dependencies: ["Swing", "SwingDemo"]),
     ]
 )

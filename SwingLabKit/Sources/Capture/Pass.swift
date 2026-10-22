@@ -239,9 +239,14 @@ public struct PassState: Codable, Equatable, Sendable {
     public var series: [SeriesRecord]
     public var lightCheck: LightCheck?
     public var status: PassStatus
+    /// Slagen ur klicken, med domen, lederna och klippen (S2e, `Shots.swift`).
+    public var shots: [ShotRecord]
+    /// Vad Vision kostade i passet (S2_SPEC §6.4). METOD MS12
+    public var vision: VisionStats?
 
     public init(id: String, created: Date, setup: PassSetup, series: [SeriesRecord] = [],
-                lightCheck: LightCheck? = nil, status: PassStatus = .recorded) {
+                lightCheck: LightCheck? = nil, status: PassStatus = .recorded, shots: [ShotRecord] = [],
+                vision: VisionStats? = nil) {
         format = Self.formatName
         self.id = id
         self.created = created
@@ -249,6 +254,22 @@ public struct PassState: Codable, Equatable, Sendable {
         self.series = series
         self.lightCheck = lightCheck
         self.status = status
+        self.shots = shots
+        self.vision = vision
+    }
+
+    /// Ett pass från S2c/S2d saknar `shots` och `vision`: det läses ändå, med inga slag.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        format = try c.decode(String.self, forKey: .format)
+        id = try c.decode(String.self, forKey: .id)
+        created = try c.decode(Date.self, forKey: .created)
+        setup = try c.decode(PassSetup.self, forKey: .setup)
+        series = try c.decode([SeriesRecord].self, forKey: .series)
+        lightCheck = try c.decodeIfPresent(LightCheck.self, forKey: .lightCheck)
+        status = try c.decode(PassStatus.self, forKey: .status)
+        shots = try c.decodeIfPresent([ShotRecord].self, forKey: .shots) ?? []
+        vision = try c.decodeIfPresent(VisionStats.self, forKey: .vision)
     }
 
     /// Nästa seriens nummer (1, 2, …).
