@@ -4,15 +4,15 @@
 // riktiga svingar, CLAUDE.md: Dataregeln):
 //   steg 6  klippet: appens passthrough-export kring ett klick, och klicket mätt i
 //           klippet stämmer med den vita rutan i klippet inom en ruta;
-//   steg 7  appens Vision-körning (PoseRunner) på klippet: varje ruta avkodas och går
-//           genom VNDetectHumanBodyPoseRequest utan fel, och en film utan människa ger
-//           en JointSeries med alla leder saknade;
+//   steg 7  appens Vision-körning (PoseRunner) på klippet: varje ruta avkodas och når
+//           Vision-anropet med sin tid och orientering, en körning utan personer ger en
+//           JointSeries med alla leder saknade, och Visions eget fel stoppar analysen synligt;
 //   kedjan  appens hela analys (Analysis) på ett pass ur filmen, med PÅHITTADE leder i
 //           Visions ställe (PoseSource, DemoLeder): domen, lederna på disk, klippen,
 //           passet, återupptagningen efter ett avbrott och Johannes ändrade dom.
-// Vision hittar ingen person i en genererad film (provet ritar också en siluett och
-// skriver vad Vision ser i den). VISIONS LEDER SJÄLVA PROVAS BARA PÅ TELEFONEN (T2,
-// METOD MS12). Bilden av listan ritas till /tmp/swinglab_prov/slag.png.
+// Vision går inte att starta i simulatorn (kod 9, även på CPU); steg 7 prövar därför
+// läsningen kring anropet, att Visions fel syns och att inget sväljs. VISIONS LEDER
+// SJÄLVA PROVAS BARA PÅ TELEFONEN (T2, METOD MS12). Bilden av listan ritas till /tmp/swinglab_prov/slag.png.
 
 import XCTest
 import AVFoundation
@@ -108,10 +108,26 @@ final class SwingLabProvSlag: XCTestCase {
 
     // MARK: Steg 7 — Vision på klippet
 
-    /// Appens Vision-körning på ett klipp utan människa: varje ruta går genom Vision utan
-    /// fel och ingen person hittas, så att lederna blir en serie med alla leder saknade
-    /// (S2_SPEC §10.2 steg 7). Tiden per ruta i simulatorn skrivs ut men säger inget om
-    /// telefonen (METOD MS12).
+    /// Rutorna som nådde Vision-anropet: den lagrade bildens storlek och orienteringen.
+    final class RutLogg: @unchecked Sendable {
+        private let lock = NSLock()
+        private(set) var rutor: [(w: Int, h: Int, o: CGImagePropertyOrientation)] = []
+        func add(_ sb: CMSampleBuffer, _ o: CGImagePropertyOrientation) {
+            let pb = CMSampleBufferGetImageBuffer(sb)
+            lock.withLock {
+                rutor.append((pb.map(CVPixelBufferGetWidth) ?? 0, pb.map(CVPixelBufferGetHeight) ?? 0, o))
+            }
+        }
+    }
+
+    /// Steg 7 (S2_SPEC §10.2). Vision går inte att starta i simulatorn: `perform` kastar
+    /// "Unable to setup request" (Vision kod 9), även på CPU (uppmätt 2026-10-22). Provet
+    /// prövar därför (a) appens läsning kring Vision-anropet på klippet: varje ruta i
+    /// fönstret, med sin egen tid, den lagrade bilden och orienteringen 6, når anropet, och
+    /// en körning utan personer ger en serie med alla leder `null`; (b) Vision självt, som
+    /// i simulatorn ska kasta ett Vision-fel; och (c) att felet inte sväljs: analysen
+    /// stannar på första slaget, visar felet och sparar ingen dom. Visions leder provas på
+    /// telefonen (T2). METOD MS12
     func testSteg7VisionPaKlippet() async throws {
         let film = try tmp("vision-film.mov")
         try await SyntheticMovie.write(to: film, sound: .lpcm)
@@ -122,68 +138,73 @@ final class SwingLabProvSlag: XCTestCase {
         let antal = try await MediaReader.frameTimes(klipp).count
         let req = PoseScanRequest(file: klipp, from: 0, to: 1.5, stride: 1, exif: geo.exif,
                                   uprightWidth: upp.width, uprightHeight: upp.height)
-        do {
-            let enheter = try VNDetectHumanBodyPoseRequest().supportedComputeStageDevices
-            print("PROV: vision enheter i simulatorn \(enheter.map { "\($0.key.rawValue): \($0.value.map { "\($0)" })" })")
-        } catch {
-            print("PROV: vision enheter: fel \(error)")
-        }
-        let scan: PoseScan
-        do {
-            scan = try await VisionPoseSource().scan(req) { _ in }
-        } catch {
-            print("PROV: vision fel \(error)")
-            throw error
-        }
-        let personer = scan.frames.reduce(0) { $0 + $1.candidates.count }
+
+        // (a) Läsningen kring anropet.
+        let logg = RutLogg()
+        let utanVision = VisionPoseSource(makeDetect: { () -> VisionPoseSource.Detect in
+            { sb, o in
+                logg.add(sb, o)
+                return []
+            }
+        })
+        let scan = try await utanVision.scan(req) { _ in }
         let series = PoseTrack.series(scan.frames, click: 1.0 - 0.5, width: upp.width, height: upp.height)
-        print("PROV: vision \(scan.frames.count) rutor analyserade av \(scan.decodedFrames) avkodade (\(antal) i klippet), "
-              + "\(personer) personer, \(String(format: "%.1f", scan.visionSeconds / Double(max(1, scan.frames.count)) * 1000)) "
-              + "ms/ruta i simulatorn, exif \(geo.exif), upprätt \(upp.width)×\(upp.height)")
+        print("PROV: steg 7 läsningen: \(scan.frames.count) rutor till anropet av \(scan.decodedFrames) avkodade "
+              + "(\(antal) i klippet), lagrad \(logg.rutor.first.map { "\($0.w)×\($0.h)" } ?? "-"), "
+              + "orientering \(logg.rutor.first.map { "\($0.o.rawValue)" } ?? "-"), upprätt \(upp.width)×\(upp.height)")
         XCTAssertEqual(geo.exif, 6)
         XCTAssertEqual(scan.decodedFrames, antal, "varje ruta i fönstret avkodas")
-        XCTAssertEqual(scan.frames.count, antal, "varje ruta går genom Vision")
-        XCTAssertEqual(personer, 0, "ingen människa i en grå film")
+        XCTAssertEqual(scan.frames.count, antal, "varje ruta når Vision-anropet")
+        XCTAssertEqual(logg.rutor.count, antal)
+        XCTAssertTrue(logg.rutor.allSatisfy { $0.w == 480 && $0.h == 270 && $0.o == .right }, "den lagrade bilden, EXIF 6")
         XCTAssertEqual(series.frames.count, antal)
         XCTAssertTrue(series.frames.allSatisfy { $0.joints.count == 13 && $0.joints.allSatisfy { $0 == nil } })
         XCTAssertEqual(SwingCheck.verdict(series), .uncertain)
-        let sorterat = series.frames.map(\.pts)
-        XCTAssertEqual(sorterat, sorterat.sorted(), "rutorna med sina egna tider, i ordning")
+        let tider = series.frames.map(\.pts)
+        XCTAssertEqual(tider, tider.sorted(), "rutorna med sina egna tider, i ordning")
         XCTAssertEqual(series.frames.first?.t ?? .nan, -0.5, accuracy: 1.0 / 240 + 0.001)
 
-        // Undersökningen: hittar Vision en person i en ritad siluett? Skrivs bara ut.
-        let siluett = Self.siluett(bredd: 540, hojd: 960)
+        // (b) Vision självt.
+        var visionFel: NSError?
         do {
-            let r = try VisionPoseSource.request()
-            try VNImageRequestHandler(cgImage: siluett, orientation: .up, options: [:]).perform([r])
-            let obs = r.results ?? []
-            print("PROV: vision i en ritad siluett: \(obs.count) personer, konfidens \(obs.map { String(format: "%.2f", $0.confidence) })")
+            let v = try await VisionPoseSource().scan(req) { _ in }
+            let personer = v.frames.reduce(0) { $0 + $1.candidates.count }
+            print("PROV: steg 7 Vision körde i simulatorn: \(v.frames.count) rutor, \(personer) personer")
+            XCTAssertEqual(v.frames.count, antal)
+            XCTAssertEqual(personer, 0, "ingen människa i en grå film")
         } catch {
-            print("PROV: vision i en ritad siluett: fel \(error)")
+            let ns = error as NSError
+            visionFel = ns
+            print("PROV: steg 7 Vision i simulatorn: \(ns.domain) kod \(ns.code): \(ns.localizedDescription)")
+            XCTAssertEqual(ns.domain, VNErrorDomain, "ett Vision-fel, inte ett annat")
         }
-    }
 
-    /// En ljus, stående siluett på mörk botten (bara provdata; BESLUT B13 gäller vyerna).
-    static func siluett(bredd: Int, hojd: Int) -> CGImage {
-        let ctx = CGContext(data: nil, width: bredd, height: hojd, bitsPerComponent: 8, bytesPerRow: 0,
-                            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        ctx.setFillColor(CGColor(gray: 0.2, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: bredd, height: hojd))
-        ctx.setFillColor(CGColor(gray: 0.85, alpha: 1))
-        ctx.setStrokeColor(CGColor(gray: 0.85, alpha: 1))
-        ctx.setLineCap(.round)
-        let w = Double(bredd), h = Double(hojd)
-        func p(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: x * w, y: (1 - y) * h) }  // y uppåt i bilden ned
-        ctx.fillEllipse(in: CGRect(x: 0.45 * w, y: (1 - 0.22) * h, width: 0.1 * w, height: 0.075 * h))
-        ctx.setLineWidth(CGFloat(0.09 * w))
-        ctx.strokeLineSegments(between: [p(0.5, 0.27), p(0.5, 0.52)])                     // bålen
-        ctx.setLineWidth(CGFloat(0.045 * w))
-        ctx.strokeLineSegments(between: [p(0.45, 0.28), p(0.38, 0.42), p(0.38, 0.42), p(0.47, 0.50),  // armarna
-                                         p(0.55, 0.28), p(0.60, 0.42), p(0.60, 0.42), p(0.52, 0.50)])
-        ctx.setLineWidth(CGFloat(0.06 * w))
-        ctx.strokeLineSegments(between: [p(0.47, 0.52), p(0.44, 0.70), p(0.44, 0.70), p(0.43, 0.88),  // benen
-                                         p(0.53, 0.52), p(0.56, 0.70), p(0.56, 0.70), p(0.57, 0.88)])
-        return ctx.makeImage()!
+        // (c) Analysen med Vision på ett pass ur filmen: felet syns och ingen dom sparas.
+        let rot = try tmp("vision-pass-\(UUID().uuidString)")
+        let store = Store(root: rot, exportFolder: rot.appending(path: "Export"))
+        var pass = store.newPass(setup: PassSetup(view: .fo, club: "j7", distance: 3, hand: .hoger),
+                                 at: Date(timeIntervalSince1970: 1_792_848_612))
+        let fil = PassState.videoPath(nr: 1)
+        try await SyntheticMovie.write(to: store.url(fil, in: pass.id), sound: .lpcm)
+        pass.series.append(try await SeriesMaker.make(url: store.url(fil, in: pass.id), nr: 1, file: fil,
+                                                      source: .recording, club: "j7", start: pass.created,
+                                                      startHost: nil, microphone: nil))
+        store.save(pass)
+        let analys = Analysis()
+        await analys.run(passID: pass.id, store: store)
+        let efter = try XCTUnwrap(store.load(pass.id))
+        print("PROV: steg 7 analysen med Vision: \(analys.problem ?? "inget fel"), domar \(efter.shots.map { $0.verdict.map { "\($0)" } ?? "-" })")
+        XCTAssertEqual(efter.shots.count, 2)
+        if visionFel != nil {
+            XCTAssertNotNil(analys.problem, "felet syns i vyn")
+            XCTAssertEqual((analys.lastError as NSError?)?.domain, VNErrorDomain)
+            XCTAssertEqual(analys.stepsRun, [])
+            XCTAssertTrue(efter.shots.allSatisfy { $0.verdict == nil }, "ingen dom utan leder")
+            XCTAssertEqual(efter.status, .recorded)
+        } else {
+            XCTAssertNil(analys.problem)
+            XCTAssertTrue(efter.shots.allSatisfy { $0.verdict == .uncertain })
+        }
     }
 
     // MARK: Kedjan med påhittade leder

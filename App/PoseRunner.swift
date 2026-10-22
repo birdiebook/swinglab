@@ -1,6 +1,5 @@
 import AVFoundation
 import CoreMedia
-import CoreML
 import Foundation
 import ImageIO
 import Vision
@@ -30,6 +29,30 @@ struct VisionPoseSource: PoseSource {
         .leftHip, .rightHip, .leftKnee, .rightKnee, .leftAnkle, .rightAnkle,
     ]
 
+    /// Visions anrop på en ruta: personerna i den, orienterade så att de står upp.
+    typealias Detect = (CMSampleBuffer, CGImagePropertyOrientation) throws -> [VNHumanBodyPoseObservation]
+
+    /// Gör anropet för en körning. Standard är Vision (`vision()`). Simulatorprovet byter
+    /// det mot ett som räknar rutorna och svarar inga personer, eftersom Vision inte går
+    /// att starta i simulatorn (METOD MS12); läsningen runt omkring är densamma.
+    let makeDetect: () throws -> Detect
+
+    init(makeDetect: @escaping () throws -> Detect = VisionPoseSource.vision) {
+        self.makeDetect = makeDetect
+    }
+
+    /// `VNDetectHumanBodyPoseRequest` revision 1, en fråga per körning som återanvänds för
+    /// varje ruta (tillståndslös). I simulatorn kastar `perform` "Unable to setup request"
+    /// (Vision kod 9), även på CPU (simulatorprovet 2026-10-22). METOD MS12
+    static func vision() throws -> Detect {
+        let request = VNDetectHumanBodyPoseRequest()
+        request.revision = VNDetectHumanBodyPoseRequestRevision1
+        return { sb, orientation in
+            try VNImageRequestHandler(cmSampleBuffer: sb, orientation: orientation, options: [:]).perform([request])
+            return request.results ?? []
+        }
+    }
+
     func scan(_ r: PoseScanRequest, progress: @escaping @Sendable (Double) -> Void) async throws -> PoseScan {
         let asset = AVURLAsset(url: r.file)
         guard let track = try await asset.loadTracks(withMediaType: .video).first else { throw PoseError.noVideo }
@@ -45,7 +68,7 @@ struct VisionPoseSource: PoseSource {
         guard reader.startReading() else { throw reader.error ?? PoseError.cannotRead }
 
         let orientation = CGImagePropertyOrientation(rawValue: r.exif) ?? .up
-        let request = try Self.request()                        // tillståndslös, återanvänds
+        let detect = try makeDetect()
         let stride = max(1, r.stride)
         let span = max(r.to - r.from, 1e-6)
         let start = Date()
@@ -65,9 +88,7 @@ struct VisionPoseSource: PoseSource {
                 defer { k += 1 }
                 guard k % stride == 0 else { return }
                 let v0 = Date()
-                let handler = VNImageRequestHandler(cmSampleBuffer: sb, orientation: orientation, options: [:])
-                try handler.perform([request])
-                let candidates = try (request.results ?? []).map { try Self.frame($0, pts: t, r) }
+                let candidates = try detect(sb, orientation).map { try Self.frame($0, pts: t, r) }
                 visionSeconds += Date().timeIntervalSince(v0)
                 frames.append(ScannedFrame(pts: t, candidates: candidates))
                 if frames.count % 16 == 0 { progress(min(1, max(0, (t - r.from) / span))) }
@@ -76,23 +97,6 @@ struct VisionPoseSource: PoseSource {
         if reader.status == .failed { throw reader.error ?? PoseError.cannotRead }
         return PoseScan(frames: frames, decodedFrames: decoded, visionSeconds: visionSeconds,
                         wallSeconds: Date().timeIntervalSince(start))
-    }
-
-    /// Frågan, revision 1 (S2_SPEC §6.1). I simulatorn går den på CPU: där gav den annars
-    /// "Unable to setup request" (Vision kod 9, simulatorprovet 2026-10-22). På telefonen
-    /// väljer Vision själv (Neural Engine). METOD MS12
-    static func request() throws -> VNDetectHumanBodyPoseRequest {
-        let r = VNDetectHumanBodyPoseRequest()
-        r.revision = VNDetectHumanBodyPoseRequestRevision1
-        #if targetEnvironment(simulator)
-        let enheter = try r.supportedComputeStageDevices[VNComputeStage.main] ?? []
-        if let cpu = enheter.first(where: { if case .cpu = $0 { return true } else { return false } }) {
-            r.setComputeDevice(cpu, for: .main)
-        } else {
-            r.usesCPUOnly = true
-        }
-        #endif
-        return r
     }
 
     /// En observation till värden: punkterna per namn, normaliserade i den orienterade
