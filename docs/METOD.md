@@ -509,8 +509,10 @@ värden i `CaptureTests`.
   sin egen tid; en lucka över **1 ms** fylls med nollor och ett överlapp hoppas
   över (`AudioTimeline`), så att prov n ligger på första + n / 48 000 och klicken
   inte glider. Antalet prov är spårets, `floor((slut − första) · 48 000)`: kapat
-  eller utfyllt med nollor, så att varje läsning ger lika många (provat i
-  simulatorn med en lucka på 0,1 s). Omsamplat ljud (AAC 44,1 kHz stereo → 48 kHz
+  eller utfyllt med nollor, så att varje läsning ger lika många. Utfyllnaden
+  är provad på Linux (`AudioTimeline`); i simulatorn fyllde läsaren själv en
+  lucka på 0,1 s med tystnad, så appens egen utfyllnad är där bara provad
+  indirekt (klicken inom 0,5 ms). Omsamplat ljud (AAC 44,1 kHz stereo → 48 kHz
   mono) gav i simulatorn 153 548 och 153 549 prov i två läsningar av samma fil:
   bitarnas gränser följer proven, så telefonen och PC:n kan skilja i sista biten
   på ett omsamplat ljud. Klicken hamnade ändå inom 0,6 ms från de påhittade
