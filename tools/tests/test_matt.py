@@ -5,7 +5,7 @@ import unittest
 
 from _hjalp import M, mat, sving
 
-AVRUNDNING = 0.05      # samma som Swift mot Python
+FACIT = 0.05           # figurens tal mot mätningen: pixlarna avrundas, rutnätet har luckor
 TEMPO_BIAS = 0.15      # toppen 7–10 ms tidigt av utjämningen (METOD M4)
 HANDBANA = 0.15        # rutnätet och utjämningen när händerna rör sig 4–6 m/s (METOD M13)
 
@@ -19,7 +19,7 @@ class KandaTal(unittest.TestCase):
                 continue
             with self.subTest(matt=k):
                 self.assertIn(k, r["matt"])
-                self.assertAlmostEqual(r["matt"][k], v, delta=undantag.get(k, AVRUNDNING))
+                self.assertAlmostEqual(r["matt"][k], v, delta=undantag.get(k, FACIT))
         self.assertAlmostEqual(r["cm_per_px"], 1 / 4.0, delta=1e-4)
         self.assertEqual(set(r["matt"]), set(M.MATT[vy]))
 
@@ -31,8 +31,8 @@ class KandaTal(unittest.TestCase):
 
     def test_backen_sex_cm_bakat_vid_toppen(self) -> None:
         r = mat(vy="fo", sway=(0, -6, 8, 14))
-        self.assertAlmostEqual(r["matt"]["backen_sway_topp"], -6.0, delta=AVRUNDNING)
-        self.assertAlmostEqual(r["matt"]["backen_resa_framat"], 14.0, delta=AVRUNDNING)
+        self.assertAlmostEqual(r["matt"]["backen_sway_topp"], -6.0, delta=FACIT)
+        self.assertAlmostEqual(r["matt"]["backen_resa_framat"], 14.0, delta=FACIT)
 
     def test_andra_parametrar_och_annan_langd(self) -> None:
         andra = {"sway": (0, 3, 12, 15), "sidbojning": (10, -4, 30, 5), "armbage": (0, 40, 55, 80),
@@ -70,14 +70,14 @@ class Speglat(unittest.TestCase):
 class SaknadeLeder(unittest.TestCase):
     def test_kort_lucka_fylls(self) -> None:
         r = mat(vy="fo", dolj=[["hoft_v", 2.18, 2.205]])
-        self.assertAlmostEqual(r["matt"]["backen_sway_topp"], -6.0, delta=AVRUNDNING)
+        self.assertAlmostEqual(r["matt"]["backen_sway_topp"], -6.0, delta=FACIT)
 
     def test_lang_lucka_tar_bort_matten_i_fasen_men_inget_annat(self) -> None:
         r = mat(vy="dtl", dolj=[["hoft_v", 2.0, 2.4]])
         for k in ("backen_thrust_topp", "backen_lyft_topp", "brost_bojning_topp"):
             self.assertNotIn(k, r["matt"])
-        self.assertAlmostEqual(r["matt"]["backen_thrust_traff"], 3.0, delta=AVRUNDNING)
-        self.assertAlmostEqual(r["matt"]["bakre_kna_topp"], 30.0, delta=AVRUNDNING)  # bakre höften syns
+        self.assertAlmostEqual(r["matt"]["backen_thrust_traff"], 3.0, delta=FACIT)
+        self.assertAlmostEqual(r["matt"]["bakre_kna_topp"], 30.0, delta=FACIT)  # bakre höften syns
 
     def test_en_dold_handled_ersatts_av_den_andra(self) -> None:
         r = mat(vy="dtl", dolj=[["handled_v", 0.0, 9.9]])
@@ -101,6 +101,35 @@ class Brus(unittest.TestCase):
             self.assertAlmostEqual(r["matt"][k], facit[k], delta=0.5)
         for k in ("sidbojning_topp", "framre_armbage_topp", "hoftlinje_lutning_traff"):
             self.assertAlmostEqual(r["matt"][k], facit[k], delta=1.5)
+
+
+class Granserna(unittest.TestCase):
+    def test_lucka_langre_an_max_lucka_saknas_kortare_interpoleras(self) -> None:
+        r = mat(vy="fo", dolj=[["hoft_v", 2.135, 2.265], ["nasa", 2.175, 2.225]])
+        self.assertNotIn("backen_sway_topp", r["matt"])              # 0,13 s > MAX_LUCKA_S
+        self.assertAlmostEqual(r["matt"]["huvud_sway_topp"], -3.0, delta=FACIT)   # 0,05 s
+        self.assertAlmostEqual(r["matt"]["backen_sway_traff"], 8.0, delta=FACIT)
+
+    def test_konfidensen_precis_pa_gransen_raknas(self) -> None:
+        r = mat(vy="dtl", konf={"hoft_v": 0.3, "kna_h": 0.29})
+        self.assertAlmostEqual(r["matt"]["backen_thrust_traff"], 3.0, delta=FACIT)
+        for fz in ("adress", "topp", "traff"):
+            self.assertNotIn(f"bakre_kna_{fz}", r["matt"])
+
+    def test_kort_baksving_ger_ingen_start_och_inget_tempo(self) -> None:
+        r = mat(vy="dtl", start=1.95)
+        self.assertIsNone(r["faser"]["start"])
+        for k in ("tempo", "baksving_s", "nedsving_s"):
+            self.assertNotIn(k, r["matt"])
+        self.assertAlmostEqual(r["matt"]["backen_thrust_topp"], -2.0, delta=FACIT)  # adressen från toppen − 1,2 s
+
+    def test_armbagen_mats_mot_den_egna_handleden(self) -> None:
+        """Greppregeln ger händerna, inte armbågen (METOD M22, M23)."""
+        r = mat(vy="fo", dolj=[["handled_v", 0.0, 9.9]])
+        self.assertNotIn("framre_armbage_topp", r["matt"])
+        self.assertNotIn("framre_armbage_efter_traff", r["matt"])
+        self.assertIn("hander_fore_adress_traff", r["matt"])
+        self.assertIn("tempo", r["matt"])
 
 
 if __name__ == "__main__":

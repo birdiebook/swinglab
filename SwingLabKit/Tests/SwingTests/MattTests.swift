@@ -4,11 +4,19 @@ import XCTest
 /// Swift mot Python (BESLUT B12): samma påhittade leder ska ge samma tal.
 /// Facit är tools/pc/matt.py, skrivet i Fixturer.swift av tools/pc/generera.py --swift.
 final class MattTests: XCTestCase {
-    /// Spec: varje mått inom 0,05 från Pythons.
-    static let tolerans = 0.05
+    /// Samma algoritm ska ge samma tal: skillnaden får bara vara summeringsordningen
+    /// (numpy mot en loop), ≈ 1e-13. Relativt 1e-6 med ett absolut golv för tal nära 0.
+    static let relativ = 1e-6
+    static let golv = 1e-9
+    /// Tiderna (s): toppen och starten ur samma rutor och samma parabel.
+    static let tid = 1e-9
+
+    static func lika(_ a: Double, _ b: Double) -> Bool {
+        abs(a - b) <= relativ * Swift.max(abs(a), abs(b)) + golv
+    }
 
     func testVarjeSvingGerPythonsTal() throws {
-        XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka"])
+        XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort"])
         var jamforda = 0
         for f in Fixturer.svingar {
             let sving = try Sving.las(json: f.indata)
@@ -17,19 +25,19 @@ final class MattTests: XCTestCase {
             XCTAssertEqual(Set(r.matt.keys), Set(python.matt.keys), "\(f.namn): samma mått")
             for (k, v) in python.matt {
                 guard let s = r.matt[k] else { continue }
-                XCTAssertEqual(s, v, accuracy: Self.tolerans, "\(f.namn): \(k)")
+                XCTAssertTrue(Self.lika(s, v), "\(f.namn): \(k) Swift \(s) Python \(v)")
                 jamforda += 1
             }
-            XCTAssertEqual(r.cmPerPx, python.cmPerPx, accuracy: 1e-6 * python.cmPerPx, "\(f.namn): skalan")
-            XCTAssertEqual(r.faser.topp, python.faser.topp, accuracy: 0.001, "\(f.namn): toppen")
+            XCTAssertTrue(Self.lika(r.cmPerPx, python.cmPerPx), "\(f.namn): skalan")
+            XCTAssertEqual(r.faser.topp, python.faser.topp, accuracy: Self.tid, "\(f.namn): toppen")
             XCTAssertEqual(r.faser.traff, python.faser.traff, "\(f.namn): träffen")
             XCTAssertEqual(r.faser.start == nil, python.faser.start == nil, "\(f.namn): starten")
             if let a = r.faser.start, let b = python.faser.start {
-                XCTAssertEqual(a, b, accuracy: 0.001, "\(f.namn): starten")
+                XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): starten")
             }
         }
-        // Kvittot: testet jämförde verkligen måtten (FO 34, DTL 28, luckan 23: 119).
-        XCTAssertGreaterThan(jamforda, 110)
+        // Kvittot: testet jämförde verkligen måtten (34 + 32 + 28 + 23 + 29 + 22 = 168).
+        XCTAssertEqual(jamforda, 168)
     }
 
     func testDePahittadeFormerna() throws {
@@ -51,6 +59,31 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(v.hand, .vanster)
         XCTAssertEqual(v.matt["backen_sway_topp"]!, -6.0, accuracy: 0.5)      // − = bort från målet även här
         XCTAssertEqual(v.matt["sidbojning_traff"]!, 25.0, accuracy: 1.5)
+        // Den främre handleden är dold: greppregeln ger händerna men inte armbågen. METOD M22
+        XCTAssertNil(v.matt["framre_armbage_topp"])
+        XCTAssertNil(v.matt["framre_armbage_efter_traff"])
+        XCTAssertNotNil(v.matt["hander_fore_adress_traff"])
+    }
+
+    func testRaLuckaLangreAnMaxLuckaSaknas() throws {
+        // Höften 0,146 s rå lucka kring toppen, näsan 0,067 s. METOD M3
+        let r = try Matt.mat(Sving.las(json: Fixturer.svingar[4].indata))
+        XCTAssertNil(r.matt["backen_sway_topp"])
+        XCTAssertNotNil(r.matt["huvud_sway_topp"])
+        XCTAssertEqual(r.matt["huvud_sway_topp"]!, -3.0, accuracy: 0.5)
+    }
+
+    func testKortBaksvingGerIngenStartOchKonfidensensGrans() throws {
+        let s = try Sving.las(json: Fixturer.svingar[5].indata)
+        XCTAssertTrue(s.led(.hoftF).allSatisfy { $0.hel })            // konfidens 0,3: räknas
+        XCTAssertTrue(s.led(.knaB).allSatisfy { !$0.hel })            // 0,29: saknas
+        let r = try Matt.mat(s)
+        XCTAssertNil(r.faser.start)                                    // baksvingen 0,25 s
+        XCTAssertNil(r.matt["tempo"])
+        XCTAssertNil(r.matt["baksving_s"])
+        XCTAssertNil(r.matt["bakre_kna_adress"])
+        XCTAssertEqual(r.matt["backen_thrust_traff"]!, 3.0, accuracy: 0.5)
+        XCTAssertEqual(r.faser.adressTill, r.faser.topp - Faser.toppAdressS - 0.10, accuracy: 1e-12)
     }
 
     func testLangLuckaTarBortMattenIFasen() throws {

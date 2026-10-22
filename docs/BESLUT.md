@@ -114,7 +114,7 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   `Fixtures.swift`).
 - **Bortvalt:** en gemensam kärna (C eller Python i appen): fler beroenden i
   appen och ingen vinst så länge måtten är få och enkla.
-- **Kostnad:** två implementationer att hålla i takt; fixturfilen är ≈ 0,7 MB.
+- **Kostnad:** två implementationer att hålla i takt; fixturfilen är ≈ 1 MB.
 - **Omprövas:** om måtten växer så att dubbelskrivningen kostar mer än den ger.
 
 ## B13 — Formspråket: svart och vitt, datan bär, ingen figur
