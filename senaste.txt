@@ -1,20 +1,20 @@
-b1725b01ea9d4b5b73ac800f1c6ae771aa58e88b s2f 2026-10-22T21:54:24Z run 39860749800
+d4d164d45d5268869a8c6a64a967157b1c235374 s1b 2026-10-22T21:57:22Z run 39861106002
 == swift-release
-GRÖNT: 185 test, 0 fel, 6 s i testerna, bygget 38 s
-Långsammast (av 185):
-      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+GRÖNT: 178 test, 0 fel, 6 s i testerna, bygget 50 s
+Långsammast (av 178):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
+      0.2 s  MattTests.testPositionernaIOrdning
       0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
-      0.1 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
+      0.2 s  FormatTests.testFixturernaGarAttLasa
       0.1 s  MatningTests.testSammaSomFilformatet
-      0.1 s  KatalogTests.testEttFaltSomSaknasFalls
-      0.1 s  VardenaTests.testLjusprovetsDom
-      0.1 s  KlickTests.testParningenSomPython
-      0.1 s  KatalogTests.testSwayVidToppen
-      0.1 s  InspelningTests.testKvittot
-      0.1 s  InspelningTests.testImportenVagrarEnOmraknadFil
-      0.1 s  VardenaTests.testTiderSomKodasTillJSON
+      0.1 s  MattTests.testTillaggenMotSportsbox
+      0.1 s  MattTests.testVansterspelarenRaknasSomHoger
+      0.1 s  VisningTests.testS5sExempelGarAttLasa
+      0.1 s  MatningTests.testGamlaFilerGarAttLasa
+      0.1 s  FormatTests.testRutornaSorterasPaTiden
 
