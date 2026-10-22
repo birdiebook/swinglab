@@ -1,22 +1,34 @@
-51a3eb795e649b1b56fc4f79264feb5cebfa8e6b s4-vyn 2026-10-22T13:29:32Z run 39786864064 kompilera
+31507106c40fb60d1a01968feb769c7361a1e5b0 s2cd 2026-10-22T13:36:31Z run 39786928327 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 8 test, 1 fel, 4 s i testerna
-  fel: SwingLabProvVyer.testAttJobbaPa
-Långsammast (av 8):
+GRÖNT: 10 test, 0 fel, 22 s i testerna
+Långsammast (av 10):
+      5.3 s  SwingLabProvInspelning.testFilmenMedAAC
+      3.7 s  SwingLabProvInspelning.testLuckaILjudet
+      3.5 s  SwingLabProvInspelning.testFilmenMedLPCM
+      2.9 s  SwingLabProvInspelning.testLjusprovetsLasning
+      2.7 s  SwingLabProvInspelning.testKvittotUrFilen
+      2.6 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
       1.2 s  SwingLabProv.testAppenStartarMedStartvyn
-      1.2 s  SwingLabProvVyer.testAttJobbaPa
-      0.6 s  SwingLabProvVyer.testPasset
-      0.4 s  SwingLabProvVyer.testGranskning
-      0.2 s  SwingLabProvVyer.testIdag
-      0.2 s  SwingLabProvVyer.testUtveckling
+      0.1 s  SwingLabProvInspelning.testLagringen
       0.0 s  SwingLabProv.testSwingLabKitLankat
       0.0 s  SwingLabProv.testInfoPlist
 
-2026-10-22 13:29:00.830195+0000 SwingLab[5058:21340] [SwingLab] handle_write_error:113: zlib error
-2026-10-22 13:29:00.831573+0000 SwingLab[5058:21340] [SwingLab] handle_write_error:113: No IDATs written into file
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVyer.swift:90: error: -[SwingLabProv.SwingLabProvVyer testAttJobbaPa] : XCTUnwrap failed: expected non-nil value of type "Data"
-** TEST FAILED **
+** TEST SUCCEEDED **
+== provets mätningar (påhittad film)
+PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
+PROV: aac i filen aac 44100.0 Hz 2 kanaler
+PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm första tiderna ["0.000000", "0.005000", "0.013333", "0.016667", "0.025000", "0.030000", "0.038333", "0.041667", "0.050000", "0.055000", "0.063333", "0.066667"]
+PROV: lpcm stegen i 10 µs: ["333×128", "500×128", "833×255"]
+PROV: lpcm rutor 512, rutnät 240.0, saknas 0.3324641460234681, största hål 0.008333333333333748
+PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
+PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
+PROV: lpcm ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
+PROV: kvitto Bilder/s 240 · Tappade 33 % · Rutor 512 · Klick 2 · MB/min 7 · Längd 0:03
+PROV: ljusprov ISO 800 good · Flimmer 0,5 % good · Rutor 240 bilder/s, 33 % tappade tooDark · Ljushet 50 % good
+PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
