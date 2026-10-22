@@ -13,17 +13,30 @@ public struct PassSetup: Codable, Equatable, Sendable {
     /// Bollen till telefonen, m. Ger träffen ur klicket (METOD MS6).
     public var distance: Double
     public var hand: Hand
+    /// Ensam, styr eller följ (S2g, S2_SPEC §7.1). BESLUT B21
+    public var role: LinkRole
 
     public init(view: Vy = .dtl, club: String = "j7", distance: Double = PassSetup.standardDistance,
-                hand: Hand = .hoger) {
+                hand: Hand = .hoger, role: LinkRole = .solo) {
         self.view = view
         self.club = club
         self.distance = distance
         self.hand = hand
+        self.role = role
     }
 
     enum CodingKeys: String, CodingKey {
-        case view = "vy", club = "klubba", distance = "avstand_m", hand = "spelhand"
+        case view = "vy", club = "klubba", distance = "avstand_m", hand = "spelhand", role = "roll"
+    }
+
+    /// Ett pass från före S2g saknar rollen: det var ensamt.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        view = try c.decode(Vy.self, forKey: .view)
+        club = try c.decode(String.self, forKey: .club)
+        distance = try c.decode(Double.self, forKey: .distance)
+        hand = try c.decode(Hand.self, forKey: .hand)
+        role = try c.decodeIfPresent(LinkRole.self, forKey: .role) ?? .solo
     }
 
     /// Standardavståndet, m (S2_SPEC §4.4). METOD MS6
