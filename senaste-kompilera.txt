@@ -1,26 +1,26 @@
-7493c342e7b030aac197904b7df0440c2cd63469 main 2026-10-22T18:58:18Z run 39834230901 kompilera
+34d82556449476e4bdbfbeae2b914e759bd6b87f s2i 2026-10-22T19:01:48Z run 39835599888 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 20 test, 0 fel, 42 s i testerna
+GRÖNT: 20 test, 0 fel, 50 s i testerna
 Långsammast (av 20):
-     11.0 s  SwingLabProvInspelning.testFilmenMedAAC
-      4.7 s  SwingLabProvInspelning.testKvittotUrFilen
-      4.3 s  SwingLabProvInspelning.testFilmenMedLPCM
-      3.6 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      3.6 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      2.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      2.8 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      2.4 s  SwingLabProvInspelning.testLjusprovetsLasning
-      2.3 s  SwingLabProvInspelning.testLuckaILjudet
-      1.7 s  SwingLabProvSlag.testSteg6Klippet
+     13.8 s  SwingLabProvInspelning.testFilmenMedAAC
+      6.3 s  SwingLabProvSlag.testSteg6Klippet
+      5.1 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      4.0 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      3.7 s  SwingLabProvInspelning.testLuckaILjudet
+      3.5 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.3 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      3.3 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      2.4 s  SwingLabProvInspelning.testKvittotUrFilen
+      2.2 s  SwingLabProvInspelning.testLjusprovetsLasning
       1.3 s  SwingLabProv.testAppenStartarMedStartvyn
-      0.6 s  SwingLabProvVyer.testAttJobbaPa
+      0.5 s  SwingLabProvVyer.testAttJobbaPa
       0.4 s  SwingLabProvVyer.testPasset
+      0.3 s  SwingLabProvVyer.testUtveckling
       0.3 s  SwingLabProvVyer.testGranskning
-      0.2 s  SwingLabProvVyer.testUtveckling
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
