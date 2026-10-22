@@ -84,7 +84,7 @@
    "vy": "fo",
    "matt": "backen_resa_framat",
    "fas": "traff",
-   "positioner": ["P7"],
+   "positioner": [],
    "gront": null,
    "gult": null,
    "kalla": "https://www.golftec.co.za/swingtru",
@@ -237,9 +237,9 @@
   {"matt": "stans_bredd", "vy": "fo", "positioner": ["P1"]},
   {"matt": "axellinje_lutning_adress", "vy": "fo", "positioner": ["P1"]},
   {"matt": "hoftlinje_lutning_adress", "vy": "fo", "positioner": ["P1"]},
-  {"matt": "backen_sway_p3", "vy": "fo", "positioner": ["P3"]},
+  {"matt": "backen_sway_p3", "vy": "fo", "positioner": ["P3"], "fel": "sway_topp"},
   {"matt": "framre_armbage_p3", "vy": "fo", "positioner": ["P3"]},
-  {"matt": "backen_resa_p5", "vy": "fo", "positioner": ["P5"]},
+  {"matt": "backen_resa_p5", "vy": "fo", "positioner": ["P5"], "fel": "backens_resa_framat"},
   {"matt": "hander_fore_adress_traff", "vy": "fo", "positioner": ["P7"]},
   {"matt": "huvud_backen_finish", "vy": "fo", "positioner": ["P10"]}
  ]

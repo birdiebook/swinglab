@@ -314,32 +314,52 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   **P10 Finish** = finishens fönster (M4, tiden i mitten). P2, P6 och P8
   definieras av klubbskaftet och kommer med S7. **tränare** (P-systemet, 10
   positioner), **antagande** (hur de mäts ur lederna).
-- **Armens vinkel** α: linjen axel → den **egna** handleden mot vågrätt i bildens
-  plan, grader, **+ = handleden över axeln**. Riktningen i x räknas inte
-  (`atan2(Δhöjd, |Δx|)`), så vågrät åt båda hållen. Lederna är de utjämnade (M3),
-  och handleden är armens egen: greppregeln (M1) ersätter inte en dold handled,
-  så en dold handled ger ingen position (som armbågarna, M22). Främre armen är
-  vänsterarmen för en högerspelare, och en vänsterspelare speglas (M1).
-- **Vågrät** = α passerar **0°**: uppåt när α0 < 0 ≤ α1, nedåt när α0 ≥ 0 > α1,
-  mellan två rutor i följd där armen syns, linjärt mellan dem. Över en rå lucka
-  längre än **0,10 s** räknas ingen passage (M3).
-  - **P3:** främre armen, den **sista** passagen uppåt från adressens slut till
-    toppen (efter den står armen över vågrätt till toppen).
-  - **P5:** främre armen, den **första** passagen nedåt från toppen till träffen.
+- **Armen vågrät:** linjen axel → den **egna** handleden har vinkeln 0 mot
+  vågrätt i bildens plan, åt vilket håll armen än pekar. Det mäts som
+  **höjden** h = axelns y − handledens y (px, y nedåt, **+ = handleden över
+  axeln**), och nollstället interpoleras linjärt på h mellan två rutor i följd
+  där armen syns: uppåt när h0 < 0 ≤ h1, nedåt när h0 ≥ 0 > h1. Inte på
+  vinkeln: atan böjer kurvan när armen är kort i bild (|Δx| litet, som
+  bakifrån), och vinkeln gav där upp till 6,4 ms fel (granskningen, DTL P5).
+  Lederna är de utjämnade (M3), och handleden är armens egen: greppregeln (M1)
+  ersätter inte en dold handled, så en dold handled ger ingen position (som
+  armbågarna, M22). Över en rå lucka längre än **0,10 s** räknas ingen passage
+  (M3). Främre armen är vänsterarmen för en högerspelare, och en vänsterspelare
+  speglas (M1).
+  - **P3:** främre armen, den **sista** passagen uppåt från adressens slut, där
+    rutparet får gå över toppen (första rutan senast vid toppen).
+  - **P5:** främre armen, den **första** passagen nedåt till träffen, där
+    rutparet får gå över toppen (andra rutan tidigast vid toppen).
   - **P9:** bakre armen, den **första** passagen uppåt från träffen till
     finishens fönster (träffen + **1,0 s**).
-  - Blir armen aldrig vågrät i fönstret **saknas positionen**, och måtten vid
-    den (M29). Den gissas aldrig.
-  **antagande** (P-systemets definition "armen parallell med marken", mätt i
-  bildens plan).
+- **Rutparet över toppen** (valt framför "P5 bara om P3 finns"): armen och
+  händerna når inte sin högsta punkt samtidigt, så armen kan passera vågrätt
+  mellan rutan före och rutan efter toppen. Utan regeln tappas den passagen
+  helt: ett par uppåt gav varken P3 eller P5 (armen syns redan under vågrätt
+  efter toppen), och ett par nedåt tappade P5. Med regeln hör ett par uppåt till
+  P3 och ett nedåt till P5, så P3 kan ligga upp till en ruta efter toppen och P5
+  upp till en ruta före. Det är sant om armen; ordningen P3 < P4 < P5 gäller
+  därför inom en ruta. **antagande.**
+- **Ingen passage gissas över en lucka:** P3 saknas om armen syns under
+  vågrätt i någon ruta mellan P3 och toppen, P5 om den syns under vågrätt
+  mellan toppen och P5, och P9 om bakre armen syns vid eller över vågrätt
+  mellan träffen och P9. Då gick armen över vågrätt i en lucka längre än
+  0,10 s, och den synliga passagen är inte den rätta. Blir armen aldrig
+  vågrät **saknas positionen**, och måtten vid den (M29). **antagande**
+  (P-systemets "armen parallell med marken", mätt i bildens plan).
 - **Vyn:** samma definition i båda vyerna. Framifrån (FO) ligger armen nära
-  bildens plan i P3, P5 och P9, så FO är bäst; bakifrån (DTL) är armen förkortad
-  och vinkeln i bild en annan än i rummet. När båda telefonerna filmar samma
-  sving tas tiderna ur FO (väntar på parningen slag för slag, MT9). **antagande.**
-- **Uppmätt på påhittade svingar** (40 frön per vy, med och utan 0,8 px brus):
-  ingen bias (medel under 0,6 ms), sd 1,2–2,0 ms, största felet 3,1–4,4 ms, alltså
-  oftast inom en ruta (4,2 ms vid 240 bilder/s). Felet kommer från luckorna, som
-  gör utjämningens vikter osymmetriska (M3); utan utjämning är felet under 0,2 ms.
+  bildens plan i P3, P5 och P9, bakifrån (DTL) är den förkortad. **FO har
+  företräde** för positionstiderna när båda telefonerna filmar samma sving; DTL:s
+  egna tider används bara när FO saknas, och märks då ungefärliga (BESLUT B32,
+  ledarens beslut 2026-10-22). Parningen slag för slag väntar (MT9).
+  **antagande.**
+- **Uppmätt på påhittade svingar** (frön 0–79 per vy, mot figurens exakta tid):
+  ingen bias (|medel| ≤ 0,6 ms). Utan brus och med 0,8 px brus sd 1,2–1,9 ms och
+  största felet 3,0–4,8 ms, alltså oftast inom en ruta (4,2 ms vid 240
+  bilder/s); med 2 px brus sd 1,4–3,8 ms och största 3,6–9,7 ms. Felet kommer
+  från luckorna, som gör utjämningens vikter osymmetriska (M3). Provat:
+  `fo_lucka_arm` (handleden borta med rå lucka 0,096 s kring P3: interpoleras;
+  0,104 s kring P5: P5 saknas).
 
 ## M29 — Måtten vid positionerna
 
@@ -348,22 +368,31 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   fas behåller sina namn (`_adress` = P1, `_topp` = P4, `_traff` = P7,
   `_finish` = P10). Nya, alla FO och alla med egen baslinje (**antagande**):
 - `backen_sway_p3`: bäckenets sway (M15) vid P3, cm, + mot målet: "sway
-  hittills".
-- `framre_armbage_p3`: främre armbågens böjning (M22) vid P3, grader, 0 = rak
-  arm: vänsterarmen för en högerspelare. Samma tecken som vid toppen; skissen
-  visar armens inre vinkel (180 − böjningen).
+  hittills". Hör till felet `sway_topp` (accenten följer, BESLUT B31).
+- `framre_armbage_p3`: främre armbågens böjning (M22) vid P3, grader, **0 =
+  rak arm**: vänsterarmen för en högerspelare. Vänsterarmen visas som böjning
+  med 0 = rak, vid P3 och P4, inte som skissens inre vinkel (ledarens beslut
+  2026-10-22).
 - `backen_resa_p5`: bäckenets X vid P5 − vid toppen, cm, + mot målet: "resa
-  framåt hittills" (M21 räknat till P5 i stället för träffen).
+  framåt hittills" (M21 räknat till P5 i stället för träffen). Hör till felet
+  `backens_resa_framat`.
 - `huvud_backen_finish`: näsans X − höftmittens X i finishens fönster, cm, + =
   huvudet mot målet om bäckenet. Ett läge, ingen förflyttning: framifrån står
   huvudet i adressen ungefär över bäckenet. Ingen källa med samma definition.
 - **Kopplingen mått → position** står i `katalog.json` (BESLUT B32,
   docs/FORMAT.md): varje fel har `positioner`, och listan `matt` bär måtten som
-  granskningen visar utan att de är fel. Kopplingen följer skissen
-  (`design/skiss.html`, `PM`). Chicken wing (M23) visas vid P9 men räknas
-  fortfarande över träffen +0,05…+0,15 s, inte i P9:s ögonblick. Tempot har
-  ingen position (`[]`, hela svingen). Bäckenets vridning och höfterna öppna
-  (skissens "2 kameror") kommer med S6.
+  granskningen visar utan att de är fel, med `fel` när måttet hör till ett fel
+  (så att accenten följer med). Kopplingen följer skissen (`design/skiss.html`,
+  `PM`), med två undantag och ett tillägg:
+  - **Resan** visas vid P5, som måttet hittills; felet `backens_resa_framat`
+    (resan till träffen) har därför ingen egen position (`[]`), som tempot.
+  - **Tappad hållning** (`brost_bojning_tapp`, adressen − träffen) visas vid P7,
+    där felet syns. Skissen har den inte; det är en avvikelse mot skissen.
+  - **Chicken wing** (M23) visas vid P9 men räknas fortfarande över träffen
+    +0,05…+0,15 s, inte i P9:s ögonblick, och vyn märker det "efter träffen"
+    (felets `fas: efter_traff`) tills P8 kommer med S7 (ledarens beslut
+    2026-10-22).
+  - Bäckenets vridning och höfterna öppna (skissens "2 kameror") kommer med S6.
 - Uppmätt på påhittade svingar: inom 0,05 cm och 0,05° från figurens tal.
 
 ---

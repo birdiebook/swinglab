@@ -81,6 +81,11 @@ class Fixturerna(unittest.TestCase):
         for namn in ("fo", "dtl", "dtl_vanster"):
             self.assertTrue(all(v is not None for v in json.loads(self.f["svingar"][namn][1])["positioner"].values()))
         self.assertEqual(s["dtl_vanster"].hand, "vanster")
+        lucka = json.loads(self.f["svingar"]["fo_lucka_arm"][1])
+        self.assertIsNotNone(lucka["positioner"]["P3"])            # rå lucka 0,096 s: interpoleras
+        self.assertIsNone(lucka["positioner"]["P5"])               # 0,104 s: saknas (METOD M3, M28)
+        self.assertNotIn("backen_resa_p5", lucka["matt"])
+        self.assertIn("backen_sway_p3", lucka["matt"])
 
     def test_sessionen_stammer(self) -> None:
         s = json.loads(self.f["session"])

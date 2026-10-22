@@ -90,7 +90,8 @@ class Saknas(unittest.TestCase):
         self.assertIsNotNone(r["positioner"]["P9"])
 
     def test_lang_lucka_vid_passagen(self) -> None:
-        """Handleden borta 0,2 s kring P3: ingen interpolation över luckan (METOD M3)."""
+        """Handleden borta 0,2 s kring P3: ingen interpolation över luckan (METOD M3).
+        Fixturen fo_lucka_arm prövar gränsen 0,10 s (test_fixturer)."""
         _, facit = sving(vy="fo")
         p3 = facit["_positioner"]["P3"]
         r = mat(vy="fo", dolj=[["handled_v", p3 - 0.1, p3 + 0.1]])
@@ -102,23 +103,66 @@ class Passagerna(unittest.TestCase):
     T = np.array([0.0, 0.01, 0.02, 0.03, 0.04, 0.2, 0.21])
 
     def test_linjart_mellan_rutorna_och_lika_med_noll(self) -> None:
-        a = np.array([-2.0, -1.0, 1.0, 0.0, -1.0, 1.0, 2.0])
-        self.assertEqual(PO.passager(self.T, a, 0.0, 0.1, uppat=True), [0.015])
-        self.assertEqual(PO.passager(self.T, a, 0.0, 0.1, uppat=False), [0.03])   # 0 räknas som vågrät
-        self.assertEqual(PO.passager(self.T, a, 0.0, 0.3, uppat=True), [0.015])   # luckan 0,16 s räknas inte
-        a2 = a.copy()
-        a2[2] = np.nan
+        h = np.array([-2.0, -1.0, 1.0, 0.0, -1.0, 1.0, 2.0])
+        p = PO.passager(self.T, h, 0.0, 0.1)
+        self.assertEqual([(x[0], x[3]) for x in p], [(0.015, True), (0.03, False)])   # 0 räknas som vågrät
+        self.assertEqual(len(PO.passager(self.T, h, 0.0, 0.3)), 2)                    # luckan 0,16 s räknas inte
+        h2 = h.copy()
+        h2[2] = np.nan
         # Utan rutan 0,02: −1 → 0 är en passage uppåt, och 0 → −1 en nedåt, båda vid 0,03.
-        self.assertEqual(PO.passager(self.T, a2, 0.0, 0.1, uppat=True), [0.03])
-        self.assertEqual(PO.passager(self.T, a2, 0.0, 0.1, uppat=False), [0.03])
+        self.assertEqual([(x[0], x[3]) for x in PO.passager(self.T, h2, 0.0, 0.1)], [(0.03, True), (0.03, False)])
 
-    def test_vinkeln(self) -> None:
+    def test_hojden(self) -> None:
         axel = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
-        hand = np.array([[-10.0, -10.0], [10.0, 10.0], [np.nan, 1.0]])            # y nedåt
-        a = PO.armens_vinkel(axel, hand)
-        self.assertAlmostEqual(a[0], 45.0)
-        self.assertAlmostEqual(a[1], -45.0)
-        self.assertTrue(np.isnan(a[2]))
+        hand = np.array([[-10.0, -4.0], [10.0, 10.0], [np.nan, 1.0]])               # y nedåt
+        h = PO.armens_hojd(axel, hand)
+        self.assertEqual(list(h[:2]), [4.0, -10.0])
+        self.assertTrue(np.isnan(h[2]))
+
+    @staticmethod
+    def faser(topp: float = 1.0, traff: float = 1.5) -> F.Faser:
+        return F.Faser(start=0.3, topp=topp, traff=traff, adress=(-0.1, 0.2), finish=(2.5, 2.7))
+
+    T2 = np.round(np.arange(0.0, 2.6, 0.01), 6)
+
+    def test_ingen_passage_over_en_lucka(self) -> None:
+        """Armen syns under vågrätt mellan P3 och toppen (nedgången dold i en lucka
+        längre än 0,10 s): P3 saknas hellre än att den första passagen tas. Likadant
+        för P5 och P9. METOD M28"""
+        t = self.T2
+        h = np.where((t > 0.5) & (t < 1.3), 5.0, -5.0)               # ren baksving: över vågrätt 0,5–1,3 s
+        p = PO.hitta(t, self.faser(), h, -h)
+        self.assertAlmostEqual(p["P3"], 0.505)
+        self.assertAlmostEqual(p["P5"], 1.295)
+        g = h.copy()
+        g[(t > 0.7) & (t < 0.75)] = -5.0                             # ner under vågrätt …
+        g[(t >= 0.75) & (t < 0.9)] = np.nan                          # … och upp igen i en lucka på 0,16 s
+        self.assertIsNone(PO.hitta(t, self.faser(), g, -h)["P3"])
+        g = h.copy()
+        g[(t > 1.02) & (t < 1.15)] = np.nan                          # passagen nedåt dold i en lång lucka,
+        g[(t >= 1.15) & (t < 1.2)] = -5.0                            # armen syns under vågrätt,
+        g[(t >= 1.2) & (t < 1.25)] = np.nan                          # upp igen, och ner vid 1,295 s
+        self.assertIsNone(PO.hitta(t, self.faser(), g, -h)["P5"])
+        b = np.where(t > 1.8, 5.0, -5.0)
+        self.assertAlmostEqual(PO.hitta(t, self.faser(), h, b)["P9"], 1.805)
+        b = np.where(t > 1.9, 5.0, -5.0)                             # synlig passage vid 1,895 s, men …
+        b[(t > 1.55) & (t < 1.7)] = np.nan                           # … armen gick upp i en lång lucka,
+        b[(t >= 1.7) & (t < 1.72)] = 5.0                             # syns över vågrätt,
+        b[(t >= 1.72) & (t < 1.85)] = np.nan                         # och ner igen i en lång lucka
+        self.assertIsNone(PO.hitta(t, self.faser(), h, b)["P9"])
+
+    def test_rutparet_over_toppen(self) -> None:
+        """Passerar armen vågrätt mellan rutorna kring toppen hör paret till P3 (uppåt)
+        eller P5 (nedåt), så att ingen av dem tappas. METOD M28"""
+        t = self.T2
+        h = np.where((t > 1.0) & (t < 1.3), 5.0, -5.0)               # upp mellan 1,00 och 1,01
+        p = PO.hitta(t, self.faser(topp=1.004), h, -h)
+        self.assertAlmostEqual(p["P3"], 1.005)                        # efter toppen, inom rutan
+        self.assertAlmostEqual(p["P5"], 1.295)
+        h = np.where((t > 0.5) & (t < 1.0), 5.0, -5.0)               # ner mellan 0,99 och 1,00
+        p = PO.hitta(t, self.faser(topp=0.996), h, -h)
+        self.assertAlmostEqual(p["P3"], 0.505)
+        self.assertAlmostEqual(p["P5"], 0.995)                        # före toppen, inom rutan
 
 
 class MattenVidPositionerna(unittest.TestCase):

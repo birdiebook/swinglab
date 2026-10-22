@@ -87,7 +87,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 |---|---|
 | `cm_per_px` | Skalan (METOD M2). |
 | `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4). |
-| `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, METOD M28). P1 och P10 är fönstrens mitt. |
+| `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). |
 | `matt` | Måtten per namn (METOD M5–M24, M29). Ett mått som inte gick att räkna står inte med. |
 
 Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
@@ -114,17 +114,19 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [
 | `ovning_id` | text | Övningens stabila id (`a–z`, `0–9`, `_`). Historiken känner igen övningen på det, inte på texten, så att en omskriven formulering inte nollställer steget. Samma id i katalogen och `tools/pc/kedjor.json` betyder samma text. |
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
-| `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = ingen position (tempot, hela svingen). |
+| `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
 | `notering` | text | Valfri. Varför gränsen ser ut som den gör. |
 
 `matt` är måtten som granskningen visar vid en position utan att de är fel
-(BESLUT B32, METOD M29), t.ex. sway hittills vid P3. Varje post har just:
+(BESLUT B32, METOD M29), t.ex. sway hittills vid P3. Varje post har `matt`, `vy`
+och `positioner`, och valfritt `fel`; inga andra fält:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
 | `matt` | text | Måttets namn; måste finnas i vyn. Ett mått (i en vy) står bara en gång i katalogen, som fel eller här. |
 | `vy` | text | `"dtl"` eller `"fo"`. |
 | `positioner` | lista | Som felens, men aldrig tom. |
+| `fel` | text | Valfri. Katalogens id för felet som måttet hör till (sway hittills vid P3 → `sway_topp`), så att accenten för det du övar på (BESLUT B31) följer med. |
 
 Granskningen vid en position visar felen och måtten vars `positioner` har den,
 i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid

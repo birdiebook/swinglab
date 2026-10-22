@@ -114,7 +114,7 @@ def mat(s: Sving) -> dict:
     N = b[:, NASA]
     f = F.hitta_faser(t, G, s.t_klick)
     # Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
-    pos = PO.hitta(t, f, PO.armens_vinkel(b[:, AXEL_F], hand_f), PO.armens_vinkel(b[:, AXEL_B], hand_b))
+    pos = PO.hitta(t, f, PO.armens_hojd(b[:, AXEL_F], hand_f), PO.armens_hojd(b[:, AXEL_B], hand_b))
 
     def L(p: np.ndarray, fas: str) -> np.ndarray:
         return F.lage(t, p, f, fas)
