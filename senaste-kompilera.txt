@@ -1,4 +1,4 @@
-d65dc2dfa8a99ad1bed949b950336a8f20b54c3d s2cd 2026-10-22T12:30:32Z run 39778392370 kompilera
+88bae41fff59ebe7dbf34f59c19a390a462b1e74 s4-vyn 2026-10-22T12:36:14Z run 39778854977 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
