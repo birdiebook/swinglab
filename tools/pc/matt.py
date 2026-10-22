@@ -11,6 +11,10 @@ bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt (format.p
        framåt, främre armbågen vid toppen och efter träffen, stansen.
   Båda tempot.
 
+Positionerna P1–P10 (BESLUT B32, METOD M28) och måtten vid P3, P5 och P10 som
+inte är en fas (METOD M29): sway och främre armbågen vid P3, bäckenets resa
+från toppen vid P5, huvudet mot bäckenet i finishen.
+
 Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
 """
 from __future__ import annotations
@@ -20,6 +24,7 @@ import math
 import numpy as np
 
 from . import faser as F
+from . import positioner as PO
 from .format import (ARMBAGE_B, ARMBAGE_F, AXEL_B, AXEL_F, FOTLED_B, FOTLED_F, HANDLED_B, HANDLED_F,
                      HOFT_B, HOFT_F, KNA_B, NASA, Sving)
 
@@ -50,7 +55,8 @@ MATT_FO = (
     + [f"axellinje_lutning_{f}" for f in ("adress", "traff")]
     + [f"hoftlinje_lutning_{f}" for f in ("adress", "topp", "traff")]
     + ["sway_gap_traff", "hander_fore_adress_traff", "hander_fore_backen_traff", "backen_resa_framat",
-       "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s", "nedsving_s"])
+       "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s", "nedsving_s",
+       "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"])
 MATT = {"dtl": tuple(MATT_DTL), "fo": tuple(MATT_FO)}
 
 
@@ -93,18 +99,22 @@ def _korsning(t: np.ndarray, G: np.ndarray, a: float, b: float, niva: float, upp
 
 
 def mat(s: Sving) -> dict:
-    """Måtten för en sving: {"vy", "hand", "cm_per_px", "faser", "matt"}. Ett mått
-    som inte går att räkna (leden saknas i fasen) står inte med."""
+    """Måtten för en sving: {"vy", "hand", "cm_per_px", "faser", "positioner", "matt"}.
+    Ett mått som inte går att räkna (leden saknas i fasen, positionen saknas)
+    står inte med."""
     t = s.t
     b = F.jamna(t, F.grepp_regel(s.xy))
     # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
     hand_f = F.jamna(t, s.xy[:, HANDLED_F])
+    hand_b = F.jamna(t, s.xy[:, HANDLED_B])
     P = (b[:, HOFT_F] + b[:, HOFT_B]) / 2
     C = (b[:, AXEL_F] + b[:, AXEL_B]) / 2
     A = (b[:, FOTLED_F] + b[:, FOTLED_B]) / 2
     G = (b[:, HANDLED_F] + b[:, HANDLED_B]) / 2
     N = b[:, NASA]
     f = F.hitta_faser(t, G, s.t_klick)
+    # Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
+    pos = PO.hitta(t, f, PO.armens_vinkel(b[:, AXEL_F], hand_f), PO.armens_vinkel(b[:, AXEL_B], hand_b))
 
     def L(p: np.ndarray, fas: str) -> np.ndarray:
         return F.lage(t, p, f, fas)
@@ -176,6 +186,15 @@ def mat(s: Sving) -> dict:
         axl = L(b[:, AXEL_F], "adress") - L(b[:, AXEL_B], "adress")
         axelbredd = math.hypot(axl[0], axl[1])
         m["stans_bredd"] = math.hypot(fot[0], fot[1]) / axelbredd if axelbredd > 0 else math.nan
+        # Måtten vid positionerna som inte är en fas. METOD M29
+        if pos["P3"] is not None:
+            p3 = pos["P3"]
+            m["backen_sway_p3"] = (F.vid(t, P, p3)[0] - L(P, "adress")[0]) * cm
+            m["framre_armbage_p3"] = bojning(F.vid(t, b[:, AXEL_F], p3), F.vid(t, b[:, ARMBAGE_F], p3),
+                                             F.vid(t, hand_f, p3))
+        if pos["P5"] is not None:
+            m["backen_resa_p5"] = (F.vid(t, P, pos["P5"])[0] - L(P, "topp")[0]) * cm
+        m["huvud_backen_finish"] = (L(N, "finish")[0] - L(P, "finish")[0]) * cm
 
     if f.start is not None:                                          # METOD M5
         bak, ned = f.topp - f.start, f.traff - f.topp
@@ -185,4 +204,5 @@ def mat(s: Sving) -> dict:
 
     return {"vy": s.vy, "hand": s.hand, "cm_per_px": cm,
             "faser": {"start": f.start, "topp": f.topp, "traff": f.traff},
+            "positioner": pos,
             "matt": {k: float(v) for k, v in m.items() if v is not None and math.isfinite(v)}}

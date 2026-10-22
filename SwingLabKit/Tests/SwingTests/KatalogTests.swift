@@ -27,6 +27,17 @@ final class KatalogTests: XCTestCase {
         }
         let axel = try fel("axellutning")
         XCTAssertFalse(axel.aktiv)
+        // Kopplingen mått → position (BESLUT B32), som test_katalog.py.
+        XCTAssertEqual(try fel("sway_topp").positioner, ["P4"])
+        XCTAssertEqual(try fel("over_the_top").positioner, ["P5"])
+        XCTAssertEqual(try fel("tempo").positioner, [])
+        XCTAssertEqual(k.matt.count, 10)
+        for m in k.matt {
+            let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
+            XCTAssertTrue(Matt.namn(vy).contains(m.matt), m.matt)
+        }
+        let alla = Set(k.fel.flatMap { $0.positioner } + k.matt.flatMap { $0.positioner })
+        XCTAssertEqual(alla, Set(Positioner.namn))
     }
 
     /// Katalogen med en ändring (första förekomsten).
@@ -48,6 +59,15 @@ final class KatalogTests: XCTestCase {
         ("\"gront\": [0, null]", "\"gront\": null", "sway_topp: gult utan gront"),
         ("\"id\": \"tempo\"", "\"id\": \"sway_topp\"", "sway_topp: id finns två gånger"),
         ("\"gront\": [2.5, 3.1]", "\"gront\": [2.5]", "tempo: gront ska vara"),
+        ("\"positioner\": [\"P4\"]", "\"positioner\": [\"P2\"]", "sway_topp: positioner ska vara"),
+        ("\"positioner\": [\"P4\"]", "\"positioner\": [\"P4\", \"P1\"]", "sway_topp: positioner ska vara"),
+        ("\"positioner\": [\"P4\"]", "\"positioner\": [\"P4\", \"P4\"]", "sway_topp: positioner ska vara"),
+        ("{\"matt\": \"backen_sway_p3\", \"vy\": \"fo\"", "{\"matt\": \"backen_sway_p3\", \"vy\": \"dtl\"",
+         "matt backen_sway_p3: måttet finns inte i vyn"),
+        ("{\"matt\": \"stans_bredd\"", "{\"matt\": \"backen_sway_topp\"", "matt backen_sway_topp: står redan i katalogen"),
+        ("\"positioner\": [\"P10\"]", "\"positioner\": []", "matt huvud_backen_finish: positioner ska vara"),
+        ("{\"matt\": \"stans_bredd\", \"vy\": \"fo\"", "{\"matt\": \"stans_bredd\", \"vy\": \"bada\"",
+         "matt stans_bredd: vy ska vara"),
     ]
 
     func testKontrollernaSomPython() throws {
@@ -68,6 +88,12 @@ final class KatalogTests: XCTestCase {
         }
         XCTAssertThrowsError(try Katalog.las(json: andrad("\"ovning\":", "\"ovn\":"))) { e in
             XCTAssertTrue("\(e)".contains("ovning"), "\(e)")
+        }
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"positioner\": [\"P4\"],", ""))) { e in
+            XCTAssertTrue("\(e)".contains("positioner"), "\(e)")
+        }
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"matt\": [\n", "\"mått\": [\n"))) { e in
+            XCTAssertTrue("\(e)".contains("matt"), "\(e)")
         }
     }
 

@@ -7,6 +7,8 @@ public struct SvingResultat: Sendable {
     public let hand: Hand
     public let cmPerPx: Double
     public let faser: Fastider
+    /// P-positionerna (BESLUT B32). METOD M28
+    public let positioner: Positioner
     public let matt: [String: Double]
 
     /// Det sessionen och katalogen behöver.
@@ -19,6 +21,7 @@ public struct SvingResultat: Sendable {
 /// En kamera ser två av tre axlar, så varje mått tas i den vy där det ligger i
 /// bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt.
 /// Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
+/// Positionerna P1–P10 och måtten vid P3, P5 och P10 som inte är en fas: METOD M28, M29.
 public enum Matt {
     // Drillis & Contini via Winter, andel av kroppslängden H. METOD M2
     public static let axelhojd = 0.818
@@ -56,7 +59,7 @@ public enum Matt {
         n += ["adress", "topp", "traff"].map { "hoftlinje_lutning_\($0)" }
         return n + ["sway_gap_traff", "hander_fore_adress_traff", "hander_fore_backen_traff", "backen_resa_framat",
                     "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s",
-                    "nedsving_s"]
+                    "nedsving_s", "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"]
     }()
 
     public static func namn(_ vy: Vy) -> [String] { vy == .dtl ? namnDTL : namnFO }
@@ -109,6 +112,7 @@ public enum Matt {
         let b = Faser.greppRegel(s.leder).map { Faser.jamna(t, $0) }
         // Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
         let handF = Faser.jamna(t, s.led(.handledF))
+        let handB = Faser.jamna(t, s.led(.handledB))
         func led(_ l: Led) -> [Punkt] { b[l.rawValue] }
         func mitt(_ x: Led, _ y: Led) -> [Punkt] { zip(led(x), led(y)).map { Punkt.mitt($0, $1) } }
         let P = mitt(.hoftF, .hoftB)
@@ -117,6 +121,9 @@ public enum Matt {
         let G = mitt(.handledF, .handledB)
         let N = led(.nasa)
         let f = try Faser.hitta(t, G, tKlick: s.tKlick)
+        // Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
+        let pos = Positioner.hitta(t, f, framre: Positioner.armensVinkel(axel: led(.axelF), handled: handF),
+                                   bakre: Positioner.armensVinkel(axel: led(.axelB), handled: handB))
 
         func L(_ p: [Punkt], _ fas: Fas) -> Punkt { Faser.lage(t, p, f, fas) }
 
@@ -199,6 +206,16 @@ public enum Matt {
             let fot = L(led(.fotledF), .adress) - L(led(.fotledB), .adress)                        // METOD M24
             let axl = L(led(.axelF), .adress) - L(led(.axelB), .adress)
             m["stans_bredd"] = axl.langd > 0 ? fot.langd / axl.langd : .nan
+            // Måtten vid positionerna som inte är en fas. METOD M29
+            if let p3 = pos.p3 {
+                m["backen_sway_p3"] = (Faser.vid(t, P, p3).x - L(P, .adress).x) * cm
+                m["framre_armbage_p3"] = bojning(Faser.vid(t, led(.axelF), p3), Faser.vid(t, led(.armbageF), p3),
+                                                 Faser.vid(t, handF, p3))
+            }
+            if let p5 = pos.p5 {
+                m["backen_resa_p5"] = (Faser.vid(t, P, p5).x - L(P, .topp).x) * cm
+            }
+            m["huvud_backen_finish"] = (L(N, .finish).x - L(P, .finish).x) * cm
         }
 
         if let start = f.start {                                                    // METOD M5
@@ -209,6 +226,6 @@ public enum Matt {
                 m["tempo"] = bak / ned
             }
         }
-        return SvingResultat(vy: s.vy, hand: s.hand, cmPerPx: cm, faser: f, matt: m.filter { $0.value.isFinite })
+        return SvingResultat(vy: s.vy, hand: s.hand, cmPerPx: cm, faser: f, positioner: pos, matt: m.filter { $0.value.isFinite })
     }
 }

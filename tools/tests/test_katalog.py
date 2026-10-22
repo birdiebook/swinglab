@@ -22,6 +22,25 @@ class Formen(unittest.TestCase):
                     "bojd_framre_arm"):
             self.assertIn(id_, ids)
 
+    def test_positionerna_enligt_skissen(self) -> None:
+        """BESLUT B32: kopplingen mått → position (design/skiss.html, PM)."""
+        k = K.las()
+        pos = {f["id"]: f["positioner"] for f in k["fel"]}
+        self.assertEqual(pos["sway_topp"], ["P4"])
+        self.assertEqual(pos["over_the_top"], ["P5"])
+        self.assertEqual(pos["early_extension"], ["P7"])
+        self.assertEqual(pos["chicken_wing"], ["P9"])
+        self.assertEqual(pos["tempo"], [])                    # hela svingen
+        matt = {(m["vy"], m["matt"]): m["positioner"] for m in k["matt"]}
+        self.assertEqual(matt[("fo", "backen_sway_p3")], ["P3"])
+        self.assertEqual(matt[("fo", "framre_armbage_p3")], ["P3"])
+        self.assertEqual(matt[("fo", "backen_resa_p5")], ["P5"])
+        self.assertEqual(matt[("fo", "huvud_backen_finish")], ["P10"])
+        self.assertEqual(matt[("dtl", "brost_bojning_adress")], ["P1"])
+        # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
+        alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
+        self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
+
     def test_ingen_grans_ar_kontrollerad_an(self) -> None:
         """BESLUT B10: inget är läst i original ännu (2026-10-22)."""
         for f in K.las()["fel"]:
@@ -42,8 +61,18 @@ class Formen(unittest.TestCase):
         ('"gront": [0, null]', '"gront": null', "sway_topp: gult utan gront"),
         ('"id": "tempo"', '"id": "sway_topp"', "sway_topp: id finns två gånger"),
         ('"gront": [2.5, 3.1]', '"gront": [2.5]', "tempo: gront ska vara"),
+        ('"positioner": ["P4"]', '"positioner": ["P2"]', "sway_topp: positioner ska vara"),
+        ('"positioner": ["P4"]', '"positioner": ["P4", "P1"]', "sway_topp: positioner ska vara"),
+        ('"positioner": ["P4"]', '"positioner": ["P4", "P4"]', "sway_topp: positioner ska vara"),
+        ('{"matt": "backen_sway_p3", "vy": "fo"', '{"matt": "backen_sway_p3", "vy": "dtl"',
+         "matt backen_sway_p3: måttet finns inte i vyn"),
+        ('{"matt": "stans_bredd"', '{"matt": "backen_sway_topp"', "matt backen_sway_topp: står redan i katalogen"),
+        ('"positioner": ["P10"]', '"positioner": []', "matt huvud_backen_finish: positioner ska vara"),
+        ('{"matt": "stans_bredd", "vy": "fo"', '{"matt": "stans_bredd", "vy": "bada"', "matt stans_bredd: vy ska vara"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
+        ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),
+        ('"matt": [\n', '"mått": [\n', "katalogen: listan matt saknas"),
     ]
 
     def test_formfelen_hittas(self) -> None:

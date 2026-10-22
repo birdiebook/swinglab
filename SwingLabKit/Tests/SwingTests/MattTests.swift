@@ -16,8 +16,10 @@ final class MattTests: XCTestCase {
     }
 
     func testVarjeSvingGerPythonsTal() throws {
-        XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort"])
+        XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
+                                                       "fo_kort_arm", "dtl_vanster"])
         var jamforda = 0
+        var positioner = 0
         for f in Fixturer.svingar {
             let sving = try Sving.las(json: f.indata)
             let python = try avkoda(PythonSving.self, f.python)
@@ -35,9 +37,20 @@ final class MattTests: XCTestCase {
             if let a = r.faser.start, let b = python.faser.start {
                 XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): starten")
             }
+            // P-positionerna, samma tider inom 1e-9 s och samma saknade. METOD M28
+            for p in Positioner.namn {
+                let s = r.positioner.tid(p), py = python.positioner.tid(p)
+                XCTAssertEqual(s == nil, py == nil, "\(f.namn): \(p) saknas i det ena")
+                if let a = s, let b = py {
+                    XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): \(p)")
+                    positioner += 1
+                }
+            }
         }
-        // Kvittot: testet jämförde verkligen måtten (34 + 32 + 28 + 23 + 29 + 22 = 168).
-        XCTAssertEqual(jamforda, 168)
+        // Kvittot: testet jämförde verkligen måtten (38 + 33 + 28 + 23 + 32 + 22 + 35 + 28 = 239)
+        // och positionerna (8 × 7 − 4 saknade = 52).
+        XCTAssertEqual(jamforda, 239)
+        XCTAssertEqual(positioner, 52)
     }
 
     func testDePahittadeFormerna() throws {
@@ -94,7 +107,7 @@ final class MattTests: XCTestCase {
     }
 
     func testNamnenPerVy() {
-        XCTAssertEqual(Matt.namnFO.count, 34)
+        XCTAssertEqual(Matt.namnFO.count, 38)
         XCTAssertEqual(Matt.namnDTL.count, 28)
         XCTAssertEqual(Set(Matt.namnFO).count, Matt.namnFO.count)
         XCTAssertTrue(Matt.namnDTL.contains("handbana"))
@@ -107,5 +120,49 @@ final class MattTests: XCTestCase {
         XCTAssertTrue(Matt.bojning(Punkt(0, 0), Punkt(0, 0), Punkt(1, 0)).isNaN)
         XCTAssertEqual(Matt.vinkelFranLod(Punkt(0, 0), Punkt(1, -1)), 45, accuracy: 1e-12)     // y nedåt
         XCTAssertEqual(Matt.linjensLutning(fram: Punkt(1, -1), bak: Punkt(0, 0)), 45, accuracy: 1e-12)
+    }
+
+    func testPositionernaSaknasNarArmenAldrigBlirVagrat() throws {
+        // fo_kort_arm: främre armen under vågrätt hela baksvingen. METOD M28
+        let r = try Matt.mat(Sving.las(json: Fixturer.svingar[6].indata))
+        XCTAssertNil(r.positioner.p3)
+        XCTAssertNil(r.positioner.p5)
+        XCTAssertNotNil(r.positioner.p9)
+        XCTAssertNil(r.matt["backen_sway_p3"])
+        XCTAssertNil(r.matt["backen_resa_p5"])
+        XCTAssertNotNil(r.matt["huvud_backen_finish"])
+        // fo_vanster: den egna främre handleden är dold, så armen syns inte.
+        let v = try Matt.mat(Sving.las(json: Fixturer.svingar[1].indata))
+        XCTAssertNil(v.positioner.p3)
+        XCTAssertNotNil(v.positioner.p9)
+    }
+
+    func testPositionernaIOrdning() throws {
+        for i in [0, 2, 7] {
+            let p = try Matt.mat(Sving.las(json: Fixturer.svingar[i].indata)).positioner
+            let tider = Positioner.namn.compactMap { p.tid($0) }
+            XCTAssertEqual(tider.count, 7, Fixturer.svingar[i].namn)
+            XCTAssertEqual(tider, tider.sorted(), Fixturer.svingar[i].namn)
+        }
+        let h = try Matt.mat(Sving.las(json: Fixturer.svingar[2].indata)).positioner
+        let v = try Matt.mat(Sving.las(json: Fixturer.svingar[7].indata)).positioner
+        XCTAssertEqual(h.p3!, v.p3!, accuracy: 1 / 240.0)       // vänsterspelaren, en annan påhittad sving
+    }
+
+    func testPassagerna() {
+        let t = [0.0, 0.01, 0.02, 0.03, 0.04, 0.2, 0.21]
+        let a = [-2.0, -1.0, 1.0, 0.0, -1.0, 1.0, 2.0]
+        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.1, uppat: true), [0.015])
+        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.1, uppat: false), [0.03])   // 0 räknas som vågrät
+        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.3, uppat: true), [0.015])   // luckan 0,16 s
+        var b = a
+        b[2] = .nan
+        XCTAssertEqual(Positioner.passager(t, b, fran: 0, till: 0.1, uppat: true), [0.03])
+        XCTAssertEqual(Positioner.passager(t, b, fran: 0, till: 0.1, uppat: false), [0.03])
+        let v = Positioner.armensVinkel(axel: [Punkt(0, 0), Punkt(0, 0), Punkt(0, 0)],
+                                        handled: [Punkt(-10, -10), Punkt(10, 10), .saknad])
+        XCTAssertEqual(v[0], 45, accuracy: 1e-12)
+        XCTAssertEqual(v[1], -45, accuracy: 1e-12)
+        XCTAssertTrue(v[2].isNaN)
     }
 }
