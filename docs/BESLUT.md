@@ -383,3 +383,16 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Bortvalt:** ingen accent alls, accenten för nuvärdet (markören i varje
   spann, tidslinjen och linjerna över videon), elektriskt blått och
   signalorange.
+
+## B32 — Granskningen: video med P-positioner och måtten per position
+*2026-10-22 · gäller · Johannes beslut*
+
+- **Valt:** golfens P-positioner som går att mäta ur kroppens leder: P1 Adress,
+  P3 (vänsterarm vågrät upp), P4 Topp, P5 (vänsterarm vågrät ned), P7 Träff,
+  P9 (högerarm vågrät) och P10 Finish. Ett tryck hoppar videon dit och visar
+  bara den positionens mått. Kopplingen mått → positioner står i
+  `katalog.json`.
+- **Senare:** P2, P6 och P8 definieras av klubbskaftet och kommer med S7.
+- **Bortvalt:** bara faserna adress, topp, träff och finish (för grovt för
+  analysen), och alla tio positioner redan nu (tre kräver klubban).
+

@@ -82,14 +82,22 @@ räcker Vision i telefonen, eller ska MediaPipe in i appen (BESLUT B5).
 
 ## S4 — Vyn
 
-Sessionen som bild: din mediansving med skelettet över videon, de flaggade
-felen med **Du nu / Mål**, och före och efter mot förra passet. Varje mått som
-ett tal mot sitt gröna spann (som Sportsbox), inte en poäng, och ett mått per
-bild i den vy där det hör hemma. Lite text,
-bilden bär det. Fliken **Att jobba på** visar de 1–3 saker som PC:n och Claude
-har valt (S5), med övningar och "klart när".
+Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,
+på engelska (B30). Varje mått som ett tal mot sitt spann, inte en poäng, i den
+vy där det hör hemma. Att jobba på visar de 1–3 saker som PC:n och Claude har
+valt (S5, kontraktet i `docs/FORMAT.md`).
 
-**Klart när:** Johannes har läst ett pass på telefonen på rangen.
+**Granskningen med video och P-positioner (BESLUT B32):** videon spelas bild
+för bild med de uppmätta linjerna ovanpå. Positionsraden P1 Adress, P3, P4
+Topp, P5, P7 Träff, P9 och P10 Finish hoppar till positionen, och under
+videon visas bara den positionens mått (det du övar på i isblått). Varje mått i
+`katalog.json` bär sina positioner, så kopplingen är data. P3, P5 och P9 hittas
+ur armarnas vinkel i lederna; P2, P6 och P8 kräver klubban (S7). Videon och
+positionsraden byggs med S2:s klipp; måtten per position kräver lederna från
+S2e.
+
+**Klart när:** Johannes har läst ett pass på telefonen på rangen, och i
+granskningen hoppat mellan positionerna med rätt mått under videon.
 
 ## S5 — PC-länken och Claude
 
