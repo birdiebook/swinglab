@@ -26,14 +26,23 @@ class Utjamning(unittest.TestCase):
         # Luckorna gör vikterna osymmetriska: en linje förskjuts högst ~5 ms (uppmätt 4 ms).
         np.testing.assert_allclose(j[mitt, 1], 3.0 * t[mitt] + 1.0, atol=3.0 * 0.005)
 
-    def test_saknade_varden_fylls_av_grannarna_men_inte_over_langre_luckor(self) -> None:
+    def test_utjamningen_fyller_inga_luckor(self) -> None:
         t = np.arange(200) / 240.0
         y = np.ones((200, 1))
-        y[50:52] = np.nan                                       # 8 ms: fylls
-        y[100:140] = np.nan                                     # 167 ms: mitten förblir tom
+        y[50:52] = np.nan
         j = F.jamna(t, y)
-        self.assertTrue(np.isfinite(j[50:52]).all())
-        self.assertTrue(np.isnan(j[115:125]).all())
+        self.assertTrue(np.isnan(j[50:52]).all())               # saknad förblir saknad
+        self.assertTrue(np.isfinite(j[:50]).all() and np.isfinite(j[52:]).all())
+
+    def test_luckans_langd_ar_den_raa(self) -> None:
+        """vid() spärrar på den råa luckan: 0,096 s interpoleras, 0,104 s inte."""
+        t = np.arange(300) / 240.0
+        p = np.stack([t, t], -1)
+        for saknas, ok in ((22, True), (24, False)):            # (saknas + 1)/240 s mellan rutorna
+            q = p.copy()
+            q[100:100 + saknas] = np.nan
+            v = F.vid(t, F.jamna(t, q), t[100 + saknas // 2])
+            self.assertEqual(bool(np.isfinite(v).all()), ok, saknas)
 
     def test_vid_interpolerar_och_vagrar_over_lucka(self) -> None:
         t = np.array([0.0, 0.1, 0.2, 0.5])

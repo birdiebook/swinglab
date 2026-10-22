@@ -16,11 +16,11 @@ SIGMA_S = 0.0075         # METOD M3: gaussvikt över tiden (samma varians som Go
 TRUNKERA = 3.0           # METOD M3: rutor längre bort än 3σ räknas inte
 MAX_LUCKA_S = 0.10       # METOD M3: längre lucka mellan två rutor interpoleras inte över
 
-SOK_FORE_S = 2.0         # METOD M4: toppen söks högst så långt före klicket
+SOK_FORE_S = 1.5         # METOD M4: toppen söks högst så långt före klicket (som Golf SG)
 SOK_SLUT_S = 0.05        # METOD M4: … och minst så långt före
 MAX_BAKSVING_S = 1.5     # METOD M4: adressläget söks högst så långt före toppen
 TROSKEL_ANDEL = 0.05     # METOD M4: starten = händerna har rört sig 5 % av vägen till toppen
-MIN_BAKSVING_S = 0.4     # METOD M4: kortare baksving = starten är fel och saknas
+MIN_BAKSVING_S = 0.5     # METOD M4: kortare baksving = starten är fel och saknas (som Golf SG)
 TOPP_ADRESS_S = 1.2      # METOD M4: adressen räknas från toppen − 1,2 s när starten saknas
 ADRESS = (-0.40, -0.10)  # METOD M4: s kring baksvingens start
 FINISH = (1.0, 1.2)      # METOD M4: s efter träffen
@@ -43,8 +43,9 @@ def grepp_regel(xy: np.ndarray) -> np.ndarray:
 
 def jamna(t: np.ndarray, y: np.ndarray, sigma: float = SIGMA_S) -> np.ndarray:
     """Gaussvikt över tiden: varje ruta blir det viktade medlet av rutorna inom
-    3σ, med vikten exp(−½(Δt/σ)²). Saknade värden räknas inte; en ruta utan
-    någon granne med värde blir NaN. METOD M3"""
+    3σ, med vikten exp(−½(Δt/σ)²). Saknade värden räknas inte, och en ruta där
+    värdet saknas förblir saknad: utjämningen fyller inga luckor, så att
+    luckans längd i vid() är den råa. METOD M3"""
     y2 = y.reshape(len(t), -1)
     dt = t[:, None] - t[None, :]
     w = np.exp(-0.5 * (dt / sigma) ** 2)
@@ -53,7 +54,7 @@ def jamna(t: np.ndarray, y: np.ndarray, sigma: float = SIGMA_S) -> np.ndarray:
     num = w @ np.where(ok, y2, 0.0)
     den = w @ ok.astype(float)
     with np.errstate(invalid="ignore", divide="ignore"):
-        ut = np.where(den > 0, num / den, np.nan)
+        ut = np.where(ok & (den > 0), num / den, np.nan)
     return ut.reshape(y.shape)
 
 
@@ -63,7 +64,8 @@ def _hela(p: np.ndarray) -> np.ndarray:
 
 def vid(t: np.ndarray, p: np.ndarray, tc: float) -> np.ndarray:
     """Punkten p (n, 2) i ögonblicket tc, linjärt mellan de två närmaste rutorna
-    med värde. NaN utanför serien och över en lucka längre än MAX_LUCKA_S. METOD M3"""
+    med värde. NaN utanför serien och över en lucka längre än MAX_LUCKA_S (den
+    råa luckan, eftersom jamna inte fyller). METOD M3"""
     ok = _hela(p)
     tt, pp = t[ok], p[ok]
     nan = np.array([np.nan, np.nan])

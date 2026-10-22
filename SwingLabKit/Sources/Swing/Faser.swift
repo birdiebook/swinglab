@@ -36,16 +36,16 @@ public enum Faser {
     /// Längre lucka mellan två rutor interpoleras inte över. METOD M3
     public static let maxLuckaS = 0.10
 
-    /// Toppen söks högst så långt före klicket … METOD M4
-    public static let sokForeS = 2.0
+    /// Toppen söks högst så långt före klicket (som Golf SG) … METOD M4
+    public static let sokForeS = 1.5
     /// … och minst så långt före. METOD M4
     public static let sokSlutS = 0.05
     /// Adressläget söks högst så långt före toppen. METOD M4
     public static let maxBaksvingS = 1.5
     /// Starten = händerna har rört sig 5 % av vägen till toppen. METOD M4
     public static let troskelAndel = 0.05
-    /// Kortare baksving = starten är fel och saknas. METOD M4
-    public static let minBaksvingS = 0.4
+    /// Kortare baksving = starten är fel och saknas (som Golf SG). METOD M4
+    public static let minBaksvingS = 0.5
     /// Adressen räknas från toppen − 1,2 s när starten saknas. METOD M4
     public static let toppAdressS = 1.2
     /// s kring baksvingens start. METOD M4
@@ -69,8 +69,9 @@ public enum Faser {
     }
 
     /// Gaussvikt över tiden: varje ruta blir det viktade medlet av rutorna inom
-    /// 3σ, med vikten exp(−½(Δt/σ)²). Saknade värden räknas inte; en ruta utan
-    /// någon granne med värde blir saknad. x och y var för sig. METOD M3
+    /// 3σ, med vikten exp(−½(Δt/σ)²). Saknade värden räknas inte, och en ruta där
+    /// värdet saknas förblir saknad: utjämningen fyller inga luckor, så att
+    /// luckans längd i vid() är den råa. x och y var för sig. METOD M3
     public static func jamna(_ t: [Double], _ p: [Punkt], sigma: Double = sigmaS) -> [Punkt] {
         let n = t.count
         let grans = trunkera * sigma
@@ -93,13 +94,15 @@ public enum Faser {
                 }
                 j += 1
             }
-            ut[i] = Punkt(wx > 0 ? sx / wx : .nan, wy > 0 ? sy / wy : .nan)
+            ut[i] = Punkt(p[i].x.isFinite && wx > 0 ? sx / wx : .nan,
+                          p[i].y.isFinite && wy > 0 ? sy / wy : .nan)
         }
         return ut
     }
 
     /// Punkten i ögonblicket tc, linjärt mellan de två närmaste rutorna med
-    /// värde. Saknad utanför serien och över en lucka längre än maxLuckaS. METOD M3
+    /// värde. Saknad utanför serien och över en lucka längre än maxLuckaS (den
+    /// råa luckan, eftersom jamna inte fyller). METOD M3
     public static func vid(_ t: [Double], _ p: [Punkt], _ tc: Double) -> Punkt {
         guard tc.isFinite else { return .saknad }
         var forra: Int? = nil

@@ -50,24 +50,38 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 
 - Varje leds x och y jämnas med en **gaussvikt över tiden**: rutan blir det
   viktade medlet av rutorna inom 3σ, vikten exp(−½(Δt/σ)²), **σ = 7,5 ms**.
-  Saknade värden räknas inte; en ruta utan granne med värde blir saknad.
+  Saknade värden räknas inte, och **en ruta där leden saknas förblir saknad**:
+  utjämningen fyller inga luckor.
   **antagande:** samma varians som Golf SG:s glidande medel över 25 ms
   (25/√12 ≈ 7,2 ms), men vikten avtar mjukt och fungerar på ojämna steg.
 - Tiden räknas ur rutornas egna tider, aldrig ur rutnumret: 36 % av
   240-rutnätet saknades i oktober. **mätt** (Golf SG).
 - Ett värde vid en tid är **linjär interpolation** mellan de två närmaste
-  rutorna med värde. Över en lucka längre än **0,10 s** interpoleras inte:
-  måttet saknas hellre än gissas. **antagande.**
+  rutorna med värde. Över en lucka längre än **0,10 s** mellan två rutor där
+  leden syns interpoleras inte: måttet saknas hellre än gissas. **antagande.**
+  Eftersom utjämningen inte fyller är det den råa luckan som spärras. Det är
+  rätt för mätningen: en gräns som gällde den utjämnade serien skulle släppa
+  igenom råa luckor upp till 0,10 s + 6σ ≈ 0,145 s, där en hand hinner röra sig
+  en halvmeter. Provat: en rå lucka på 0,096 s interpoleras, 0,104 s inte, och
+  i fixturen `fo_luckor` saknas bäckenet vid toppen (0,146 s) medan huvudet
+  finns (0,067 s).
 - Uppmätt på påhittade svingar: luckorna gör vikterna osymmetriska, så en jämn
-  rörelse förskjuts upp till 4 ms. En lucka på upp till 3σ ≈ 22 ms fylls.
+  rörelse förskjuts upp till 4 ms.
 
 ## M4 — Faserna
 
 - **Toppen:** händerna (medel av handlederna, efter greppregeln) står högst i
-  bild, minst y, mellan 2,0 och 0,05 s före klicket. Tiden förfinas med en
-  parabel genom rutan och dess två grannar (ojämna steg). Golf SG:s definition
-  ("videons topp"). **standard** i Golf SG; Blast påpekar att tour-intervallet
-  för tempot beror på hur toppen definieras (research 1 §1.9).
+  bild, minst y, mellan 1,5 och 0,05 s före klicket. Golf SG:s definition
+  ("videons topp") och fönster när bandets start saknas. **standard** i Golf
+  SG; Blast påpekar att tour-intervallet för tempot beror på hur toppen
+  definieras (research 1 §1.9).
+- **Avvikelser från Golf SG** (`handled_svingmatt.tider`): (1) tiden förfinas
+  med en parabel genom rutan och dess två grannar (ojämna steg), i stället för
+  rutans tid: vid 240 bilder/s med luckor kan närmaste ruta ligga 4–12 ms från
+  toppen. (2) Golf SG söker från bandets start när bandet finns; här finns inget
+  band (S1 bygger på videon ensam), så fönstret är alltid 1,5 s. (3) Starten
+  och adressläget nedan är nya: Golf SG tog starten ur bandet och litade inte på
+  videons, eftersom en waggle flyttar händerna lika mycket.
 - **Toppens bias, uppmätt på påhittade svingar** (nedsvingen 3 gånger snabbare
   än baksvingen): utjämningen drar toppen mot baksvingen, i snitt **−9 ms** utan
   brus (sd 1 ms), −10 ± 5 ms med 0,8 px brus och −13 ± 9 ms med 2 px. Tempot
@@ -80,9 +94,11 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   **5 % av vägen adressläge → topp** från adressläget, interpolerat mellan
   rutorna. Det är detsamma som "första tid efter adressen där händerna rört sig
   mer än tröskeln", men räknat bakåt från toppen så att en waggle före
-  adressen inte tas för starten. En baksving under **0,4 s** betyder att
-  starten är fel, och då saknas den. **antagande** (5 % ≈ 3–4 cm med järn;
-  Golf SG tog starten ur bandet). Uppmätt: inom 3 ms från figurens start.
+  adressen inte tas för starten. En baksving under **0,5 s** betyder att
+  starten är fel, och då saknas den (Golf SG:s gräns för bandets start; en
+  verklig baksving med järn är 0,7–1,0 s). **antagande** (5 % ≈ 3–4 cm med
+  järn). Uppmätt: inom 3 ms från figurens start. Fixturen `dtl_kort` (0,25 s)
+  ger ingen start och inget tempo.
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -232,15 +248,17 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 ## M22 — Främre armbågen vid toppen (FO)
 
 - `framre_armbage_topp`: främre axel–armbåge–handled, **böjningen i grader,
-  0 = rak arm**. För en högerspelare vänsterarmen. Framifrån ligger armen
+  0 = rak arm**. Handleden är armens egen: greppregeln (M1) ersätter en dold
+  handled med den andra, vilket duger för händernas läge men inte för en vinkel
+  i armbågen. Är den främre handleden dold saknas måttet. För en högerspelare vänsterarmen. Framifrån ligger armen
   ungefär i bildens plan vid toppen; förkortningen gör vinkeln osäker, därför
   egen baslinje. GolfTEC: 76° mot 10° är ett elevexempel, ingen norm.
   **tillverkare, ej läst i original.**
 
 ## M23 — Chicken wing (FO)
 
-- `framre_armbage_efter_traff`: främre armbågens böjning (som M22) ur ledernas
-  medel över **träffen +0,05…+0,15 s**. **antagande:** fönstret ligger efter
+- `framre_armbage_efter_traff`: främre armbågens böjning (som M22, med den
+  egna handleden) ur ledernas medel över **träffen +0,05…+0,15 s**. **antagande:** fönstret ligger efter
   bollen men före att armarna viker naturligt mot finishen; ett medel över
   fönstret tål enstaka suddiga rutor. HackMotion anger inga tal. Egen baslinje.
 
