@@ -1,0 +1,223 @@
+import SwiftUI
+import Capture
+
+/// Inspelningen (S2_SPEC §2, §12 S2c): förhandsbilden med hjälplinjerna, frekvensen,
+/// ljusprovet, start och stopp, och kvittot efter varje serie. Grunden är Airtimes
+/// RecordView. Lite text (BESLUT B13): etiketter och tal, signalfärgen bara för varningar.
+struct RecordView: View {
+    @Binding var pass: PassState
+    var onClose: () -> Void
+
+    @Environment(Store.self) private var store
+    @State private var camera = Camera()
+    @State private var light: LightCheck?
+    @State private var receipt: SeriesRecord?
+    @State private var working = false
+    /// Serien som spelas in: numret och filen i passet.
+    @State private var current: (nr: Int, file: String)?
+
+    var body: some View {
+        ZStack {
+            Theme.ground.ignoresSafeArea()
+            CameraPreview(session: camera.session).ignoresSafeArea()
+            GuideLines().allowsHitTesting(false).accessibilityHidden(true)
+
+            VStack(spacing: 10) {
+                topBar
+                warnings
+                Spacer()
+                if let light {
+                    ReceiptCard(rows: Receipt.rows(light)).padding(.horizontal, 20)
+                }
+                if let problem = camera.problem ?? store.problem {
+                    Text(problem)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.flag)
+                        .padding(.horizontal, 20)
+                }
+                controls
+            }
+        }
+        .preferredColorScheme(.dark)
+        .task { await camera.start() }
+        .onDisappear { camera.stop() }
+        .onChange(of: camera.finished) { _, f in
+            guard let f else { return }
+            camera.finished = nil
+            Task { await analyze(f) }
+        }
+        .sheet(isPresented: Binding(get: { receipt != nil }, set: { if !$0 { receipt = nil } })) {
+            if let receipt {
+                ReceiptSheet(series: receipt) { self.receipt = nil }
+                    .presentationDetents([.medium])
+            }
+        }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button("Stäng") {
+                camera.stop()
+                onClose()
+            }
+            .disabled(camera.phase == .recording || camera.phase == .probing)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(Theme.text)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 44)
+            .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
+            Spacer()
+            if camera.frameRate > 0 {
+                HStack(spacing: 8) {
+                    if camera.phase == .recording {
+                        Circle().fill(Theme.text).frame(width: 8, height: 8)
+                    }
+                    Text("\(Int(camera.frameRate)) bilder/s").font(Theme.number(17))
+                }
+                .foregroundStyle(camera.reachesWanted ? Theme.text : Theme.flag)
+                .padding(.horizontal, 14)
+                .frame(minHeight: 44)
+                .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder private var warnings: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if camera.pressure.warns {
+                Text("Värme: \(Receipt.pressureName(camera.pressure))")
+            }
+            if camera.micWarning, let mic = camera.microphone {
+                Text("Mikrofon: \(mic)")
+            }
+            if camera.audioDenied {
+                Text("Mikrofon av")
+            }
+        }
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(Theme.flag)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+    }
+
+    private var controls: some View {
+        HStack {
+            Button("Ljusprov") { Task { await lightProbe() } }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.text)
+                .frame(minWidth: 96, minHeight: 44)
+                .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
+                .disabled(camera.phase != .ready || working)
+            Spacer()
+            Button { toggle() } label: {
+                ZStack {
+                    Circle().stroke(Theme.text, lineWidth: 4).frame(width: 80, height: 80)
+                    RoundedRectangle(cornerRadius: camera.phase == .recording ? 4 : 30)
+                        .fill(Theme.text)
+                        .frame(width: camera.phase == .recording ? 28 : 60, height: camera.phase == .recording ? 28 : 60)
+                }
+            }
+            .disabled(!(camera.phase == .ready || camera.phase == .recording) || working)
+            .opacity(camera.phase == .ready || camera.phase == .recording ? 1 : 0.4)
+            .accessibilityLabel(camera.phase == .recording ? "Stoppa" : "Spela in")
+            Spacer()
+            ZStack {
+                if working || camera.phase == .metering || camera.phase == .probing || camera.phase == .starting {
+                    ProgressView().tint(Theme.text)
+                }
+            }
+            .frame(minWidth: 96, minHeight: 44)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 24)
+    }
+
+    private func toggle() {
+        if camera.phase == .recording {
+            camera.stopSeries()
+            return
+        }
+        let nr = pass.nextSeriesNumber
+        let file = PassState.videoPath(nr: nr)
+        let url = store.url(file, in: pass.id)
+        // En fil som inget i passet pekar på (en avbruten start) skrivs över:
+        // utgången vägrar annars att börja.
+        if !pass.series.contains(where: { $0.file == file }) { try? FileManager.default.removeItem(at: url) }
+        current = (nr, file)
+        camera.startSeries(to: url, available: store.availableBytes())
+    }
+
+    /// Serien läses ur filen: tiderna, klicken och geometrin, sedan kvittot.
+    private func analyze(_ f: Camera.Finished) async {
+        guard let current else { return }
+        self.current = nil
+        guard FileManager.default.fileExists(atPath: f.url.path) else { return }
+        working = true
+        defer { working = false }
+        do {
+            var s = try await SeriesMaker.make(url: f.url, nr: current.nr, file: current.file, source: .recording,
+                                               club: pass.setup.club, start: f.started, startHost: f.startHost,
+                                               microphone: camera.microphone)
+            s.format = camera.chosen
+            s.exposure = camera.exposure
+            s.pressure = f.pressure
+            pass.series.append(s)
+            store.save(pass)
+            receipt = s
+        } catch {
+            camera.problem = "\(current.file) gick inte att läsa."
+        }
+    }
+
+    /// Ljusprovet: 2 s med låst exponering, läst och borttaget (S2_SPEC §2.7).
+    private func lightProbe() async {
+        guard let r = await camera.recordProbe() else { return }
+        working = true
+        defer {
+            working = false
+            try? FileManager.default.removeItem(at: r.url)
+        }
+        do {
+            let c = try await LightProbe.analyze(r.url, exposure: r.exposure.plan)
+            light = c
+            pass.lightCheck = c
+            store.save(pass)
+        } catch {
+            camera.problem = "Ljusprovet gick inte att läsa."
+        }
+    }
+}
+
+/// Kvittot efter en serie (S2_SPEC §12 S2c). METOD MS11
+struct ReceiptSheet: View {
+    let series: SeriesRecord
+    var onDone: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ReceiptCard(title: "Serie \(series.nr)", rows: Receipt.rows(series))
+            Button("Klar", action: onDone).buttonStyle(PrimaryButtonStyle())
+        }
+        .padding(20)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Theme.ground, ignoresSafeAreaEdges: .all)
+        .preferredColorScheme(.dark)
+    }
+}
+
+/// Hjälplinjerna (S2_SPEC §2.2): fötterna i nedre femtedelen, huvudet under övre fjärdedelen.
+struct GuideLines: View {
+    var body: some View {
+        GeometryReader { geo in
+            Path { p in
+                for y in [geo.size.height * 0.25, geo.size.height * 0.8] {
+                    p.move(to: CGPoint(x: 20, y: y))
+                    p.addLine(to: CGPoint(x: geo.size.width - 20, y: y))
+                }
+            }
+            .stroke(Theme.text.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [6, 6]))
+        }
+    }
+}

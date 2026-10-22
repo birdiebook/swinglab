@@ -45,13 +45,20 @@ public enum Exposure {
         min(max(v, lo), max(lo, hi))
     }
 
+    /// Tiden som låses och som autoexponeringens tak (`activeMaxExposureDuration`):
+    /// målet klämt till formatets gränser. Slutartiden ändras bara i `targetDuration`
+    /// (BESLUT B16 väntar på Johannes). METOD MS2
+    public static func lockedDuration(format: CameraFormat, target: Double = targetDuration) -> Double {
+        clamp(target, format.minExposure, format.maxExposure)
+    }
+
     /// Exponeringsplanen ur autoexponeringens mätning. aeOffsetEV är
     /// exposureTargetOffset: negativt = för mörkt. Ett tal som inte är ett ändligt,
     /// positivt värde ersätts (tiden med den låsta, ISO med minISO, offset med 0),
     /// så att planen alltid går att låsa och skriva som JSON. METOD MS2
     public static func plan(aeDuration: Double, aeISO: Double, aeOffsetEV: Double,
                             target: Double = targetDuration, format: CameraFormat) -> ExposurePlan {
-        let duration = clamp(target, format.minExposure, format.maxExposure)
+        let duration = lockedDuration(format: format, target: target)
         let tid = aeDuration.isFinite && aeDuration > 0 ? aeDuration : duration
         let iso0 = aeISO.isFinite && aeISO > 0 ? aeISO : format.minISO
         let offset = aeOffsetEV.isFinite ? aeOffsetEV : 0

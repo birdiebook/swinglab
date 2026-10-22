@@ -7,7 +7,7 @@
 # Resultatet läses utan gh, på grenen ci-resultat (som test.yml, men egen fil så
 # att de två inte skriver över varandra):
 #   git fetch origin ci-resultat && git show origin/ci-resultat:resultat/<sha>.kompilera.txt
-# Startvyn som provet ritade ligger bredvid som resultat/<sha>.startvy.png.
+# Bilderna som provet ritade ligger bredvid som resultat/<sha>.<namn>.png (startvy, kvitto).
 # testflight.yml vägrar en commit som inte är grön här.
 
 name: kompilera
@@ -105,10 +105,11 @@ jobs:
             else
               python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
               grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
+              echo "== provets mätningar (påhittad film)"
+              grep -E '^PROV: ' prov.log | head -40 || true
             fi
           } > "$RUNNER_TEMP/resultat.txt"
           cat "$RUNNER_TEMP/resultat.txt"
-          BILD=/tmp/swinglab_prov/startvy.png
           TOKEN="${{ github.token }}"
           for i in 1 2 3 4 5; do
             rm -rf "$RUNNER_TEMP/r" && mkdir "$RUNNER_TEMP/r" && cd "$RUNNER_TEMP/r" && git init -q
@@ -117,7 +118,9 @@ jobs:
             mkdir -p resultat
             cp "$RUNNER_TEMP/resultat.txt" "resultat/${GITHUB_SHA}.kompilera.txt"
             cp "$RUNNER_TEMP/resultat.txt" senaste-kompilera.txt
-            if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.startvy.png"; fi
+            for BILD in /tmp/swinglab_prov/*.png; do
+              if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.$(basename "$BILD")"; fi
+            done
             git add -A && git -c user.name=swinglab-ci -c user.email=swinglab-ci@users.noreply.github.com commit -qm "kompilera ${GITHUB_SHA}"
             git push -q origin ci-resultat && break
             sleep $((i * 3))

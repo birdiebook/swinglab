@@ -182,6 +182,9 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   Ljusprovet görs om vid behov.
 - **Väntar:** 1/2000 s (BESLUT B11) eller kortare; 1/4000 s halverar oskärpan
   men kräver dubbelt ljus. Johannes beslut.
+- **Byggt i S2c:** slutartiden står på ett ställe, `Exposure.targetDuration`
+  (SwingLabKit). Både autoexponeringens tak och det låsta läget räknas ur den
+  (`Exposure.lockedDuration`), så Johannes svar är en rad.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B17 — Formatet väljs i SwingLabKit
@@ -317,6 +320,10 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   iCloud-backupen; exporten i `Documents/Export`, synlig i Filer och i Apple
   Devices över kabel.
 - **Väntar:** behålla hela serierna eller "Spara bara klippen" efter export.
+- **Byggt i S2c:** båda går. `AppSettings.keepOriginals` (standard `true`,
+  behåll) i `installningar.json`, och `Store.releaseOriginals` tar bort
+  seriernas original bara när den är `false` och passet är exporterat (S2f);
+  provat i simulatorprovet.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B27 — Paketet är en okomprimerad zip per telefon och pass
