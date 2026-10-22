@@ -1,0 +1,20 @@
+e79a90ad7be40a51f702257b41a5040e39e058da s4-vyn 2026-10-22T12:56:10Z run 39782322037
+== swift-release
+GRÖNT: 82 test, 0 fel, 3 s i testerna, bygget 22 s
+Långsammast (av 82):
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  KatalogTests.testBedomningenSomPython
+      0.1 s  TvaTelefonerTests.testPriorUtanforFonstretParadeInget
+      0.1 s  TvaTelefonerTests.testFormelnOchOgiltigaProv
+      0.1 s  KatalogTests.testBaslinjen
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  VisningTests.testUtveckling
+      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
+      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
+      0.0 s  MattTests.testVansterspelarenRaknasSomHoger
+

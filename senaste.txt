@@ -1,21 +1,20 @@
-c786f1bb6f254cfc78bafef02ed2b90b1ea4555e s2cd 2026-10-22T12:51:42Z run 39781684421
+e79a90ad7be40a51f702257b41a5040e39e058da s4-vyn 2026-10-22T12:56:10Z run 39782322037
 == swift-release
-RÖTT: 83 test, 4 fel, 4 s i testerna, bygget 24 s
-  fel: InspelningTests.testRutnatetTalGrovTidsskala
-Långsammast (av 83):
-      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+GRÖNT: 82 test, 0 fel, 3 s i testerna, bygget 22 s
+Långsammast (av 82):
       0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.1 s  InspelningTests.testPassetSparasOchLasesTillbaka
-      0.1 s  LederTests.testSaknadeLederArOsakert
-      0.1 s  FormatTests.testVansterspelarenByterSidaOchSpeglarX
-      0.1 s  FormatTests.testRutornaSorterasPaTiden
-      0.1 s  FormatTests.testLagKonfidensArSaknad
-      0.1 s  KlickTests.testSlaIhopTarDetStarkaste
+      0.1 s  KatalogTests.testBedomningenSomPython
+      0.1 s  TvaTelefonerTests.testPriorUtanforFonstretParadeInget
+      0.1 s  TvaTelefonerTests.testFormelnOchOgiltigaProv
+      0.1 s  KatalogTests.testBaslinjen
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  VisningTests.testUtveckling
       0.0 s  KlickTests.testTvaKlickNaraBlirEtt
       0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
+      0.0 s  MattTests.testVansterspelarenRaknasSomHoger
 
