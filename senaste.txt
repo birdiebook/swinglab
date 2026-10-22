@@ -1,20 +1,20 @@
-f9261495fc5d6a6a8e62a8943f79d7a4c894fc48 s2g 2026-10-22T20:50:32Z run 39852058189
+75f2915a5fbfaedbbffbfc27a9bc3716cc597209 s4b 2026-10-22T20:51:02Z run 39852173349
 == swift-release
-GRÖNT: 163 test, 0 fel, 5 s i testerna, bygget 38 s
-Långsammast (av 163):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+GRÖNT: 164 test, 0 fel, 5 s i testerna, bygget 37 s
+Långsammast (av 164):
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MatningTests.testSammaSomFilformatet
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  KatalogTests.testBaslinjen
-      0.1 s  SlagTests.testRaknarenGarAldrigBakat
-      0.1 s  FormatTests.testFeletVisarAldrigVardet
-      0.1 s  VisningTests.testSpannetMedOppenGrans
-      0.1 s  VisningTests.testSpannetMedBaslinje
-      0.1 s  TvaTelefonerTests.testPriorUtanforFonstretParadeInget
-      0.1 s  SlagTests.testRutorUtanPersonBehallsOchGorDomenOsaker
-      0.1 s  MattTests.testNamnenPerVy
+      0.1 s  VisningTests.testPasset
+      0.1 s  InspelningTests.testSerienUrFilen
+      0.1 s  InspelningTests.testKvittot
+      0.1 s  FormatTests.testLagKonfidensArSaknad
+      0.1 s  RedigeringTests.testFonstretKlamptKringMittenOchHelaFilenNarDenArKort
+      0.1 s  RedigeringTests.testBuffertOchUppratt
+      0.1 s  KlickTests.testKortSignalGerInget
 
