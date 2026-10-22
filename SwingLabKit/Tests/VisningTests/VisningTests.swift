@@ -80,6 +80,19 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Resa framåt, Böjning +2,0°")
     }
 
+    func testAccentenBaraForDetSomOvas() throws {
+        // BESLUT B31: det du övar på bär accenten, inget annat.
+        let a = Demo.attJobbaPa
+        XCTAssertEqual(a.ovas, ["sway_topp", "flying_elbow"])
+        let p = Passvisning(katalog: try katalog(), pass: Demo.pass, ovas: a.ovas)
+        XCTAssertEqual(Set(p.kort.filter { $0.ovas }.map { $0.id }), ["sway_topp", "flying_elbow"])
+        let i = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass, attJobbaPa: a)
+        XCTAssertEqual(i.rader.filter { $0.ovas }.map { $0.id }, ["sway_topp", "flying_elbow"])
+        let u = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, ovas: a.ovas)
+        XCTAssertEqual(u.matt.filter { $0.ovas }.map { $0.id }, ["sway_topp", "flying_elbow"])
+        XCTAssertFalse(Passvisning(katalog: try katalog(), pass: Demo.pass).kort.contains { $0.ovas })
+    }
+
     func testDatumen() {
         XCTAssertEqual(Tal.datum(Tal.dag(2027, 1, 6)), "6 jan")
         XCTAssertEqual(Tal.dag(Tal.dag(2027, 1, 9)), "lör 9 jan")

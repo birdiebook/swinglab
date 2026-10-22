@@ -13,7 +13,7 @@ struct IdagVy: View {
     private func namn(_ r: Idagvisning.Rad) -> some View {
         Text(r.namn)
             .typsnitt(14)
-            .foregroundStyle(Theme.secondary)
+            .foregroundStyle(r.ovas ? Theme.acc : Theme.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -56,14 +56,14 @@ struct IdagVy: View {
                                 ViewThatFits(in: .horizontal) {
                                     HStack(spacing: 12) {
                                         namn(r).frame(maxWidth: .infinity, alignment: .leading)
-                                        SpannVy(spann: r.spann, kompakt: true)
+                                        SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
                                             .frame(width: 92)
                                         tal(r).frame(minWidth: 66, alignment: .trailing)
                                     }
                                     VStack(alignment: .leading, spacing: 6) {
                                         namn(r)
                                         HStack(spacing: 12) {
-                                            SpannVy(spann: r.spann, kompakt: true)
+                                            SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
                                             tal(r)
                                         }
                                     }
@@ -100,7 +100,7 @@ struct IdagVy: View {
                                     }
                                     Text(namn)
                                         .typsnitt(13)
-                                        .foregroundStyle(i == 0 ? Theme.text : Theme.secondary)
+                                        .foregroundStyle(i == 0 ? Theme.acc : Theme.secondary)
                                         .lineLimit(1)
                                 }
                             }

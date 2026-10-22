@@ -48,7 +48,7 @@ struct UtvecklingKort: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Etikett(text: u.rubrik)
+                Etikett(text: u.rubrik, farg: u.ovas ? Theme.acc : Theme.tertiary)
                 Spacer()
                 if let m = u.markning { MarkningVy(markning: m) }
             }
@@ -138,9 +138,11 @@ struct Diagram: View {
                 let q = CGPoint(x: x(i), y: y(p.pass))
                 if i == 0 { linje.move(to: q) } else { linje.addLine(to: q) }
             }
-            c.stroke(linje, with: .color(Theme.secondary), lineWidth: 1.2)
+            // Det du övar på: linjen och den senaste markören i accenten (BESLUT B31).
+            c.stroke(linje, with: .color(u.ovas ? Theme.acc : Theme.secondary), lineWidth: 1.2)
             for (i, p) in u.punkter.enumerated() {
-                c.prick(CGPoint(x: x(i), y: y(p.pass)), i == n - 1 ? 5 : 2.6, Theme.text)
+                c.prick(CGPoint(x: x(i), y: y(p.pass)), i == n - 1 ? 5 : 2.6,
+                        i == n - 1 && u.ovas ? Theme.acc : Theme.text)
             }
         }
         .accessibilityHidden(true)

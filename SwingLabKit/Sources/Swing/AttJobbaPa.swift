@@ -175,6 +175,9 @@ public struct AttJobbaPa: Decodable, Sendable {
         }
     }
 
+    /// Felen som övas: de som bär accenten i Passet, Idag, Utveckling och Granskningen (BESLUT B31).
+    public var ovas: Set<String> { Set(saker.map { $0.fel }) }
+
     /// Passets dag ur id:t "yyyyMMdd-HHmmss", i svensk tid.
     public var passDatum: Date? {
         let s = Array(pass)
