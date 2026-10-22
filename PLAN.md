@@ -110,22 +110,37 @@ någon fil behövt redigeras för hand.
 
 ## S6 — Två kameror: vridningen och X-factor
 
-Två iPhones filmar samtidigt (DTL och FO), synkade på klicket och finjusterade
-på ledernas fart. Varje telefon kalibreras en gång mot ett ChArUco-mönster,
-och varje pass mot minst 10 kända punkter på mattan (Pose2Sims metod,
-BSD-3). Lederna trianguleras till 3D. Väntat fel 3–5°, men bara mätt på gång,
-löpning och hopp. Det ger
-bäckenets och bröstets vridning, X-factor, X-factor stretch och höfterna
-öppna vid träffen, med gränsen 35–45° grönt (Sportsbox, GolfTEC och Zheng
-möts, research 1 §1.7). X-factor visas som egen trend, inte mot en gradgräns
-(metoderna skiljer sig med cirka 16°), och stretchen före X-factor vid toppen,
-eftersom den oftare hänger ihop med klubbfarten.
+Två iPhones filmar samtidigt, DTL och FO med cirka 90° mellan sig (60–120°
+går), 3 m bort och i höfthöjd. Synken tas på klicket och finjusteras på
+minsta återprojektionsfel (2 ms; korskorrelation av farten ger 7–13 ms).
+Varje telefon kalibreras en gång mot ett ChArUco-mönster, och varje pass mot
+minst 6 punkter på mattan spridda minst 1 m och inmätta på ±1 cm (eller
+självkalibrering ur lederna med telefonens lodlinje). Lederna trianguleras
+till 3D. Det ger bäckenets och bröstets vridning, X-factor, stretchen och
+höfterna öppna vid träffen (gränsen 35–45° grönt; Sportsbox, GolfTEC och Zheng
+möts, research 1 §1.7). Felbudgeten: `docs/S6_FELBUDGET.md`.
 
-**Facit:** stå i adress och vrid axlarna mot markerade linjer på 0°, 45° och
-90°.
+**Två lägen (BESLUT B14):**
+- **Utan markörer:** posemodellens höft- och axelpunkter. Felbudgeten ger
+  cirka 10–16° per sving med typiskt 2D-brus, eftersom höftlinjen bara är
+  ~20 cm. Vridningen och X-factor visas därför bara som **trend per pass**
+  (median över minst 10 slag).
+- **Med markörer:** en pinne i bältet och en stav över ryggen med färgade
+  ändar, sedda i båda vyerna. Bäckenet inom 1–1,5° och bröstet inom 0,5° per
+  sving. Appen märker vilket läge talet kommer från.
 
-**Klart när:** vridningen träffar facitlinjerna inom 5°, och X-factor står med
-band i vyn.
+X-factor visas som egen trend, inte mot en gradgräns: definitionen ensam
+flyttar den cirka 19° i samma sving (Euler, akromionlinjen, bröstkorgens
+axel). Stretchen visas före X-factor vid toppen, eftersom den oftare hänger
+ihop med klubbfarten.
+
+**Facit:** markörerna själva, triangulerade, mot posemodellens vridning i
+samma svingar, och en iPhone på bältet som rörelsefacit. Golvlinjer räcker
+inte: människans eget inriktningsfel är lika stort som kravet.
+
+**Klart när:** med markörer ligger vridningen inom 2° från facit per sving;
+utan markörer ligger passets median inom 5° från markörernas median på samma
+pass; och vyn visar läget (markör eller trend).
 
 ## S7 — Klubban
 

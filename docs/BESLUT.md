@@ -129,3 +129,18 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   billig AI"), bättre/sämre-ord och förklarande text.
 - **Regeln:** kräver en skärm en förklaring är designen fel. Gör om den i
   stället för att lägga till text.
+
+## B14 — Vridningen i två lägen: trend utan markörer, per sving med markörer
+*2026-10-22 · gäller · Johannes beslut efter felbudgeten (docs/S6_FELBUDGET.md)*
+
+- **Valt:** utan markörer visas vridningen och X-factor bara som trend per pass
+  (median över minst 10 slag). Med en pinne i bältet och en stav över ryggen
+  visas de per sving. Appen märker vilket läge talet kommer från.
+- **Varför:** simuleringen visar att posemodellens 2D-fel styr, inte kamerorna:
+  cirka 10–16° per sving utan markörer, 0,5–1,5° med. Kalibrering, synk,
+  tappade rutor och slutartid bidrar under 1–3°.
+- **Bortvalt:** bara utan markörer (X-factor per sving blir brus), bara med
+  markörer (utrustning varje pass).
+- **Omprövas:** när S3 har mätt posemodellens verkliga 2D-fel på golf; ligger
+  det på ≤3 px vid 3 m kan läget utan markörer ge mer än trend.
+
