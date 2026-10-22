@@ -369,3 +369,17 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Behålls på svenska:** kod, kommentarer, planer, beslut och metod i repot,
   som i de andra apparna.
 - **Genomförs:** i ett eget spår efter att S2c/S2d och S4-grunden landat.
+
+## B31 — Accenten: isblått för det du övar på
+*2026-10-22 · gäller · Johannes beslut, efter skissen*
+
+- **Valt:** en enda accent, isblå `#6FD3F7` (kontrast 12,3 : 1 mot `#000`,
+  tydligt skild från varningens `#B98A4A`). Den betyder bara "det du övar på":
+  måttet eller måtten i Att jobba på bär den i sitt kort i Passet, sin rad på
+  Idag, sin linje i Utveckling, sin uppmätta linje i Granskningen och i kedjan.
+  Allt annat är gråskala. Bara tunna linjer, markören och en etikett, aldrig
+  ytor, knappar eller bakgrunder, och aldrig som dom över bra eller dåligt.
+  Reglerna står i `design/README.md` (regel 10).
+- **Bortvalt:** ingen accent alls, accenten för nuvärdet (markören i varje
+  spann, tidslinjen och linjerna över videon), elektriskt blått och
+  signalorange.

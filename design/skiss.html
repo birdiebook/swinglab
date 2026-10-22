@@ -3,7 +3,8 @@
 <style>
 /* Layout: skärmlistan till vänster (överst på mobil), telefonen på 390 px till höger.
    Ett analysverktyg: svart och vitt med gråskala, tunna linjer, raka hörn, tabellsiffror.
-   Ingen accentfärg, inga skuggor, inga gradienter, ingen figur. --flag bara för en varning i uppställningen. */
+   En accent, --acc (isblå), bara för det du övar på (B31). Inga skuggor, inga gradienter, ingen figur.
+   --flag bara för en varning i uppställningen. */
 :root {
   --page: #050505;
   --ground: #000000;
@@ -18,6 +19,7 @@
   --mark: #FFFFFF;
   --on-mark: #000000;
   --flag: #B98A4A;
+  --acc: #6FD3F7;
   --font: system-ui, -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
 }
@@ -25,14 +27,14 @@
   :root:not([data-theme="light"]) {
     --page: #050505; --ground: #000000; --surface: #0D0D0D; --raised: #161616; --hair: #1C1C1C; --line: #2E2E2E;
     --text: #FFFFFF; --secondary: #A3A3A3; --tertiary: #6B6B6B; --cam: #0A0A0A;
-    --mark: #FFFFFF; --on-mark: #000000; --flag: #B98A4A;
+    --mark: #FFFFFF; --on-mark: #000000; --flag: #B98A4A; --acc: #6FD3F7;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --page: #050505; --ground: #000000; --surface: #0D0D0D; --raised: #161616; --hair: #1C1C1C; --line: #2E2E2E;
     --text: #FFFFFF; --secondary: #A3A3A3; --tertiary: #6B6B6B; --cam: #0A0A0A;
-    --mark: #FFFFFF; --on-mark: #000000; --flag: #B98A4A;
+    --mark: #FFFFFF; --on-mark: #000000; --flag: #B98A4A; --acc: #6FD3F7;
   color-scheme: dark;
 }
 
@@ -111,6 +113,7 @@ svg { display: block; }
 
 /* Idag */
 .mrow { display: grid; grid-template-columns: minmax(0, 1fr) 92px 66px; gap: 12px; align-items: center; min-height: 34px; font-size: 14px; }
+.mrow .n.foc { color: var(--acc); }
 .mrow .n { color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mrow .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
 .mrow .v small { color: var(--tertiary); font-weight: 400; margin-left: 2px; }
@@ -118,7 +121,7 @@ svg { display: block; }
 .focus-name { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
 .thought { font-size: 20px; font-weight: 500; color: var(--text); margin-top: 6px; }
 .chainline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--secondary); margin-top: 14px; }
-.chainline .first { color: var(--text); }
+.chainline .first { color: var(--acc); }
 
 /* Uppställning */
 .setup-ill { height: 260px; display: grid; place-items: center; border-bottom: 1px solid var(--hair); margin-bottom: 4px; }
@@ -179,6 +182,7 @@ svg { display: block; }
 /* Passet */
 .mtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .mname { font-size: 16px; font-weight: 500; margin: 6px 0 10px; }
+.mname.foc, .chip.foc, .readout .k.foc { color: var(--acc); }
 .mmain { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
 .delta { font-size: 13px; color: var(--secondary); font-variant-numeric: tabular-nums; margin-top: 8px; }
 .geo { width: 96px; height: 64px; }
@@ -189,7 +193,7 @@ svg { display: block; }
 .chain { display: grid; grid-template-columns: 1fr 14px 1fr 14px 1fr; gap: 6px; align-items: start; }
 .chain .c { display: grid; gap: 4px; min-width: 0; }
 .chain .c b { font-size: 13px; font-weight: 500; color: var(--secondary); }
-.chain .c.first b { color: var(--text); }
+.chain .c.first b { color: var(--acc); }
 .chain .c .v { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .chain .c .v small { font-size: 12px; color: var(--secondary); }
 .chain .c .f { font-size: 12px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
@@ -516,6 +520,9 @@ const M = [
   { id: 'tilt', name: 'Axellutning', view: 'FO', phase: 'träff', unit: '°', off: true, status: 'av' },
 ];
 const byId = Object.fromEntries(M.map(m => [m.id, m]));
+// Det du övar på (Att jobba på) bär accenten, allt annat är grått (B31).
+const FOCUS = ['sway'];
+const isF = id => FOCUS.includes(id);
 const PREV_DATE = '6 jan';
 const SIGNED = ['sway', 'thrust', 'bend'];
 const valTxt = m => SIGNED.includes(m.id) ? fmtS(m.v, m.d) : fmt(m.v, m.d);
@@ -535,12 +542,12 @@ function spanBar(m, W = 350, compact = false) {
   if (m.span) s += LN(sx(m.span[0]), y, sx(m.span[1]), y, 'var(--secondary)', compact ? 3 : 4);
   if (m.base) s += `<rect x="${sx(m.base[0])}" y="${y - (compact ? 3 : 4)}" width="${sx(m.base[1]) - sx(m.base[0])}" height="${compact ? 6 : 8}" rx="1.5" style="fill:none;stroke:var(--secondary);stroke-width:1.3"/>`;
   if (!compact) {
-    s += LN(sx(m.v - m.spread), y, sx(m.v + m.spread), y, 'var(--mark)', 1.5) ;
+    s += LN(sx(m.v - m.spread), y, sx(m.v + m.spread), y, isF(m.id) ? 'var(--acc)' : 'var(--mark)', 1.5);
     s += LN(sx(m.prev), y - 7, sx(m.prev), y + 7, 'var(--tertiary)', 1.5);
     const edges = [...new Set([m.min, ...(m.span || m.base || []), m.max])];
     for (const e of edges) s += T(sx(e), y + 22, fmt(e, Number.isInteger(e) ? 0 : 1), { a: e === m.min ? 'start' : e === m.max ? 'end' : 'middle' });
   }
-  s += DOT(sx(m.v), y, compact ? 3.5 : 5, 'var(--mark)');
+  s += DOT(sx(m.v), y, compact ? 3.5 : 5, isF(m.id) ? 'var(--acc)' : 'var(--mark)');
   return `<svg viewBox="0 0 ${W} ${compact ? 14 : 40}" role="img" aria-label="${m.name} ${valTxt(m)} ${m.unit}">${s}</svg>`;
 }
 /* Geometri bara där måttet är en vinkel. */
@@ -585,7 +592,7 @@ function frame(now) { for (const a of anims) if (a.screen === current) a.fn(now)
 
 /* ================= 1 Idag ================= */
 $('#idag-rows').innerHTML = M.filter(m => !m.off).map(m => `
-  <div class="mrow"><span class="n">${m.name}</span>${spanBar(m, 92, true)}<span class="v">${valTxt(m)}<small>${m.unit === ': 1' ? '' : m.unit}</small></span></div>`).join('');
+  <div class="mrow"><span class="n${isF(m.id) ? ' foc' : ''}">${m.name}</span>${spanBar(m, 92, true)}<span class="v">${valTxt(m)}<small>${m.unit === ': 1' ? '' : m.unit}</small></span></div>`).join('');
 
 /* ================= 2 Uppställning ================= */
 const STEPS = [
@@ -709,10 +716,10 @@ function renderStage() {
   const ref = X(hipC(KP[v].address)[0]);
   s += LN(ref, 40, ref, 400, 'var(--secondary)', 1, '4 4');
   if (rv.ghost) { const g = hipC(withShot(v, kpAt(v, ms), ms, PREV)); s += DOT(X(g[0]), Y(g[1]), 5, 'var(--secondary)', true); }
-  const c = hipC(p);
+  const c = hipC(p), mid_ = v === 'fo' ? 'sway' : 'thrust', mc = isF(mid_) ? 'var(--acc)' : 'var(--mark)';
   if (v === 'fo') {
-    s += LN(X(p.hipT[0]), Y(p.hipT[1]), X(p.hipL[0]), Y(p.hipL[1]), 'var(--mark)', 1.6);
-    s += DOT(X(p.hipT[0]), Y(p.hipT[1]), 3, 'var(--mark)') + DOT(X(p.hipL[0]), Y(p.hipL[1]), 3, 'var(--mark)');
+    s += LN(X(p.hipT[0]), Y(p.hipT[1]), X(p.hipL[0]), Y(p.hipL[1]), mc, 1.6);
+    s += DOT(X(p.hipT[0]), Y(p.hipT[1]), 3, mc) + DOT(X(p.hipL[0]), Y(p.hipL[1]), 3, mc);
   } else {
     const a = KP.dtl.address, ah = hipC(a), ext = 1.6;
     const along = (h, sh) => [h[0] + (sh[0] - h[0]) * ext, h[1] + (sh[1] - h[1]) * ext];
@@ -720,11 +727,11 @@ function renderStage() {
     s += LN(X(c[0]), Y(c[1]), X(aEnd[0]), Y(aEnd[1]), 'var(--tertiary)', 1, '3 3');
     s += LN(X(c[0]), Y(c[1]), X(pEnd[0]), Y(pEnd[1]), 'var(--mark)', 1.6);
   }
-  s += LN(ref, Y(c[1]) + 22, X(c[0]), Y(c[1]) + 22, 'var(--text)', 1) + LN(ref, Y(c[1]) + 17, ref, Y(c[1]) + 27, 'var(--text)', 1) + LN(X(c[0]), Y(c[1]) + 17, X(c[0]), Y(c[1]) + 27, 'var(--text)', 1);
-  s += DOT(X(c[0]), Y(c[1]), 4.5, 'var(--mark)');
+  s += LN(ref, Y(c[1]) + 22, X(c[0]), Y(c[1]) + 22, mc, 1) + LN(ref, Y(c[1]) + 17, ref, Y(c[1]) + 27, mc, 1) + LN(X(c[0]), Y(c[1]) + 17, X(c[0]), Y(c[1]) + 27, mc, 1);
+  s += DOT(X(c[0]), Y(c[1]), 4.5, mc);
   $('#stage').innerHTML = s;
   const val = live(v, ms, rv.shot);
-  $('#readout').innerHTML = `<span class="k">${v === 'fo' ? 'Sway' : 'Thrust'} · ${(ms / 1000).toFixed(2).replace('.', ',')} s</span><span class="v">${fmtS(val)}<small> cm</small></span>`;
+  $('#readout').innerHTML = `<span class="k${isF(mid_) ? ' foc' : ''}">${v === 'fo' ? 'Sway' : 'Thrust'} · ${(ms / 1000).toFixed(2).replace('.', ',')} s</span><span class="v">${fmtS(val)}<small> cm</small></span>`;
   renderTimeline();
   const near = [600, 1450, 1730, 2400].reduce((a, b) => Math.abs(b - ms) < Math.abs(a - ms) ? b : a);
   for (const b of $$('.phases button')) b.setAttribute('aria-pressed', String(+b.dataset.t === near && Math.abs(near - ms) < 120));
@@ -763,7 +770,7 @@ function renderCards(filter = 'alla') {
   $('#mcards').innerHTML = M.filter(m => filter === 'alla' || m.view.includes(filter)).map(m => `
     <article class="sec" id="mc-${m.id}">
       <div class="mtop"><span class="lbl">${m.view} · ${m.phase}${m.dir ? ' · + mot ' + m.dir : ''}</span>${mark(m)}</div>
-      <div class="mname">${m.name}</div>
+      <div class="mname${isF(m.id) ? ' foc' : ''}">${m.name}</div>
       ${m.off ? `<div class="big off">—<small>${m.unit}</small></div>` : `
       <div class="mmain"><div><div class="big">${valTxt(m)}<small>${m.unit}</small></div><div class="delta">${deltaTxt(m)}</div></div>${geo(m)}</div>
       <div class="span">${spanBar(m)}</div>`}
@@ -779,9 +786,9 @@ renderMiss();
 
 /* ================= 6 Att jobba på ================= */
 (function () {
-  const c = (m, first) => `<div class="c${first ? ' first' : ''}"><b>${m.name}</b><span class="v">${valTxt(m)}<small> ${m.unit}</small></span><span class="f">${(SIGNED.includes(m.id) ? fmtS : fmt)(m.series[0], m.d)} → ${valTxt(m)}</span></div>`;
+  const c = m => `<div class="c${isF(m.id) ? ' first' : ''}"><b>${m.name}</b><span class="v">${valTxt(m)}<small> ${m.unit}</small></span><span class="f">${(SIGNED.includes(m.id) ? fmtS : fmt)(m.series[0], m.d)} → ${valTxt(m)}</span></div>`;
   const a = `<span class="a"><svg class="ic sm"><use href="#i-arrow"/></svg></span>`;
-  $('#chain').innerHTML = c(byId.sway, 1) + a + c(byId.resa) + a + c(byId.bend);
+  $('#chain').innerHTML = c(byId.sway) + a + c(byId.resa) + a + c(byId.bend);
   $('#prog').innerHTML = ['Långsamt', 'Halv fart', 'Full fart', 'Ny klubba'].map((s, i) => `<div class="${i < 1 ? 'done' : i === 1 ? 'now' : ''}"><i></i>${s}</div>`).join('');
 })();
 
@@ -805,13 +812,14 @@ function chart(m) {
   let lastM = '';
   DATES.forEach((d, i) => { const mo = d.split(' ')[1]; if (mo !== lastM) { lastM = mo; s += T(sx(i), H - 6, mo, { a: 'middle' }); } });
   if (m.first) m.first.forEach((v, i) => { s += LN(sx(i), sy(v), sx(i), sy(m.series[i]), 'var(--line)', 1) + DOT(sx(i), sy(v), 3, 'var(--tertiary)', true); });
-  s += `<polyline points="${m.series.map((v, i) => sx(i) + ',' + sy(v)).join(' ')}" style="fill:none;stroke:var(--secondary);stroke-width:1.2"/>`;
+  const lc = isF(m.id) ? 'var(--acc)' : 'var(--secondary)';
+  s += `<polyline points="${m.series.map((v, i) => sx(i) + ',' + sy(v)).join(' ')}" style="fill:none;stroke:${lc};stroke-width:1.2"/>`;
   m.series.forEach((v, i) => { if (i < n - 1) s += DOT(sx(i), sy(v), 2.6, 'var(--text)'); });
-  s += DOT(sx(n - 1), sy(m.series[n - 1]), 5, 'var(--mark)');
+  s += DOT(sx(n - 1), sy(m.series[n - 1]), 5, isF(m.id) ? 'var(--acc)' : 'var(--mark)');
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${m.name} per pass">${s}</svg>`;
 }
 function renderUtv() {
-  $('#utv-chips').innerHTML = UTV.map(id => `<button type="button" class="chip" data-utv="${id}" aria-pressed="${id === utvSel}">${byId[id].name}</button>`).join('');
+  $('#utv-chips').innerHTML = UTV.map(id => `<button type="button" class="chip${isF(id) ? ' foc' : ''}" data-utv="${id}" aria-pressed="${id === utvSel}">${byId[id].name}</button>`).join('');
   const m = byId[utvSel];
   $('#utv-card').innerHTML = `
     <div class="mtop"><span class="lbl">${m.view} · ${m.phase}</span>${mark(m)}</div>

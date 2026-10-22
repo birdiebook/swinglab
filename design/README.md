@@ -24,7 +24,7 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    läsas för att använda appen: övningens namn, tanken och "klart när" som ett
    villkor i tal. Märkningarna är små symboler med en kort etikett: B10 (gräns
    ej läst i original), egen (egen baslinje), av (avstängt mått).
-6. **Svart, vitt och gråskala.** Ingen accentfärg. En dämpad signalfärg bara där
+6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.
 7. **Typografi:** system-ui (SF Pro), tabellsiffror, stora tal med enheten liten
@@ -32,6 +32,11 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 8. **Primärknappen** är ett vitt fält med svart text, överallt.
 9. **Intuitivt utan text.** Kräver en skärm en förklaring är designen fel. Gör om
    den i stället för att lägga till text.
+10. **Accenten (BESLUT B31).** En enda accent, isblå `#6FD3F7`, och den betyder
+    bara "det du övar på": måttet eller måtten i Att jobba på. De bär den i sitt
+    kort i Passet, sin rad på Idag, sin linje i Utveckling, sin uppmätta linje i
+    Granskningen och i kedjan. Bara tunna linjer, markören och en etikett,
+    aldrig ytor, knappar eller bakgrunder. Aldrig som dom över bra eller dåligt.
 
 ## Paletten
 
@@ -47,6 +52,7 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 | `--secondary` | `#A3A3A3` | sekundär text, gränsen i spannet |
 | `--text` | `#FFFFFF` | text, tal, markören för nu |
 | `--flag` | `#B98A4A` | bara varningar i uppställningen |
+| `--acc` | `#6FD3F7` | bara det du övar på (regel 10) |
 
 ## Öppna val
 
