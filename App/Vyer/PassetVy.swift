@@ -8,13 +8,17 @@ struct PassetVy: View {
     let visning: Passvisning
     var tillbaka: () -> Void = {}
     var dela: () -> Void = {}
+    /// Raden överst (tillbaka, dagen, dela); utan den när passet visas inne i slagens skärm
+    /// efter Analyze, som har sin egen (S4b).
+    var navrad = true
     @State private var filter: Passvisning.Filter
 
-    init(visning: Passvisning, filter: Passvisning.Filter = .alla, tillbaka: @escaping () -> Void = {},
-         dela: @escaping () -> Void = {}) {
+    init(visning: Passvisning, filter: Passvisning.Filter = .alla, navrad: Bool = true,
+         tillbaka: @escaping () -> Void = {}, dela: @escaping () -> Void = {}) {
         self.visning = visning
         self.tillbaka = tillbaka
         self.dela = dela
+        self.navrad = navrad
         _filter = State(initialValue: filter)
     }
 
@@ -26,15 +30,17 @@ struct PassetVy: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Navrad(titel: visning.titel, hoger: {
-                Button(action: dela) {
-                    Image(systemName: "square.and.arrow.up")
-                        .typsnitt(17, .medium)
-                        .foregroundStyle(Theme.secondary)
-                        .frame(width: 40, height: 40)
-                }
-                .buttonStyle(.plain)
-            }, tillbaka: tillbaka)
+            if navrad {
+                Navrad(titel: visning.titel, hoger: {
+                    Button(action: dela) {
+                        Image(systemName: "square.and.arrow.up")
+                            .typsnitt(17, .medium)
+                            .foregroundStyle(Theme.secondary)
+                            .frame(width: 40, height: 40)
+                    }
+                    .buttonStyle(.plain)
+                }, tillbaka: tillbaka)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack {
                     segment

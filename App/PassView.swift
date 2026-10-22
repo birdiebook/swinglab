@@ -17,10 +17,14 @@ struct PassShotsView: View {
     @State private var images: [String: CGImage] = [:]
     @State private var overlays: [String: ImpactOverlay] = [:]
     @State private var job: Task<Void, Never>?
-    /// Slaget vars miniatyr visas stor.
+    /// Slaget vars miniatyr visas stor (slag utan leder).
     @State private var enlarged: ShotID?
+    /// Slaget som granskas (S4b): videon med lederna och måtten per position.
+    @State private var reviewing: ShotID?
     /// Serien som öppnats i redigeraren (S2i).
     @State private var editing: SeriesID?
+    /// Passets mått (S4:s Passet med riktig data), när något slag är mätt (METOD MS14).
+    @State private var visning: Passvisning?
 
     struct SeriesID: Identifiable {
         let id: Int
@@ -31,23 +35,15 @@ struct PassShotsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if let pass {
-                    ShotsContent(pass: pass, images: images, overlays: overlays, analysis: AnalysisState(analysis),
-                                 onAnalyze: analyze, onVerdict: setVerdict, onThumb: { enlarged = ShotID(id: $0) },
-                                 onEdit: { editing = SeriesID(id: $0) })
-                        .padding(20)
-                }
-            }
-            .background(Theme.ground, ignoresSafeAreaEdges: .all)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", action: onClose).disabled(analysis.running)
-                }
+        ScrollView {
+            if let pass {
+                PassScreenContent(pass: pass, visning: visning, images: images, overlays: overlays,
+                                  analysis: AnalysisState(analysis), onClose: onClose, onAnalyze: analyze,
+                                  onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
+                                  onHeight: setHeight)
             }
         }
+        .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
         .task { reload() }
         .onDisappear { job?.cancel() }
@@ -68,6 +64,14 @@ struct PassShotsView: View {
             }
             .environment(store)
         }
+        // Granskningen: tillbaka läser passet om ("Detection wrong" ändrar måtten).
+        .fullScreenCover(item: $reviewing) { s in
+            ShotReviewView(passID: passID, shotID: s.id) {
+                reviewing = nil
+                reload()
+            }
+            .environment(store)
+        }
         .sheet(item: $enlarged) { s in
             if let pass, let shot = pass.shots.first(where: { $0.id == s.id }) {
                 ImpactLarge(pass: pass, shot: shot, overlay: overlays[s.id])
@@ -77,18 +81,40 @@ struct PassShotsView: View {
     }
 
     private func reload() {
-        pass = store.load(passID)
-        guard let pass else { return }
-        Task { await loadImages(pass) }
+        guard let p = store.load(passID) else { return }
+        show(store.measured(p))
+    }
+
+    /// Passet och dess mått: de tidigare passen med samma klubba och vy ger baslinjen och
+    /// "vs" (METOD MS14).
+    private func show(_ p: PassState) {
+        pass = p
+        visning = Self.visning(p, store: store)
+        Task { await loadImages(p) }
+    }
+
+    static func visning(_ p: PassState, store: Store) -> Passvisning? {
+        guard let k = AppKatalog.katalog, p.shots.contains(where: { $0.measure != nil }) else { return nil }
+        let tidigare = PassHistory.earlier(p, among: store.allPasses())
+        return Passvisning(katalog: k, pass: tidigare.map(\.visningsPass) + [p.visningsPass])
     }
 
     private func analyze() {
         guard !analysis.running else { return }
         job = Task {
             if let p = await analysis.run(passID: passID, store: store) {
-                pass = p
-                await loadImages(p)
+                show(p)
             }
+        }
+    }
+
+    /// Ett tryck på ett slag: granskningen när lederna finns, annars rutan vid träffen stor.
+    private func open(_ id: String) {
+        guard !analysis.running else { return }
+        if pass?.shots.first(where: { $0.id == id })?.joints != nil {
+            reviewing = ShotID(id: id)
+        } else {
+            enlarged = ShotID(id: id)
         }
     }
 
@@ -96,7 +122,13 @@ struct PassShotsView: View {
         guard var p = pass, !analysis.running else { return }
         p.setVerdict(v, shot: id)
         store.save(p)
-        pass = p
+        show(p)
+    }
+
+    private func setHeight(_ h: Double) {
+        guard !analysis.running else { return }
+        store.setHeight(h)
+        reload()
     }
 
     /// Miniatyrerna och linjerna för slagen som har dom; ett slag som inte går att läsa
@@ -107,6 +139,85 @@ struct PassShotsView: View {
             if images[s.id] == nil, let img = try? await ShotImages.impactFrame(pass: p, shot: s, store: store) {
                 images[s.id] = img
             }
+        }
+    }
+}
+
+/// Passets skärm som värden (ingen ScrollView, ingen UIKit-del), så att provet kan rita
+/// den: raden överst, passets mått när något slag är mätt (S4:s Passet, BESLUT B35) med
+/// längden, och slagen med analysen under. Efter Analyze står måtten överst.
+struct PassScreenContent: View {
+    let pass: PassState
+    let visning: Passvisning?
+    let images: [String: CGImage]
+    let overlays: [String: ImpactOverlay]
+    let analysis: AnalysisState
+    var editable = true
+    var onClose: () -> Void = {}
+    var onAnalyze: () -> Void = {}
+    var onVerdict: (SwingVerdict, String) -> Void = { _, _ in }
+    var onThumb: (String) -> Void = { _ in }
+    var onEdit: (Int) -> Void = { _ in }
+    var onHeight: (Double) -> Void = { _ in }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Navrad(titel: Tal.dag(pass.created), hoger: { EmptyView() }, tillbaka: onClose)
+                .disabled(analysis.running)
+                .padding(.horizontal, 20)
+            if let visning {
+                PassetVy(visning: visning, filter: Passvisning.Filter(rawValue: pass.setup.view.rawValue) ?? .alla,
+                         navrad: false)
+                if let h = pass.measuredHeight {
+                    HeightRow(heightM: h.heightM, assumed: h.assumed, editable: editable && !analysis.running,
+                              onSet: onHeight)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
+                }
+            }
+            ShotsContent(pass: pass, images: images, overlays: overlays, analysis: analysis, editable: editable,
+                         onAnalyze: onAnalyze, onVerdict: onVerdict, onThumb: onThumb, onEdit: onEdit)
+                .padding(20)
+        }
+    }
+}
+
+/// Längden som ger skalan (METOD M2, MS14): talet, "assumed" när det är standarden, och ett
+/// tryck väljer Johannes längd.
+struct HeightRow: View {
+    let heightM: Double
+    let assumed: Bool
+    var editable = true
+    var onSet: (Double) -> Void = { _ in }
+
+    private var label: some View {
+        HStack(spacing: 8) {
+            Etikett(text: String(localized: "Height"))
+            Text(verbatim: "\(Taltext.decimal(heightM, digits: 2)) m")
+                .typsnitt(13, siffror: true)
+                .foregroundStyle(Theme.secondary)
+            if assumed {
+                Text("assumed")
+                    .typsnitt(11, .semibold)
+                    .foregroundStyle(Theme.tertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 32)
+    }
+
+    var body: some View {
+        if editable {
+            Menu {
+                Picker("Height", selection: Binding(get: { Int((heightM * 100).rounded()) },
+                                                    set: { onSet(Double($0) / 100) })) {
+                    ForEach(Array(ShotMeasuring.heightChoicesCm), id: \.self) { cm in
+                        Text(verbatim: "\(cm) cm").tag(cm)
+                    }
+                }
+            } label: { label }
+        } else {
+            label
         }
     }
 }
@@ -260,18 +371,13 @@ struct ShotRowView: View {
 
     var body: some View {
         HStack(spacing: 14) {
+            // Ett tryck på slaget öppnar granskningen (S4b), eller rutan vid träffen stor.
             if editable {
-                Button(action: onThumb) { thumb }
+                Button(action: onThumb) { left }
                     .buttonStyle(.plain)
-                    .disabled(image == nil && overlay == nil)
+                    .disabled(!row.hasJoints && image == nil && overlay == nil)
             } else {
-                thumb
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "\(row.number)")
-                    .typsnitt(22, .medium, siffror: true)
-                    .foregroundStyle(Theme.text)
-                Under(text: detail)
+                left
             }
             Spacer(minLength: 8)
             if editable {
@@ -287,6 +393,24 @@ struct ShotRowView: View {
         .padding(.vertical, 10)
         .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
         .accessibilityElement(children: .combine)
+    }
+
+    private var left: some View {
+        HStack(spacing: 14) {
+            thumb
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: "\(row.number)")
+                    .typsnitt(22, .medium, siffror: true)
+                    .foregroundStyle(row.detectionWrong ? Theme.tertiary : Theme.text)
+                Under(text: detail)
+                if row.detectionWrong {
+                    Text("Detection wrong")
+                        .typsnitt(13, .semibold)
+                        .foregroundStyle(Theme.tertiary)
+                }
+            }
+        }
+        .contentShape(.rect)
     }
 
     private var thumb: some View {

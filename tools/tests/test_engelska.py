@@ -95,6 +95,8 @@ INTE_TEXT = {
     "forward.frame.fill", "\\(…)–\\(…) s", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
     "swinglab.link", "SIMULATOR_MODEL_IDENTIFIER", "CFBundleShortVersionString",
     "par", "par.json", "foljare", "foljare.json", "\\(…) · \\(…) ms",
+    "\\(…) cm", "katalog", "json", "P1", "P4", "P7", "P10", " s", " ",
+    "eye", "eye.slash", "ellipsis", "\\(…) / \\(…)", "—",
 }
 
 

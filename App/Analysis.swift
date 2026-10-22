@@ -60,6 +60,9 @@ final class Analysis {
         }
         do {
             pass.syncShots()
+            // Ett pass från före S4b: slagen med leder får sina mått först (METOD MS14).
+            let id = pass.id
+            pass.measureShots(height: store.settings.heightM) { s in s.joints.flatMap { store.joints($0, in: id) } }
             try persist(pass, store)
             while let next = ShotPlan.next(pass), !Task.isCancelled {
                 step = next
@@ -129,6 +132,9 @@ final class Analysis {
                 pass.shots[i].joints = try store.writeJoints(series, shot: shot.id, in: pass.id)
                 pass.shots[i].jointFrames = series.frames.count
                 pass.shots[i].orientationSuspect = series.orientationSuspect
+                // Måtten ur samma avrundade leder som filen och paketet (METOD MS12, MS14).
+                pass.shots[i].measure = ShotMeasuring.measure(series.rounded(), shot: pass.shots[i], setup: pass.setup,
+                                                              height: store.settings.heightM)
             }
         case .clip:
             // Klippet inom seriens fönster ur redigeraren (METOD MS13).
@@ -177,14 +183,21 @@ enum ShotImages {
     /// punkter. nil = ingen fil att läsa. METOD MS13
     static func impactFrame(pass: PassState, shot: ShotRecord, store: Store,
                             maxSize: CGSize = CGSize(width: 270, height: 480)) async throws -> CGImage? {
+        try await frame(pass: pass, shot: shot, store: store, at: shot.impact, maxSize: maxSize)
+    }
+
+    /// Den upprätta rutan vid tiden t i seriens fil, skuren till utsnittet; ur klippet när
+    /// originalet är borttaget. Granskningens prov läser sina stillbilder så. METOD MS13, MS15
+    static func frame(pass: PassState, shot: ShotRecord, store: Store, at t0: Double,
+                      maxSize: CGSize = CGSize(width: 270, height: 480)) async throws -> CGImage? {
         guard let serie = pass.series.first(where: { $0.nr == shot.series }) else { return nil }
         let crop = serie.activeCrop
         var url = store.url(serie.file, in: pass.id)
-        var t = shot.impact
+        var t = t0
         if !FileManager.default.fileExists(atPath: url.path) {
-            guard let clip = shot.clip, let at = clipTime(shot) else { return nil }
+            guard let clip = shot.clip, let offset = clipOffset(shot) else { return nil }
             url = store.url(clip, in: pass.id)
-            t = at
+            t = t0 + offset
         }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let g = AVAssetImageGenerator(asset: AVURLAsset(url: url))
@@ -207,8 +220,14 @@ enum ShotImages {
     /// Träffen i klippets tid: utgår från klicket som mättes i klippet (var passthrough-
     /// klippet börjar är inte dokumenterat), annars från den begärda starten. METOD MS12
     static func clipTime(_ shot: ShotRecord) -> Double? {
-        if let k = shot.clickInClip { return k + (shot.impact - shot.click.time) }
-        return shot.clipStart.map { shot.impact - $0 }
+        clipOffset(shot).map { shot.impact + $0 }
+    }
+
+    /// Klippets tid − seriens tid: klicket mätt i klippet − klicket i serien, annars −den
+    /// begärda starten. METOD MS12
+    static func clipOffset(_ shot: ShotRecord) -> Double? {
+        if let k = shot.clickInClip { return k - shot.click.time }
+        return shot.clipStart.map { -$0 }
     }
 
     /// Linjerna vid träffen ur slagets leder, i utsnittets koordinater som miniatyren, eller

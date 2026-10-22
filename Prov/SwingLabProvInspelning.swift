@@ -35,7 +35,8 @@ enum SyntheticMovie {
     /// `marker`: en vit ruta i den lagrade bufferten (px, origo uppe till vänster), så att
     /// redigerarens prov ser var den hamnar i den upprätta bilden (S2i, METOD MS13).
     static func write(to url: URL, sound: Sound, rate: Int = 240, dropEveryThird: Bool = true,
-                      seconds: Double = 3.2, marker: (x: Int, y: Int, width: Int, height: Int)? = nil) async throws {
+                      seconds: Double = 3.2, marker: (x: Int, y: Int, width: Int, height: Int)? = nil,
+                      flashes: [Double] = SyntheticMovie.flashes) async throws {
         try? FileManager.default.removeItem(at: url)
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let w = 480, h = 270

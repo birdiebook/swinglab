@@ -3,6 +3,16 @@ import Observation
 import Swing
 import Capture
 
+/// Katalogen (`katalog.json`, BESLUT B6) ur appens bunt; nil om den saknas eller inte går
+/// att läsa (då visas inga mått, och simulatorprovet fäller bygget).
+enum AppKatalog {
+    static let katalog: Katalog? = {
+        guard let url = Bundle.main.url(forResource: "katalog", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? Katalog.las(data)
+    }()
+}
+
 /// Passen på telefonen (S2_SPEC §8.1). Allt ligger i appens Application Support och
 /// lämnar telefonen bara i ett paket som Johannes själv delar (BESLUT B3). Videon och
 /// klippen ligger utanför iCloud-backupen. BESLUT B26
@@ -218,6 +228,34 @@ final class Store {
         } catch {
             problem = String(localized: "par.json could not be saved.")
         }
+    }
+
+    // MARK: Måtten (S4b)
+
+    /// Johannes längd (skalan, METOD M2, MS14); nil = standarden, märkt antagen.
+    func setHeight(_ h: Double?) {
+        settings.heightM = h
+        do {
+            try PassCoding.encoder().encode(settings).write(to: settingsFile, options: .atomic)
+        } catch {
+            problem = String(localized: "installningar.json could not be saved.")
+        }
+    }
+
+    /// Passet med slagens mått: slagen med leder men utan mått (ett pass från före S4b),
+    /// eller mätta med en annan längd, mäts nu och passet sparas. METOD MS14
+    func measured(_ pass: PassState) -> PassState {
+        var p = pass
+        let id = pass.id
+        if p.measureShots(height: settings.heightM, joints: { s in s.joints.flatMap { self.joints($0, in: id) } }) {
+            save(p)
+        }
+        return p
+    }
+
+    /// Alla pass på telefonen, för de tidigare passen (baslinjen och "vs", METOD MS14).
+    func allPasses() -> [PassState] {
+        index.passes.compactMap { load($0.id) }
     }
 
     // MARK: Originalen (BESLUT B26)

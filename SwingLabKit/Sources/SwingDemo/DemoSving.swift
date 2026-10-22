@@ -1,5 +1,6 @@
 import Foundation
 import Swing
+import Capture
 
 /// En påhittad sving med kända tal, för provets bilder (CLAUDE.md, Dataregeln:
 /// inga riktiga leder). Samma figur som `tools/pc/generera.py` (figur_fo och
@@ -143,6 +144,16 @@ public enum DemoSving {
             figurDTL($0, thrust: (0, thrust.topp, thrust.traff, thrust.finish),
                      bojning: (bojning.adress, bojning.topp, bojning.traff, bojning.finish), langdCm: langdM * 100, tider)
         }
+    }
+
+    /// FO-svingens 13 leder som Vision-leder i en upprätt bild width × height (grundbilden
+    /// 1080 × 1920 skalad), vid t s relativt klicket: simulatorprovets påhittade leder för
+    /// granskningen och passets mått (S4b). Personens vänster är främre (högerspelare).
+    public static func lederFO(_ t: Double, sway: (topp: Double, traff: Double, finish: Double), langdM: Double = 1.80,
+                               width: Int, height: Int, tider: Tider = .standard) -> [PoseJoint] {
+        let L = figurFO(tider.klick + t, sway: (0, sway.topp, sway.traff, sway.finish), langdCm: langdM * 100, tider)
+        let sx = Double(width) / 1080, sy = Double(height) / 1920
+        return L.map { PoseJoint(x: (x0 + $0.x * kPx) * sx, y: (y0 - $0.y * kPx) * sy, c: 0.9) }
     }
 
     static func sving(_ vy: Vy, langdM: Double, tider: Tider, figur: (Double) -> [Punkt]) -> Sving {

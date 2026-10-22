@@ -210,6 +210,17 @@
         }
       }
     },
+    "Detection wrong": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detection wrong"
+          }
+        }
+      }
+    },
     "Distance": {
       "extractionState": "manual",
       "localizations": {
@@ -320,6 +331,17 @@
         }
       }
     },
+    "Frame": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frame"
+          }
+        }
+      }
+    },
     "Full access to Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -338,6 +360,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hand"
+          }
+        }
+      }
+    },
+    "Height": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Height"
           }
         }
       }
@@ -382,6 +415,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Interrupted."
+          }
+        }
+      }
+    },
+    "Joints": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joints"
           }
         }
       }
@@ -705,6 +749,17 @@
         }
       }
     },
+    "Shot %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shot %lld"
+          }
+        }
+      }
+    },
     "Shot %lld could not be analyzed: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -954,6 +1009,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
+          }
+        }
+      }
+    },
+    "assumed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assumed"
           }
         }
       }

@@ -18,6 +18,9 @@ targets:
     platform: iOS
     sources:
       - App
+      # Katalogen (BESLUT B6) i appen: passets mått och granskningens positioner (S4b).
+      - path: katalog.json
+        buildPhase: resources
     dependencies:
       - package: SwingLabKit
         product: Swing

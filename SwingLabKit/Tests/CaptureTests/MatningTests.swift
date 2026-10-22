@@ -116,6 +116,19 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(antagen.values["sidbojning_topp"] ?? .nan, lang.values["sidbojning_topp"] ?? 0, accuracy: 1e-9)
     }
 
+    /// Simulatorprovets påhittade Vision-leder är FO-svingens, skalade till bilden.
+    func testDemoledernaArSvingens() {
+        let sv = DemoSving.fo(sway: (topp: -3, traff: 4, finish: 8))
+        for k in [0, 300, 528, 600, 700] {
+            let j = DemoSving.lederFO(sv.t[k] - sv.tKlick, sway: (topp: -3, traff: 4, finish: 8), width: 270, height: 480)
+            XCTAssertEqual(j.count, 13)
+            for i in 0..<13 {
+                XCTAssertEqual(j[i].x, sv.leder[i][k].x / 4, accuracy: 1e-9)
+                XCTAssertEqual(j[i].y, sv.leder[i][k].y / 4, accuracy: 1e-9)
+            }
+        }
+    }
+
     /// Ett slag som inte går att mäta får skälet i stället för måtten.
     func testSlagSomInteGarAttMata() {
         var s = Self.serie(DemoSving.fo(sway: (topp: -3, traff: 4, finish: 8)))
@@ -192,8 +205,8 @@ final class MatningTests: XCTestCase {
         var p = SlagTests.pass(klick: [[5.0]])
         p.syncShots()
         let json = String(decoding: try PassCoding.encoder().encode(p), as: UTF8.self)
-        XCTAssertFalse(json.contains("measure"))
-        XCTAssertFalse(json.contains("detectionWrong"))
+        XCTAssertFalse(json.contains("\"measure\""))
+        XCTAssertFalse(json.contains("\"detectionWrong\""))
         let s = try PassCoding.decoder().decode(AppSettings.self, from: Data(#"{"keepOriginals": true}"#.utf8))
         XCTAssertNil(s.heightM)
     }
