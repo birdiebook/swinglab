@@ -1,0 +1,20 @@
+649971655df9e26be9dc7662d35ecdb9ca6d1bb2 s4-vyn 2026-10-22T13:44:37Z run 39789333057
+== swift-release
+GRÖNT: 106 test, 0 fel, 4 s i testerna, bygget 26 s
+Långsammast (av 106):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.1 s  MattTests.testVansterspelarenRaknasSomHoger
+      0.1 s  VisningTests.testEttMattUtanEtikettSyns
+      0.1 s  VisningTests.testAttJobbaPa
+      0.1 s  InspelningTests.testImportenVagrarEnOmraknadFil
+      0.1 s  VisningTests.testSpannetMedBaslinje
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  VisningTests.testUtveckling
+
