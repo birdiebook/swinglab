@@ -12,13 +12,33 @@ struct PythonSving: Decodable {
         let traff: Double
     }
 
+    /// P-positionerna; null = saknas. METOD M28
+    struct Positioner: Decodable {
+        let p1: Double
+        let p3: Double?
+        let p4: Double
+        let p5: Double?
+        let p7: Double
+        let p9: Double?
+        let p10: Double
+
+        enum CodingKeys: String, CodingKey {
+            case p1 = "P1", p3 = "P3", p4 = "P4", p5 = "P5", p7 = "P7", p9 = "P9", p10 = "P10"
+        }
+
+        func tid(_ namn: String) -> Double? {
+            ["P1": p1, "P3": p3, "P4": p4, "P5": p5, "P7": p7, "P9": p9, "P10": p10][namn] ?? nil
+        }
+    }
+
     let cmPerPx: Double
     let faser: Tider
+    let positioner: Positioner
     let matt: [String: Double]
 
     enum CodingKeys: String, CodingKey {
         case cmPerPx = "cm_per_px"
-        case faser, matt
+        case faser, positioner, matt
     }
 }
 

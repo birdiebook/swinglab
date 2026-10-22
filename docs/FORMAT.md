@@ -87,14 +87,15 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 |---|---|
 | `cm_per_px` | Skalan (METOD M2). |
 | `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4). |
-| `matt` | Måtten per namn (METOD M5–M24). Ett mått som inte gick att räkna står inte med. |
+| `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, METOD M28). P1 och P10 är fönstrens mitt. |
+| `matt` | Måtten per namn (METOD M5–M24, M29). Ett mått som inte gick att räkna står inte med. |
 
 Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
 `tools/pc/matt.py` (Swift: `Matt.namn`). Tecknen står i varje METOD-rad.
 
 ## Katalogen: `katalog.json`
 
-I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ]}`, där varje fel har:
+I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [ … ]}`, där varje fel har:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
@@ -113,7 +114,21 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ]}`, där va
 | `ovning_id` | text | Övningens stabila id (`a–z`, `0–9`, `_`). Historiken känner igen övningen på det, inte på texten, så att en omskriven formulering inte nollställer steget. Samma id i katalogen och `tools/pc/kedjor.json` betyder samma text. |
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
+| `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = ingen position (tempot, hela svingen). |
 | `notering` | text | Valfri. Varför gränsen ser ut som den gör. |
+
+`matt` är måtten som granskningen visar vid en position utan att de är fel
+(BESLUT B32, METOD M29), t.ex. sway hittills vid P3. Varje post har just:
+
+| Fält | Typ | Betydelse |
+|---|---|---|
+| `matt` | text | Måttets namn; måste finnas i vyn. Ett mått (i en vy) står bara en gång i katalogen, som fel eller här. |
+| `vy` | text | `"dtl"` eller `"fo"`. |
+| `positioner` | lista | Som felens, men aldrig tom. |
+
+Granskningen vid en position visar felen och måtten vars `positioner` har den,
+i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid
+(METOD M29).
 
 Bedömningen (grönt, gult, rött, okänt, av) står i METOD M27.
 
@@ -162,7 +177,7 @@ slag[3].klick_s ska vara ett tal`), aldrig värdet.
 |---|---|
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
-| `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
+| `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
 | `tempo_vy` | vyn som gruppen `alla` tas ur (METOD MT9) |
 | `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
 | `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |

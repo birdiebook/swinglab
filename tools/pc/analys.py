@@ -67,7 +67,7 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
             rad["fel"] = f"{p.fil}: {s.leder}: {e}"
             ut.append(rad)
             continue
-        rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], matt=r["matt"])
+        rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], positioner=r["positioner"], matt=r["matt"])
         ut.append(rad)
     # Första serien: de fem första mätta slagen i den första serien. METOD MT2
     forsta = [r for r in ut if "matt" in r and r["serie"] == serier[0]][:FORSTA_SERIEN_SLAG]

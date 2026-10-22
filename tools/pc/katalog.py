@@ -13,13 +13,16 @@ from pathlib import Path
 
 from . import session as S
 from .matt import MATT
+from .positioner import POSITIONER
 
 KATALOG = Path(__file__).resolve().parents[2] / "katalog.json"
 VYER = ("dtl", "fo", "bada")
 STATUS = ("tillverkare", "forskning", "tranare", "antagande")
 SAMRE = ("+", "-", None)
 FALT = ("id", "namn", "vy", "matt", "fas", "gront", "gult", "kalla", "status", "kontrollerad",
-        "aktiv", "samre", "ovning_id", "ovning", "tanke")
+        "aktiv", "samre", "ovning_id", "ovning", "tanke", "positioner")
+MATT_FALT = ("matt", "vy", "positioner")
+POSITIONER_FEL = "positioner ska vara en lista av " + ", ".join(POSITIONER) + " i svingens ordning"
 # Övningens id: stabilt när texten skrivs om, så att historiken känner igen den.
 OVNING_ID = __import__("re").compile(r"^[a-z0-9_]+$")
 
@@ -32,12 +35,24 @@ class KatalogFel(ValueError):
     pass
 
 
+def positionerna_ok(p, tom: bool) -> bool:
+    """En lista av positionerna (BESLUT B32), utan dubbletter och i svingens
+    ordning. Ett fel får ha en tom lista (tempot: hela svingen), ett mått inte."""
+    if not isinstance(p, list) or not all(isinstance(x, str) and x in POSITIONER for x in p):
+        return False
+    i = [POSITIONER.index(x) for x in p]
+    return (tom or len(p) > 0) and i == sorted(set(i))
+
+
 def kontrollera(k: dict) -> list[str]:
-    """Katalogens form. Felen nämner felets id och fältet."""
+    """Katalogens form. Felen nämner felets id (eller måttet) och fältet."""
     fel = []
     if k.get("version") != 1 or not isinstance(k.get("fel"), list):
         return ["katalogen: ska ha version 1 och listan fel"]
+    if not isinstance(k.get("matt"), list):
+        return ["katalogen: listan matt saknas"]
     sedda = set()
+    visade = set()                                     # (vy, mått) som granskningen visar
     for i, e in enumerate(k["fel"]):
         namn = e.get("id", f"fel {i}")
         for f in FALT:
@@ -65,6 +80,24 @@ def kontrollera(k: dict) -> list[str]:
             fel.append(f"{namn}: ovning_id ska vara a–z, 0–9 och _")
         if not isinstance(e.get("kontrollerad"), bool) or not isinstance(e.get("aktiv"), bool):
             fel.append(f"{namn}: kontrollerad och aktiv ska vara true/false")
+        if "positioner" in e and not positionerna_ok(e["positioner"], tom=True):
+            fel.append(f"{namn}: {POSITIONER_FEL}")
+        for vy in (("dtl", "fo") if e.get("vy") == "bada" else (e.get("vy"),)):
+            visade.add((vy, e.get("matt")))
+    for i, e in enumerate(k["matt"]):
+        namn = f"matt {e.get('matt', i) if isinstance(e, dict) else i}"
+        if not isinstance(e, dict) or set(e) != set(MATT_FALT):
+            fel.append(f"{namn}: ska ha just {', '.join(MATT_FALT)}")
+            continue
+        if e["vy"] not in ("dtl", "fo"):
+            fel.append(f"{namn}: vy ska vara dtl eller fo")
+        elif e["matt"] not in MATT[e["vy"]]:
+            fel.append(f"{namn}: måttet finns inte i vyn")
+        if (e["vy"], e["matt"]) in visade:
+            fel.append(f"{namn}: står redan i katalogen")
+        visade.add((e["vy"], e["matt"]))
+        if not positionerna_ok(e["positioner"], tom=False):
+            fel.append(f"{namn}: {POSITIONER_FEL}")
     return fel
 
 

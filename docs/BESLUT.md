@@ -404,6 +404,9 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   P9 (högerarm vågrät) och P10 Finish. Ett tryck hoppar videon dit och visar
   bara den positionens mått. Kopplingen mått → positioner står i
   `katalog.json`.
+- **Mätningen:** METOD M28 (P3, P5 och P9 ur armarnas vinkel mot vågrätt) och
+  M29 (måtten vid positionerna); kopplingen står i katalogens `positioner` och
+  listan `matt` (docs/FORMAT.md), samma i Python och Swift (BESLUT B12).
 - **Senare:** P2, P6 och P8 definieras av klubbskaftet och kommer med S7.
 - **Bortvalt:** bara faserna adress, topp, träff och finish (för grovt för
   analysen), och alla tio positioner redan nu (tre kräver klubban).

@@ -72,6 +72,15 @@ class Fixturerna(unittest.TestCase):
         self.assertNotIn("tempo", kort["matt"])
         self.assertNotIn("bakre_kna_adress", kort["matt"])        # konfidens 0,29
         self.assertIn("backen_thrust_traff", kort["matt"])         # konfidens 0,3
+        arm = json.loads(self.f["svingar"]["fo_kort_arm"][1])
+        self.assertIsNone(arm["positioner"]["P3"])                  # armen aldrig vågrät (METOD M28)
+        self.assertIsNone(arm["positioner"]["P5"])
+        self.assertIsNotNone(arm["positioner"]["P9"])
+        self.assertNotIn("backen_sway_p3", arm["matt"])
+        self.assertIsNone(json.loads(self.f["svingar"]["fo_vanster"][1])["positioner"]["P3"])   # egen handled dold
+        for namn in ("fo", "dtl", "dtl_vanster"):
+            self.assertTrue(all(v is not None for v in json.loads(self.f["svingar"][namn][1])["positioner"].values()))
+        self.assertEqual(s["dtl_vanster"].hand, "vanster")
 
     def test_sessionen_stammer(self) -> None:
         s = json.loads(self.f["session"])

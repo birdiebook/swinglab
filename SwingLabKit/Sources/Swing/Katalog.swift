@@ -9,6 +9,27 @@ public struct Katalog: Decodable, Sendable {
 
     public let version: Int
     public let fel: [Fel]
+    /// Måtten som granskningen visar vid en position utan att de är fel (BESLUT B32).
+    public let matt: [Mattpost]
+
+    /// Ett mått i granskningen: namnet, vyn och positionerna. METOD M29
+    public struct Mattpost: Decodable, Sendable {
+        public let matt: String
+        /// "dtl" eller "fo".
+        public let vy: String
+        public let positioner: [String]
+    }
+
+    /// Felets och måttens positioner: en lista ur `Positioner.namn`, utan dubbletter och
+    /// i svingens ordning. Ett fel får ha en tom lista (tempot), ett mått inte.
+    static let positionerFel = "positioner ska vara en lista av "
+        + Positioner.namn.joined(separator: ", ") + " i svingens ordning"
+
+    static func positionernaOK(_ p: [String], tom: Bool) -> Bool {
+        let i = p.compactMap { Positioner.namn.firstIndex(of: $0) }
+        guard i.count == p.count, tom || !p.isEmpty else { return false }
+        return i == Array(Set(i)).sorted()
+    }
 
     public struct Fel: Decodable, Sendable {
         public let id: String
@@ -32,9 +53,12 @@ public struct Katalog: Decodable, Sendable {
         public let ovning: String
         public let tanke: String
         public let notering: String?
+        /// P-positionerna där granskningen visar felets mått (BESLUT B32); tom = hela svingen.
+        public let positioner: [String]
 
         enum CodingKeys: String, CodingKey {
             case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
+            case positioner
             case ovningId = "ovning_id"
         }
 
@@ -61,14 +85,17 @@ public struct Katalog: Decodable, Sendable {
             ovning = try c.decode(String.self, forKey: .ovning)
             tanke = try c.decode(String.self, forKey: .tanke)
             notering = try c.decodeIfPresent(String.self, forKey: .notering)
+            positioner = try c.decode([String].self, forKey: .positioner)
         }
     }
 
-    /// Katalogens form, som `kontrollera` i tools/pc/katalog.py. Felen nämner felets id och fältet.
+    /// Katalogens form, som `kontrollera` i tools/pc/katalog.py. Felen nämner felets id
+    /// (eller måttet) och fältet.
     public static func kontrollera(_ k: Katalog) -> [String] {
         var fel: [String] = []
         if k.version != 1 { fel.append("katalogen: ska ha version 1") }
         var sedda = Set<String>()
+        var visade = Set<String>()                  // "vy/mått" som granskningen visar
         for e in k.fel {
             if sedda.contains(e.id) { fel.append("\(e.id): id finns två gånger") }
             sedda.insert(e.id)
@@ -93,6 +120,19 @@ public struct Katalog: Decodable, Sendable {
                 if let s = spann, s.count != 2 { fel.append("\(e.id): \(namn) ska vara [min, max] eller null") }
             }
             if e.gront == nil && e.gult != nil { fel.append("\(e.id): gult utan gront") }
+            if !positionernaOK(e.positioner, tom: true) { fel.append("\(e.id): \(positionerFel)") }
+            for vy in e.vy == "bada" ? ["dtl", "fo"] : [e.vy] { visade.insert("\(vy)/\(e.matt)") }
+        }
+        for e in k.matt {
+            let namn = "matt \(e.matt)"
+            if let vy = Vy(rawValue: e.vy) {
+                if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
+            } else {
+                fel.append("\(namn): vy ska vara dtl eller fo")
+            }
+            if visade.contains("\(e.vy)/\(e.matt)") { fel.append("\(namn): står redan i katalogen") }
+            visade.insert("\(e.vy)/\(e.matt)")
+            if !positionernaOK(e.positioner, tom: false) { fel.append("\(namn): \(positionerFel)") }
         }
         return fel
     }

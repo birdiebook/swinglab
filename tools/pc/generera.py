@@ -75,6 +75,8 @@ DTL = {
     "kna_fram": 20.0,
     "armbage_bak": (10, 60, 5, 40),    # bakre överarmen från lodlinjen nedåt, + bort från bollen
     "over": 4.0,                       # handens bana: nedsvingen så här mycket utanför, cm
+    "hander_upp": 70.0,                # händerna så här mycket högre vid toppen än i adressen, cm
+    "hander_finish": 80.0,             # … och i finishen (bakre armen vågrät på vägen dit, P9)
 }
 
 
@@ -190,7 +192,7 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     u = profil(t, [(-INF, TIDER["start"], 0.0), (tt, tt, 1.0), (tk - 0.04, INF, 0.0)])
     v = profil(t, [(-INF, tk + 0.04, 0.0), (tk + 0.8, INF, 1.0)])
     utanfor = np.where((t > tt) & (t < tk), p["over"] * np.sin(np.pi * u), 0.0)
-    G = _p(px0 + 32.0 - 20.0 * u + utanfor + 15.0 * v, pz0 - 12.0 + 70.0 * u + 60.0 * v)
+    G = _p(px0 + 32.0 - 20.0 * u + utanfor + 15.0 * v, pz0 - 12.0 + p["hander_upp"] * u + p["hander_finish"] * v)
     L[:, 5], L[:, 6] = G + [0.5, 1.0], G - [0.5, 1.0]
     L[:, 3] = (L[:, 1] + L[:, 5]) / 2
     return L
@@ -210,6 +212,48 @@ def facit_start(figur, p: dict, langd_cm: float) -> float:
     d = np.hypot(*(_hander(figur(tt, p, langd_cm)) - g0).T)
     k = int(np.argmax(d > troskel))
     return float(tt[k - 1] + (troskel - d[k - 1]) / (d[k] - d[k - 1]) * (tt[k] - tt[k - 1]))
+
+
+def _armens_vinkel(L: np.ndarray, axel: int, handled: int) -> np.ndarray:
+    """α på den exakta figuren (Z uppåt): + när handleden står över axeln. METOD M28"""
+    d = L[:, handled] - L[:, axel]
+    return np.degrees(np.arctan2(d[:, 1], np.abs(d[:, 0])))
+
+
+def facit_positioner(figur, p: dict, langd_cm: float, t_start: float) -> dict:
+    """P3, P5 och P9 på den exakta figuren (METOD M28), på ett rutnät om 10 µs och
+    linjärt mellan: sista passagen uppåt före toppen, första nedåt efter, och
+    första uppåt för bakre armen efter träffen. None när armen aldrig blir vågrät."""
+    tt, tk = TIDER["topp"], TIDER["klick"]
+
+    def passage(a: float, b: float, axel: int, handled: int, uppat: bool, sista: bool):
+        t = np.arange(a, b, 1e-5)
+        v = _armens_vinkel(figur(t, p, langd_cm), axel, handled)
+        k = np.where((v[:-1] < 0) & (v[1:] >= 0) if uppat else (v[:-1] >= 0) & (v[1:] < 0))[0]
+        if len(k) == 0:
+            return None
+        i = int(k[-1] if sista else k[0])
+        return float(t[i] + (0 - v[i]) / (v[i + 1] - v[i]) * (t[i + 1] - t[i]))
+
+    return {"P3": passage(t_start, tt, 1, 5, True, True),
+            "P5": passage(tt, tk, 1, 5, False, False),
+            "P9": passage(tk, tk + 1.0, 2, 6, True, False)}
+
+
+def facit_vid_positioner(p: dict, langd_cm: float, pos: dict) -> dict:
+    """Måtten vid P3 och P5 på den exakta figuren (METOD M29), FO."""
+    f = {}
+    if pos["P3"] is not None:
+        L = figur_fo(np.array([0.0, pos["P3"]]), p, langd_cm)
+        hx = (L[:, 7, 0] + L[:, 8, 0]) / 2
+        f["backen_sway_p3"] = float(hx[1] - hx[0])
+        u, v = L[1, 1] - L[1, 3], L[1, 5] - L[1, 3]
+        f["framre_armbage_p3"] = 180.0 - math.degrees(math.acos(float(u @ v) / math.hypot(*u) / math.hypot(*v)))
+    if pos["P5"] is not None:
+        L = figur_fo(np.array([TIDER["topp"], pos["P5"]]), p, langd_cm)
+        hx = (L[:, 7, 0] + L[:, 8, 0]) / 2
+        f["backen_resa_p5"] = float(hx[1] - hx[0])
+    return f
 
 
 def facit_fo(p: dict, langd_cm: float) -> dict:
@@ -237,6 +281,8 @@ def facit_fo(p: dict, langd_cm: float) -> dict:
     g = _hander(L0)
     f["hander_fore_adress_traff"] = float(g[1, 0] - g[0, 0])
     f["hander_fore_backen_traff"] = float(g[1, 0] - (L0[1, 7, 0] + L0[1, 8, 0]) / 2)
+    L1 = figur_fo(np.array([TIDER["klick"] + 1.1]), p, langd_cm)[0]
+    f["huvud_backen_finish"] = float(L1[0, 0] - (L1[7, 0] + L1[8, 0]) / 2)
     return f
 
 
@@ -315,6 +361,10 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     t_start = facit_start(figur, p, langd_cm)
     facit["tempo"] = (TIDER["topp"] - t_start) / (TIDER["klick"] - TIDER["topp"])
     facit["_start"], facit["_topp"] = t_start, TIDER["topp"]
+    pos = facit_positioner(figur, p, langd_cm, t_start)
+    facit["_positioner"] = pos
+    if vy == "fo":
+        facit.update(facit_vid_positioner(p, langd_cm, pos))
     return d, facit
 
 
@@ -371,6 +421,11 @@ FIXTURSVINGAR = {
     # Baksvingen 0,25 s: starten och tempot saknas (METOD M4). Konfidensen precis på
     # gränsen 0,3 räknas (främre höften), 0,29 inte (bakre knäet). METOD M1
     "dtl_kort": ("dtl", "hoger", 16, 0.8, (), {"start": 1.95, "konf": {"hoft_v": 0.3, "kna_h": 0.29}}),
+    # Främre armen blir aldrig vågrät i baksvingen: P3 och P5 saknas, och måtten
+    # vid dem (METOD M28, M29). P9 finns.
+    "fo_kort_arm": ("fo", "hoger", 17, 0.8, (), {"arm": (-14, -60, -6, 140)}),
+    # Vänsterspelaren bakifrån med alla positioner (de speglade armarna).
+    "dtl_vanster": ("dtl", "vanster", 18, 0.8, (), {}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 
@@ -382,7 +437,7 @@ def fixtursving(namn: str) -> str:
 
 def resultat_json(text: str) -> dict:
     r = M.mat(las(text))
-    return {"cm_per_px": r["cm_per_px"], "faser": r["faser"], "matt": r["matt"]}
+    return {"cm_per_px": r["cm_per_px"], "faser": r["faser"], "positioner": r["positioner"], "matt": r["matt"]}
 
 
 def session_fixtur() -> dict:

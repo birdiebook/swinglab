@@ -306,6 +306,66 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   Gränsen används ändå, märkt. Ett fel med `aktiv: false` bedöms inte
   (axellutningen, M17).
 
+## M28 — P-positionerna
+
+- Golfens P-positioner som går att mäta ur kroppens leder (BESLUT B32): **P1
+  Adress** = adressens fönster (M4; tiden för videon är fönstrets mitt, måtten
+  är fönstrets medel), **P4 Topp** = toppen (M4), **P7 Träff** = klicket (M4),
+  **P10 Finish** = finishens fönster (M4, tiden i mitten). P2, P6 och P8
+  definieras av klubbskaftet och kommer med S7. **tränare** (P-systemet, 10
+  positioner), **antagande** (hur de mäts ur lederna).
+- **Armens vinkel** α: linjen axel → den **egna** handleden mot vågrätt i bildens
+  plan, grader, **+ = handleden över axeln**. Riktningen i x räknas inte
+  (`atan2(Δhöjd, |Δx|)`), så vågrät åt båda hållen. Lederna är de utjämnade (M3),
+  och handleden är armens egen: greppregeln (M1) ersätter inte en dold handled,
+  så en dold handled ger ingen position (som armbågarna, M22). Främre armen är
+  vänsterarmen för en högerspelare, och en vänsterspelare speglas (M1).
+- **Vågrät** = α passerar **0°**: uppåt när α0 < 0 ≤ α1, nedåt när α0 ≥ 0 > α1,
+  mellan två rutor i följd där armen syns, linjärt mellan dem. Över en rå lucka
+  längre än **0,10 s** räknas ingen passage (M3).
+  - **P3:** främre armen, den **sista** passagen uppåt från adressens slut till
+    toppen (efter den står armen över vågrätt till toppen).
+  - **P5:** främre armen, den **första** passagen nedåt från toppen till träffen.
+  - **P9:** bakre armen, den **första** passagen uppåt från träffen till
+    finishens fönster (träffen + **1,0 s**).
+  - Blir armen aldrig vågrät i fönstret **saknas positionen**, och måtten vid
+    den (M29). Den gissas aldrig.
+  **antagande** (P-systemets definition "armen parallell med marken", mätt i
+  bildens plan).
+- **Vyn:** samma definition i båda vyerna. Framifrån (FO) ligger armen nära
+  bildens plan i P3, P5 och P9, så FO är bäst; bakifrån (DTL) är armen förkortad
+  och vinkeln i bild en annan än i rummet. När båda telefonerna filmar samma
+  sving tas tiderna ur FO (väntar på parningen slag för slag, MT9). **antagande.**
+- **Uppmätt på påhittade svingar** (40 frön per vy, med och utan 0,8 px brus):
+  ingen bias (medel under 0,6 ms), sd 1,2–2,0 ms, största felet 3,1–4,4 ms, alltså
+  oftast inom en ruta (4,2 ms vid 240 bilder/s). Felet kommer från luckorna, som
+  gör utjämningens vikter osymmetriska (M3); utan utjämning är felet under 0,2 ms.
+
+## M29 — Måtten vid positionerna
+
+- Ett mått vid en position är måttet räknat vid positionens tid (värdet i
+  ögonblicket, M3), eller över fönstret för P1 och P10 (M4). De som redan är en
+  fas behåller sina namn (`_adress` = P1, `_topp` = P4, `_traff` = P7,
+  `_finish` = P10). Nya, alla FO och alla med egen baslinje (**antagande**):
+- `backen_sway_p3`: bäckenets sway (M15) vid P3, cm, + mot målet: "sway
+  hittills".
+- `framre_armbage_p3`: främre armbågens böjning (M22) vid P3, grader, 0 = rak
+  arm: vänsterarmen för en högerspelare. Samma tecken som vid toppen; skissen
+  visar armens inre vinkel (180 − böjningen).
+- `backen_resa_p5`: bäckenets X vid P5 − vid toppen, cm, + mot målet: "resa
+  framåt hittills" (M21 räknat till P5 i stället för träffen).
+- `huvud_backen_finish`: näsans X − höftmittens X i finishens fönster, cm, + =
+  huvudet mot målet om bäckenet. Ett läge, ingen förflyttning: framifrån står
+  huvudet i adressen ungefär över bäckenet. Ingen källa med samma definition.
+- **Kopplingen mått → position** står i `katalog.json` (BESLUT B32,
+  docs/FORMAT.md): varje fel har `positioner`, och listan `matt` bär måtten som
+  granskningen visar utan att de är fel. Kopplingen följer skissen
+  (`design/skiss.html`, `PM`). Chicken wing (M23) visas vid P9 men räknas
+  fortfarande över träffen +0,05…+0,15 s, inte i P9:s ögonblick. Tempot har
+  ingen position (`[]`, hela svingen). Bäckenets vridning och höfterna öppna
+  (skissens "2 kameror") kommer med S6.
+- Uppmätt på påhittade svingar: inom 0,05 cm och 0,05° från figurens tal.
+
 ---
 
 # Inspelningen (S2)
