@@ -169,6 +169,16 @@ Bollen hittas i adressbilden (FO) och ger bollens läge i stansen.
 
 **Klart när:** läget stämmer med handmätt inom 2 cm på 10 slag.
 
+## Idéer — inte planerade
+
+Idéer som kräver fram och tillbaka med Johannes innan de blir etapper. En rad
+per idé: vad, vad den kräver, och när den blir aktuell. En idé blir en etapp
+först på Johannes beslut.
+
+| Idé | Kräver | Aktuell när | Första steg |
+|---|---|---|---|
+| **3D-svingen** (2026-10-22): svingen i 3D som går att vrida och stega genom P1–P10, likt Sportsbox | S6:s triangulerade leder (en kamera ger en gissning, 10–16° per sving); formspråket B13: ett mätinstrument med leder, linjer, bäckenets och bröstets plan och X-factor som vinkel, ingen modellerad kropp | S6 ger 3D-leder från två telefoner | En skiss i webbläsaren på S6-simuleringens påhittade 3D-sving (`tools/pc/tre_d/sving.py`), för att bestämma utseendet |
+
 ## Utanför planen
 
 Svingens faser ur en tränad modell (SwingNet, 71–76 % och CC BY-NC): klicket
