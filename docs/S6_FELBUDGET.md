@@ -444,6 +444,31 @@ för 2D-spåren. Med ±60 ms börjar det jämna ut verkliga toppar.
 | Grund (typiskt brus) | +1,3 / 10,0 | +1,8 / 8,4 | +0,7 / 12,9 | +9,5 / 6,9 | +0,5 / 11,7 |
 | Bra brus | +1,7 / 5,6 | +1,2 / 4,0 | -0,8 / 7,4 | +3,3 / 3,7 | -0,7 / 5,5 |
 | Dåligt brus | -2,1 / 17,8 | +0,9 / 9,3 | +2,8 / 21,2 | +17,7 / 11,5 | +6,2 / 14,9 |
+| Bra brus, självkalibrering (40 pass) | -0,0 / 6,1 | +0,2 / 4,7 | -0,1 / 6,0 | +4,2 / 3,5 | -0,5 / 5,5 |
+| Typiskt brus, självkalibrering (40 pass) | -1,9 / 7,4 | +0,2 / 7,6 | +2,0 / 11,0 | +6,1 / 4,7 | +3,0 / 8,6 |
+
+Raderna med självkalibrering är `pass_monte_carlo(replace(Uppstallning(), brus=…,
+kalib="sjalv"), 40, 10, seed=1)` (S6a).
+
+**Kedjan på paketen (S6a, `tools/pc/tva_kameror.py`).** Påhittade pass om 10 slag ur
+`generera_paket.tva_paket` (frö 100–123), genom paketen, parningen, 2D-faserna,
+självkalibreringen per pass, synken och trianguleringen. Felet är passets median
+minus de sanna svingarnas median (bias / SD, och största |fel|):
+
+| Brus (pass) | Bäcken, topp | Bröst, topp | X-factor, topp | Stretch | Höfter öppna, träff |
+|---|---|---|---|---|---|
+| Inget (8) | -0,2 / 0,1 | -0,1 / 0,1 | +0,1 / 0,1 | -0,2 / 0,1 | +0,1 / 0,0 |
+| Bra (24) | -0,3 / 5,9, max 14,5 | +1,3 / 5,7, max 12,4 | +2,1 / 7,8, max 20,2 | +1,9 / 3,5, max 9,1 | +1,1 / 3,6, max 7,5 |
+| Typiskt (24) | -0,1 / 11,1, max 30,6 | +1,2 / 9,6, max 21,1 | +0,9 / 13,6, max 27,1 | +4,7 / 5,7, max 17,6 | +0,9 / 5,9, max 14,7 |
+| Typiskt, sanna kameror (24) | -0,3 / 10,4 | +0,6 / 6,4 | +0,6 / 13,1 | +4,4 / 5,5 | +1,4 / 5,9 |
+
+Kedjan ligger inom felbudgetens grundrader ovan (alla 48 pass inom |bias| + 3 SD), med
+två skillnader. Höfterna vid träffen blir bättre (3,6–5,9 mot 5,5–11,7°), eftersom
+utjämningen är ±40 ms (§6.6). Bröstet blir sämre med självkalibrering än med sanna
+kameror (9,6 mot 6,4° med typiskt brus): kalibreringens vridningsfel är i snitt 5°,
+upp till 14° (12 pass), och det kommer av posemodellens fasta avvikelse, inte av
+antalet punktpar (BESLUT B38). Synkens rest är 1,5 ms RMS med bra brus och 2,4 ms med
+typiskt. Testerna (`tools/tests/test_tva_kameror.py`) kör fem av passen.
 
 Medianen av 10 slag tar bort det slumpmässiga, men inte den fasta avvikelsen,
 som är densamma hela passet. Med bra brus blir passets SD 4–7°, och

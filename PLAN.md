@@ -227,6 +227,36 @@ inte: människans eget inriktningsfel är lika stort som kravet.
 utan markörer ligger passets median inom 5° från markörernas median på samma
 pass; och vyn visar läget (markör eller trend).
 
+### S6a — PC-sidan utan markörer (2026-10-22, grenen `s6a`)
+
+**Gjort:** `tools/pc/tva_kameror.py` gör passets två paket (DTL och FO) till 3D:
+slagen paras på `par.json` eller klicken, lederna läggs på träffens tid, kamerorna
+kalibreras själva ur passets leder (lodlinjen ur det nya valfria fältet
+`serier[].lodlinje`, annars kamerornas vågräta), synken finjusteras per slag på
+återprojektionen, lederna trianguleras, och bäckenets och axlarnas vridning,
+X-factor, stretchen och höfterna vid träffen blir passets median över minst 10 slag,
+märkt "utan markörer". `session.py` skriver `tre_d` i `analys.json`, måtten står i
+`katalog_3d.json` (bara PC:n, BESLUT B37), minnet bär trenden pass för pass och
+skillen `svinganalys` rapporterar den som trend. Ett fel i 3D stoppar aldrig 2D.
+METOD MK1–MK8, BESLUT B37–B39.
+
+**Facit (påhittat):** `generera_paket.py --tva` filmar 3D-svingar ur `tre_d/sving.py`
+med två kameror och felbudgetens brus, och skriver paketen och de sanna måtten.
+Utan brus ligger passets median inom 0,5° och varje slag inom 1°. Med brus ligger
+passets median inom felbudgetens gräns (|bias| + 3 SD, S6_FELBUDGET §6.7); uppmätt
+över 24 pass per nivå står i §6.7. Självkalibreringen kostar mest i bröstet: med
+typiskt brus är kalibreringens fel 5° i snitt, upp till 14° (B38).
+
+**Återstår:**
+- **Johannes:** riktiga pass med två telefoner (S2g) och en uppställning enligt
+  S6_FELBUDGET §7; markörerna (pinnen i bältet, staven över ryggen) och facitet med
+  pinnarna (§8); S3:s mätning av posemodellens 2D-fel, som avgör om trenden bär
+  (B14). Klart när ovan är inte nått: det kräver markörerna.
+- **Appen (följdjobb):** lodlinjen ur `CMDeviceMotion` i `serier[].lodlinje` (B39),
+  och vyn för trenden med läget (S6b), då måtten flyttar in i `katalog.json` (B37).
+- **PC:n:** markörernas läge (S6b), och mattan eller en kalibrering som skattar
+  posemodellens fasta avvikelse om S3 visar att den är stor (B38).
+
 ## S7 — Klubban
 
 Sportsbox-måtten som kräver S7 (club-hand gap, skaftets fart, wrist och release
@@ -263,8 +293,8 @@ skillen). TestFlight-vägen via GitHub är bevisad.
 Send to PC och Import focus, två telefoner, flikarna och Me:s längd), S0 på
 hemdatorn, märkta rutor ur riktiga klipp för S7.
 
-**Nästa autonoma:** S6a (PC: två paket → 3D med självkalibrering ur lederna,
-X-factor som trend).
+**Nästa autonoma:** S6a är byggd på grenen `s6a` (PC: två paket → 3D med
+självkalibrering, trenden utan markörer) och väntar på granskning och landning.
 
 ## Idéer — inte planerade
 
