@@ -96,3 +96,16 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   Import ur Bilder finns kvar för gamla klipp.
 - **Varför:** oskärpan är fart × exponeringstid (45 mm för klubbhuvudet vid
   1/1000 s). Kamera-appen låser inte slutartiden.
+
+## B13 — Formspråket: svart och vitt, datan bär, ingen figur
+*2026-10-22 · gäller · Johannes beslut, efter den klickbara skissen*
+
+- **Valt:** reglerna 1–9 och paletten i `design/README.md`: ett analysverktyg,
+  inte en konsumentapp; ingen figur, bara uppmätta linjer över videon; ett mått
+  är namn, tal, enhet och spannet; inga värdeord och ingen totalpoäng; ingen
+  beskrivande text; svart, vitt och gråskala med en dämpad signalfärg bara för
+  varningar; system-ui med tabellsiffror; primärknappen vit med svart text.
+- **Bortvalt:** Airtimes volt och piktogram, en svingande figur ("ser ut som
+  billig AI"), bättre/sämre-ord och förklarande text.
+- **Regeln:** kräver en skärm en förklaring är designen fel. Gör om den i
+  stället för att lägga till text.

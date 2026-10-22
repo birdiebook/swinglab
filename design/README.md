@@ -7,7 +7,7 @@ Alla tal, datum och slag är påhittade.
 Flödet: tre flikar (Idag, Utveckling, Jag). Ett pass är ett eget flöde:
 Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas från Idag.
 
-## Reglerna (förslag till beslut i docs/BESLUT.md efter Johannes ja)
+## Reglerna (BESLUT B13, Johannes 2026-10-22)
 
 1. **Ett analysverktyg, inte en konsumentapp.** Inga belöningar, streaks,
    uppmuntran eller animationer för stämningens skull. Det som rör sig är data
