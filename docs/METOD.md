@@ -21,8 +21,8 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   0,5. Kalibreras mot MediaPipe i S3.
 - **Greppregeln:** händerna sitter ihop på greppet, så en saknad handled tar den
   andras plats; saknas båda är händerna borta i rutan. Samma regel som Golf SG
-  (`handled_kalibrering.grepp_regel`), där vänster handled var skymd bakifrån i
-  25 av 26 slag i adressen. **mätt** (Golf SG, oktobers mätning).
+  (`handled_kalibrering.grepp_regel`), där den främre handleden ofta var skymd
+  bakifrån i adressen. **mätt** (Golf SG, oktobers mätning, HANDLED_PLAN).
 - **Sidorna:** lederna läses om till främre (mot målet) och bakre sida, och
   bildens x vänds så att +X pekar mot målet (FO) eller mot bollen (DTL). En
   vänsterspelare blir då samma figur som en högerspelare. Utan riktningsfält är
