@@ -1,0 +1,91 @@
+# Xcode-projektet genereras ur den här filen (XcodeGen) och är gitignorerat.
+# Ingen Mac behövs: GitHub Actions kör `xcodegen generate` före bygget
+# (kompilera.yml för simulatorn, testflight.yml för telefonen). S2_SPEC §10.1.
+name: SwingLab
+options:
+  bundleIdPrefix: se.birdiebook
+  # BESLUT B19: 18.2 för filens starttid på telefonens klocka (startPTS).
+  deploymentTarget:
+    iOS: "18.2"
+packages:
+  SwingLabKit:
+    path: SwingLabKit
+targets:
+  SwingLab:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    dependencies:
+      - package: SwingLabKit
+        product: Swing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab
+        MARKETING_VERSION: "0.1.0"
+        # Skrivs över av testflight.yml (agvtool) vid varje bygge.
+        CURRENT_PROJECT_VERSION: "1"
+        VERSIONING_SYSTEM: apple-generic
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Swift 6:s stränga samtidighetskontroll ger fel som inte syns på Linux (som Airtime och Idunn).
+        SWIFT_VERSION: "5.0"
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: SwingLab
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # Utan den här fastnar varje bygge på exportfrågan i App Store Connect.
+        ITSAppUsesNonExemptEncryption: false
+        # Texterna visas i frågorna om tillåtelse (S2_SPEC §10.1). Saknas en kraschar appen vid frågan.
+        NSCameraUsageDescription: SwingLab filmar svingen i slowmotion. Videon stannar på telefonen.
+        NSMicrophoneUsageDescription: SwingLab spelar in ljudet för att hitta träffens klick. Ljudet stannar på telefonen.
+        NSPhotoLibraryUsageDescription: SwingLab hämtar slowmotion-originalet ur Bilder för att mäta svingen.
+        # BESLUT B21: två telefoner över Network.framework med Bonjour.
+        NSLocalNetworkUsageDescription: SwingLab kopplar ihop två telefoner som filmar samma sving.
+        NSBonjourServices:
+          - _swinglab._tcp
+        # Documents/Export syns i Filer och i Apple Devices över kabel (som Idunn).
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+    scheme: {}
+
+  # BESLUT B20. Simulatorprovet: körs inuti appen (TEST_HOST) av kompilera.yml vid
+  # varje push som rör appen, aldrig av TestFlight. S2_SPEC §10.2.
+  SwingLabProv:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Prov
+    dependencies:
+      - target: SwingLab
+      - package: SwingLabKit
+        product: Swing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.prov
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "5.0"
+        # Testet körs inuti appen, så att `@testable import SwingLab` når vyerna.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SwingLab.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SwingLab"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # Simulatorn kräver ingen signering.
+        CODE_SIGNING_ALLOWED: "NO"
+
+schemes:
+  # Eget schema, så att `SwingLab`-schemat som TestFlight arkiverar är orört.
+  SwingLabProv:
+    build:
+      targets:
+        SwingLab: all
+        SwingLabProv: [test]
+    test:
+      config: Debug
+      language: sv
+      region: SE
+      targets:
+        - SwingLabProv

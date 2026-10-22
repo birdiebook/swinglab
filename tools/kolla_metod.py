@@ -24,7 +24,9 @@ def main() -> int:
     metod = rubriker("docs/METOD.md", "M")
     beslut = rubriker("docs/BESLUT.md", "B")
     fel = []
-    for fil in sorted([*ROT.glob("SwingLabKit/**/*.swift"), *ROT.glob("App/**/*.swift"), *ROT.glob("tools/**/*.py")]):
+    for fil in sorted([*ROT.glob("SwingLabKit/**/*.swift"), *ROT.glob("App/**/*.swift"),
+                       *ROT.glob("Prov/**/*.swift"), *ROT.glob("tools/**/*.py"), ROT / "project.yml",
+                       *ROT.glob(".github/workflows/*.yml")]):
         text = fil.read_text(encoding="utf-8")
         for n, rad in enumerate(text.splitlines(), 1):
             for ref in re.findall(r"METOD (M\d+)", rad):

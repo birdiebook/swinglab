@@ -1,0 +1,75 @@
+import SwiftUI
+
+/// Formspråket (BESLUT B13, design/README.md): svart, vitt och gråskala, ingen
+/// accentfärg, inga skuggor eller gradienter, hörn på 2–4 punkter.
+enum Theme {
+    static let ground = Color(hex: 0x000000)
+    static let surface = Color(hex: 0x0D0D0D)
+    static let raised = Color(hex: 0x161616)
+    static let hair = Color(hex: 0x1C1C1C)
+    static let line = Color(hex: 0x2E2E2E)
+    static let cam = Color(hex: 0x0A0A0A)
+    static let tertiary = Color(hex: 0x6B6B6B)
+    static let secondary = Color(hex: 0xA3A3A3)
+    static let text = Color(hex: 0xFFFFFF)
+    /// Bara varningar i uppställningen.
+    static let flag = Color(hex: 0xB98A4A)
+
+    /// Stora tal: tabellsiffror, så att de inte hoppar när de ändras.
+    static func number(_ size: CGFloat, weight: Font.Weight = .medium) -> Font {
+        .system(size: size, weight: weight).monospacedDigit()
+    }
+}
+
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255,
+                  green: Double((hex >> 8) & 0xFF) / 255,
+                  blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+/// Primärknappen: ett vitt fält med svart text, överallt (B13 regel 8).
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Field(configuration: configuration)
+    }
+
+    private struct Field: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.ground)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(Theme.text, in: .rect(cornerRadius: 4))
+                .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.3)
+        }
+    }
+}
+
+/// En rad med en tunn linje ovanför, för det som inte är primärt.
+struct RowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Row(configuration: configuration)
+    }
+
+    private struct Row: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(isEnabled ? Theme.text : Theme.tertiary)
+                .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                .contentShape(.rect)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Theme.hair).frame(height: 1)
+                }
+                .opacity(configuration.isPressed ? 0.6 : 1)
+        }
+    }
+}

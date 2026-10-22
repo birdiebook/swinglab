@@ -1,0 +1,118 @@
+# Kompileringsprovet och simulatorprovet (BESLUT B20, S2_SPEC §10.2). Utan Mac
+# kompileras App-koden annars först i TestFlight-bygget. Repot är publikt, så
+# GitHubs macOS-maskin kostar inget (BESLUT B7).
+#
+# Resultatet läses utan gh, på grenen ci-resultat (som test.yml, men egen fil så
+# att de två inte skriver över varandra):
+#   git fetch origin ci-resultat && git show origin/ci-resultat:resultat/<sha>.kompilera.txt
+# Startvyn som provet ritade ligger bredvid som resultat/<sha>.startvy.png.
+# testflight.yml vägrar en commit som inte är grön här.
+
+name: kompilera
+
+on:
+  push:
+    paths: ["App/**", "Prov/**", "SwingLabKit/**", "project.yml", ".github/workflows/kompilera.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: kompilera-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kompilera:
+    if: github.repository == 'birdiebook/swinglab'
+    runs-on: macos-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Generera Xcode-projektet
+        run: |
+          xcodebuild -version | head -1 > xcode.txt
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Bygg som TestFlight, utan signering
+        run: |
+          set -o pipefail
+          xcodebuild build -project SwingLab.xcodeproj -scheme SwingLab -configuration Release \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO 2>&1 | tee bygg.log
+
+      - name: Simulatorprovet
+        run: |
+          set -o pipefail
+          # Den nyaste iOS-körtiden med en iPhone (appen kräver iOS 18.2).
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          d = json.load(sys.stdin)["devices"]
+          def ver(k):
+              m = re.search(r"iOS-(\d+)-(\d+)", k)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          for k in sorted(d, key=ver, reverse=True):
+              for x in d[k]:
+                  if ver(k) >= (18, 2) and x["name"].startswith("iPhone"):
+                      print(x["udid"], file=sys.stderr, end=" ")
+                      print(x["name"], k, file=sys.stderr)
+                      print(x["udid"]); sys.exit(0)
+          sys.exit("ingen iPhone med iOS 18.2 eller senare")
+          ' 2>sim.txt)
+          cat sim.txt
+          xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -destination "id=$UDID" 2>&1 | tee prov.log
+
+      - name: Lägg sammanfattningen på ci-resultat
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "${GITHUB_SHA} ${GITHUB_REF_NAME} $(date -u +%FT%TZ) run ${GITHUB_RUN_ID} kompilera"
+            echo "$(cat xcode.txt 2>/dev/null || echo 'Xcode okänd') · $(cat sim.txt 2>/dev/null || echo 'ingen simulator')"
+            echo "== bygg (Release, simulatorn, utan signering)"
+            if [ ! -f bygg.log ]; then
+              echo "RÖTT: ingen bygglogg (föll ett steg före bygget)"
+            elif grep -q '\*\* BUILD SUCCEEDED \*\*' bygg.log; then
+              echo "GRÖNT: BUILD SUCCEEDED"
+            else
+              echo "RÖTT: bygget gick inte igenom"
+              grep -E 'error:|\*\* BUILD FAILED \*\*' bygg.log | head -30 || true
+            fi
+            echo
+            if [ ! -f prov.log ]; then
+              echo "== prov"
+              echo "RÖTT: provet kördes inte"
+            else
+              python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
+              grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
+            fi
+          } > "$RUNNER_TEMP/resultat.txt"
+          cat "$RUNNER_TEMP/resultat.txt"
+          BILD=/tmp/swinglab_prov/startvy.png
+          TOKEN="${{ github.token }}"
+          for i in 1 2 3 4 5; do
+            rm -rf "$RUNNER_TEMP/r" && mkdir "$RUNNER_TEMP/r" && cd "$RUNNER_TEMP/r" && git init -q
+            git remote add origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            if git fetch -q origin ci-resultat 2>/dev/null; then git checkout -q -b ci-resultat FETCH_HEAD; else git checkout -q --orphan ci-resultat; fi
+            mkdir -p resultat
+            cp "$RUNNER_TEMP/resultat.txt" "resultat/${GITHUB_SHA}.kompilera.txt"
+            cp "$RUNNER_TEMP/resultat.txt" senaste-kompilera.txt
+            if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.startvy.png"; fi
+            git add -A && git -c user.name=swinglab-ci -c user.email=swinglab-ci@users.noreply.github.com commit -qm "kompilera ${GITHUB_SHA}"
+            git push -q origin ci-resultat && break
+            sleep $((i * 3))
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: kompilera-loggar
+          path: |
+            bygg.log
+            prov.log
+          if-no-files-found: ignore

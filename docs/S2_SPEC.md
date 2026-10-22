@@ -10,10 +10,10 @@ val (§10, S2a) ändrar det: repot är publikt (BESLUT B7), så GitHubs macOS-ma
 är gratis och kan kompilera appen för simulatorn och köra ett prov vid varje
 push. Ett kompileringsfel kostar då en push, inte en dag.
 
-**Föreslagna beslut** står i [S2_BESLUT_FORSLAG.md](S2_BESLUT_FORSLAG.md) som
-F1–F15. De blir B-nummer i `docs/BESLUT.md` när Johannes sagt ja, i samma commit
-som koden som bygger på dem (`tools/kolla_metod.py` fäller en `// BESLUT Bn`
-utan rubrik). **METOD-förslagen** (konstanter och algoritmer) står i §11 och
+**Besluten** F1–F15 står sedan S2a i `docs/BESLUT.md` som B15–B29 (Fn är
+B(n+14), tabellen i [S2_BESLUT_FORSLAG.md](S2_BESLUT_FORSLAG.md)). B20 (F6) och
+B21 (F7) gäller, övriga prövas. Koden hänvisar med B-numret (`tools/kolla_metod.py`
+fäller en `// BESLUT Bn` utan rubrik). **METOD-förslagen** (konstanter och algoritmer) står i §11 och
 flyttas till `docs/METOD.md` på samma sätt.
 
 **Status för påståendena.** Varje API-påstående har en källa på

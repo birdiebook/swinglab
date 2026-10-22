@@ -36,7 +36,10 @@ från `birdiebook/arbetssatt`: ändra där och synka, aldrig i kopian.
   SwingLabKit och är facit för Swift: samma påhittade leder ska ge samma tal.
   `python3 -m unittest discover -s tools/tests`.
 - **Appen i `App/` är ett tunt SwiftUI-skal** (från S2). Xcode-projektet
-  genereras ur `project.yml` (XcodeGen) och är gitignorerat.
+  genereras ur `project.yml` (XcodeGen) och är gitignorerat. `kompilera.yml`
+  bygger den för simulatorn och kör `Prov/` vid varje push som rör appen
+  (BESLUT B20), gratis: `git show origin/ci-resultat:resultat/<sha>.kompilera.txt`,
+  och startvyn som `resultat/<sha>.startvy.png`.
 - **TestFlight** byggs i GitHub Actions på macOS, gratis eftersom repot är
   publikt (BESLUT B7). Bygget startas **bara för hand**, efter Johannes ja,
   högst ett per dag. Aldrig med en tagg eller push.

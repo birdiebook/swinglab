@@ -1,0 +1,105 @@
+# TestFlight-bygget i GitHub Actions (BESLUT B7, S2_SPEC §10.3), kopierat från
+# Airtime. Repot är publikt, så macOS-maskinerna kostar inget. Codemagics öppna
+# kommandoradsverktyg (codemagic-cli-tools) hämtar signeringen och laddar upp.
+#
+# Startas bara för hand ("Run workflow" eller API:t), efter Johannes ja och högst
+# en gång per dag. Aldrig av push, tagg eller pull request: då når ingen
+# utomstående hemligheterna. Bygget vägrar en commit som inte är grön i
+# kompilera.yml (BESLUT B20).
+
+name: testflight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    if: github.repository == 'birdiebook/swinglab'
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      # App Store Connect API-nyckeln (Users and Access → Integrations) och
+      # signeringsnyckeln, som repots Actions-hemligheter.
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hemligheterna finns
+        run: |
+          for n in APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_CONNECT_PRIVATE_KEY CERTIFICATE_PRIVATE_KEY; do
+            if [ -z "${!n}" ]; then echo "FEL: hemligheten $n saknas (Settings → Secrets and variables → Actions)." >&2; exit 1; fi
+          done
+
+      - name: Kompilera är grönt för samma commit
+        run: |
+          set -euo pipefail
+          git fetch -q --depth=1 origin ci-resultat
+          if ! RES=$(git show "FETCH_HEAD:resultat/${GITHUB_SHA}.kompilera.txt" 2>/dev/null); then
+            echo "FEL: kompilera har inget resultat för ${GITHUB_SHA}. Vänta på det, eller kör kompilera för hand." >&2; exit 1
+          fi
+          echo "$RES"
+          if echo "$RES" | grep -q "RÖTT" || ! echo "$RES" | grep -q "GRÖNT: BUILD SUCCEEDED"; then
+            echo "FEL: kompilera är inte grönt för ${GITHUB_SHA}." >&2; exit 1
+          fi
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verktygen
+        run: |
+          brew install xcodegen
+          pip install codemagic-cli-tools
+
+      - name: Generera Xcode-projektet
+        run: xcodegen generate
+
+      - name: Sätt buildnummer
+        run: agvtool new-version -all "$GITHUB_RUN_NUMBER"
+
+      - name: Hämta signering
+        run: |
+          set -euo pipefail
+          keychain initialize
+          echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > "$RUNNER_TEMP/cert_key.pem"
+          grep -q "BEGIN.*PRIVATE KEY" "$RUNNER_TEMP/cert_key.pem"
+          # --create registrerar profilen första gången.
+          app-store-connect fetch-signing-files "se.birdiebook.swinglab" \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:"$RUNNER_TEMP/cert_key.pem" \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Arkivera
+        run: |
+          set -o pipefail
+          xcode-project build-ipa --project "SwingLab.xcodeproj" --scheme "SwingLab"
+
+      - name: Ladda upp till TestFlight
+        # Den interna testgruppen har automatisk distribution och får bygget av sig själv.
+        run: app-store-connect publish --path "build/ios/ipa/*.ipa"
+
+      - name: Städa
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/cert_key.pem"
+          keychain use-login || true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-loggar
+          path: /tmp/xcodebuild_logs/*.log
+          if-no-files-found: ignore
