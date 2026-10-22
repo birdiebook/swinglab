@@ -81,6 +81,25 @@ final class InspelningTests: XCTestCase {
         }
     }
 
+    /// Filmens standardtidsskala 600 avrundar 1/240 s till steg om 2 och 3 enheter;
+    /// rutnätet är ändå 240 (simulatorprovet S2c gav 300 med percentilen ensam). METOD MS3
+    func testRutnatetTalGrovTidsskala() {
+        let t = (0..<768).filter { $0 % 3 != 2 }.map { (Double($0) / 240 * 600).rounded() / 600 }
+        let f = FrameTiming.analyze(t)
+        XCTAssertEqual(f.gridRate, 240)
+        XCTAssertEqual(f.missingFraction, 1.0 / 3, accuracy: 0.01)
+        let hela = FrameTiming.analyze((0..<768).map { (Double($0) / 240 * 600).rounded() / 600 })
+        XCTAssertEqual(hela.gridRate, 240)
+        XCTAssertEqual(hela.missingFraction, 0, accuracy: 0.01)
+    }
+
+    /// Tider med skakning (±0,3 ms) och var tredje ruta borta: rutnätet 240, inte 260.
+    func testRutnatetTalSkakning() {
+        var r = Bitar(s: 3)
+        let t = (0..<2400).filter { $0 % 3 != 2 }.map { Double($0) / 240 + (Double(r.next(601)) - 301) * 1e-6 }
+        XCTAssertEqual(FrameTiming.analyze(t).gridRate, 240)
+    }
+
     func testTomStromGerInget() {
         var s = ClickStream()
         XCTAssertEqual(s.finish(), [])

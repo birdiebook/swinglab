@@ -453,7 +453,7 @@ enum MediaReader {
 ```swift
 public struct FrameTiming: Codable, Equatable, Sendable {
     public var count: Int
-    public var gridRate: Double        // rutnätets frekvens: 1 / 5:e percentilen av stegen, avrundat till heltal
+    public var gridRate: Double        // rutnätets frekvens: 1 / medel av stegen ≤ 1,5 × 5:e percentilen (METOD MS3)
     public var meanRate: Double        // (count − 1) / (sista − första)
     public var missingFraction: Double // 1 − count / ((sista − första)·gridRate + 1), ≥ 0
     public var largestGap: Double      // s

@@ -271,24 +271,40 @@ final class SwingLabProvInspelning: XCTestCase {
     }
 
     /// Ljudet ur filen klipps vid `ClickDetector.segments`-proven: med små bitar (1 s,
-    /// 0,5 s överlapp) ger läsarens bitar samma gränser och samma klick som
-    /// `detectSegmented` på hela ljudet i minnet. METOD MS4, MS11
+    /// 0,5 s överlapp) har läsarens bitar samma gränser som `segments` för det antal prov
+    /// läsningen gav, samma prov i överlappen, och samma klick som `detectSegmented` på
+    /// hela ljudet. Hela ljudet sätts ihop ur samma läsning: ett omsamplat ljud (AAC) kan
+    /// ge ett prov mer eller mindre i en annan läsning. METOD MS4, MS11
     func provaBitarna(_ url: URL, namn: String) async throws {
-        var alla: [Float] = []
-        let first = try await MediaReader.readAudio(url) { alla.append(contentsOf: $0) }
-        let forsta = try XCTUnwrap(first)
-        print("PROV: \(namn) ljud \(alla.count) prov à 48 kHz, första provet \(forsta) s")
-        XCTAssertEqual(Double(alla.count), 3.2 * 48_000, accuracy: 2048, "omsamplat till 48 kHz mono")
         var bitar: [AudioSegmenter.Segment] = []
-        try await MediaReader.audio(url, segment: 1.0, overlap: 0.5) { bitar.append($0) }
+        let first = try await MediaReader.audio(url, segment: 1.0, overlap: 0.5) { bitar.append($0) }
+        let forsta = try XCTUnwrap(first)
+        var alla: [Float] = []
+        for b in bitar where b.range.upperBound > alla.count {
+            XCTAssertLessThanOrEqual(b.range.lowerBound, alla.count, "ett hål mellan bitarna")
+            let overlapp = alla.count - b.range.lowerBound
+            XCTAssertEqual(Array(b.samples.prefix(overlapp)), Array(alla.suffix(overlapp)), "överlappet i \(b.range)")
+            alla.append(contentsOf: b.samples.dropFirst(overlapp))
+        }
+        print("PROV: \(namn) ljud \(alla.count) prov à 48 kHz, första provet \(forsta) s, \(bitar.count) bitar")
+        XCTAssertEqual(Double(alla.count), 3.2 * 48_000, accuracy: 2048, "omsamplat till 48 kHz mono")
         XCTAssertEqual(bitar.map(\.range),
                        ClickDetector.segments(count: alla.count, sampleRate: 48_000, segment: 1.0, overlap: 0.5))
-        for b in bitar { XCTAssertEqual(b.samples, Array(alla[b.range]), "bit \(b.range)") }
+        for b in bitar {
+            XCTAssertEqual(b.samples.count, b.range.count)
+            XCTAssertEqual(b.innerStart, b.range.lowerBound > 0)
+            XCTAssertEqual(b.innerEnd, b.range.upperBound < alla.count)
+        }
+        let urBitarna = ClickDetector.merge(bitar.map { b in
+            (start: Double(b.range.lowerBound) / 48_000,
+             clicks: ClickDetector.detect(b.samples, innerStart: b.innerStart, innerEnd: b.innerEnd))
+        })
+        XCTAssertEqual(urBitarna, ClickDetector.detectSegmented(alla, segment: 1.0, overlap: 0.5))
+        XCTAssertEqual(urBitarna.count, 2)
+        // Appens klickjakt i samma små bitar, i en egen läsning: samma klick inom ett prov.
         let iBitar = try await MediaReader.clicks(url, segment: 1.0, overlap: 0.5)
-        let hela = ClickDetector.detectSegmented(alla, sampleRate: 48_000, segment: 1.0, overlap: 0.5)
-            .map { Click(time: forsta + $0.time, strength: $0.strength) }
-        XCTAssertEqual(iBitar, hela)
-        XCTAssertEqual(iBitar.count, 2)
+        XCTAssertEqual(iBitar.count, urBitarna.count)
+        for (a, b) in zip(iBitar, urBitarna) { XCTAssertEqual(a.time, forsta + b.time, accuracy: 1.5 / 48_000) }
     }
 
     // MARK: Kvittot och ljusprovet
