@@ -1,20 +1,20 @@
-55086ac7468bb95f4d24844db80f001422e3ed3a s2f 2026-10-22T21:51:29Z run 39860390859
+b1725b01ea9d4b5b73ac800f1c6ae771aa58e88b s2f 2026-10-22T21:54:24Z run 39860749800
 == swift-release
-GRÖNT: 185 test, 0 fel, 4 s i testerna, bygget 32 s
+GRÖNT: 185 test, 0 fel, 6 s i testerna, bygget 38 s
 Långsammast (av 185):
-      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.5 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  MatningTests.testSammaSomFilformatet
-      0.1 s  VisningTests.testPasset
-      0.1 s  VisningTests.testEttMattUtanEtikettSyns
-      0.1 s  VardenaTests.test240MedVarTredjeBorta
-      0.1 s  SlagTests.testRutorUtanPersonBehallsOchGorDomenOsaker
-      0.1 s  RedigeringTests.testBuffertOchUppratt
-      0.1 s  PaketTests.testUtanKlipp
-      0.1 s  MattTests.testRutparetOverToppen
-      0.1 s  MattTests.testVarjeSvingGerPythonsTal
-      0.1 s  FormatTests.testFixturernaGarAttLasa
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.1 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
+      0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  KatalogTests.testEttFaltSomSaknasFalls
+      0.1 s  VardenaTests.testLjusprovetsDom
+      0.1 s  KlickTests.testParningenSomPython
+      0.1 s  KatalogTests.testSwayVidToppen
+      0.1 s  InspelningTests.testKvittot
+      0.1 s  InspelningTests.testImportenVagrarEnOmraknadFil
+      0.1 s  VardenaTests.testTiderSomKodasTillJSON
 
