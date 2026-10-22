@@ -53,6 +53,13 @@ class KlartNar(unittest.TestCase):
                           A.enhet("baksving_s"), A.enhet("bakre_kna_adress")), ("cm", "°", "", "s", "°"))
         self.assertEqual(A.avrunda("tempo", 2.6449), 2.64)
         self.assertEqual(A.avrunda("backen_sway_topp", -5.66), -5.7)
+        # Tilläggen mot Sportsbox (METOD M30–M37): knänas sway är cm, farterna och ms utan decimaler.
+        self.assertEqual([A.enhet(m) for m in ("framre_kna_sway_topp", "framre_kna_topp", "handfart_max",
+                                               "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max",
+                                               "genomsving_s", "backen_bojning_traff", "hand_lyft_topp")],
+                         ["cm", "°", "cm/s", "ms", "°/s", "s", "°", "cm"])
+        self.assertEqual(A.avrunda("handfart_max", 811.6), 812.0)
+        self.assertEqual(A.avrunda("handfart_max_fore_traff_ms", 24.4), 24.0)
 
 
 class Kedjorna(unittest.TestCase):

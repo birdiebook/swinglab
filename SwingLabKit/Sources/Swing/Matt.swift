@@ -22,6 +22,7 @@ public struct SvingResultat: Sendable {
 /// bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt.
 /// Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
 /// Positionerna P1–P10 och måtten vid P3, P5 och P10 som inte är en fas: METOD M28, M29.
+/// Tilläggen mot Sportsbox i 2D (PLAN S1b): METOD M30–M37.
 public enum Matt {
     // Drillis & Contini via Winter, andel av kroppslängden H. METOD M2
     public static let axelhojd = 0.818
@@ -47,7 +48,14 @@ public enum Matt {
             n += efter.map { "\(m)_\($0.rawValue)" }
         }
         n += ["adress", "topp", "traff"].map { "bakre_kna_\($0)" }
-        return n + ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"]
+        n += ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"]
+        for m in ["backen_bojning", "framre_kna"] {
+            n += ["adress", "topp", "traff"].map { "\(m)_\($0)" }
+        }
+        for m in ["brost_lyft", "hand_lyft"] {
+            n += efter.map { "\(m)_\($0.rawValue)" }
+        }
+        return n + ["genomsving_s"]
     }()
 
     public static let namnFO: [String] = {
@@ -57,9 +65,13 @@ public enum Matt {
         }
         n += ["adress", "traff"].map { "axellinje_lutning_\($0)" }
         n += ["adress", "topp", "traff"].map { "hoftlinje_lutning_\($0)" }
-        return n + ["sway_gap_traff", "hander_fore_adress_traff", "hander_fore_backen_traff", "backen_resa_framat",
-                    "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s",
-                    "nedsving_s", "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"]
+        n += ["sway_gap_traff", "hander_fore_adress_traff", "hander_fore_backen_traff", "backen_resa_framat",
+              "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s",
+              "nedsving_s", "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"]
+        for m in ["brost_lyft", "hand_lyft", "framre_kna_sway", "bakre_kna_sway"] {
+            n += efter.map { "\(m)_\($0.rawValue)" }
+        }
+        return n + ["genomsving_s", "handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"]
     }()
 
     public static func namn(_ vy: Vy) -> [String] { vy == .dtl ? namnDTL : namnFO }
@@ -109,7 +121,8 @@ public enum Matt {
     /// Måtten för en sving. METOD M2–M24
     public static func mat(_ s: Sving) throws -> SvingResultat {
         let t = s.t
-        let b = Faser.greppRegel(s.leder).map { Faser.jamna(t, $0) }
+        let raa = Faser.greppRegel(s.leder)
+        let b = raa.map { Faser.jamna(t, $0) }
         // Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
         let handF = Faser.jamna(t, s.led(.handledF))
         let handB = Faser.jamna(t, s.led(.handledB))
@@ -119,6 +132,8 @@ public enum Matt {
         let C = mitt(.axelF, .axelB)
         let A = mitt(.fotledF, .fotledB)
         let G = mitt(.handledF, .handledB)
+        // Farterna ur de råa lägena. METOD M35
+        let gRaa = zip(raa[Led.handledF.rawValue], raa[Led.handledB.rawValue]).map { Punkt.mitt($0, $1) }
         let N = led(.nasa)
         let f = try Faser.hitta(t, G, tKlick: s.tKlick)
         // Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
@@ -176,6 +191,14 @@ public enum Matt {
                 skillnad.append(xn - xb)
             }
             m["handbana"] = skillnad.reduce(0, +) / Double(skillnad.count) * cm
+            // Bäckenets böjning: bålens och lårets lutning, medlet. METOD M30
+            for fz in [Fas.adress, .topp, .traff] {
+                m["backen_bojning_\(fz.rawValue)"] = (vinkelFranLod(L(P, fz), L(C, fz))
+                                                     + vinkelFranLod(L(led(.knaB), fz), L(led(.hoftB), fz))) / 2
+            }
+            for fz in [Fas.adress, .topp, .traff] {                                 // METOD M33
+                m["framre_kna_\(fz.rawValue)"] = bojning(L(led(.hoftF), fz), L(led(.knaF), fz), L(led(.fotledF), fz))
+            }
         case .fo:
             for fz in faser {                                                       // METOD M14
                 m["sidbojning_\(fz.rawValue)"] = -vinkelFranLod(L(P, fz), L(C, fz))
@@ -216,6 +239,29 @@ public enum Matt {
                 m["backen_resa_p5"] = (Faser.vid(t, P, p5).x - L(P, .topp).x) * cm
             }
             m["huvud_backen_finish"] = (L(N, .finish).x - L(P, .finish).x) * cm
+            for fz in efter {                                                       // METOD M34
+                m["framre_kna_sway_\(fz.rawValue)"] = flyttX(led(.knaF), fz)
+                m["bakre_kna_sway_\(fz.rawValue)"] = flyttX(led(.knaB), fz)
+            }
+            // Farterna i nedsvingen, från toppen till träffen. METOD M35, METOD M37
+            let nedsving = Farter.rutnat(f.topp, f.traff)
+            if let hf = Farter.maxpunkt(nedsving, Farter.fart(t, gRaa, nedsving).map { $0 * cm }) {
+                m["handfart_max"] = hf.varde
+                m["handfart_max_fore_traff_ms"] = (f.traff - hf.tid) * 1000.0
+            }
+            if let af = Farter.maxpunkt(nedsving, Farter.vinkelfart(t, fran: s.led(.axelF), till: s.led(.handledF),
+                                                                    nedsving)) {
+                m["framre_arm_vinkelfart_max"] = af.varde
+            }
+        }
+
+        for fz in efter {                                                           // METOD M31, METOD M32
+            m["brost_lyft_\(fz.rawValue)"] = flyttUpp(C, fz)
+            m["hand_lyft_\(fz.rawValue)"] = flyttUpp(G, fz)
+        }
+        let efterTraff = Farter.rutnat(f.traff + Farter.stegS, f.traff + Faser.finish.fran)   // METOD M36
+        if let tf = Farter.finishTid(efterTraff, Farter.fart(t, gRaa, efterTraff)) {
+            m["genomsving_s"] = tf - f.traff
         }
 
         if let start = f.start {                                                    // METOD M5

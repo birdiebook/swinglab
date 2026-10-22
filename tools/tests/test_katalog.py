@@ -44,6 +44,13 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_sway_p3"], "sway_topp")
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
+        # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37).
+        self.assertEqual(len(k["matt"]), 33)
+        self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
+        self.assertEqual(kopplat["backen_bojning_traff"], "early_extension")
+        self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
+        self.assertEqual(matt[("fo", "genomsving_s")], ["P10"])
+        self.assertEqual(matt[("fo", "handfart_max_fore_traff_ms")], ["P7"])
         # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
         alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
         self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})

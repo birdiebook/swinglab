@@ -33,18 +33,32 @@ def enhet(matt: str) -> str:
     """Måttets enhet, för visningen och "klart när"."""
     if matt in ("tempo", "stans_bredd"):
         return ""
+    if matt.endswith("_ms"):
+        return "ms"
     if matt.endswith("_s"):
         return "s"
+    if "vinkelfart" in matt:
+        return "°/s"
+    if "fart" in matt:
+        return "cm/s"
+    if "_sway" in matt:                 # knänas sway är cm, inte knäets böjning
+        return "cm"
     if any(o in matt for o in ("bojning", "lutning", "kna", "armbage")):
         return "°"
     return "cm"
+
+
+def decimaler(matt: str) -> int:
+    """Två decimaler för kvoter och sekunder, inga för farter och ms, annars en. METOD MT3"""
+    e = enhet(matt)
+    return 2 if e in ("", "s") else 0 if e in ("ms", "cm/s", "°/s") else 1
 
 
 def avrunda(matt: str, v: float | None) -> float | None:
     """Talet som visas och som "klart när" skrivs i. METOD MT3"""
     if v is None:
         return None
-    return round(v, 2 if enhet(matt) in ("", "s") else 1)
+    return round(v, decimaler(matt))
 
 
 # --- slagen ----------------------------------------------------------------------

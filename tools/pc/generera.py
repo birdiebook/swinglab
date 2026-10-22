@@ -62,6 +62,8 @@ FO = {
     "armbage": (5, 15, 20, 90),        # främre armbågens böjning: adress, topp, efter träff, finish
     "arm": (-14, -130, -6, 140),       # främre överarmen från lodlinjen nedåt, + mot målet
     "stans": 48.0,                     # fotlederna isär, cm
+    "kna_sway_f": (0, 3, 9, 12),       # främre knäets sway, cm (METOD M34)
+    "kna_sway_b": (0, -4, 7, 28),      # bakre knäets sway, cm
     "axelbredd": 40.0,
     "hoftbredd": 32.0,
 }
@@ -72,7 +74,7 @@ DTL = {
     "huvud_x": (0, -1, 2, 8),
     "huvud_lyft": (0, -0.5, 1, 12),
     "kna_bak": (22, 30, 25, 10),       # bakre knäets böjning, grader
-    "kna_fram": 20.0,
+    "kna_fram": (20, 24, 12, 8),       # främre knäets böjning, grader (METOD M33)
     "armbage_bak": (10, 60, 5, 40),    # bakre överarmen från lodlinjen nedåt, + bort från bollen
     "over": 4.0,                       # handens bana: nedsvingen så här mycket utanför, cm
     "hander_upp": 70.0,                # händerna så här mycket högre vid toppen än i adressen, cm
@@ -153,8 +155,12 @@ def figur_fo(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     L[:, 0] = nasa0 + _p(kropp(t, p["huvud_sway"]), kropp(t, p["huvud_lyft"]))
     L[:, 11] = [p["stans"] / 2, za]
     L[:, 12] = [-p["stans"] / 2, za]
-    L[:, 9] = (L[:, 7] + L[:, 11]) / 2 + [2.0, 0.0]
-    L[:, 10] = (L[:, 8] + L[:, 12]) / 2 - [2.0, 0.0]
+    # Knäna: mitt mellan höften och fotleden i adressen, i sidled flyttade med sin egen sway.
+    a0 = _rad(p["hoftlutning"][0])
+    xf = (p["sway"][0] + hw * math.cos(a0) + p["stans"] / 2) / 2 + 2.0
+    xb = (p["sway"][0] - hw * math.cos(a0) - p["stans"] / 2) / 2 - 2.0
+    L[:, 9] = _p(xf + kropp(t, p["kna_sway_f"]), (L[:, 7, 1] + L[:, 11, 1]) / 2)
+    L[:, 10] = _p(xb + kropp(t, p["kna_sway_b"]), (L[:, 8, 1] + L[:, 12, 1]) / 2)
     # Främre armen från axeln: överarmen med vinkeln psi, underarmen böjd phi.
     L[:, 3] = L[:, 1] + ua * np.stack([np.sin(psi), -np.cos(psi)], -1)
     under = np.stack([np.sin(psi - phi), -np.cos(psi - phi)], -1)
@@ -185,7 +191,7 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     L[:, 0] = nasa0 + _p(kropp(t, p["huvud_x"]), kropp(t, p["huvud_lyft"]))
     L[:, 11] = [2.0, za]
     L[:, 12] = [-2.0, za]
-    L[:, 9] = _kna(L[:, 7], L[:, 11], np.full(n, p["kna_fram"]))
+    L[:, 9] = _kna(L[:, 7], L[:, 11], kropp(t, p["kna_fram"]))
     L[:, 10] = _kna(L[:, 8], L[:, 12], kropp(t, p["kna_bak"]))
     L[:, 4] = L[:, 2] + ua * np.stack([-np.sin(eta), -np.cos(eta)], -1)
     # Händerna: upp och bakåt till toppen, ner `over` cm utanför på samma höjd, upp i finishen.
@@ -305,6 +311,57 @@ def facit_dtl(p: dict, langd_cm: float) -> dict:
     return f
 
 
+def _lod(nedre: np.ndarray, ovre: np.ndarray) -> float:
+    """Linjen nedre → övre mot lodlinjen, + åt +X (Z uppåt). METOD M6"""
+    d = ovre - nedre
+    return math.degrees(math.atan2(d[0], d[1]))
+
+
+def _fart(figur, p: dict, langd_cm: float, a: float, b: float, led=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(t, handens fart i cm/s, figuren) på ett rutnät om 10 µs mellan a och b."""
+    t = np.arange(a, b, 1e-5)
+    L = figur(t, p, langd_cm)
+    g = _hander(L)
+    v = np.gradient(g, t, axis=0)
+    return t, np.hypot(v[:, 0], v[:, 1]), L
+
+
+def facit_s1b(figur, p: dict, langd_cm: float, vy: str) -> dict:
+    """Tilläggen mot Sportsbox (METOD M30–M37) på den exakta figuren: lägena på
+    platåerna, farterna på ett rutnät om 10 µs."""
+    tt, tk = TIDER["topp"], TIDER["klick"]
+    tider = {"adress": 0.0, "topp": tt, "traff": tk, "finish": tk + 1.1}
+    L = {fz: figur(np.array([tc]), p, langd_cm)[0] for fz, tc in tider.items()}
+    f = {}
+    for fz in ("topp", "traff", "finish"):
+        c, c0 = (L[fz][1] + L[fz][2]) / 2, (L["adress"][1] + L["adress"][2]) / 2
+        f[f"brost_lyft_{fz}"] = float(c[1] - c0[1])                                   # METOD M31
+        f[f"hand_lyft_{fz}"] = float(_hander(L[fz])[1] - _hander(L["adress"])[1])     # METOD M32
+    # Genomsvingen: toppfarten efter träffen och första gången under 10 % av den. METOD M36
+    t, s, _ = _fart(figur, p, langd_cm, tk + 1e-5, tk + 1.0)
+    j = int(np.argmax(s))
+    k = j + int(np.argmax(s[j:] < 0.10 * s[j]))
+    f["genomsving_s"] = float(t[k - 1] + (0.10 * s[j] - s[k - 1]) / (s[k] - s[k - 1]) * (t[k] - t[k - 1])) - tk
+    if vy == "dtl":
+        for fz in ("adress", "topp", "traff"):
+            P, C = (L[fz][7] + L[fz][8]) / 2, (L[fz][1] + L[fz][2]) / 2
+            f[f"backen_bojning_{fz}"] = (_lod(P, C) + _lod(L[fz][10], L[fz][8])) / 2       # METOD M30
+        for i, fz in enumerate(("adress", "topp", "traff")):
+            f[f"framre_kna_{fz}"] = float(p["kna_fram"][i])                              # METOD M33
+    else:
+        for i, fz in ((1, "topp"), (2, "traff"), (3, "finish")):                         # METOD M34
+            f[f"framre_kna_sway_{fz}"] = float(p["kna_sway_f"][i])
+            f[f"bakre_kna_sway_{fz}"] = float(p["kna_sway_b"][i])
+        t, s, F = _fart(figur, p, langd_cm, tt, tk)                                       # METOD M35
+        j = int(np.argmax(s))
+        f["handfart_max"] = float(s[j])
+        f["handfart_max_fore_traff_ms"] = (tk - float(t[j])) * 1000.0
+        d = F[:, 5] - F[:, 1]                                                             # METOD M37
+        w = np.gradient(np.unwrap(np.arctan2(d[:, 1], d[:, 0])), t)
+        f["framre_arm_vinkelfart_max"] = float(np.degrees(np.abs(w).max()))
+    return f
+
+
 # --- svingen som JSON ------------------------------------------------------------
 
 def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0.0, langd_m: float = 1.80,
@@ -364,6 +421,7 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     facit["_positioner"] = pos
     if vy == "fo":
         facit.update(facit_vid_positioner(p, langd_cm, pos))
+    facit.update(facit_s1b(figur, p, langd_cm, vy))
     return d, facit
 
 

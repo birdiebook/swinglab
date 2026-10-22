@@ -12,6 +12,7 @@ original**.
 
 **SwingLab-kolumnen:** ✅ finns · 🟡 finns i annan form · ⬜ litet tillägg (S1b) ·
 ❌ kräver S6 (två kameror) eller S7 (klubban) · – medvetet bortvalt.
+S1b är byggt: dess rader står som ✅ med måttets namn och METOD-rad.
 
 Ett skäl till skillnaderna: Sportsbox mäter i 3D ur en kamera med en egen
 AI-modell. SwingLab mäter varje mått i den vy där det ligger i bildens plan
@@ -40,7 +41,7 @@ Teckenkonventionerna per mått är inte bekräftade, utom Forehead Sway (nedan).
 | Pelvis Sway | glidning bort från/mot målet | ✅ FO (`backen_sway_*`) |
 | Pelvis Lift | bäckenet upp/ned | ✅ (`backen_lyft_*`) |
 | Pelvis Thrust | mot bollen = early extension | ✅ DTL (`backen_thrust_*`) |
-| Pelvis Bend | bäckenets tilt framåt/bakåt | ⬜ S1b (DTL) |
+| Pelvis Bend | bäckenets tilt framåt/bakåt | ✅ DTL, egen definition: medlet av bålens och lårets lutning (`backen_bojning_*`, M30) |
 | Pelvis Side Bend | höftlinjens sidolutning | 🟡 höftlinjen i bild (FO), inte Sportsbox definition |
 
 ## 2. Bröstkorg (Chest), 6 DoF ✔
@@ -49,7 +50,7 @@ Teckenkonventionerna per mått är inte bekräftade, utom Forehead Sway (nedan).
 |---|---|---|
 | Chest Turn | bröstets vridning | ❌ S6 |
 | Chest Sway | överkroppens sidoförflyttning | ✅ FO (`brost_sway_*`) |
-| Chest Lift | överkroppen upp/ned | ⬜ S1b |
+| Chest Lift | överkroppen upp/ned | ✅ båda vyerna (`brost_lyft_*`, M31) |
 | Chest Thrust | bröstet mot/från bollen | ✅ DTL (`brost_thrust_*`) |
 | Chest Bend | framåtböjning, tappad hållning | ✅ DTL (`brost_bojning_*`) |
 | Chest Side Bend | sidolutning | ✅ FO i 2D (`sidbojning_*`) |
@@ -66,16 +67,16 @@ Teckenkonventionerna per mått är inte bekräftade, utom Forehead Sway (nedan).
 | Mått | Status | Definition | SwingLab |
 |---|---|---|---|
 | Mid-Hand Sway | ✔ | punkt på greppet mellan händerna, sidled från adressen; visar svingens bredd (en annan sida kallar den Hand sway, FON) | ✅ (händerna mot adressen) |
-| Mid-Hand Lift | ✔ | samma punkt i höjdled | ⬜ S1b |
-| Mid-Hand Speed / Max Hand Speed | ◐ | handens fart och max | ⬜ S1b (kräver låst slutartid, B11; oprovat) |
+| Mid-Hand Lift | ✔ | samma punkt i höjdled | ✅ båda vyerna (`hand_lyft_*`, M32) |
+| Mid-Hand Speed / Max Hand Speed | ◐ | handens fart och max | ✅ FO, max i nedsvingen i bildens plan (`handfart_max`, M35); osäker: kräver låst slutartid (B11), oprovad på telefonen |
 | Lead Arm Angle | ◐ | vänsterarmens vinkel | 🟡 vänsterarmens böjning, 0 = rak (M28/M29) |
 
 ## 5. Ben och knän ◐
 
 | Mått | SwingLab |
 |---|---|
-| Lead/Trail Knee Flexion | 🟡 bakre knät (DTL, `bakre_kna_*`); främre ⬜ S1b |
-| Lead/Trail Knee Sway | ⬜ S1b (FO) |
+| Lead/Trail Knee Flexion | ✅ DTL, båda knäna (`bakre_kna_*`, `framre_kna_*`, M11, M33); det främre skyms delvis bakifrån och saknas då |
+| Lead/Trail Knee Sway | ✅ FO (`framre_kna_sway_*`, `bakre_kna_sway_*`, M34) |
 
 ## 6. Relationsmått
 
@@ -89,7 +90,7 @@ Teckenkonventionerna per mått är inte bekräftade, utom Forehead Sway (nedan).
 | Mått | Status | Definition (proffsens medel med driver, män/kvinnor) | SwingLab |
 |---|---|---|---|
 | Max Pelvis/Chest Turn Speed | ◐ | toppfart i vridning, °/s | ❌ S6 och skarp bild |
-| Max Lead Arm Speed | ◐ | vänsterarmens toppfart, °/s | ⬜ S1b i 2D, osäkert |
+| Max Lead Arm Speed | ◐ | vänsterarmens toppfart, °/s | ✅ FO i 2D, axel → handled i bildens plan (`framre_arm_vinkelfart_max`, M37); osäker som handens fart |
 | Max Shaft Speed | ◐ | skaftets toppfart, °/s | ❌ S7 |
 | Kinematic Sequence | ◐ | ordning och tidpunkt för topparna bäcken → bröst → arm → klubba | ❌ S6 + S7 |
 | X-Factor / X-Factor Stretch | ◐ | separationen bröst–bäcken vid toppen och ökningen i tidig nedsving | ❌ S6 (trend utan markörer, B14) |
@@ -106,9 +107,9 @@ och kräver bra ljus ✔. Det stöder B11 (inspelning i appen med låst slutarti
 | Mått | Status | SwingLab |
 |---|---|---|
 | Backswing / Downswing Time | ◐ | ✅ (tempots delar, M-raderna för tempo) |
-| Follow Through Time | ◐ | ⬜ S1b |
+| Follow Through Time | ◐ | ✅ träffen → handens fart under 10 % av genomsvingens topp (`genomsving_s`, M36) |
 | Tempo Ratio (t.ex. 3:1) | ◐ | ✅ |
-| Hand Speed Max Timing | ◐ | ⬜ S1b (med handfarten) |
+| Hand Speed Max Timing | ◐ | ✅ FO, ms före träffen (`handfart_max_fore_traff_ms`, M35) |
 | Måtten per position (P1–P10) | ✔ | ✅ P1, P3, P4, P5, P7, P9, P10 (B32, M28); P2, P6, P8 ❌ S7 |
 
 ## 9. Betyg ✔
@@ -128,9 +129,10 @@ vridning, vertikal rörelse och release (Golf.com).
 - **Har nu:** sway, thrust och lyft för bäcken, bröst och huvud; bröstets böjning
   och sidböjning; sway gap; armar och händer; bakre knät; tempo; måtten per
   position.
-- **S1b, små tillägg i 2D:** bäckenets böjning, bröstets lyft, handens lyft,
-  främre knät, knäns sway, follow-through-tid, handfart och dess tidpunkt,
-  vänsterarmens fart.
+- **S1b, små tillägg i 2D (byggt, METOD M30–M37):** bäckenets böjning (egen
+  definition), bröstets lyft, handens lyft, främre knät, knänas sway,
+  follow-through-tid, handfart och dess tidpunkt, vänsterarmens fart. Farterna
+  är osäkra tills de provats på telefonen med låst slutartid (B11).
 - **S6, två kameror:** alla turn-mått, X-factor och stretch, vridfarterna, core
   och shoulder gain factor.
 - **S7, klubban:** club-hand gap, skaftets fart, wrist och release factor, den

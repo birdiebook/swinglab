@@ -47,9 +47,9 @@ final class MattTests: XCTestCase {
                 }
             }
         }
-        // Kvittot: testet jämförde verkligen måtten (38 + 33 + 28 + 23 + 32 + 22 + 35 + 37 + 28 = 276)
+        // Kvittot: testet jämförde verkligen måtten (54 + 48 + 41 + 34 + 48 + 32 + 51 + 53 + 41 = 402)
         // och positionerna (9 × 7 − 5 saknade = 58).
-        XCTAssertEqual(jamforda, 276)
+        XCTAssertEqual(jamforda, 402)
         XCTAssertEqual(positioner, 58)
     }
 
@@ -76,6 +76,28 @@ final class MattTests: XCTestCase {
         XCTAssertNil(v.matt["framre_armbage_topp"])
         XCTAssertNil(v.matt["framre_armbage_efter_traff"])
         XCTAssertNotNil(v.matt["hander_fore_adress_traff"])
+        // Handens fart ur greppet finns, armens vinkelfart kräver den egna handleden. METOD M35, M37
+        XCTAssertNotNil(v.matt["handfart_max"])
+        XCTAssertNil(v.matt["framre_arm_vinkelfart_max"])
+    }
+
+    /// Tilläggen mot Sportsbox (PLAN S1b) på den påhittade svingen: figurens tal inom bruset.
+    func testTillaggenMotSportsbox() throws {
+        let fo = try Matt.mat(Sving.las(json: Fixturer.svingar[0].indata))
+        XCTAssertEqual(fo.matt["bakre_kna_sway_topp"]!, -4.0, accuracy: 0.5)          // METOD M34
+        XCTAssertEqual(fo.matt["framre_kna_sway_traff"]!, 9.0, accuracy: 0.5)
+        XCTAssertEqual(fo.matt["handfart_max"]!, 720.0, accuracy: 30.0)               // METOD M35
+        XCTAssertGreaterThan(fo.matt["handfart_max_fore_traff_ms"]!, 0)              // före träffen
+        XCTAssertEqual(fo.matt["framre_arm_vinkelfart_max"]!, 700.0, accuracy: 30.0)  // METOD M37
+        XCTAssertEqual(fo.matt["genomsving_s"]!, 0.76, accuracy: 0.05)                // METOD M36
+        XCTAssertEqual(fo.matt["hand_lyft_topp"]!, 107.4, accuracy: 0.5)              // METOD M32
+        let dtl = try Matt.mat(Sving.las(json: Fixturer.svingar[2].indata))
+        XCTAssertEqual(dtl.matt["framre_kna_traff"]!, 12.0, accuracy: 1.5)            // METOD M33
+        XCTAssertEqual(dtl.matt["backen_bojning_adress"]!, 10.0, accuracy: 0.5)       // METOD M30
+        XCTAssertNil(dtl.matt["handfart_max"])                                        // bara FO
+        XCTAssertEqual(Farter.vinkel(181), -179)
+        XCTAssertEqual(Farter.vinkel(-180), 180)
+        XCTAssertEqual(Farter.rutnat(2.2, 2.5).count, 301)
     }
 
     func testRaLuckaLangreAnMaxLuckaSaknas() throws {
@@ -107,9 +129,12 @@ final class MattTests: XCTestCase {
     }
 
     func testNamnenPerVy() {
-        XCTAssertEqual(Matt.namnFO.count, 38)
-        XCTAssertEqual(Matt.namnDTL.count, 28)
+        XCTAssertEqual(Matt.namnFO.count, 54)
+        XCTAssertEqual(Matt.namnDTL.count, 41)
         XCTAssertEqual(Set(Matt.namnFO).count, Matt.namnFO.count)
+        XCTAssertEqual(Set(Matt.namnDTL).count, Matt.namnDTL.count)
+        XCTAssertTrue(Matt.namnDTL.contains("backen_bojning_traff"))       // METOD M30
+        XCTAssertTrue(Matt.namnFO.contains("framre_arm_vinkelfart_max"))   // METOD M37
         XCTAssertTrue(Matt.namnDTL.contains("handbana"))
         XCTAssertTrue(Matt.namnFO.contains("backen_resa_framat"))
     }

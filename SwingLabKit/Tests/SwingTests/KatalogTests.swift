@@ -35,7 +35,11 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "backen_sway_p3" }?.fel, "sway_topp")
         XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
         XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
-        XCTAssertEqual(k.matt.count, 10)
+        // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, tre följer ett fel.
+        XCTAssertEqual(k.matt.count, 33)
+        XCTAssertEqual(k.matt.first { $0.matt == "bakre_kna_sway_topp" }?.fel, "sway_topp")
+        XCTAssertEqual(k.matt.first { $0.matt == "backen_bojning_traff" }?.fel, "early_extension")
+        XCTAssertEqual(k.matt.first { $0.matt == "framre_arm_vinkelfart_max" }?.positioner, ["P5"])
         for m in k.matt {
             let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
             XCTAssertTrue(Matt.namn(vy).contains(m.matt), m.matt)

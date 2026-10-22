@@ -1,4 +1,4 @@
-"""Måtten (METOD M6–M24): påhittade svingar med kända förflyttningar ger kända tal."""
+"""Måtten (METOD M6–M24, M30–M37): påhittade svingar med kända förflyttningar ger kända tal."""
 from __future__ import annotations
 
 import unittest
@@ -8,6 +8,12 @@ from _hjalp import M, mat, sving
 FACIT = 0.05           # figurens tal mot mätningen: pixlarna avrundas, rutnätet har luckor
 TEMPO_BIAS = 0.15      # toppen 7–10 ms tidigt av utjämningen (METOD M4)
 HANDBANA = 0.15        # rutnätet och utjämningen när händerna rör sig 4–6 m/s (METOD M13)
+# Farterna mot figurens exakta derivata, utan brus (METOD M35–M37, uppmätt på frön 0–19):
+# anpassningen över ±3σ rundar av toppen (handen −0,6 %, största felet 9,8 cm/s; armen −0,3 %,
+# 4,1 °/s), och toppens tid ligger på en flack kurva (sd 3 ms, största 6,1 ms). Handens lyft vid
+# toppen: utjämningen sänker toppen och toppen ligger tidigt (−0,06 cm, största 0,18).
+FARTER = {"handfart_max": 12.0, "handfart_max_fore_traff_ms": 8.0, "framre_arm_vinkelfart_max": 6.0,
+          "genomsving_s": 0.008, "hand_lyft_topp": 0.2}
 
 
 class KandaTal(unittest.TestCase):
@@ -24,10 +30,10 @@ class KandaTal(unittest.TestCase):
         self.assertEqual(set(r["matt"]), set(M.MATT[vy]))
 
     def test_fo(self) -> None:
-        self.kolla("fo", {"tempo": TEMPO_BIAS})
+        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER})
 
     def test_dtl(self) -> None:
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA})
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER})
 
     def test_backen_sex_cm_bakat_vid_toppen(self) -> None:
         r = mat(vy="fo", sway=(0, -6, 8, 14))
@@ -37,13 +43,13 @@ class KandaTal(unittest.TestCase):
     def test_andra_parametrar_och_annan_langd(self) -> None:
         andra = {"sway": (0, 3, 12, 15), "sidbojning": (10, -4, 30, 5), "armbage": (0, 40, 55, 80),
                  "stans": 36.0, "langd_m": 1.62, "seed": 7}
-        self.kolla("fo", {"tempo": TEMPO_BIAS}, **andra)
+        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER}, **andra)
         r = mat(vy="fo", **andra)
         self.assertLess(r["matt"]["sidbojning_topp"], 0)        # reverse spine
         self.assertAlmostEqual(r["cm_per_px"], 1 / 4.0, delta=1e-4)
         andra = {"thrust": (0, 1, -2, 5), "bojning": (35, 36, 37, 0), "over": -3.0, "kna_bak": (15, 18, 40, 5),
                  "armbage_bak": (0, 95, 10, 30), "seed": 8}
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA}, **andra)
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER}, **andra)
         self.assertLess(mat(vy="dtl", **andra)["matt"]["handbana"], 0)       # innanför
 
     def test_tecknen(self) -> None:

@@ -4,12 +4,16 @@
 En kamera ser två av tre axlar, så varje mått tas i den vy där det ligger i
 bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt (format.py).
 
-  DTL  bröstets böjning, bäckenets och bröstets thrust (+ mot bollen), lyft,
-       huvudet mot bollen, bakre knäet, bakre armbågen vid toppen, handens bana.
-  FO   sidböjningen (+ bort från målet), sway (+ mot målet), lyft, axel- och
-       höftlinjens lutning, sway gap, händerna vid träffen, bäckenets resa
-       framåt, främre armbågen vid toppen och efter träffen, stansen.
-  Båda tempot.
+  DTL  bröstets och bäckenets böjning, bäckenets och bröstets thrust (+ mot
+       bollen), lyft, huvudet mot bollen, båda knäna, bakre armbågen vid toppen,
+       handens bana.
+  FO   sidböjningen (+ bort från målet), sway (+ mot målet) för bäckenet, bröstet,
+       huvudet och knäna, lyft, axel- och höftlinjens lutning, sway gap, händerna
+       vid träffen, bäckenets resa framåt, främre armbågen vid toppen och efter
+       träffen, stansen, handens fart och främre armens vinkelfart.
+  Båda tempot, bröstets och handens lyft och genomsvingens tid.
+
+Tilläggen mot Sportsbox i 2D (PLAN S1b, research 4): METOD M30–M37.
 
 Positionerna P1–P10 (BESLUT B32, METOD M28) och måtten vid P3, P5 och P10 som
 inte är en fas (METOD M29): sway och främre armbågen vid P3, bäckenets resa
@@ -24,9 +28,10 @@ import math
 import numpy as np
 
 from . import faser as F
+from . import farter as FA
 from . import positioner as PO
 from .format import (ARMBAGE_B, ARMBAGE_F, AXEL_B, AXEL_F, FOTLED_B, FOTLED_F, HANDLED_B, HANDLED_F,
-                     HOFT_B, HOFT_F, KNA_B, NASA, Sving)
+                     HOFT_B, HOFT_F, KNA_B, KNA_F, NASA, Sving)
 
 # METOD M2: Drillis & Contini via Winter, andel av kroppslängden H.
 AXELHOJD = 0.818
@@ -47,7 +52,10 @@ MATT_DTL = (
     + [f"{m}_{f}" for m in ("backen_thrust", "backen_lyft", "huvud_mot_bollen", "huvud_lyft", "brost_thrust")
        for f in EFTER]
     + [f"bakre_kna_{f}" for f in ("adress", "topp", "traff")]
-    + ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"])
+    + ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"]
+    + [f"{m}_{f}" for m in ("backen_bojning", "framre_kna") for f in ("adress", "topp", "traff")]
+    + [f"{m}_{f}" for m in ("brost_lyft", "hand_lyft") for f in EFTER]
+    + ["genomsving_s"])
 MATT_FO = (
     [f"sidbojning_{f}" for f in FASER]
     + [f"{m}_{f}" for m in ("backen_sway", "brost_sway", "backen_lyft", "huvud_sway", "huvud_lyft")
@@ -56,7 +64,9 @@ MATT_FO = (
     + [f"hoftlinje_lutning_{f}" for f in ("adress", "topp", "traff")]
     + ["sway_gap_traff", "hander_fore_adress_traff", "hander_fore_backen_traff", "backen_resa_framat",
        "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s", "nedsving_s",
-       "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"])
+       "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"]
+    + [f"{m}_{f}" for m in ("brost_lyft", "hand_lyft", "framre_kna_sway", "bakre_kna_sway") for f in EFTER]
+    + ["genomsving_s", "handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"])
 MATT = {"dtl": tuple(MATT_DTL), "fo": tuple(MATT_FO)}
 
 
@@ -103,7 +113,8 @@ def mat(s: Sving) -> dict:
     Ett mått som inte går att räkna (leden saknas i fasen, positionen saknas)
     står inte med."""
     t = s.t
-    b = F.jamna(t, F.grepp_regel(s.xy))
+    raa = F.grepp_regel(s.xy)
+    b = F.jamna(t, raa)
     # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
     hand_f = F.jamna(t, s.xy[:, HANDLED_F])
     hand_b = F.jamna(t, s.xy[:, HANDLED_B])
@@ -111,6 +122,7 @@ def mat(s: Sving) -> dict:
     C = (b[:, AXEL_F] + b[:, AXEL_B]) / 2
     A = (b[:, FOTLED_F] + b[:, FOTLED_B]) / 2
     G = (b[:, HANDLED_F] + b[:, HANDLED_B]) / 2
+    G_raa = (raa[:, HANDLED_F] + raa[:, HANDLED_B]) / 2      # farterna ur de råa lägena, METOD M35
     N = b[:, NASA]
     f = F.hitta_faser(t, G, s.t_klick)
     # Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
@@ -159,6 +171,12 @@ def mat(s: Sving) -> dict:
             xn = _korsning(t, G, f.topp, f.traff, niva, uppat=False)
             skillnad.append(xn - xb)
         m["handbana"] = sum(skillnad) / len(skillnad) * cm
+        # Bäckenets böjning: bålens och lårets lutning, medlet. METOD M30
+        for fz in ("adress", "topp", "traff"):
+            m[f"backen_bojning_{fz}"] = (vinkel_fran_lod(L(P, fz), L(C, fz))
+                                         + vinkel_fran_lod(L(b[:, KNA_B], fz), L(b[:, HOFT_B], fz))) / 2
+        for fz in ("adress", "topp", "traff"):                       # METOD M33
+            m[f"framre_kna_{fz}"] = bojning(L(b[:, HOFT_F], fz), L(b[:, KNA_F], fz), L(b[:, FOTLED_F], fz))
     else:
         for fz in FASER:                                             # METOD M14
             m[f"sidbojning_{fz}"] = -vinkel_fran_lod(L(P, fz), L(C, fz))
@@ -195,6 +213,26 @@ def mat(s: Sving) -> dict:
         if pos["P5"] is not None:
             m["backen_resa_p5"] = (F.vid(t, P, pos["P5"])[0] - L(P, "topp")[0]) * cm
         m["huvud_backen_finish"] = (L(N, "finish")[0] - L(P, "finish")[0]) * cm
+        for fz in EFTER:                                             # METOD M34
+            m[f"framre_kna_sway_{fz}"] = flytt(b[:, KNA_F], 0, fz)
+            m[f"bakre_kna_sway_{fz}"] = flytt(b[:, KNA_B], 0, fz)
+        # Farterna i nedsvingen, från toppen till träffen. METOD M35, METOD M37
+        nedsving = FA.rutnat(f.topp, f.traff)
+        hf = FA.maxpunkt(nedsving, FA.fart(t, G_raa, nedsving) * cm)
+        if hf is not None:
+            m["handfart_max"] = hf[0]
+            m["handfart_max_fore_traff_ms"] = (f.traff - hf[1]) * 1000.0
+        af = FA.maxpunkt(nedsving, FA.vinkelfart(t, s.xy[:, AXEL_F], s.xy[:, HANDLED_F], nedsving))
+        if af is not None:
+            m["framre_arm_vinkelfart_max"] = af[0]
+
+    for fz in EFTER:                                                 # METOD M31, METOD M32
+        m[f"brost_lyft_{fz}"] = flytt(C, 1, fz, -1.0)
+        m[f"hand_lyft_{fz}"] = flytt(G, 1, fz, -1.0)
+    efter = FA.rutnat(f.traff + FA.STEG_S, f.traff + F.FINISH[0])  # METOD M36
+    tf = FA.finish_tid(efter, FA.fart(t, G_raa, efter))
+    if tf is not None:
+        m["genomsving_s"] = tf - f.traff
 
     if f.start is not None:                                          # METOD M5
         bak, ned = f.topp - f.start, f.traff - f.topp

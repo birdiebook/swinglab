@@ -8,14 +8,21 @@ public enum Avrundning {
     /// Måttets enhet som PC:n skriver den: "cm", "°", "s" eller "".
     public static func enhet(_ matt: String) -> String {
         if matt == "tempo" || matt == "stans_bredd" { return "" }
+        if matt.hasSuffix("_ms") { return "ms" }
         if matt.hasSuffix("_s") { return "s" }
+        if matt.contains("vinkelfart") { return "°/s" }
+        if matt.contains("fart") { return "cm/s" }
+        if matt.contains("_sway") { return "cm" }       // knänas sway är cm, inte knäets böjning
         if ["bojning", "lutning", "kna", "armbage"].contains(where: { matt.contains($0) }) { return "°" }
         return "cm"
     }
 
-    /// Decimalerna för en enhet: två för kvoter och sekunder, annars en.
+    /// Decimalerna för en enhet: två för kvoter och sekunder, inga för farter och ms
+    /// (METOD M35–M37), annars en.
     public static func decimaler(enhet: String) -> Int {
-        enhet == "" || enhet == "s" ? 2 : 1
+        if enhet == "" || enhet == "s" { return 2 }
+        if enhet == "ms" || enhet == "cm/s" || enhet == "°/s" { return 0 }
+        return 1
     }
 
     public static func decimaler(_ matt: String) -> Int {

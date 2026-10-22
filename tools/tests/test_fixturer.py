@@ -64,6 +64,8 @@ class Fixturerna(unittest.TestCase):
         vanster = json.loads(self.f["svingar"]["fo_vanster"][1])["matt"]
         self.assertNotIn("framre_armbage_topp", vanster)          # den egna handleden är dold
         self.assertIn("hander_fore_adress_traff", vanster)         # men greppregeln ger händerna
+        self.assertIn("handfart_max", vanster)                     # handens fart ur greppet (METOD M35)
+        self.assertNotIn("framre_arm_vinkelfart_max", vanster)     # armens kräver den egna (METOD M37)
         luckor = json.loads(self.f["svingar"]["fo_luckor"][1])["matt"]
         self.assertNotIn("backen_sway_topp", luckor)               # rå lucka 0,146 s
         self.assertIn("huvud_sway_topp", luckor)                   # rå lucka 0,067 s

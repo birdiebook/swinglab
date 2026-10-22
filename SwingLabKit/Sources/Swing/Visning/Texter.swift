@@ -28,6 +28,17 @@ public enum Texter {
 
     /// Måttens korta namn i vyn, per mått i katalogen.
     public static let mattnamn: [String: String] = [
+        // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37).
+        "backen_bojning_adress": "Pelvis bend", "backen_bojning_topp": "Pelvis bend", "backen_bojning_traff": "Pelvis bend",
+        "framre_kna_adress": "Lead knee", "framre_kna_topp": "Lead knee", "framre_kna_traff": "Lead knee",
+        "brost_lyft_topp": "Chest lift", "brost_lyft_traff": "Chest lift", "brost_lyft_finish": "Chest lift",
+        "hand_lyft_topp": "Hand lift", "hand_lyft_traff": "Hand lift", "hand_lyft_finish": "Hand lift",
+        "framre_kna_sway_topp": "Lead knee sway", "framre_kna_sway_traff": "Lead knee sway", "framre_kna_sway_finish": "Lead knee sway",
+        "bakre_kna_sway_topp": "Trail knee sway", "bakre_kna_sway_traff": "Trail knee sway", "bakre_kna_sway_finish": "Trail knee sway",
+        "genomsving_s": "Follow-through",
+        "handfart_max": "Hand speed",
+        "handfart_max_fore_traff_ms": "Hand speed peak",
+        "framre_arm_vinkelfart_max": "Lead arm speed",
         "backen_sway_topp": "Sway",
         "backen_resa_framat": "Hip shift",
         "backen_thrust_traff": "Thrust",
@@ -63,6 +74,8 @@ public enum Texter {
     public static let topToImpact = "top–impact"
     public static let addressToImpact = "address–impact"
     public static let startTopImpact = "start–top–impact"
+    public static let impactToFinish = "impact–finish"
+    public static let beforeImpact = "before impact"
 
     /// Tempots vy: det kommer ur ljudet (klicket), inte ur en kamera.
     public static let ljud = "Audio"
