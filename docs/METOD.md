@@ -347,10 +347,11 @@ värden i `CaptureTests`.
 ## MS3 — Ljusprovet och rutornas tider
 
 - **Rutnätet** = 1 / medel av de korta stegen, avrundat till heltal, där de
-  korta är de positiva stegen upp till **1,5 ×** 5:e percentilen (linjär
-  interpolation). Medlet tål en grov tidsskala: en film i standardskalan 600
+  korta är de positiva stegen upp till **1,75 ×** 5:e percentilen (linjär
+  interpolation), mellan avrundningens 3/2 och en tappad rutas 2. Medlet tål en grov tidsskala: en film i standardskalan 600
   har 1/240 s som steg om 2 och 3 enheter, och percentilen ensam gav 300 bilder/s
-  i simulatorprovet (S2c); det tål också skakning i tiderna. De kortaste stegen,
+  i simulatorprovet (S2c: stegen var 2, 3 och 5 enheter); det tål också
+  skakning i tiderna. De kortaste stegen,
   inte medianen: oktobers klipp låg på 240-rutnätet med drygt en tredjedel av
   rutorna borta (**mätt**, Golf SG; research 2 §2). Andelen tappade =
   `1 − antal / ((sista − första) · rutnät + 1)`. **Slowmotion** = rutnät ≥
