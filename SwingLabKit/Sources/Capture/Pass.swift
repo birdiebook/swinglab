@@ -172,11 +172,15 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
     public var pressure: Pressure?
     /// Bilder: `mediaSubtypes` innehöll `.videoHighFrameRate`.
     public var markedSlowMotion: Bool?
+    /// Fönstret och utsnittet ur redigeraren (S2i, `Edit.swift`); nil = aldrig redigerad:
+    /// hela filen och hela bilden. Ett pass.json från före S2i saknar fältet. METOD MS13
+    public var edit: SeriesEdit?
 
     public init(nr: Int, source: SeriesSource, club: String, file: String, start: Date, startHost: Double?,
                 duration: Double, bytes: Int64, timing: FrameTiming, clicks: [Click], orientation: UInt32,
                 uprightWidth: Int, uprightHeight: Int, audio: AudioInfo? = nil, format: CameraFormat? = nil,
-                exposure: ExposureRecord? = nil, pressure: Pressure? = nil, markedSlowMotion: Bool? = nil) {
+                exposure: ExposureRecord? = nil, pressure: Pressure? = nil, markedSlowMotion: Bool? = nil,
+                edit: SeriesEdit? = nil) {
         self.nr = nr
         self.source = source
         self.club = club
@@ -195,6 +199,7 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
         self.exposure = exposure
         self.pressure = pressure
         self.markedSlowMotion = markedSlowMotion
+        self.edit = edit
     }
 
     /// Serien ur det som lästs ur filen. METOD MS3, MS7

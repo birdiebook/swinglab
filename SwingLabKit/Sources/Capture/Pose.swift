@@ -140,7 +140,9 @@ public enum PosePicker {
     /// vars höfters mitt ligger närmast. Utan (första rutan): bland dem som är minst
     /// hälften så höga som den högsta (H, fotledernas mitt − näsan; en kandidat utan H
     /// räknas inte som hög), den vars höfter ligger närmast bildens mitt i x. METOD MS8
-    public static func pick(_ candidates: [PoseFrame], previousHipMid: (x: Double, y: Double)?, width: Int) -> Int? {
+    /// `centerX` ersätter bildens mitt i första rutan (utsnittets mitt, METOD MS13).
+    public static func pick(_ candidates: [PoseFrame], previousHipMid: (x: Double, y: Double)?, width: Int,
+                            centerX: Double? = nil) -> Int? {
         let med = candidates.indices.compactMap { i -> (Int, (x: Double, y: Double))? in
             guard candidates[i].confidence >= PoseRules.observationConfidence else { return nil }
             return candidates[i].hipMid.map { (i, $0) }
@@ -155,7 +157,7 @@ public enum PosePicker {
         }
         let hojd = med.map { candidates[$0.0].bodyHeight ?? 0 }
         let hogst = hojd.max() ?? 0
-        let mitt = Double(width) / 2
+        let mitt = centerX ?? Double(width) / 2
         var bast: (i: Int, d: Double)?
         for (k, (i, h)) in med.enumerated() where hogst <= 0 || hojd[k] >= tallFraction * hogst {
             let d = abs(h.x - mitt)

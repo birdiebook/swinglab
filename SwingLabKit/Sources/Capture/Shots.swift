@@ -173,7 +173,8 @@ public struct VisionStats: Codable, Equatable, Sendable {
 // MARK: - Vision-steget som värden
 
 /// Vad ett Vision-pass ska läsa: fönstret i filen (s, filens tidslinje), var k:te ruta,
-/// och orienteringen så att lederna hamnar i den upprätta bilden (METOD MS7).
+/// orienteringen så att lederna hamnar i den upprätta bilden (METOD MS7), och utsnittet
+/// som Vision letar i (nil = hela bilden, METOD MS13).
 public struct PoseScanRequest: Equatable, Sendable {
     public var file: URL
     public var from: Double
@@ -182,8 +183,10 @@ public struct PoseScanRequest: Equatable, Sendable {
     public var exif: UInt32
     public var uprightWidth: Int
     public var uprightHeight: Int
+    public var crop: CropRect?
 
-    public init(file: URL, from: Double, to: Double, stride: Int, exif: UInt32, uprightWidth: Int, uprightHeight: Int) {
+    public init(file: URL, from: Double, to: Double, stride: Int, exif: UInt32, uprightWidth: Int, uprightHeight: Int,
+                crop: CropRect? = nil) {
         self.file = file
         self.from = from
         self.to = to
@@ -191,6 +194,7 @@ public struct PoseScanRequest: Equatable, Sendable {
         self.exif = exif
         self.uprightWidth = uprightWidth
         self.uprightHeight = uprightHeight
+        self.crop = crop
     }
 }
 
@@ -253,12 +257,16 @@ extension PoseFrame {
 /// följd från ruta till ruta, med t relativt klicket. En ruta där ingen säker person
 /// finns behålls med saknade leder, så att tiden och andelen hela rutor (MS5) syns.
 public enum PoseTrack {
-    public static func series(_ scanned: [ScannedFrame], click: Double, width: Int, height: Int) -> JointSeries {
+    /// Med ett utsnitt väljs personen i första rutan kring utsnittets mitt i x, inte
+    /// bildens (spelaren står där Johannes lade rutan). METOD MS8, MS13
+    public static func series(_ scanned: [ScannedFrame], click: Double, width: Int, height: Int,
+                              crop: CropRect? = nil) -> JointSeries {
         var previous: (x: Double, y: Double)?
         var frames: [PoseFrame] = []
+        let mitt = crop.map { $0.midX * Double(width) }
         for s in scanned.sorted(by: { $0.pts < $1.pts }) {
             let t = s.pts - click
-            if let i = PosePicker.pick(s.candidates, previousHipMid: previous, width: width) {
+            if let i = PosePicker.pick(s.candidates, previousHipMid: previous, width: width, centerX: mitt) {
                 let c = s.candidates[i]
                 frames.append(PoseFrame(t: t, pts: s.pts, joints: c.joints, confidence: c.confidence))
                 if let h = c.hipMid { previous = h }
@@ -324,7 +332,8 @@ public enum ShotPlan {
         var kvar: [ShotRecord] = []
         var nya: [(series: Int, click: Click)] = []
         for s in pass.series.sorted(by: { $0.nr < $1.nr }) {
-            for c in s.clicks.sorted(by: { $0.time < $1.time }) {
+            // Bara klicken inom seriens fönster blir slag (S2i). METOD MS13
+            for c in s.countedClicks.sorted(by: { $0.time < $1.time }) {
                 if let old = pass.shots.first(where: { $0.series == s.nr && abs($0.click.time - c.time) <= sameClick }) {
                     kvar.append(old)
                 } else {
@@ -377,7 +386,16 @@ public enum ShotPlan {
         return a < b ? a...b : nil
     }
 
-    /// Vision-passet för ett steg: fönstret, steget mellan rutorna och orienteringen.
+    /// Fönstret kring klicket inom filen och inom seriens fönster ur redigeraren: det som
+    /// trimmats bort finns inte för analysen eller klippet. nil när inget är kvar. METOD MS13
+    public static func window(_ w: ClosedRange<Double>, click: Double, series s: SeriesRecord) -> ClosedRange<Double>? {
+        guard let f = window(w, click: click, duration: s.duration) else { return nil }
+        guard let e = s.edit else { return f }
+        let a = max(f.lowerBound, e.window.start), b = min(f.upperBound, e.window.end)
+        return a < b ? a...b : nil
+    }
+
+    /// Vision-passet för ett steg: fönstret, steget mellan rutorna, orienteringen och utsnittet.
     public static func request(_ step: AnalysisStep, pass: PassState, file: URL) -> PoseScanRequest? {
         guard pass.shots.indices.contains(step.shot) else { return nil }
         let shot = pass.shots[step.shot]
@@ -394,9 +412,9 @@ public enum ShotPlan {
         case .clip:
             return nil
         }
-        guard let f = window(w, click: shot.click.time, duration: s.duration) else { return nil }
+        guard let f = window(w, click: shot.click.time, series: s) else { return nil }
         return PoseScanRequest(file: file, from: f.lowerBound, to: f.upperBound, stride: stride, exif: s.orientation,
-                               uprightWidth: s.uprightWidth, uprightHeight: s.uprightHeight)
+                               uprightWidth: s.uprightWidth, uprightHeight: s.uprightHeight, crop: s.activeCrop)
     }
 }
 
