@@ -1,0 +1,22 @@
+5c5ad25aa022aca97c04f0b42b03394df28d40f9 s2e 2026-10-22T15:13:23Z run 39802559040
+== swift-release
+RÖTT: 121 test, 2 fel, 4 s i testerna, bygget 24 s
+  fel: SlagTests.testListansRaderOchOrienteringen
+  fel: SlagTests.testVisionsPunkterBlirPixlarIDenUppratteBilden
+Långsammast (av 121):
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  VisningTests.testVillkorenOchFormen
+      0.1 s  KlickTests.testEnImpulsGerAnsatsen47ProvFore
+      0.1 s  InspelningTests.testLjusprovetsKort
+      0.1 s  SessionTests.testPercentilenOchMedianen
+      0.1 s  LederTests.testNamnenArFormatets
+      0.1 s  KlickTests.testKortSignalGerInget
+      0.1 s  InspelningTests.testSerienUrFilen
+      0.1 s  InspelningTests.testRutnatetTalGrovTidsskala
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
+
