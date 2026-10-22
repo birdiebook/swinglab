@@ -30,15 +30,26 @@ struct IdagVy: View {
         .fixedSize()
     }
 
+    private var rubrik: some View {
+        Text("Today")
+            .tracking(-0.6)
+            .typsnitt(30, .semibold)
+            .foregroundStyle(Theme.text)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Today")
-                    .tracking(-0.6)
-                    .typsnitt(30, .semibold)
-                    .foregroundStyle(Theme.text)
-                Spacer()
-                Under(text: visning.dag)
+            // Rubriken och dagen bredvid varandra, eller under varandra med stor text.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    rubrik.fixedSize()
+                    Spacer()
+                    Under(text: visning.dag).fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    rubrik
+                    Under(text: visning.dag)
+                }
             }
             .padding(.top, 8)
             .padding(.bottom, 18)
@@ -57,8 +68,9 @@ struct IdagVy: View {
                                     HStack(spacing: 12) {
                                         namn(r).frame(maxWidth: .infinity, alignment: .leading)
                                         SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
-                                            .frame(width: 92)
+                                            .frame(minWidth: 40, idealWidth: 92, maxWidth: 92)
                                         tal(r).frame(minWidth: 66, alignment: .trailing)
+                                            .layoutPriority(1)
                                     }
                                     VStack(alignment: .leading, spacing: 6) {
                                         namn(r)

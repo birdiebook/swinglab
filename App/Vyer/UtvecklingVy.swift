@@ -12,15 +12,26 @@ struct UtvecklingVy: View {
         _valt = State(initialValue: valt ?? visning.matt.first?.id ?? "")
     }
 
+    private var rubrik: some View {
+        Text("Progress")
+            .tracking(-0.6)
+            .typsnitt(30, .semibold)
+            .foregroundStyle(Theme.text)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Progress")
-                    .tracking(-0.6)
-                    .typsnitt(30, .semibold)
-                    .foregroundStyle(Theme.text)
-                Spacer()
-                Under(text: visning.period)
+            // Rubriken och perioden bredvid varandra, eller under varandra med stor text.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    rubrik.fixedSize()
+                    Spacer()
+                    Under(text: visning.period).fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    rubrik
+                    Under(text: visning.period)
+                }
             }
             .padding(.top, 8)
             .padding(.bottom, 18)

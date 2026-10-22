@@ -57,6 +57,18 @@ struct SakVy: View {
         .fixedSize()
     }
 
+    private func stegstreck(_ lage: AttJobbaPaVisning.Steglage) -> some View {
+        Rectangle()
+            .fill(lage == .klart ? Theme.secondary : lage == .nu ? Theme.text : Theme.line)
+            .clipShape(.rect(cornerRadius: 2))
+    }
+
+    private func stegnamn(_ s: (namn: String, lage: AttJobbaPaVisning.Steglage)) -> some View {
+        Text(s.namn)
+            .typsnitt(12)
+            .foregroundStyle(s.lage == .nu ? Theme.text : Theme.tertiary)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
@@ -109,19 +121,25 @@ struct SakVy: View {
                     .typsnitt(17, .medium)
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(alignment: .top, spacing: 4) {
-                    ForEach(Array(sak.steg.enumerated()), id: \.offset) { _, s in
-                        VStack(alignment: .leading, spacing: 7) {
-                            Rectangle()
-                                .fill(s.lage == .klart ? Theme.secondary : s.lage == .nu ? Theme.text : Theme.line)
-                                .frame(height: 3)
-                                .clipShape(.rect(cornerRadius: 2))
-                            Text(s.namn)
-                                .typsnitt(12)
-                                .foregroundStyle(s.lage == .nu ? Theme.text : Theme.tertiary)
-                                .fixedSize(horizontal: false, vertical: true)
+                // Stegen bredvid varandra; med stor text under varandra, så att inget
+                // namn bryts mitt i ordet.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 4) {
+                        ForEach(Array(sak.steg.enumerated()), id: \.offset) { _, s in
+                            VStack(alignment: .leading, spacing: 7) {
+                                stegstreck(s.lage).frame(height: 3)
+                                stegnamn(s).lineLimit(1).fixedSize()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(sak.steg.enumerated()), id: \.offset) { _, s in
+                            HStack(spacing: 10) {
+                                stegstreck(s.lage).frame(width: 24, height: 3)
+                                stegnamn(s).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
                 }
                 .padding(.top, 14)

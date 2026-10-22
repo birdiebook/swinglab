@@ -30,31 +30,103 @@ struct GranskningVy: View {
     private var g: Granskningsvisning { vy == .fo ? fo : dtl }
     private var nu: Double { tid ?? g.yta.faser.topp }
 
+    private var segment: some View {
+        Segment(alternativ: ["DTL", "FO"], valt: Binding(
+            get: { vy == .dtl ? 0 : 1 },
+            set: { ny in
+                vy = ny == 0 ? .dtl : .fo
+                tid = nil
+            }))
+        .fixedSize()
+    }
+
+    private var tillbakaKnapp: some View {
+        Button(action: tillbaka) {
+            Image(systemName: "chevron.left")
+                .typsnitt(17, .medium)
+                .foregroundStyle(Theme.secondary)
+                .frame(width: 40, height: 40)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var passetKnapp: some View {
+        Button("Session", action: passet)
+            .typsnitt(15, .semibold)
+            .foregroundStyle(Theme.text)
+            .buttonStyle(.plain)
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private func fas(_ f: (fas: Fas, t: Double)) -> some View {
+        let vald = abs(f.t - nu) < 0.12
+        return Button {
+            tid = f.t
+        } label: {
+            Text(Self.fasnamn(f.fas))
+                .typsnitt(13.5, .medium)
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(vald ? Theme.text : Theme.tertiary)
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(vald ? Theme.text : Color.clear).frame(height: 2)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Slagen: medianen först, så många som får plats (raden rullar i appen).
+    private func slagrad(_ antal: Int) -> some View {
+        HStack(spacing: 6) {
+            ForEach(Array(g.slag.prefix(antal).enumerated()), id: \.offset) { _, s in
+                let vald = s.nr == slag
+                Button {
+                    slag = s.nr
+                } label: {
+                    VStack(spacing: 2) {
+                        Text(verbatim: s.nr.map { "\($0)" } ?? String(localized: "median"))
+                            .typsnitt(11, .semibold)
+                            .foregroundStyle(Theme.tertiary)
+                        Text(s.text)
+                            .typsnitt(14, .medium, siffror: true)
+                            .foregroundStyle(Theme.text)
+                    }
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 8)
+                    .frame(minWidth: 52, minHeight: 52)
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(vald ? Theme.text : Theme.line, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ZStack {
-                Segment(alternativ: ["DTL", "FO"], valt: Binding(
-                    get: { vy == .dtl ? 0 : 1 },
-                    set: { ny in
-                        vy = ny == 0 ? .dtl : .fo
-                        tid = nil
-                    }))
-                HStack {
-                    Button(action: tillbaka) {
-                        Image(systemName: "chevron.left")
-                            .typsnitt(17, .medium)
-                            .foregroundStyle(Theme.secondary)
-                            .frame(width: 40, height: 40)
+            // Segmentet mitt i raden när det får plats, annars under knapparna (stor text).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    tillbakaKnapp.frame(minWidth: 60, alignment: .leading)
+                    Spacer(minLength: 0)
+                    segment
+                    Spacer(minLength: 0)
+                    passetKnapp.frame(minWidth: 60, alignment: .trailing)
+                }
+                .frame(minHeight: 44)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        tillbakaKnapp
+                        Spacer()
+                        passetKnapp
                     }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Button("Session", action: passet)
-                        .typsnitt(15, .semibold)
-                        .foregroundStyle(Theme.text)
-                        .buttonStyle(.plain)
+                    .frame(minHeight: 44)
+                    segment
                 }
             }
-            .frame(minHeight: 44)
             .padding(.bottom, 8)
 
             ZStack(alignment: .topLeading) {
@@ -98,22 +170,19 @@ struct GranskningVy: View {
                     }
                 }
 
-            HStack(spacing: 0) {
-                ForEach(g.yta.fastider.indices, id: \.self) { i in
-                    let f = g.yta.fastider[i]
-                    let vald = abs(f.t - nu) < 0.12
-                    Button {
-                        tid = f.t
-                    } label: {
-                        Text(Self.fasnamn(f.fas))
-                            .typsnitt(13.5, .medium)
-                            .foregroundStyle(vald ? Theme.text : Theme.tertiary)
-                            .frame(maxWidth: .infinity, minHeight: 40)
-                            .overlay(alignment: .bottom) {
-                                Rectangle().fill(vald ? Theme.text : Color.clear).frame(height: 2)
+            // Positionerna på en rad; med stor text två och två, aldrig avbrutna mitt i ordet.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 0) {
+                    ForEach(g.yta.fastider.indices, id: \.self) { i in fas(g.yta.fastider[i]) }
+                }
+                Grid(horizontalSpacing: 0, verticalSpacing: 0) {
+                    ForEach([0, 2], id: \.self) { r in
+                        GridRow {
+                            ForEach(g.yta.fastider.indices.filter { $0 / 2 == r / 2 }, id: \.self) { i in
+                                fas(g.yta.fastider[i])
                             }
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
@@ -140,26 +209,11 @@ struct GranskningVy: View {
             .padding(.bottom, 10)
 
             // Slagen: medianen först. Raden rullar i appen; här visas de som får plats.
-            HStack(spacing: 6) {
-                ForEach(Array(g.slag.prefix(6).enumerated()), id: \.offset) { _, s in
-                    let vald = s.nr == slag
-                    Button {
-                        slag = s.nr
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text(verbatim: s.nr.map { "\($0)" } ?? String(localized: "median"))
-                                .typsnitt(11, .semibold)
-                                .foregroundStyle(Theme.tertiary)
-                            Text(s.text)
-                                .typsnitt(14, .medium, siffror: true)
-                                .foregroundStyle(Theme.text)
-                        }
-                        .padding(.horizontal, 8)
-                        .frame(minWidth: 52, minHeight: 52)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(vald ? Theme.text : Theme.line, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
+            ViewThatFits(in: .horizontal) {
+                slagrad(6)
+                slagrad(4)
+                slagrad(3)
+                slagrad(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
