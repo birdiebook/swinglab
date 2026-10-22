@@ -637,11 +637,16 @@ värden i `CaptureTests`.
 - **Vad som provas var.** Linux (`SlagTests`): ordningen, återupptagningen,
   fönstren, personvalet och domen genom en serie, klippets kontroll,
   avrundningen, linjerna vid träffen och listans rader. Simulatorn
-  (`SwingLabProvSlag`): appens egen kedja på en påhittad film — Vision körs på
-  riktigt men hittar ingen i en genererad bild, och med påhittade leder i
-  Visions ställe (`PoseSource`) prövas domen, lederna på disk, klippen och
-  passet. **Visions leder själva provas bara på telefonen** (T2, och oktobers
-  41 slag i S2h).
+  (`SwingLabProvSlag`): `VNDetectHumanBodyPoseRequest` går **inte att starta i
+  simulatorn** ("Unable to setup request", Vision kod 9, även med CPU vald;
+  **mätt** 2026-10-22, Xcode 26.6, iOS 26.5-simulatorn). Provet prövar därför
+  läsningen kring anropet (varje ruta i fönstret, egen tid, orientering 6), att
+  Visions fel stoppar analysen synligt utan att någon dom sparas, och, med
+  påhittade leder i Visions ställe (`PoseSource`, `DemoLeder`), domen, lederna
+  på disk, klippen, passet och återupptagningen. Passthrough-klippet [0,5; 2,0]
+  s gav klicket 0,44 ms före det väntade, på den vita rutan (**mätt**,
+  påhittad film). **Visions leder själva provas bara på telefonen** (T2, och
+  oktobers 41 slag i S2h).
 
 ---
 
