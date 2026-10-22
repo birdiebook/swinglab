@@ -195,7 +195,8 @@ struct Matytan: View {
                 c.linje(CGPoint(x: 0, y: gy), CGPoint(x: s.width, y: gy), Theme.hair)
                 gy += rut
             }
-            c.linje(CGPoint(x: o.x, y: 40), CGPoint(x: o.x, y: s.height), Theme.secondary, 1, streckad: [4, 4])
+            // Under avläsningen i hörnet, så att linjen inte går genom talet.
+            c.linje(CGPoint(x: o.x, y: 84), CGPoint(x: o.x, y: s.height), Theme.secondary, 1, streckad: [4, 4])
 
             guard let l = yta.lage(t) else { return }
             if let f = forra, let fl = f.lage(t) {

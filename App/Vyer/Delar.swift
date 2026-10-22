@@ -45,7 +45,8 @@ struct StortTal: View {
     var avstangt = false
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
+        // Gradtecknet sitter vid talet; andra enheter står en bit ifrån.
+        HStack(alignment: .firstTextBaseline, spacing: enhet == "°" ? 1 : 5) {
             Text(varde)
                 .font(Theme.number(storlek))
                 .tracking(-storlek * 0.02)
