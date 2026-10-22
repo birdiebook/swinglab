@@ -85,8 +85,8 @@ struct VisionPoseSource: PoseSource {
         let r = VNDetectHumanBodyPoseRequest()
         r.revision = VNDetectHumanBodyPoseRequestRevision1
         #if targetEnvironment(simulator)
-        let enheter = try r.supportedComputeStageDevices()[.main] ?? []
-        if let cpu = enheter.first(where: { $0 is MLCPUComputeDevice }) {
+        let enheter = try r.supportedComputeStageDevices[VNComputeStage.main] ?? []
+        if let cpu = enheter.first(where: { if case .cpu = $0 { return true } else { return false } }) {
             r.setComputeDevice(cpu, for: .main)
         } else {
             r.usesCPUOnly = true
