@@ -1,0 +1,75 @@
+# Kör paketens tester på Linux. Ingen Mac och ingen telefon behövs — det är
+# därför logiken bor i SwingLabKit och appen är ett tunt skal.
+name: tester
+
+on:
+  push:
+    paths: ["SwingLabKit/**", "App/**", "tools/**", "docs/**", "project.yml", ".github/workflows/test.yml"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  swift-test:
+    # Release med -enable-testing (så att @testable fungerar), som i Idunn där det mättes
+    # 44 s mot 395 s i debug för samma tester (arbetssättet, Testerna).
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    strategy:
+      matrix:
+        conf: [release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test (${{ matrix.conf }})
+        shell: bash
+        run: |
+          set -o pipefail
+          swift test --package-path SwingLabKit -c ${{ matrix.conf }} -Xswiftc -enable-testing 2>&1 | tee swift-${{ matrix.conf }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swift-${{ matrix.conf }}
+          path: swift-${{ matrix.conf }}.log
+
+  resultat:
+    # Actions går inte att läsa från en lokal session utan gh. Sammanfattningen läggs därför på grenen
+    # ci-resultat: git fetch origin ci-resultat && git show origin/ci-resultat:resultat/<sha>.txt
+    needs: swift-test
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: loggar
+          merge-multiple: true
+      - name: Lägg sammanfattningen på ci-resultat
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "${GITHUB_SHA} ${GITHUB_REF_NAME} $(date -u +%FT%TZ) run ${GITHUB_RUN_ID}"
+            python3 tools/arbetssatt/ci_sammanfattning.py loggar/*.log || true
+          } > /tmp/resultat.txt
+          cat /tmp/resultat.txt
+          git config user.name "swinglab-ci"
+          git config user.email "swinglab-ci@users.noreply.github.com"
+          for i in 1 2 3 4 5; do
+            rm -rf /tmp/r && mkdir /tmp/r && cd /tmp/r && git init -q
+            git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+            if git fetch -q origin ci-resultat 2>/dev/null; then git checkout -q -b ci-resultat FETCH_HEAD; else git checkout -q --orphan ci-resultat; fi
+            mkdir -p resultat && cp /tmp/resultat.txt "resultat/${GITHUB_SHA}.txt" && cp /tmp/resultat.txt senaste.txt
+            git add -A && git -c user.name=swinglab-ci -c user.email=swinglab-ci@users.noreply.github.com commit -qm "resultat ${GITHUB_SHA}"
+            git push -q origin ci-resultat && break
+            sleep $((i * 3))
+          done
+
+  metod-och-beslut:
+    # Varje METOD Mn / BESLUT Bn i koden måste finnas i docs/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/kolla_metod.py
+      - run: python3 -m pip install --quiet numpy
+      - run: python3 -m unittest discover -s tools/tests -v

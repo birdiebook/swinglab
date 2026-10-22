@@ -1,0 +1,32 @@
+# --- Videor och mätningar: får ALDRIG följa med till GitHub (CLAUDE.md, Dataregeln) ---
+*.mov
+*.mp4
+*.m4v
+*.json.gz
+*.zip
+*.csv
+data/
+export/
+privat/
+
+# --- Bygget ---
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+App/Info.plist
+DerivedData/
+build/
+*.ipa
+
+# --- Hemligheter ---
+.env
+*.pem
+*.p12
+*.p8
+*.mobileprovision
+
+# --- System ---
+.DS_Store
+Thumbs.db
+__pycache__/
