@@ -1,21 +1,20 @@
-dea6f664fb37fbfaf867e49737e2dee306bbd201 s2b 2026-10-22T11:45:09Z run 39772815307
+4e6ae1cbd404c60a23de6f6d76a6d8a947ef70d8 s2b 2026-10-22T11:46:29Z run 39772988859
 == swift-release
-RÖTT: 63 test, 3 fel, 1 s i testerna, bygget 18 s
-  fel: TvaTelefonerTests.testPriorUtanforFonstretParadeInget
+GRÖNT: 63 test, 0 fel, 1 s i testerna, bygget 9 s
 Långsammast (av 63):
-      0.5 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.5 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.1 s  VardenaTests.testExponeringenDomarna
+      0.4 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.1 s  LederTests.testStillaHanderArInteEttSlag
+      0.1 s  LederTests.testOrienteringenMisstankt
+      0.1 s  LederTests.testEnSvingArEttSlag
+      0.1 s  KatalogTests.testBaslinjen
+      0.1 s  FormatTests.testRutornaSorterasPaTiden
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
-      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
       0.0 s  KlickTests.testTvaKlickNaraBlirEtt
       0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
       0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
       0.0 s  MattTests.testVansterspelarenRaknasSomHoger
-      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
-      0.0 s  SessionTests.testSammanfattningenSomPython
-      0.0 s  SessionTests.testJamforelsenSomPython
-      0.0 s  LederTests.testSerienKodasTillJSON
-      0.0 s  KatalogTests.testKontrollernaSomPython
 
