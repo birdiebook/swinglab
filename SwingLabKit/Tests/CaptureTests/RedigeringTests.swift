@@ -43,8 +43,12 @@ final class RedigeringTests: XCTestCase {
     }
 
     func testFonstretKlamptKringMittenOchHelaFilenNarDenArKort() {
-        XCTAssertEqual(TimeWindow(start: 4.0, end: 4.2).clamped(duration: 9), TimeWindow(start: 3.6, end: 4.6))
-        XCTAssertEqual(TimeWindow(start: 8.9, end: 9.5).clamped(duration: 9), TimeWindow(start: 8.0, end: 9.0))
+        func lika(_ w: TimeWindow, _ a: Double, _ b: Double, line: UInt = #line) {
+            XCTAssertEqual(w.start, a, accuracy: 1e-12, line: line)
+            XCTAssertEqual(w.end, b, accuracy: 1e-12, line: line)
+        }
+        lika(TimeWindow(start: 4.0, end: 4.2).clamped(duration: 9), 3.6, 4.6)
+        lika(TimeWindow(start: 8.9, end: 9.5).clamped(duration: 9), 8.0, 9.0)
         XCTAssertEqual(TimeWindow(start: 6, end: 2).clamped(duration: 9), TimeWindow(start: 2, end: 6))
         XCTAssertEqual(TimeWindow(start: 0.2, end: 0.4).clamped(duration: 0.8), TimeWindow.full(0.8))
         XCTAssertEqual(TimeWindow(start: .nan, end: 3).clamped(duration: 9), TimeWindow.full(9))
