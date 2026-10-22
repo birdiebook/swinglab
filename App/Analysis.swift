@@ -94,9 +94,10 @@ final class Analysis {
         switch step {
         case .sparse, .dense:
             guard let request = ShotPlan.request(step, pass: pass, file: file) else { throw AnalysisError.outsideFile }
-            let scan = try await Task.detached(priority: .userInitiated) { [weak self] in
+            let vy = self
+            let scan = try await Task.detached(priority: .userInitiated) {
                 try await source.scan(request) { f in
-                    Task { @MainActor in self?.stepFraction = f }
+                    Task { @MainActor in vy.stepFraction = f }
                 }
             }.value
             let series = PoseTrack.series(scan.frames, click: shot.click.time, width: serie.uprightWidth,

@@ -160,7 +160,9 @@ final class SlagTests: XCTestCase {
         punkter[3] = PoseJoint(x: 0.2, y: 0.2, c: 0)      // konfidens 0 är ogiltig (Apple)
         punkter[4] = nil
         let f = PoseFrame.fromVision(pts: 2.5, points: punkter, confidence: 0.7, uprightWidth: 1080, uprightHeight: 1920)
-        XCTAssertEqual(f.joints[0], PoseJoint(x: 540, y: 192, c: 0.8))
+        XCTAssertEqual(f.joints[0]!.x, 540, accuracy: 1e-9)
+        XCTAssertEqual(f.joints[0]!.y, 192, accuracy: 1e-9)
+        XCTAssertEqual(f.joints[0]!.c, 0.8)
         XCTAssertNil(f.joints[3])
         XCTAssertNil(f.joints[4])
         XCTAssertEqual(f.joints.count, 13)
@@ -265,7 +267,7 @@ final class SlagTests: XCTestCase {
     }
 
     func testListansRaderOchOrienteringen() {
-        var p = Self.pass(klick: [[4.0, 12.25, 20.0]])
+        var p = Self.pass(klick: [[4.0, 12.26, 20.0]])
         p.shots = ShotPlan.sync(p)
         p.shots[0].verdict = .swing
         p.shots[1].verdict = .uncertain

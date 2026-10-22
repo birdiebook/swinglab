@@ -122,6 +122,12 @@ final class SwingLabProvSlag: XCTestCase {
         let antal = try await MediaReader.frameTimes(klipp).count
         let req = PoseScanRequest(file: klipp, from: 0, to: 1.5, stride: 1, exif: geo.exif,
                                   uprightWidth: upp.width, uprightHeight: upp.height)
+        do {
+            let enheter = try VNDetectHumanBodyPoseRequest().supportedComputeStageDevices()
+            print("PROV: vision enheter i simulatorn \(enheter.map { "\($0.key.rawValue): \($0.value.map { "\(type(of: $0))" })" })")
+        } catch {
+            print("PROV: vision enheter: fel \(error)")
+        }
         let scan: PoseScan
         do {
             scan = try await VisionPoseSource().scan(req) { _ in }
@@ -147,8 +153,8 @@ final class SwingLabProvSlag: XCTestCase {
 
         // Undersökningen: hittar Vision en person i en ritad siluett? Skrivs bara ut.
         let siluett = Self.siluett(bredd: 540, hojd: 960)
-        let r = VNDetectHumanBodyPoseRequest()
         do {
+            let r = try VisionPoseSource.request()
             try VNImageRequestHandler(cgImage: siluett, orientation: .up, options: [:]).perform([r])
             let obs = r.results ?? []
             print("PROV: vision i en ritad siluett: \(obs.count) personer, konfidens \(obs.map { String(format: "%.2f", $0.confidence) })")
@@ -277,6 +283,7 @@ final class SwingLabProvSlag: XCTestCase {
               + "ms/ruta \(ms), linjerna vid t = \(String(format: "%.4f", o.t))")
 
         let vy = ShotsContent(pass: p, images: bilder, overlays: linjer, analysis: AnalysisState(), editable: false)
+            .padding(.horizontal, 20)
             .frame(width: 390)
             .padding(.vertical, 20)
             .background(Theme.ground)

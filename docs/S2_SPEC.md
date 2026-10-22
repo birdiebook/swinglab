@@ -1380,6 +1380,31 @@ slag med domen och miniatyren vid träffen med skelettet ritat, mätt
 rutor från klicket), och oktobers 41 slag har domen "sving" och leder, med 0
 falska slag. Avviker domen kalibreras MS5 här, med siffrorna i METOD.
 
+**Byggt (grenen `s2e`).** SwingLabKit `Capture/Shots.swift`: `ShotRecord` (slagen i
+`PassState.shots`, id:n ges en gång), `ShotPlan` (ordningen: domen på alla, sedan
+leder och klipp slag för slag; fönstren kapade vid filen; återupptagbart ur
+`pass.json`), `PoseSource` (protokollet för Vision-steget), `PoseTrack` (personen
+genom serien med `PosePicker`, rutor utan person behålls), `ClipCheck` (klicket i
+klippet, 10 ms), `VisionStats` (`msPerFrame`), `ImpactOverlay` (linjerna vid
+träffen) och `ShotRow` (listans rader som värden). App: `PoseRunner.swift`
+(`VisionPoseSource`), `Analysis.swift` (stegen, klippen, miniatyren),
+`PassView.swift` (passen i startvyn, slagen med domen, miniatyren och "Analyze"
+med förloppet). Domen ändras med en meny på raden. METOD MS12.
+
+**Vad som provas var:**
+
+| Var | Vad |
+|---|---|
+| Linux (`CaptureTests/SlagTests`) | slagen ur klicken och id:n, ordningen och återupptagningen, Johannes ändrade dom, fönstren, personvalet och domen genom en serie med en granne i bild, rutor utan person, Visions punkter till pixlar, avrundningen, klippets kontroll, `msPerFrame`, linjerna vid träffen, listans rader, ett gammalt `pass.json` utan slag |
+| Simulatorn (`Prov/SwingLabProvSlag`) | steg 6: passthrough-klippet, klicket i klippet på den vita rutan; steg 7: `VisionPoseSource` på klippet, varje ruta genom Vision utan fel, ingen person, alla leder `null`; kedjan: `Analysis` på ett pass ur filmen med påhittade leder (`DemoLeder`) i Visions ställe: domen, `Leder/s01.json`, `Klipp/s01.mov`, passet, ett avbrott som syns och fortsätter, och listan ritad (`slag.png`, `traff.png`) |
+| Bara telefonen | Visions leder: att en person hittas, vänster och höger, orienteringen, `msPerFrame` på riktigt (T2); domen på oktobers 41 slag (S2h) |
+
+**T2 på 2 minuter:** Nytt pass (FO, 3 m) → stå i bild, lyft vänster hand och klappa
+tre gånger → stopp → Close → passet i listan → Analyze. Se: tre slag (klappen ger
+troligen "Not a swing", det är rätt), tryck på domen och välj "Swing" på ett, Analyze
+igen; miniatyren visar axel- och höftlinjen över dig, den fyllda pricken på din
+vänstra handled, och raden under rubriken visar ms/frame.
+
 ### S2f — Paketet och vägen tillbaka
 
 `ZipWriter` och manifestets typer (`PackageManifest.swift`) byggs i SwingLabKit
