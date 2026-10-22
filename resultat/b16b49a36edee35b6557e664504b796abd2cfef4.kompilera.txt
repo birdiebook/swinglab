@@ -1,26 +1,26 @@
-b16b49a36edee35b6557e664504b796abd2cfef4 s4b 2026-10-22T21:45:28Z run 39858041432 kompilera
+b16b49a36edee35b6557e664504b796abd2cfef4 main 2026-10-22T21:57:46Z run 39860006020 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 27 test, 0 fel, 75 s i testerna
+GRÖNT: 27 test, 0 fel, 77 s i testerna
 Långsammast (av 27):
-     19.9 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-     11.4 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+     35.1 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      5.3 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      4.2 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      3.4 s  SwingLabProvSlag.testSteg6Klippet
-      3.3 s  SwingLabProvInspelning.testFilmenMedLPCM
-      2.8 s  SwingLabProvInspelning.testKvittotUrFilen
-      2.7 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      2.7 s  SwingLabProvInspelning.testFilmenMedAAC
-      2.2 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
-      2.1 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      1.7 s  SwingLabProvInspelning.testLuckaILjudet
-      1.6 s  SwingLabProvInspelning.testLjusprovetsLasning
-      1.4 s  SwingLabProv.testAppenStartarMedStartvyn
+      4.6 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      2.9 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      2.8 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      2.7 s  SwingLabProvInspelning.testLuckaILjudet
+      2.5 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      2.5 s  SwingLabProvInspelning.testFilmenMedLPCM
+      2.5 s  SwingLabProvInspelning.testKvittotUrFilen
+      2.4 s  SwingLabProvInspelning.testLjusprovetsLasning
+      2.2 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      1.9 s  SwingLabProvInspelning.testFilmenMedAAC
+      1.5 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      1.3 s  SwingLabProvSlag.testSteg6Klippet
+      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -54,7 +54,7 @@ PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Len
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.050 ms, osäkerhet 0.238 ms, 30 prov
+PROV: link klocka θ 0.022 ms, osäkerhet 0.136 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: redigeraren markören: EXIF 6 → (0.815, 0.167) ljus 1.000, som EXIF 8 0.545, utan vridning 0.545
