@@ -142,22 +142,81 @@ final class VisningTests: XCTestCase {
 
     // MARK: Att jobba på
 
+    func testS5sExempelGarAttLasa() throws {
+        let a = try AttJobbaPa.las(json: AttJobbaPaFixtur.exempel)
+        XCTAssertEqual(a.pass, "20261103-180000")
+        XCTAssertEqual(Tal.datum(try XCTUnwrap(a.passDatum)), "3 nov")
+        XCTAssertEqual(a.saker.count, 1)
+        let s = a.saker[0]
+        XCTAssertEqual(s.fel, "sway_topp")
+        XCTAssertEqual(s.matt, "backen_sway_topp")
+        XCTAssertEqual(s.nu, -5.7)
+        XCTAssertEqual(s.markning, "B10")
+        XCTAssertEqual(s.ovning.tanke, "Rör inte käppen.")
+        XCTAssertEqual(s.klartNar.villkor, .minst)
+        XCTAssertEqual(s.klartNar.lo, 0)
+        XCTAssertEqual(s.klartNar.passIRad, 2)
+        XCTAssertEqual(s.foljdfel, ["reverse_spine", "backens_resa_framat", "sway_gap"])
+        XCTAssertNil(s.fysik)
+        // Saken finns i katalogen, med samma mått och övning.
+        let k = try katalog().fel.first { $0.id == s.fel }
+        XCTAssertEqual(k?.matt, s.matt)
+        XCTAssertEqual(k?.ovning, s.ovning.text)
+    }
+
+    func testVillkorenOchFormen() throws {
+        func las(_ villkor: String, _ grans: String) throws -> AttJobbaPa.KlartNar {
+            let json = AttJobbaPaFixtur.exempel.replacingOccurrences(
+                of: #""klart_nar": {"villkor": ">=", "grans": 0,"#, with: #""klart_nar": {"villkor": "\#(villkor)", "grans": \#(grans),"#)
+            return try AttJobbaPa.las(json: json).saker[0].klartNar
+        }
+        let mellan = try las("mellan", "[2.5, 3.1]")
+        XCTAssertEqual(mellan.villkor, .mellan)
+        XCTAssertEqual([mellan.lo, mellan.hi], [2.5, 3.1])
+        XCTAssertTrue(mellan.haller(2.9))
+        XCTAssertFalse(mellan.haller(3.2))
+        let hogst = try las("<=", "1.5")
+        XCTAssertTrue(hogst.haller(1.5))
+        XCTAssertFalse(hogst.haller(1.6))
+        XCTAssertThrowsError(try las("mellan", "3"))
+        XCTAssertThrowsError(try las("ungefär", "3"))
+        // Formatet, och felet nämner fältet men inte värdet.
+        let fel = AttJobbaPaFixtur.exempel.replacingOccurrences(of: "swinglab-att-jobba-pa/1", with: "annat/1")
+        XCTAssertThrowsError(try AttJobbaPa.las(json: fel)) { e in
+            XCTAssertTrue("\(e)".contains("format"))
+            XCTAssertFalse("\(e)".contains("annat"))
+        }
+        let utanTanke = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""tanke": "Rör inte käppen.","#, with: "")
+        XCTAssertThrowsError(try AttJobbaPa.las(json: utanTanke)) { e in
+            XCTAssertTrue("\(e)".contains("tanke"), "\(e)")
+        }
+    }
+
     func testAttJobbaPa() throws {
         let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog(), pass: Demo.pass)
-        XCTAssertEqual(v.tema, "Bäckenets väg")
-        XCTAssertEqual(v.block, "block 2 · v 5")
-        XCTAssertEqual(v.kedja.map { $0.namn }, ["Sway", "Resa framåt", "Böjning"])
-        XCTAssertEqual(v.kedja[0].fran, "−5,9 → −2,4")
-        XCTAssertEqual(v.kedja[1].varde, "11,3")
-        XCTAssertEqual(v.steg.map { $0.namn }, ["Långsamt", "Halv fart", "Full fart", "Ny klubba"])
-        XCTAssertEqual(v.steg[1].lage, .nu)
-        XCTAssertEqual(v.tanke, "”Rör inte käppen.”")
-        XCTAssertEqual(v.villkor, "Sway topp ≥ 0,0 cm")
-        XCTAssertEqual(v.villkorUnder, "serie 1 · 2 pass i rad")
-        XCTAssertEqual(v.serie1, "−4,0")
-        XCTAssertEqual(v.passet, "−2,4")
-        XCTAssertEqual(v.iRad, 0)
-        XCTAssertEqual(v.iRadKrav, 2)
+        XCTAssertEqual(v.fran, "12 dec")
+        XCTAssertEqual(v.saker.count, 2)
+        let s = v.saker[0]
+        XCTAssertEqual(s.namn, "Sway")
+        XCTAssertEqual(s.rubrik, "FO · topp")
+        XCTAssertEqual(s.markning, .b10)
+        XCTAssertEqual(s.kedja.map { $0.namn }, ["Sway", "Resa framåt", "Sway gap"])
+        XCTAssertEqual(s.kedja[0].fran, "−5,9 → −2,4")
+        XCTAssertEqual(s.kedja[1].varde, "11,3")
+        XCTAssertEqual(s.tanke, "”Rör inte käppen.”")
+        XCTAssertEqual(s.villkor, "Sway topp ≥ 0,0 cm")
+        XCTAssertEqual(s.villkorUnder, "serie 1 · 2 pass i rad")
+        XCTAssertEqual(s.serie1, "−4,0")
+        XCTAssertEqual(s.passet, "−2,4")
+        XCTAssertEqual(s.iRad, 0)
+        XCTAssertEqual(s.iRadKrav, 2)
+        XCTAssertNil(s.fysik)
+        let t = v.saker[1]
+        XCTAssertEqual(t.namn, "Thrust")
+        XCTAssertEqual(t.markning, .egen)
+        XCTAssertEqual(t.kedja.map { $0.namn }, ["Thrust", "Böjning"])
+        XCTAssertEqual(t.villkor, "Thrust träff ≤ 1,5 cm")
+        XCTAssertNotNil(t.fysik)
     }
 
     func testPassenIRad() {
@@ -165,10 +224,23 @@ final class VisningTests: XCTestCase {
             Pass(datum: Tal.dag(2027, 1, 1), klubba: "järn 7",
                  svingar: serie1.map { SvingMatt(vy: .fo, matt: ["backen_sway_topp": $0]) }, serie1: serie1.count)
         }
-        let k = AttJobbaPa.KlartNar(fel: "sway_topp", riktning: .minst, grans: 0, passIRad: 2)
+        let k = AttJobbaPa.KlartNar(villkor: .minst, lo: 0, hi: 0, passIRad: 2)
         let p = [pass([1, 1, 1]), pass([-1, -2, -1]), pass([0.5, 1, 0]), pass([0, 2, 1])]
         XCTAssertEqual(AttJobbaPaVisning.iRad(k, matt: "backen_sway_topp", grupp: "fo", pass: p), 2)
         XCTAssertEqual(AttJobbaPaVisning.iRad(k, matt: "backen_sway_topp", grupp: "fo", pass: Array(p.prefix(2))), 0)
+    }
+
+    func testIdagVisarDenForstaSaken() throws {
+        let v = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass,
+                            attJobbaPa: Demo.attJobbaPa)
+        XCTAssertEqual(v.dag, "ons 13 jan")
+        XCTAssertEqual(v.senaste, "lör 9 jan · järn 7 · 34")
+        XCTAssertEqual(v.rader.first?.namn, "Sway")
+        XCTAssertFalse(v.rader.contains { $0.id == "axellutning" })     // avstängt
+        XCTAssertEqual(v.rader.first { $0.id == "tempo" }?.enhet, "")
+        XCTAssertEqual(v.forsta?.namn, "Sway")
+        XCTAssertEqual(v.forsta?.tanke, "”Rör inte käppen.”")
+        XCTAssertEqual(v.forsta?.kedja, ["Sway", "Resa framåt", "Sway gap"])
     }
 
     // MARK: Utveckling

@@ -61,7 +61,7 @@ struct GranskningVy: View {
                 Matytan(yta: g.yta, forra: visaForra ? g.forra : nil, t: nu)
                     .aspectRatio(350.0 / 400.0, contentMode: .fit)
                 VStack(alignment: .leading, spacing: 2) {
-                    Etikett(text: "\(g.yta.namn) · \(g.yta.tidText(nu))", farg: Theme.secondary)
+                    Etikett(text: "\(g.yta.namn) · ", farg: Theme.secondary, efter: g.yta.tidText(nu))
                     StortTal(varde: Tal.tecken(g.yta.lage(nu)?.matt, decimaler: 1), enhet: "cm",
                              storlek: 30, enhetStorlek: 13)
                 }

@@ -10,9 +10,11 @@ import Swing
 struct Etikett: View {
     let text: String
     var farg: Color = Theme.tertiary
+    /// Enheten efter talet behåller sin form ("s", inte "S").
+    var efter: String = ""
 
     var body: some View {
-        Text(text.uppercased())
+        Text(text.uppercased() + efter)
             .font(.system(size: 11, weight: .semibold))
             .tracking(1.1)
             .monospacedDigit()

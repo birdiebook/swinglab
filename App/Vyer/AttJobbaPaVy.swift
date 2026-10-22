@@ -1,25 +1,50 @@
 import SwiftUI
 import Swing
 
-/// Att jobba på (skissens skärm 6): temat, kedjan som tre mått med pilar (det första
-/// först), övningen med sina steg, tanken och "klart när" som ett villkor i tal.
+/// Att jobba på (skissens skärm 6): de 1–3 saker som PC:n och Claude valt (S5), i
+/// svingens ordning, med en sektion per sak i skissens form: måttets namn, kedjan
+/// (saken först, sedan följdfelen, med pilar), övningen, tanken och "klart när"
+/// som ett villkor i tal.
 struct AttJobbaPaVy: View {
     let visning: AttJobbaPaVisning
     var tillbaka: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Navrad(titel: "Att jobba på", hoger: { Under(text: visning.block) }, tillbaka: tillbaka)
-            Text(visning.tema)
+            Navrad(titel: "Att jobba på", hoger: { Under(text: visning.fran) }, tillbaka: tillbaka)
+            ForEach(Array(visning.saker.enumerated()), id: \.offset) { i, s in
+                SakVy(sak: s, antal: visning.saker.count)
+                    .padding(.top, i == 0 ? 0 : 28)
+            }
+        }
+        .padding(.horizontal, 20)
+        .background(Theme.ground)
+    }
+}
+
+/// En sak: rubriken med ordningen, kedjan, övningen, tanken och villkoret.
+struct SakVy: View {
+    let sak: AttJobbaPaVisning.Sakvisning
+    let antal: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Etikett(text: antal > 1 ? "\(sak.ordning) · \(sak.rubrik)" : sak.rubrik)
+                Spacer()
+                if let m = sak.markning { MarkningVy(markning: m) }
+            }
+            .padding(.top, 8)
+            Text(sak.namn)
                 .font(.system(size: 30, weight: .semibold))
                 .tracking(-0.6)
                 .foregroundStyle(Theme.text)
-                .padding(.top, 8)
+                .padding(.top, 4)
                 .padding(.bottom, 14)
 
             Sektion {
                 HStack(alignment: .top, spacing: 6) {
-                    ForEach(Array(visning.kedja.enumerated()), id: \.offset) { i, l in
+                    ForEach(Array(sak.kedja.enumerated()), id: \.offset) { i, l in
                         if i > 0 {
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 11, weight: .semibold))
@@ -29,33 +54,31 @@ struct AttJobbaPaVy: View {
                         Lanken(lank: l, forst: i == 0)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // Kedjan har alltid tre platser, så att talen står på samma ställe.
+                    ForEach(sak.kedja.count..<max(sak.kedja.count, 3), id: \.self) { _ in
+                        Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+                    }
                 }
             }
 
             Sektion(etikett: "Övning") {
-                Text(visning.ovning)
-                    .font(.system(size: 19, weight: .semibold))
+                Text(sak.ovning)
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Theme.text)
-                HStack(alignment: .top, spacing: 4) {
-                    ForEach(Array(visning.steg.enumerated()), id: \.offset) { _, s in
-                        VStack(alignment: .leading, spacing: 7) {
-                            Rectangle()
-                                .fill(s.lage == .klart ? Theme.secondary : s.lage == .nu ? Theme.text : Theme.line)
-                                .frame(height: 3)
-                                .clipShape(.rect(cornerRadius: 2))
-                            Text(s.namn)
-                                .font(.system(size: 12))
-                                .foregroundStyle(s.lage == .nu ? Theme.text : Theme.tertiary)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                if let f = sak.fysik {
+                    Etikett(text: "Rörlighet")
+                        .padding(.top, 16)
+                    Text(f)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 6)
                 }
-                .padding(.top, 14)
             }
 
             Sektion(etikett: "Tanke") {
-                Text(visning.tanke)
+                Text(sak.tanke)
                     .font(.system(size: 30, weight: .medium))
                     .tracking(-0.3)
                     .foregroundStyle(Theme.text)
@@ -64,25 +87,23 @@ struct AttJobbaPaVy: View {
             }
 
             Sektion(etikett: "Klart när") {
-                Text(visning.villkor)
+                Text(sak.villkor)
                     .font(Theme.number(20))
                     .foregroundStyle(Theme.text)
                     .padding(.top, 6)
-                Under(text: visning.villkorUnder)
+                Under(text: sak.villkorUnder)
                     .padding(.top, 4)
                 HStack(alignment: .top, spacing: 12) {
-                    Talruta(etikett: "Serie 1", varde: visning.serie1, enhet: visning.enhet)
-                    Talruta(etikett: "Pass", varde: visning.passet, enhet: visning.enhet)
-                    Talruta(etikett: "Pass i rad", varde: "\(visning.iRad)", enhet: "/ \(visning.iRadKrav)")
+                    Talruta(etikett: "Serie 1", varde: sak.serie1, enhet: sak.enhet)
+                    Talruta(etikett: "Pass", varde: sak.passet, enhet: sak.enhet)
+                    Talruta(etikett: "Pass i rad", varde: "\(sak.iRad)", enhet: "/ \(sak.iRadKrav)")
                 }
                 .padding(.top, 14)
             }
         }
-        .padding(.horizontal, 20)
-        .background(Theme.ground)
     }
 
-    /// Ett mått i kedjan: namnet, talet nu och blockets början → nu.
+    /// Ett mått i kedjan: namnet, talet nu och passet saken valdes på → nu.
     private struct Lanken: View {
         let lank: AttJobbaPaVisning.Lank
         let forst: Bool
