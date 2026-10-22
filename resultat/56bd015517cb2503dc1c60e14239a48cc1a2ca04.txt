@@ -1,0 +1,20 @@
+56bd015517cb2503dc1c60e14239a48cc1a2ca04 s2i 2026-10-22T19:29:05Z run 39840243521
+== swift-release
+GRÖNT: 153 test, 0 fel, 4 s i testerna, bygget 30 s
+Långsammast (av 153):
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  SessionTests.testSammanfattningenSomPython
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.0 s  MattTests.testPositionernaIOrdning
+      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.0 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.0 s  KatalogTests.testKontrollernaSomPython
+      0.0 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
+      0.0 s  MattTests.testDePahittadeFormerna
+
