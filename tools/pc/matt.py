@@ -97,6 +97,8 @@ def mat(s: Sving) -> dict:
     som inte går att räkna (leden saknas i fasen) står inte med."""
     t = s.t
     b = F.jamna(t, F.grepp_regel(s.xy))
+    # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
+    hand_f = F.jamna(t, s.xy[:, HANDLED_F])
     P = (b[:, HOFT_F] + b[:, HOFT_B]) / 2
     C = (b[:, AXEL_F] + b[:, AXEL_B]) / 2
     A = (b[:, FOTLED_F] + b[:, FOTLED_B]) / 2
@@ -165,11 +167,11 @@ def mat(s: Sving) -> dict:
         m["hander_fore_backen_traff"] = (L(G, "traff")[0] - L(P, "traff")[0]) * cm
         m["backen_resa_framat"] = m["backen_sway_traff"] - m["backen_sway_topp"]         # METOD M21
         m["framre_armbage_topp"] = bojning(L(b[:, AXEL_F], "topp"), L(b[:, ARMBAGE_F], "topp"),
-                                           L(b[:, HANDLED_F], "topp"))                    # METOD M22
+                                           L(hand_f, "topp"))                             # METOD M22
         a0, a1 = s.t_klick + CHICKEN[0], s.t_klick + CHICKEN[1]                          # METOD M23
         m["framre_armbage_efter_traff"] = bojning(F.medel(t, b[:, AXEL_F], a0, a1),
                                                   F.medel(t, b[:, ARMBAGE_F], a0, a1),
-                                                  F.medel(t, b[:, HANDLED_F], a0, a1))
+                                                  F.medel(t, hand_f, a0, a1))
         fot = L(b[:, FOTLED_F], "adress") - L(b[:, FOTLED_B], "adress")                  # METOD M24
         axl = L(b[:, AXEL_F], "adress") - L(b[:, AXEL_B], "adress")
         axelbredd = math.hypot(axl[0], axl[1])

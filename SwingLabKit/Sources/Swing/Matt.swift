@@ -107,6 +107,8 @@ public enum Matt {
     public static func mat(_ s: Sving) throws -> SvingResultat {
         let t = s.t
         let b = Faser.greppRegel(s.leder).map { Faser.jamna(t, $0) }
+        // Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
+        let handF = Faser.jamna(t, s.led(.handledF))
         func led(_ l: Led) -> [Punkt] { b[l.rawValue] }
         func mitt(_ x: Led, _ y: Led) -> [Punkt] { zip(led(x), led(y)).map { Punkt.mitt($0, $1) } }
         let P = mitt(.hoftF, .hoftB)
@@ -189,11 +191,11 @@ public enum Matt {
             m["hander_fore_backen_traff"] = (L(G, .traff).x - L(P, .traff).x) * cm
             m["backen_resa_framat"] = m["backen_sway_traff"]! - m["backen_sway_topp"]!             // METOD M21
             m["framre_armbage_topp"] = bojning(L(led(.axelF), .topp), L(led(.armbageF), .topp),
-                                               L(led(.handledF), .topp))                           // METOD M22
+                                               L(handF, .topp))                                    // METOD M22
             let a0 = s.tKlick + chicken.fran, a1 = s.tKlick + chicken.till                        // METOD M23
             m["framre_armbage_efter_traff"] = bojning(Faser.medel(t, led(.axelF), a0, a1),
                                                       Faser.medel(t, led(.armbageF), a0, a1),
-                                                      Faser.medel(t, led(.handledF), a0, a1))
+                                                      Faser.medel(t, handF, a0, a1))
             let fot = L(led(.fotledF), .adress) - L(led(.fotledB), .adress)                        // METOD M24
             let axl = L(led(.axelF), .adress) - L(led(.axelB), .adress)
             m["stans_bredd"] = axl.langd > 0 ? fot.langd / axl.langd : .nan
