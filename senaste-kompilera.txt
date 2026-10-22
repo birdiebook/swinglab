@@ -1,4 +1,4 @@
-13e15ed4a085e31e3de8922b4df9578ed84ce4bd main 2026-10-22T12:05:20Z run 39774946545 kompilera
+d65dc2dfa8a99ad1bed949b950336a8f20b54c3d s2cd 2026-10-22T12:30:32Z run 39778392370 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
@@ -6,7 +6,7 @@ GRÖNT: ARCHIVE SUCCEEDED
 == prov
 GRÖNT: 3 test, 0 fel, 1 s i testerna
 Långsammast (av 3):
-      1.1 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.2 s  SwingLabProv.testAppenStartarMedStartvyn
       0.0 s  SwingLabProv.testSwingLabKitLankat
       0.0 s  SwingLabProv.testInfoPlist
 
