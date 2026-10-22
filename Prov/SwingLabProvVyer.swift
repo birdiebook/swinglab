@@ -43,7 +43,7 @@ final class SwingLabProvVyer: XCTestCase {
     }
 
     func testAttJobbaPa() throws {
-        let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog(), pass: Demo.pass)
+        let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
         try rendera(AttJobbaPaVy(visning: v), namn: "jobba")
     }
 

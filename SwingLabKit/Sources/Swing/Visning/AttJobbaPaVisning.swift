@@ -1,108 +1,103 @@
 import Foundation
 
 /// Skärmen Att jobba på, färdig att rita: en sektion per sak (1–3) i
-/// `att_jobba_pa.json`, i svingens ordning. Talen nu räknas ur passen på
-/// telefonen; filen ger saken, följdfelen, övningen, tanken och villkoret.
+/// `att_jobba_pa.json`, i svingens ordning. Filen är kontraktet med PC:n
+/// (docs/FORMAT.md, Att jobba på): vyn visar talen som de står där och räknar
+/// inte om något; här blir de bara text i vyns form (BESLUT B13).
 public struct AttJobbaPaVisning: Sendable {
-    /// Ett mått i kedjan: saken först, sedan följdfelen.
-    public struct Lank: Equatable, Sendable {
-        public let namn: String
-        /// "−2,4"
+    /// Ett följdfel i kedjan: vägen från saken och följdfelets tal.
+    public struct Foljd: Equatable, Sendable {
+        /// Måttens korta namn längs vägen, utan saken: ["Sidböjning", "Thrust"].
+        public let vag: [String]
         public let varde: String
         public let enhet: String
-        /// "−5,9 → −2,4": passet saken valdes på → nu.
-        public let fran: String
     }
+
+    public enum Steglage: Sendable { case klart, nu, kommer }
 
     public struct Sakvisning: Sendable {
         public let ordning: Int
         /// Måttets korta namn: "Sway".
         public let namn: String
-        /// "FO · topp"
+        /// "FO · topp · vecka 5"
         public let rubrik: String
         public let markning: Markning?
-        /// Saken och upp till två följdfel.
-        public let kedja: [Lank]
+        /// Du nu: "−2,4" (filens `nu`).
+        public let nu: String
+        public let enhet: String
+        /// Målet som spann: katalogens gröna spann med Du nu som markör; nil för egen baslinje.
+        public let mal: Spann?
+        public let foljd: [Foljd]
         public let ovning: String
-        /// Rörlighetens övning när typen inte är ren teknik (METOD MT5 i S5).
-        public let fysik: String?
+        public let steg: [(namn: String, lage: Steglage)]
+        /// Rörligheten när typen inte är ren teknik: testet och övningen.
+        public let rorlighet: (test: String, ovning: String?)?
         /// "”Rör inte käppen.”"
         public let tanke: String
-        /// "Sway topp ≥ 0,0 cm", "Tempo 2,5–3,1"
+        /// "Första serien ≥ 0 cm"
         public let villkor: String
-        /// "serie 1 · 2 pass i rad"
+        /// "2 pass i rad"
         public let villkorUnder: String
-        public let serie1: String
-        public let passet: String
-        public let enhet: String
-        public let iRad: Int
-        public let iRadKrav: Int
     }
+
+    /// Stegens namn i vyn, i S5:s ordning.
+    public static let stegnamn = ["langsamt_med_foremal": "Långsamt", "halv_fart": "Halv fart",
+                                  "full_fart": "Full fart", "varierat": "Varierat"]
 
     /// "3 nov": passet tolkningen bygger på.
     public let fran: String
     public let saker: [Sakvisning]
 
-    /// `pass` är telefonens pass, äldst först.
-    public init(_ a: AttJobbaPa, katalog: Katalog, pass: [Pass]) {
+    public init(_ a: AttJobbaPa, katalog: Katalog) {
         let fel = Dictionary(katalog.fel.map { ($0.id, $0) }, uniquingKeysWith: { x, _ in x })
-        let nu = pass.last
-        let dag = a.passDatum
-        // Passet saken valdes på: samma dag, annars det första efter.
-        let dat = dag.flatMap { d in pass.first { Tal.kalender.isDate($0.datum, inSameDayAs: d) || $0.datum >= d } }
-        fran = dag.map(Tal.datum) ?? ""
+        fran = a.passDatum.map(Tal.datum) ?? ""
 
-        func lank(_ id: String, filensNu: Double?) -> Lank? {
-            guard let f = fel[id] else { return nil }
-            let e = Etiketter.etikett(f.matt)
-            let v = nu?.median(f.matt, f.grupp)
-            let forst = dat?.median(f.matt, f.grupp) ?? filensNu
-            return Lank(namn: e.namn, varde: Mattkort.text(v ?? filensNu, e), enhet: e.enhet,
-                        fran: "\(Mattkort.text(forst, e)) → \(Mattkort.text(v ?? filensNu, e))")
+        /// Måttets etikett för ett fel i katalogen, eller filens namn när felet saknas där.
+        func etikett(_ id: String, namn: String, enhet: String) -> Mattetikett {
+            if let f = fel[id] { return Etiketter.etikett(f.matt) }
+            return Mattetikett(namn, enhet, 1, "")
         }
 
         saker = a.saker.sorted { $0.ordning < $1.ordning }.map { s -> Sakvisning in
-            let f = fel[s.fel]
             let e = Etiketter.etikett(s.matt)
-            let grupp = f?.grupp ?? (s.vy == "bada" ? "alla" : s.vy)
             var r = [e.vy ?? Etiketter.vy(s.vy)]
             if !e.fas.isEmpty { r.append(e.fas) }
+            r.append("vecka \(s.block.vecka)")
             let markning: Markning? = s.markning == "B10" ? .b10 : s.markning == "egen" ? .egen : nil
-            var kedja: [Lank] = []
-            if let l = lank(s.fel, filensNu: s.nu) { kedja.append(l) }
-            for ff in s.foljdfel where kedja.count < 3 {
-                if let l = lank(ff, filensNu: nil) { kedja.append(l) }
+            var mal: Spann? = nil
+            if let nu = s.nu, let g = s.spann {
+                mal = Spann(nu: nu, spridning: nil, forra: nil, gront: g, baslinje: nil, decimaler: e.decimaler)
+            }
+            let foljd = s.foljdfel.map { f -> Foljd in
+                let fe = etikett(f.fel, namn: f.namn, enhet: f.enhet)
+                let vag = f.vag.dropFirst().map { id -> String in
+                    id == f.fel ? fe.namn : etikett(id, namn: id, enhet: "").namn
+                }
+                return Foljd(vag: Array(vag), varde: Mattkort.text(f.nu, fe), enhet: f.enhet)
+            }
+            let iSteg = AttJobbaPa.Ovning.stegen.firstIndex(of: s.ovning.steg) ?? 0
+            let steg = AttJobbaPa.Ovning.stegen.enumerated().map { (i, id) -> (namn: String, lage: Steglage) in
+                let lage: Steglage = i < iSteg ? .klart : (i == iSteg ? .nu : .kommer)
+                return (AttJobbaPaVisning.stegnamn[id] ?? id, lage)
+            }
+            var rorlighet: (test: String, ovning: String?)? = nil
+            if s.typ != "teknik", let f = s.fysik, let test = f.test {
+                rorlighet = (test, f.ovning)
             }
             let k = s.klartNar
-            let fasText = e.fas.isEmpty ? "" : " \(e.fas)"
             let grans: String
             switch k.villkor {
-            case .minst: grans = "≥ " + Tal.tal(k.lo, decimaler: e.decimaler)
-            case .hogst: grans = "≤ " + Tal.tal(k.hi, decimaler: e.decimaler)
-            case .mellan: grans = Tal.tal(k.lo, decimaler: e.decimaler) + "–" + Tal.tal(k.hi, decimaler: e.decimaler)
+            case .minst: grans = "≥ " + Tal.axel(k.lo, decimaler: e.decimaler)
+            case .hogst: grans = "≤ " + Tal.axel(k.hi, decimaler: e.decimaler)
+            case .mellan: grans = Tal.axel(k.lo, decimaler: e.decimaler) + "–" + Tal.axel(k.hi, decimaler: e.decimaler)
             }
-            let fysik = s.typ == "teknik" ? nil : s.fysik?.ovning
             return Sakvisning(
                 ordning: s.ordning, namn: e.namn, rubrik: r.joined(separator: " · "), markning: markning,
-                kedja: kedja, ovning: s.ovning.text, fysik: fysik, tanke: "”\(s.ovning.tanke)”",
-                villkor: Tal.medEnhet("\(e.namn)\(fasText) \(grans)", e.enhet),
-                villkorUnder: "serie 1 · \(k.passIRad) pass i rad",
-                serie1: Mattkort.text(nu?.serie1Median(s.matt, grupp), e),
-                passet: Mattkort.text(nu?.median(s.matt, grupp) ?? s.nu, e),
-                enhet: e.enhet,
-                iRad: AttJobbaPaVisning.iRad(k, matt: s.matt, grupp: grupp, pass: pass),
-                iRadKrav: k.passIRad)
+                nu: Mattkort.text(s.nu, e), enhet: s.enhet, mal: mal, foljd: foljd, ovning: s.ovning.text,
+                steg: steg, rorlighet: rorlighet, tanke: "”\(s.ovning.tanke)”",
+                villkor: Tal.medEnhet("Första serien \(grans)", s.enhet),
+                villkorUnder: "\(k.passIRad) pass i rad")
         }
-    }
-
-    /// Passen i rad, från det senaste och bakåt, där serie 1 håller villkoret.
-    public static func iRad(_ k: AttJobbaPa.KlartNar, matt: String, grupp: String, pass: [Pass]) -> Int {
-        var n = 0
-        for p in pass.reversed() {
-            guard let v = p.serie1Median(matt, grupp), k.haller(v) else { break }
-            n += 1
-        }
-        return n
     }
 }
 
@@ -121,7 +116,7 @@ public struct Idagvisning: Sendable {
     public struct Forsta: Sendable {
         public let namn: String
         public let tanke: String
-        /// Saken och följdfelen: "Sway", "Resa framåt", "Sway gap".
+        /// Saken och dess närmaste följdfel: "Sway", "Sidböjning", "Resa framåt".
         public let kedja: [String]
     }
 
@@ -145,9 +140,10 @@ public struct Idagvisning: Sendable {
             senaste = nil
             rader = []
         }
-        if let a = attJobbaPa {
-            let v = AttJobbaPaVisning(a, katalog: katalog, pass: pass)
-            forsta = v.saker.first.map { Forsta(namn: $0.namn, tanke: $0.tanke, kedja: $0.kedja.map { $0.namn }) }
+        if let a = attJobbaPa, let s = AttJobbaPaVisning(a, katalog: katalog).saker.first {
+            // Kedjan på en rad: saken och följdfelen ett led bort, högst två.
+            let nara = s.foljd.filter { $0.vag.count == 1 }.prefix(2).map { $0.vag[0] }
+            forsta = Forsta(namn: s.namn, tanke: s.tanke, kedja: [s.namn] + nara)
         } else {
             forsta = nil
         }

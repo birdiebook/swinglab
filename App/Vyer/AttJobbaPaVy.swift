@@ -2,9 +2,8 @@ import SwiftUI
 import Swing
 
 /// Att jobba på (skissens skärm 6): de 1–3 saker som PC:n och Claude valt (S5), i
-/// svingens ordning, med en sektion per sak i skissens form: måttets namn, kedjan
-/// (saken först, sedan följdfelen, med pilar), övningen, tanken och "klart när"
-/// som ett villkor i tal.
+/// svingens ordning, med en sektion per sak i skissens form. Vyn visar
+/// `att_jobba_pa.json` som den är (docs/FORMAT.md): inget räknas om på telefonen.
 struct AttJobbaPaVy: View {
     let visning: AttJobbaPaVisning
     var tillbaka: () -> Void = {}
@@ -22,7 +21,8 @@ struct AttJobbaPaVy: View {
     }
 }
 
-/// En sak: rubriken med ordningen, kedjan, övningen, tanken och villkoret.
+/// En sak: rubriken med ordningen och veckan, Du nu mot målet, kedjan av följdfel,
+/// övningen med stegen, rörligheten, tanken och villkoret. Talen är filens.
 struct SakVy: View {
     let sak: AttJobbaPaVisning.Sakvisning
     let antal: Int
@@ -40,23 +40,42 @@ struct SakVy: View {
                 .tracking(-0.6)
                 .foregroundStyle(Theme.text)
                 .padding(.top, 4)
-                .padding(.bottom, 14)
+            StortTal(varde: sak.nu, enhet: sak.enhet)
+                .padding(.top, 10)
+            if let mal = sak.mal {
+                SpannVy(spann: mal)
+                    .padding(.top, 12)
+            }
+            Color.clear.frame(height: 14)
 
-            Sektion {
-                HStack(alignment: .top, spacing: 6) {
-                    ForEach(Array(sak.kedja.enumerated()), id: \.offset) { i, l in
-                        if i > 0 {
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Theme.tertiary)
-                                .padding(.top, 24)
+            if !sak.foljd.isEmpty {
+                Sektion {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(sak.foljd.enumerated()), id: \.offset) { _, f in
+                            HStack(spacing: 8) {
+                                HStack(spacing: 6) {
+                                    ForEach(Array(f.vag.enumerated()), id: \.offset) { j, namn in
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundStyle(Theme.tertiary)
+                                        Text(namn)
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(j == f.vag.count - 1 ? Theme.text : Theme.tertiary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: 8)
+                                HStack(alignment: .firstTextBaseline, spacing: f.enhet == "°" ? 1 : 3) {
+                                    Text(f.varde)
+                                        .font(Theme.number(15))
+                                        .foregroundStyle(Theme.text)
+                                    Text(f.enhet)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.tertiary)
+                                }
+                            }
+                            .frame(minHeight: 32)
                         }
-                        Lanken(lank: l, forst: i == 0)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    // Kedjan har alltid tre platser, så att talen står på samma ställe.
-                    ForEach(sak.kedja.count..<max(sak.kedja.count, 3), id: \.self) { _ in
-                        Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
                     }
                 }
             }
@@ -66,14 +85,32 @@ struct SakVy: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
-                if let f = sak.fysik {
-                    Etikett(text: "Rörlighet")
-                        .padding(.top, 16)
-                    Text(f)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Theme.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 6)
+                HStack(alignment: .top, spacing: 4) {
+                    ForEach(Array(sak.steg.enumerated()), id: \.offset) { _, s in
+                        VStack(alignment: .leading, spacing: 7) {
+                            Rectangle()
+                                .fill(s.lage == .klart ? Theme.secondary : s.lage == .nu ? Theme.text : Theme.line)
+                                .frame(height: 3)
+                                .clipShape(.rect(cornerRadius: 2))
+                            Text(s.namn)
+                                .font(.system(size: 12))
+                                .foregroundStyle(s.lage == .nu ? Theme.text : Theme.tertiary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.top, 14)
+            }
+
+            if let r = sak.rorlighet {
+                Sektion(etikett: "Rörlighet", hoger: r.test) {
+                    if let o = r.ovning {
+                        Text(o)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Theme.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -93,49 +130,7 @@ struct SakVy: View {
                     .padding(.top, 6)
                 Under(text: sak.villkorUnder)
                     .padding(.top, 4)
-                HStack(alignment: .top, spacing: 12) {
-                    Talruta(etikett: "Serie 1", varde: sak.serie1, enhet: sak.enhet)
-                    Talruta(etikett: "Pass", varde: sak.passet, enhet: sak.enhet)
-                    Talruta(etikett: "Pass i rad", varde: "\(sak.iRad)", enhet: "/ \(sak.iRadKrav)")
-                }
-                .padding(.top, 14)
             }
-        }
-    }
-
-    /// Ett mått i kedjan: namnet, talet nu och passet saken valdes på → nu.
-    private struct Lanken: View {
-        let lank: AttJobbaPaVisning.Lank
-        let forst: Bool
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(lank.namn)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(forst ? Theme.text : Theme.secondary)
-                    .lineLimit(1)
-                StortTal(varde: lank.varde, enhet: lank.enhet, storlek: 22, enhetStorlek: 12)
-                Text(lank.fran)
-                    .font(.system(size: 12))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.tertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-    }
-
-    private struct Talruta: View {
-        let etikett: String
-        let varde: String
-        let enhet: String
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 2) {
-                Etikett(text: etikett)
-                StortTal(varde: varde, enhet: enhet, storlek: 26, enhetStorlek: 12)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
