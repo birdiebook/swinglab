@@ -19,6 +19,8 @@ targets:
     dependencies:
       - package: SwingLabKit
         product: Swing
+      - package: SwingLabKit
+        product: Capture
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab
@@ -65,6 +67,8 @@ targets:
       - target: SwingLab
       - package: SwingLabKit
         product: Swing
+      - package: SwingLabKit
+        product: Capture
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.prov
