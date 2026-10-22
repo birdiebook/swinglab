@@ -1,32 +1,32 @@
-6cc856814a6ea9530930be049099d3d3c6ce76d6 s2e 2026-10-22T15:55:04Z run 39807316653 kompilera
+078826c2942e6b2c7591ffba070289a3794c1119 s2e 2026-10-22T16:08:44Z run 39809462986 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 19 test, 4 fel, 47 s i testerna
+RÖTT: 19 test, 4 fel, 36 s i testerna
   fel: SwingLabProvSlag.testSteg7VisionPaKlippet
 Långsammast (av 19):
-      8.3 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      7.7 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      6.8 s  SwingLabProvSlag.testSteg6Klippet
-      4.4 s  SwingLabProvInspelning.testKvittotUrFilen
-      4.4 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      4.0 s  SwingLabProvInspelning.testLuckaILjudet
-      3.3 s  SwingLabProvInspelning.testFilmenMedLPCM
-      2.8 s  SwingLabProvInspelning.testFilmenMedAAC
-      1.8 s  SwingLabProvInspelning.testLjusprovetsLasning
-      1.2 s  SwingLabProv.testAppenStartarMedStartvyn
-      0.9 s  SwingLabProvVyer.testAttJobbaPa
-      0.7 s  SwingLabProvVyer.testPasset
-      0.5 s  SwingLabProvVyer.testGranskning
+      6.5 s  SwingLabProvInspelning.testFilmenMedAAC
+      4.4 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.7 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      3.7 s  SwingLabProvInspelning.testKvittotUrFilen
+      3.6 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      3.5 s  SwingLabProvInspelning.testLjusprovetsLasning
+      2.8 s  SwingLabProvInspelning.testLuckaILjudet
+      2.6 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      1.7 s  SwingLabProvSlag.testSteg6Klippet
+      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
+      0.7 s  SwingLabProvVyer.testAttJobbaPa
+      0.6 s  SwingLabProvVyer.testPasset
+      0.4 s  SwingLabProvVyer.testGranskning
       0.3 s  SwingLabProvVyer.testUtveckling
-      0.3 s  SwingLabProvVyer.testIdag
+      0.2 s  SwingLabProvVyer.testIdag
 
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:156: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("260") - varje ruta i fönstret avkodas
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:157: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("260") - varje ruta når Vision-anropet
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:158: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("260")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:160: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("260")
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:160: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("241") - varje ruta i fönstret avkodas
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:161: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("241") - varje ruta når Vision-anropet
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:162: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("241")
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:164: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : XCTAssertEqual failed: ("240") is not equal to ("241")
 ** TEST FAILED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
@@ -47,7 +47,8 @@ PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600
 PROV: kedjan avbruten: Shot 1 could not be analyzed: The operation couldn’t be completed. (SwingLabProv.ProvFel error 1.), steg [Capture.AnalysisStep.sparse(0), Capture.AnalysisStep.sparse(1)]
 PROV: kedjan klar: ["s01 swing 400 rutor klick i klipp 0.9996", "s02 swing 512 rutor klick i klipp 2.1996"], ms/ruta 1.0, linjerna vid t = -0.0079
 PROV: klipp längd 1.5000 s, 260 rutor, första 0.0, klick ["0.49956"], vita ["0.50000"], klicket mot väntat -0.44 ms, märkt false
-PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (260 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
+PROV: steg 7 klippets rutor: 260 i filen, 241 inom 0–1,5 s, sista 1.6166666666666667
+PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (241 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
 PROV: skrev jobba.png (1170×4618 px)
