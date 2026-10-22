@@ -1,0 +1,20 @@
+bc8ee3114236a878141713e0abbcc564c3342d55 s1 2026-10-22T10:00:32Z run 39759678358
+== swift-release
+GRÖNT: 22 test, 0 fel, 0 s i testerna, bygget 9 s
+Långsammast (av 22):
+      0.1 s  SessionTests.testRangernaOchTrenden
+      0.0 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  MattTests.testVarjeSvingGerPythonsTal
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  MattTests.testVansterspelarenRaknasSomHoger
+      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
+      0.0 s  SessionTests.testSammanfattningenSomPython
+      0.0 s  SessionTests.testJamforelsenSomPython
+      0.0 s  KatalogTests.testBedomningenSomPython
+      0.0 s  FormatTests.testFelenNamnerFaltet
+      0.0 s  SessionTests.testPercentilenOchMedianen
+      0.0 s  SessionTests.testHandraknat
+      0.0 s  MattTests.testVinklarna
+      0.0 s  MattTests.testNamnenPerVy
+      0.0 s  KatalogTests.testTempotBlirAldrigRott
+
