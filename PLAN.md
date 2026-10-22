@@ -210,6 +210,25 @@ Bollen hittas i adressbilden (FO) och ger bollens läge i stansen.
 
 **Klart när:** läget stämmer med handmätt inom 2 cm på 10 slag.
 
+## Läget och nästa steg (2026-10-22, natten)
+
+**Landat:** S1, S2a–S2e, S2i, S4-grunden (vyerna, P-positionerna, engelska,
+accenten), S5 (PC-sidan och skillen). TestFlight-vägen via GitHub är bevisad.
+
+**Pågår i natt** (en gren och en worktree var, granskas före landning):
+S4b (granskningen med video och leder, passets mått), S2f (paketet till PC:n
+och vägen tillbaka), S2g (två telefoner, rättelser efter granskning), S1b (små
+Sportsbox-mått). Därefter S4c (flikarna Idag, Utveckling och Jag med riktig
+data och importerat fokus), och om kvoten räcker S6a (PC: två paket → 3D med
+självkalibrering ur lederna, X-factor som trend).
+
+**Byggen (Johannes ja 2026-10-22):** ett TestFlight-bygge när S4b landat, och
+ett på morgonen med allt som landat under natten.
+
+**Väntar på Johannes:** telefonproven (T2, trimning och utsnitt, granskningen,
+Send to PC, två telefoner), S0 på hemdatorn, märkta rutor ur riktiga klipp för
+S7.
+
 ## Idéer — inte planerade
 
 Idéer som kräver fram och tillbaka med Johannes innan de blir etapper. En rad
