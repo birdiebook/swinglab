@@ -1,20 +1,20 @@
-00bd798ff9f7530543cb6ac2746e1027c5973917 s4c 2026-10-22T22:09:42Z run 39862674654
+6eb9e441f662fd977fe2f82e57d292788a3275d1 main 2026-10-22T22:18:35Z run 39863796946
 == swift-release
-GRÖNT: 182 test, 0 fel, 6 s i testerna, bygget 49 s
-Långsammast (av 182):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  MatningTests.testSammaSomFilformatet
-      0.1 s  FlikarTests.testLangdenIPassJson
+GRÖNT: 187 test, 0 fel, 5 s i testerna, bygget 34 s
+Långsammast (av 187):
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
-      0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  VardenaTests.testFormatetBinnatSedanAttaBitar
-      0.1 s  KlickTests.testSlaIhopTarDetStarkaste
-      0.1 s  InspelningTests.testTrycketOrdnat
-      0.1 s  FlikarTests.testIdagOchUtvecklingTarRattPass
-      0.1 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
-      0.1 s  MattTests.testPositionernaIOrdning
+      0.1 s  VisningTests.testMatytanGerMattetsTal
+      0.1 s  SessionTests.testJamforelsenSomPython
+      0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  InspelningTests.testPassetSparasOchLasesTillbaka
+      0.1 s  VardenaTests.testEnEndaRutaOchIngen
+      0.1 s  SlagTests.testRutorUtanPersonBehallsOchGorDomenOsaker
+      0.1 s  SlagTests.testRaknarenGarAldrigBakat
+      0.1 s  LinkTests.testFelenSagerVarInteVad
+      0.1 s  LederTests.testEnSvingArEttSlag
 
