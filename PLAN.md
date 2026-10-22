@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b nu · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -249,24 +249,22 @@ Bollen hittas i adressbilden (FO) och ger bollens läge i stansen.
 
 **Klart när:** läget stämmer med handmätt inom 2 cm på 10 slag.
 
-## Läget och nästa steg (2026-10-22, natten)
+## Läget och nästa steg (2026-10-23, morgonen)
 
-**Landat:** S1, S2a–S2e, S2i, S4-grunden (vyerna, P-positionerna, engelska,
-accenten), S5 (PC-sidan och skillen). TestFlight-vägen via GitHub är bevisad.
+**Landat:** S1, S1b (små Sportsbox-mått, METOD M30–M37), S2a–S2g (appen, paketet
+till PC:n och vägen tillbaka, två telefoner), S2i, S4 med S4b (granskningen med
+video, leder och passets mått) och S4c (flikarna Today, Progress och Me med
+riktig data, fokus ur `Store.focus`, passets egen längd), S5 (PC-sidan och
+skillen). TestFlight-vägen via GitHub är bevisad.
 
-**Pågår i natt** (en gren och en worktree var, granskas före landning):
-S4b (granskningen med video och leder, passets mått), S2f (paketet till PC:n
-och vägen tillbaka), S2g (två telefoner, rättelser efter granskning), S1b (små
-Sportsbox-mått). Därefter S4c (flikarna Idag, Utveckling och Jag med riktig
-data och importerat fokus), och om kvoten räcker S6a (PC: två paket → 3D med
-självkalibrering ur lederna, X-factor som trend).
-
-**Byggen (Johannes ja 2026-10-22):** ett TestFlight-bygge när S4b landat, och
-ett på morgonen med allt som landat under natten.
+**Bygge:** TestFlight på morgonen med allt ovan (Johannes ja 2026-10-22).
 
 **Väntar på Johannes:** telefonproven (T2, trimning och utsnitt, granskningen,
-Send to PC, två telefoner), S0 på hemdatorn, märkta rutor ur riktiga klipp för
-S7.
+Send to PC och Import focus, två telefoner, flikarna och Me:s längd), S0 på
+hemdatorn, märkta rutor ur riktiga klipp för S7.
+
+**Nästa autonoma:** S6a (PC: två paket → 3D med självkalibrering ur lederna,
+X-factor som trend).
 
 ## Idéer — inte planerade
 
