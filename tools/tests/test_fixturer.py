@@ -61,6 +61,17 @@ class Fixturerna(unittest.TestCase):
         self.assertNotIn("backen_thrust_topp", lucka)
         self.assertNotIn("huvud_lyft_finish", lucka)
         self.assertEqual(len(json.loads(self.f["svingar"]["dtl"][1])["matt"]), len(M.MATT["dtl"]))
+        vanster = json.loads(self.f["svingar"]["fo_vanster"][1])["matt"]
+        self.assertNotIn("framre_armbage_topp", vanster)          # den egna handleden är dold
+        self.assertIn("hander_fore_adress_traff", vanster)         # men greppregeln ger händerna
+        luckor = json.loads(self.f["svingar"]["fo_luckor"][1])["matt"]
+        self.assertNotIn("backen_sway_topp", luckor)               # rå lucka 0,146 s
+        self.assertIn("huvud_sway_topp", luckor)                   # rå lucka 0,067 s
+        kort = json.loads(self.f["svingar"]["dtl_kort"][1])
+        self.assertIsNone(kort["faser"]["start"])
+        self.assertNotIn("tempo", kort["matt"])
+        self.assertNotIn("bakre_kna_adress", kort["matt"])        # konfidens 0,29
+        self.assertIn("backen_thrust_traff", kort["matt"])         # konfidens 0,3
 
     def test_sessionen_stammer(self) -> None:
         s = json.loads(self.f["session"])

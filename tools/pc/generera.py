@@ -264,9 +264,19 @@ def facit_dtl(p: dict, langd_cm: float) -> dict:
 
 def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0.0, langd_m: float = 1.80,
           dolj: tuple = (), saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2,
-          **andra) -> tuple[dict, dict]:
+          start: float | None = None, konf: dict | None = None, **andra) -> tuple[dict, dict]:
     """(svingen som dict i filformatet, facit). `dolj` = [(led i filen, ta, tb)]
-    ger låg konfidens och skräpkoordinater i fönstret. `andra` byter parametrar."""
+    ger låg konfidens och skräpkoordinater i fönstret. `start` flyttar
+    baksvingens start (s), `konf` = {led i filen: konfidens} sätter en leds
+    konfidens i alla rutor. `andra` byter parametrar."""
+    global TIDER
+    if start is not None:
+        gamla = TIDER
+        TIDER = dict(TIDER, start=start)
+        try:
+            return sving(vy, hand, seed, brus_px, langd_m, dolj, saknas, fran, decimaler, None, konf, **andra)
+        finally:
+            TIDER = gamla
     p = dict(FO if vy == "fo" else DTL)
     for k, v in andra.items():
         if k not in p:
@@ -284,14 +294,16 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     if brus_px:
         x = x + rng.normal(0, brus_px, x.shape)
         y = y + rng.normal(0, brus_px, y.shape)
-    konf = rng.uniform(0.55, 1.0, L.shape[:2])
+    konfidens = rng.uniform(0.55, 1.0, L.shape[:2])
     karta = FRAN_FIL[hand]
     rutor = []
     for i in range(len(t)):
         leder = []
         for j_fil in range(13):
             j = karta[j_fil]
-            led = [round(float(x[i, j]), decimaler), round(float(y[i, j]), decimaler), round(float(konf[i, j]), 2)]
+            led = [round(float(x[i, j]), decimaler), round(float(y[i, j]), decimaler), round(float(konfidens[i, j]), 2)]
+            if konf and LEDER_FIL[j_fil] in konf:
+                led[2] = konf[LEDER_FIL[j_fil]]
             for namn, ta, tb in dolj:
                 if LEDER_FIL[j_fil] == namn and ta <= t[i] <= tb:
                     led = [0.0, 0.0, 0.1]
@@ -300,9 +312,9 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     d = {"format": 1, "vy": vy, "hand": hand, ("x_mot_malet" if vy == "fo" else "x_mot_bollen"): int(tecken),
          "spelarens_langd_m": langd_m, "t_klick": TIDER["klick"], "rutor": rutor}
     facit = facit_fo(p, langd_cm) if vy == "fo" else facit_dtl(p, langd_cm)
-    start = facit_start(figur, p, langd_cm)
-    facit["tempo"] = (TIDER["topp"] - start) / (TIDER["klick"] - TIDER["topp"])
-    facit["_start"], facit["_topp"] = start, TIDER["topp"]
+    t_start = facit_start(figur, p, langd_cm)
+    facit["tempo"] = (TIDER["topp"] - t_start) / (TIDER["klick"] - TIDER["topp"])
+    facit["_start"], facit["_topp"] = t_start, TIDER["topp"]
     return d, facit
 
 
@@ -346,18 +358,26 @@ def session(seed: int, n_fo: int, n_dtl: int, utslag: bool = False) -> list[dict
 # --- Swift-fixturerna ------------------------------------------------------------
 
 FIXTURSVINGAR = {
-    # namn: (vy, hand, seed, brus_px, dolj)
-    "fo": ("fo", "hoger", 11, 0.8, (("hoft_v", 1.60, 1.62),)),
-    "fo_vanster": ("fo", "vanster", 12, 0.8, (("handled_h", 0.0, 9.9),)),
-    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),)),
-    "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80))),
+    # namn: (vy, hand, seed, brus_px, dolj, övrigt till sving())
+    "fo": ("fo", "hoger", 11, 0.8, (("hoft_v", 1.60, 1.62),), {}),
+    # Vänsterspelaren med den främre handleden dold: greppregeln ger händerna,
+    # men armbågsmåtten (M22, M23) saknas.
+    "fo_vanster": ("fo", "vanster", 12, 0.8, (("handled_h", 0.0, 9.9),), {}),
+    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {}),
+    "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80)), {}),
+    # Luckor kring toppen (2,20 s): höften 0,13 s (mer än MAX_LUCKA_S, saknas),
+    # näsan 0,05 s (interpoleras). METOD M3
+    "fo_luckor": ("fo", "hoger", 15, 0.8, (("hoft_v", 2.135, 2.265), ("nasa", 2.175, 2.225)), {}),
+    # Baksvingen 0,25 s: starten och tempot saknas (METOD M4). Konfidensen precis på
+    # gränsen 0,3 räknas (främre höften), 0,29 inte (bakre knäet). METOD M1
+    "dtl_kort": ("dtl", "hoger", 16, 0.8, (), {"start": 1.95, "konf": {"hoft_v": 0.3, "kna_h": 0.29}}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 
 
 def fixtursving(namn: str) -> str:
-    vy, hand, seed, brus, dolj = FIXTURSVINGAR[namn]
-    return till_json(sving(vy, hand, seed=seed, brus_px=brus, dolj=dolj, fran=FRAN_S, decimaler=1)[0])
+    vy, hand, seed, brus, dolj, ovrigt = FIXTURSVINGAR[namn]
+    return till_json(sving(vy, hand, seed=seed, brus_px=brus, dolj=dolj, fran=FRAN_S, decimaler=1, **ovrigt)[0])
 
 
 def resultat_json(text: str) -> dict:
