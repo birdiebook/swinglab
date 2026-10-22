@@ -171,7 +171,10 @@ final class SwingLabProvGranskning: XCTestCase {
         XCTAssertEqual(klar.countedSwings.count, 4)
 
         // 2. Passet med riktig data: sway-kortet är medianen.
-        let v = try XCTUnwrap(PassShotsView.visning(klar, store: store), "passet visar måtten")
+        let historik = await PassMeasures.load(klar, store: store)
+        XCTAssertEqual(historik.pass, klar, "passet var redan mätt")
+        XCTAssertEqual(historik.unmeasured, 0)
+        let v = try XCTUnwrap(PassShotsView.visning(historik.pass, earlier: historik.earlier), "passet visar måtten")
         let kort = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
         let median = Session.percentil(varden.sorted(), 0.5)
         XCTAssertEqual(kort.varde, Tal.tecken(Avrundning.avrunda("backen_sway_topp", median), decimaler: 1))
@@ -251,7 +254,7 @@ final class SwingLabProvGranskning: XCTestCase {
         let utan = store.measured(try XCTUnwrap(store.load(klar.id)))
         XCTAssertEqual(utan.shots[3].detectionWrong, true, "märkningen står i pass.json")
         XCTAssertEqual(utan.countedSwings.count, 3)
-        let v2 = try XCTUnwrap(PassShotsView.visning(utan, store: store))
+        let v2 = try XCTUnwrap(PassShotsView.visning(utan, earlier: []))
         let kort2 = try XCTUnwrap(v2.kort.first { $0.id == "sway_topp" })
         let median3 = Session.percentil(Array(varden.prefix(3)).sorted(), 0.5)
         print("PROV: granskningen Detection wrong: sway \(kort.varde) → \(kort2.varde), slag \(v.undertitel) → \(v2.undertitel)")
@@ -266,9 +269,10 @@ final class SwingLabProvGranskning: XCTestCase {
         store.save(p)
         XCTAssertEqual(try XCTUnwrap(store.load(klar.id)).countedSwings.count, 4, "ångrat")
 
-        // 5. Längden: 1,90 m mäter om och skalar måtten i cm.
+        // 5. Längden: 1,90 m mäter om (utanför huvudtråden), sparar och skalar måtten i cm.
         store.setHeight(1.90)
-        let lang = store.measured(try XCTUnwrap(store.load(klar.id)))
+        let lang = await PassMeasures.load(try XCTUnwrap(store.load(klar.id)), store: store).pass
+        XCTAssertEqual(store.load(klar.id), lang, "de nya måtten är sparade")
         XCTAssertEqual(lang.measuredHeight?.heightM, 1.90)
         XCTAssertEqual(lang.measuredHeight?.assumed, false)
         let nya = lang.shots.map { $0.measure?.values["backen_sway_topp"] ?? .nan }

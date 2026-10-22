@@ -71,7 +71,8 @@ struct ShotReviewView: View {
         pass = p
         let r = ShotReview(series: series, crop: serie.activeCrop)
         review = r
-        baseline = PassHistory.baseline(PassHistory.earlier(p, among: store.allPasses()))
+        // Baslinjen ur de tidigare passen med samma längd, mätta utanför huvudtråden (METOD MS14).
+        Task { baseline = PassHistory.baseline(await PassMeasures.load(p, store: store).earlier) }
         // Seriens fil, eller klippet när originalet är borttaget (BESLUT B26, METOD MS12).
         var url = store.url(serie.file, in: passID)
         if !FileManager.default.fileExists(atPath: url.path), let clip = s.clip, let o = ShotImages.clipOffset(s) {
@@ -83,9 +84,10 @@ struct ShotReviewView: View {
         player.isMuted = true
         player.actionAtItemEnd = .pause
         // Rutan följer videon; uppspelningen stannar vid slagets sista ruta.
-        observer = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 120), queue: .main) { t in
+        // Var 1/240 s, och rutan som visas är den senaste med tid ≤ spelarens (golv). METOD MS15
+        observer = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 240), queue: .main) { t in
             MainActor.assumeIsolated {
-                guard t.isValid, !seeking, let r = review, let k = r.index(nearestPts: t.seconds - offset) else { return }
+                guard t.isValid, !seeking, let r = review, let k = r.index(atPts: t.seconds - offset) else { return }
                 frame = k
                 if playing, k >= r.frames.count - 1 {
                     player.pause()
@@ -115,7 +117,8 @@ struct ShotReviewView: View {
             return
         }
         seeking = true
-        let t = r.frames[k].pts + offset
+        // En fjärdedels ruta in i rutan, så att just den visas trots avrundade tider. METOD MS15
+        let t = (r.seekTime(k) ?? r.frames[k].pts) + offset
         player.seek(to: CMTime(seconds: max(0, t), preferredTimescale: 48_000), toleranceBefore: .zero,
                     toleranceAfter: .zero) { _ in
             Task { @MainActor in
@@ -128,9 +131,15 @@ struct ShotReviewView: View {
         }
     }
 
+    /// Pausar; efter uppspelning söks exakt till rutan som spelaren står på, så att bilden och
+    /// lederna är samma ruta. METOD MS15
     private func pause() {
+        let spelade = playing
         player.pause()
         playing = false
+        if spelade, let r = review, let k = r.index(atPts: player.currentTime().seconds - offset) {
+            seek(k)
+        }
     }
 
     /// Spelar i 1/8 fart från rutan, eller från början när den står vid slutet. METOD MS15

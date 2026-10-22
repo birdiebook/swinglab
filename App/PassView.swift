@@ -25,6 +25,8 @@ struct PassShotsView: View {
     @State private var editing: SeriesID?
     /// Passets mått (S4:s Passet med riktig data), när något slag är mätt (METOD MS14).
     @State private var visning: Passvisning?
+    /// Tidigare pass med samma klubba och vy som inte kom med i baslinjen (inga mått).
+    @State private var unmeasured = 0
 
     struct SeriesID: Identifiable {
         let id: Int
@@ -38,7 +40,7 @@ struct PassShotsView: View {
         ScrollView {
             if let pass {
                 PassScreenContent(pass: pass, visning: visning, images: images, overlays: overlays,
-                                  analysis: AnalysisState(analysis), onClose: onClose, onAnalyze: analyze,
+                                  analysis: AnalysisState(analysis), unmeasured: unmeasured, onClose: onClose, onAnalyze: analyze,
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
                                   onHeight: setHeight)
             }
@@ -82,21 +84,27 @@ struct PassShotsView: View {
 
     private func reload() {
         guard let p = store.load(passID) else { return }
-        show(store.measured(p))
+        show(p)
     }
 
-    /// Passet och dess mått: de tidigare passen med samma klubba och vy ger baslinjen och
-    /// "vs" (METOD MS14).
+    /// Passet nu, och sedan dess mått: passet och de tidigare passen (samma klubba och vy)
+    /// mäts med längden som gäller utanför huvudtråden, och baslinjen och "vs" tas ur dem
+    /// (METOD MS14).
     private func show(_ p: PassState) {
         pass = p
-        visning = Self.visning(p, store: store)
         Task { await loadImages(p) }
+        Task {
+            let r = await PassMeasures.load(p, store: store)
+            guard r.pass.id == pass?.id else { return }
+            pass = r.pass
+            visning = Self.visning(r.pass, earlier: r.earlier)
+            unmeasured = r.unmeasured
+        }
     }
 
-    static func visning(_ p: PassState, store: Store) -> Passvisning? {
+    static func visning(_ p: PassState, earlier: [PassState]) -> Passvisning? {
         guard let k = AppKatalog.katalog, p.shots.contains(where: { $0.measure != nil }) else { return nil }
-        let tidigare = PassHistory.earlier(p, among: store.allPasses())
-        return Passvisning(katalog: k, pass: tidigare.map(\.visningsPass) + [p.visningsPass])
+        return Passvisning(katalog: k, pass: earlier.map(\.visningsPass) + [p.visningsPass])
     }
 
     private func analyze() {
@@ -143,6 +151,28 @@ struct PassShotsView: View {
     }
 }
 
+/// Passets mått med de tidigare passen (METOD MS14): passet och dess kandidater (samma
+/// klubba och vy, före) mäts med längden som gäller utanför huvudtråden, de som ändrades
+/// sparas, och de tidigare passen med samma längd blir baslinjen och "vs"; de som ändå
+/// saknar mått räknas.
+@MainActor
+enum PassMeasures {
+    static func load(_ p: PassState, store: Store) async -> (pass: PassState, earlier: [PassState], unmeasured: Int) {
+        let kandidater = PassHistory.candidates(p, among: store.allPasses())
+        let height = store.settings.heightM
+        let root = store.root
+        let fore = [p] + kandidater
+        let efter = await Task.detached(priority: .userInitiated) {
+            Store.measuring(fore, height: height, root: root)
+        }.value
+        // Bara ett pass som inte ändrats under tiden skrivs över med sina nya mått.
+        for (a, b) in zip(fore, efter) where a != b && store.load(a.id) == a { store.save(b) }
+        let nu = efter[0]
+        let tidigare = Array(efter.dropFirst())
+        return (nu, PassHistory.earlier(nu, among: tidigare), PassHistory.unmeasured(nu, among: tidigare))
+    }
+}
+
 /// Passets skärm som värden (ingen ScrollView, ingen UIKit-del), så att provet kan rita
 /// den: raden överst, passets mått när något slag är mätt (S4:s Passet, BESLUT B35) med
 /// längden, och slagen med analysen under. Efter Analyze står måtten överst.
@@ -152,6 +182,8 @@ struct PassScreenContent: View {
     let images: [String: CGImage]
     let overlays: [String: ImpactOverlay]
     let analysis: AnalysisState
+    /// Tidigare pass (samma klubba och vy) som inte är med i baslinjen och "vs": utan mått.
+    var unmeasured = 0
     var editable = true
     var onClose: () -> Void = {}
     var onAnalyze: () -> Void = {}
@@ -171,6 +203,11 @@ struct PassScreenContent: View {
                 if let h = pass.measuredHeight {
                     HeightRow(heightM: h.heightM, assumed: h.assumed, editable: editable && !analysis.running,
                               onSet: onHeight)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, unmeasured > 0 ? 0 : 8)
+                }
+                if unmeasured > 0 {
+                    Under(text: String(localized: "\(unmeasured) earlier not measured"))
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }

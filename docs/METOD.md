@@ -800,9 +800,18 @@ värden i `CaptureTests`.
 - **Passet** visar katalogens mått med sessionen (M25), den egna baslinjen (M27) och
   "vs" förra passet (M26), där de tidigare passen är de med **samma klubba och samma
   vy** (kameran på samma plats, research 1 del 4). **antagande.** Under tre svingar
-  (M25:s gräns) visar kortet ändå medianen av de som finns, utan spridning och utan
-  "vs", så att ett pass med ett slag inte står tomt efter Analyze. Sessionens
-  sammanfattning och bedömningen ändras inte. **antagande.**
+  (M25:s gräns) visar kortet ändå medianen av de som finns, utan spridning, utan "vs"
+  och utan förra passets streck, så att ett pass med ett slag inte står tomt efter
+  Analyze. Sessionens sammanfattning och bedömningen ändras inte. **antagande.**
+- **Samma längd i jämförelsen.** När passet öppnas mäts det och de tidigare passen
+  (samma klubba och vy) om med längden som gäller nu, utanför huvudtråden, och de som
+  ändrades sparas. Baslinjen och "vs" tar bara pass mätta med **samma längd** som
+  passet, så att ett mått i cm aldrig jämförs mellan två skalor. Ett tidigare pass som
+  ändå saknar mått (inga leder) eller har en annan längd faller inte bort tyst: passet
+  visar antalet ("2 earlier not measured"). **räkning.**
+- **Spannets minsta bredd:** axeln rymmer minst fyra steg på måttets sista decimal
+  (0,4 cm eller grader, 0,04 för tempot), så att ett mått med samma värde i alla slag
+  inte får en axel med samma tal i båda ändar. **räkning.**
 - **Ändras fönstret eller utsnittet** (MS13) tas måtten och märkningen bort med
   lederna.
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
@@ -819,6 +828,17 @@ värden i `CaptureTests`.
   fönstret, med bildens egen tid): ett steg är en ruta, en position (M28) visar rutan
   närmast positionens tid. Uppspelningen går i **1/8** fart: 240 bilder/s blir 30 per
   sekund. **antagande** (läsbart med ögat).
+- **Lederna följer bilden ruta för ruta.** En videoruta visas från sin tid till nästa,
+  så lederna är rutan med den **senaste tiden ≤ spelarens tid** (golv, inte närmaste),
+  med 0,5 ms för avrundningen av tiderna (0,1 ms i `Leder/`). Spelarens tid läses var
+  **1/240 s**. Ett steg, en position eller en paus söker exakt till rutans tid **plus en
+  fjärdedels ruta** (1/960 s), så att spelaren visar just den rutan; efter uppspelning
+  söks pausen till rutan spelaren stod på. **räkning.**
+- **Klippläget** (originalet borttaget, BESLUT B26): klippets tid räknas ur klicket mätt
+  i ljudet (MS12), som ligger inom en till två rutor från bildens tid (passthrough-klippet
+  börjar inte exakt där det begärdes). Lederna kan då ligga **upp till ~2 rutor** fel mot
+  bilden; med originalet kvar är de på samma ruta. **mätt** (MS12: klicket i klippet
+  0,44 ms före det väntade på den påhittade filmen), **antagande** (telefonens klipp).
 - **Lederna** ritas som Vision gav dem i rutan, inte utjämnade (M3): granskningen ska
   visa vad Vision såg. Fylld punkt vid konfidens **≥ 0,3** (leden mäts, M1), ihålig
   vid **0,1–0,3** (Vision räknar den säker, MS8, men måtten räknar den som saknad),

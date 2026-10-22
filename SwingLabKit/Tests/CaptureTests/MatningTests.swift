@@ -213,11 +213,12 @@ final class MatningTests: XCTestCase {
 
     /// Passen före: samma klubba och vy, äldst först, och bara pass med mätta slag.
     func testDeTidigarePassen() throws {
-        func pass(_ id: String, _ dag: Double, club: String = "j7", view: Vy = .fo, matt: Bool = true) -> PassState {
+        func pass(_ id: String, _ dag: Double, club: String = "j7", view: Vy = .fo, matt: Bool = true,
+                  h: Double = 1.8) -> PassState {
             var p = PassState(id: id, created: Date(timeIntervalSince1970: 1_792_000_000 + dag * 86_400),
                               setup: PassSetup(view: view, club: club, distance: 3, hand: .hoger))
             var s = Self.slag()
-            if matt { s.measure = ShotMeasure(heightM: 1.8, heightAssumed: false, values: ["backen_sway_topp": dag]) }
+            if matt { s.measure = ShotMeasure(heightM: h, heightAssumed: false, values: ["backen_sway_topp": dag]) }
             p.shots = [s]
             p.series = SlagTests.pass(klick: [[Self.klick]]).series
             return p
@@ -225,9 +226,11 @@ final class MatningTests: XCTestCase {
         let nu = pass("20261110-120000", 10)
         let alla = [pass("20261105-120000", 5), pass("20261101-120000", 1), pass("20261108-120000", 8, club: "dr"),
                     pass("20261107-120000", 7, view: .dtl), pass("20261106-120000", 6, matt: false),
-                    pass("20261112-120000", 12), nu]
+                    pass("20261112-120000", 12), pass("20261103-120000", 3, h: 1.9), nu]
         let fore = PassHistory.earlier(nu, among: alla)
-        XCTAssertEqual(fore.map(\.id), ["20261101-120000", "20261105-120000"])
+        XCTAssertEqual(fore.map(\.id), ["20261101-120000", "20261105-120000"], "samma klubba, vy och längd")
+        XCTAssertEqual(PassHistory.candidates(nu, among: alla).count, 4)
+        XCTAssertEqual(PassHistory.unmeasured(nu, among: alla), 2, "utan mått och med en annan längd räknas")
         XCTAssertEqual(PassHistory.baseline(fore)["backen_sway_topp"], [1, 5])
     }
 
@@ -276,6 +279,14 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(r.index(nearestT: 5), 2)
         XCTAssertEqual(r.index(nearestT: -5), 0)
         XCTAssertEqual(r.index(nearestPts: 9.981), 0)
+        // Spelarens ruta: den senaste med tid ≤ spelarens tid (golv), inte den närmaste.
+        XCTAssertEqual(r.index(atPts: 9.9899), 1, "inom avrundningen: rutan vid 9,99")
+        XCTAssertEqual(r.index(atPts: 9.9989), 1, "nästan nästa ruta: fortfarande 9,99")
+        XCTAssertEqual(r.index(atPts: 10.5), 2)
+        XCTAssertEqual(r.index(atPts: 9.0), 0)
+        XCTAssertEqual(r.seekTime(1) ?? .nan, 9.99 + 0.25 / 240, accuracy: 1e-12)
+        XCTAssertEqual(r.index(atPts: r.seekTime(1)!), 1, "sökt rutas tid ger samma ruta")
+        XCTAssertNil(r.seekTime(9))
         let m = ShotMeasure(heightM: 1.8, heightAssumed: false, positions: ["P4": -0.019, "P7": 0.001])
         let pos = r.positions(m)
         XCTAssertEqual(pos.map(\.name), Positioner.namn)
@@ -347,7 +358,7 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(ett?.varde, "−2.0")
         XCTAssertNil(ett?.skillnad)
         XCTAssertNil(ett?.spann?.spridning)
-        XCTAssertEqual(ett?.spann?.forra ?? .nan, -6, accuracy: 1e-9)
+        XCTAssertNil(ett?.spann?.forra, "utan jämförelse mot förra passet under tre svingar")
         let tva = Passvisning(katalog: k, pass: [pass([-2, -3])]).kort.first { $0.id == "sway_topp" }
         XCTAssertEqual(tva?.varde, "−2.5")
         let tre = Passvisning(katalog: k, pass: [forra, pass([-2, -3, -4])]).kort.first { $0.id == "sway_topp" }
@@ -355,5 +366,11 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(tre?.skillnad, "+3.0 cm vs Oct 22")
         let tom = Passvisning(katalog: k, pass: [pass([])]).kort.first { $0.id == "sway_topp" }
         XCTAssertEqual(tom?.varde, "—")
+        // Samma värde i alla slag: spannet får en minsta bredd, axelns ändar skiljer sig.
+        let lika = Spann(nu: 20.004, spridning: (lo: 20.003, hi: 20.005), forra: nil, gront: nil, baslinje: nil,
+                         decimaler: 1)
+        XCTAssertNotEqual(lika.etiketter.first?.text, lika.etiketter.last?.text)
+        let heltal = Spann(nu: 20, spridning: (lo: 20, hi: 20), forra: nil, gront: nil, baslinje: nil, decimaler: 0)
+        XCTAssertNotEqual(heltal.etiketter.first?.text, heltal.etiketter.last?.text)
     }
 }

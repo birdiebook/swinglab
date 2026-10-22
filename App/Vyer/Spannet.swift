@@ -134,7 +134,8 @@ struct MattkortVy: View {
                     SpannVy(spann: spann, accent: kort.ovas)
                         .padding(.top, 12)
                 } else {
-                    StortTal(varde: kort.varde, enhet: kort.enhet, avstangt: true)
+                    // Ett saknat eller avstängt mått: bara strecket, utan enhet.
+                    StortTal(varde: kort.varde, enhet: kort.varde == "—" ? "" : kort.enhet, avstangt: true)
                 }
             }
         }

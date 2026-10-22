@@ -32,6 +32,9 @@ final class Store {
     let root: URL
     let exportFolder: URL
     private(set) var index = PassIndex()
+    /// Passen som lästs, per id: `allPasses` läser disken en gång, och varje sparat pass
+    /// uppdaterar sin rad (S4b). Inte observerad: den ändrar inget som syns.
+    @ObservationIgnored private var cache: [String: PassState]?
     private(set) var settings = AppSettings()
     /// Visas när en fil inte gick att läsa eller skriva.
     var problem: String?
@@ -109,6 +112,7 @@ final class Store {
         try FileManager.default.createDirectory(at: passFolder(pass.id), withIntermediateDirectories: true)
         try PassCoding.encoder().encode(pass).write(to: passFile(pass.id), options: .atomic)
         index.upsert(pass.entry)
+        cache?[pass.id] = pass
         try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
     }
 
@@ -187,6 +191,7 @@ final class Store {
         guard PassID.isValid(id), let p = load(id), p.series.isEmpty, p.shots.isEmpty else { return }
         try? FileManager.default.removeItem(at: passFolder(id))
         index.passes.removeAll { $0.id == id }
+        cache?[id] = nil
         try? PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
     }
 
@@ -253,9 +258,34 @@ final class Store {
         return p
     }
 
-    /// Alla pass på telefonen, för de tidigare passen (baslinjen och "vs", METOD MS14).
+    /// Alla pass på telefonen, för de tidigare passen (baslinjen och "vs", METOD MS14). Läses
+    /// från disken första gången; sedan håller `write` dem aktuella.
     func allPasses() -> [PassState] {
-        index.passes.compactMap { load($0.id) }
+        var c = cache ?? [:]
+        let ut = index.passes.compactMap { e -> PassState? in
+            if let p = c[e.id] { return p }
+            let p = load(e.id)
+            c[e.id] = p
+            return p
+        }
+        cache = c
+        return ut
+    }
+
+    /// Slagens mått med längden `height`, utan Store och utan huvudtråden: lederna läses
+    /// direkt ur passets mapp under `root`. Svarar passen; de som ändrades har nya mått och
+    /// ska sparas av den som anropar (på huvudtråden). METOD MS14
+    static func measuring(_ passes: [PassState], height: Double?, root: URL) -> [PassState] {
+        passes.map { pass in
+            var p = pass
+            let mapp = root.appending(path: "Pass", directoryHint: .isDirectory)
+                .appending(path: pass.id, directoryHint: .isDirectory)
+            p.measureShots(height: height) { s in
+                guard let rel = s.joints, let data = try? Data(contentsOf: mapp.appending(path: rel)) else { return nil }
+                return try? JSONDecoder().decode(JointSeries.self, from: data)
+            }
+            return p
+        }
     }
 
     // MARK: Originalen (BESLUT B26)

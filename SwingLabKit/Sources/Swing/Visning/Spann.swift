@@ -110,6 +110,13 @@ public struct Spann: Equatable, Sendable {
         if let g = gLo { varden.append(g) }
         if let g = gHi { varden.append(g) }
         if gront == nil, let b = baslinje { varden += [b.lo, b.hi] }
+        // En minsta bredd: fyra steg på sista decimalen, så att axelns ändar aldrig skrivs
+        // som samma tal ("20 … 20") när alla slag har samma värde.
+        let minsta = 4 * pow(10, -Double(Swift.max(0, decimaler)))
+        if let lo = varden.min(), let hi = varden.max(), hi - lo < minsta {
+            let mitt = (lo + hi) / 2
+            varden += [mitt - minsta / 2, mitt + minsta / 2]
+        }
         // En öppen gräns ska synas som öppen: axeln sträcker sig en bit förbi den slutna änden.
         if gront != nil, (gLo == nil) != (gHi == nil), let sluten = gLo ?? gHi {
             let span = (varden.max()! - varden.min()!)

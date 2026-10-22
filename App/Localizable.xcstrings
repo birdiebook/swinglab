@@ -67,6 +67,17 @@
         }
       }
     },
+    "%lld earlier not measured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld earlier not measured"
+          }
+        }
+      }
+    },
     "%lld fps": {
       "extractionState": "manual",
       "localizations": {

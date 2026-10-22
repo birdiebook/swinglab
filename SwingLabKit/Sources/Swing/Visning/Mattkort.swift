@@ -102,9 +102,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         let fa = nu.varden(fel.matt, grupp)
         if fel.aktiv, nu.sammanfattning(fel.matt, grupp) == nil, !fa.isEmpty {
             let v = Session.percentil(fa.sorted(), 0.5)
-            let forra = tidigare.last?.median(fel.matt, grupp)
             let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
-            let spann = Spann(nu: v, spridning: nil, forra: forra, gront: fel.gront, baslinje: bas,
+            let spann = Spann(nu: v, spridning: nil, forra: nil, gront: fel.gront, baslinje: bas,
                               decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet)
             return Mattkort(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: Etiketter.rubrik(fel), vy: vy,
                             markning: markning, varde: text(Avrundning.avrunda(fel.matt, v), e), enhet: e.enhet,

@@ -45,6 +45,11 @@ public struct ShotReview: Sendable {
     public static let shownConfidence = PoseRules.jointConfidence
     /// Uppspelningens fart: 240 bilder/s visas som 30 per sekund. METOD MS15
     public static let playbackRate = 0.125
+    /// En ruta söks på sin tid plus en fjärdedels ruta vid 240 bilder/s, så att spelaren
+    /// visar just den rutan även när tiden i lederna är avrundad (0,1 ms). METOD MS15
+    public static let seekInto = 0.25 / 240
+    /// Spelarens tid får ligga så långt före en rutas tid och ändå ge den rutan (avrundningen). METOD MS15
+    public static let floorSlack = 0.0005
 
     /// Rutorna i tidsordning (t relativt klicket, pts i seriens fil).
     public let frames: [PoseFrame]
@@ -74,6 +79,25 @@ public struct ShotReview: Sendable {
     /// Rutan närmast tiden p i seriens fil.
     public func index(nearestPts p: Double) -> Int? {
         nearest(p) { $0.pts }
+    }
+
+    /// Rutan som visas vid spelarens tid p i seriens fil: den senaste vars tid är ≤ p (en
+    /// videoruta visas från sin tid till nästa), med `floorSlack` för avrundningen; före
+    /// första rutan den första. nil utan rutor. METOD MS15
+    public func index(atPts p: Double) -> Int? {
+        guard !frames.isEmpty else { return nil }
+        guard p.isFinite else { return 0 }
+        var lo = 0, hi = frames.count
+        while lo < hi {
+            let m = (lo + hi) / 2
+            if frames[m].pts <= p + Self.floorSlack { lo = m + 1 } else { hi = m }
+        }
+        return max(0, lo - 1)
+    }
+
+    /// Tiden i seriens fil som spelaren söks till för ruta k (`seekInto` in i rutan).
+    public func seekTime(_ k: Int) -> Double? {
+        frames.indices.contains(k) ? frames[k].pts + Self.seekInto : nil
     }
 
     private func nearest(_ v: Double, _ tid: (PoseFrame) -> Double) -> Int? {

@@ -145,14 +145,29 @@ public enum PassHistory {
     /// Första serien är de fem första slagen i serie 1. METOD MT2
     public static let firstSet = 5
 
-    /// De tidigare passen att jämföra med, äldst först: skapade före `nu`, med samma klubba
-    /// och samma vy (kameran på samma plats, research 1 del 4) och minst ett slag som räknas.
-    public static func earlier(_ nu: PassState, among alla: [PassState]) -> [PassState] {
+    /// Passen före `nu` som kan jämföras: skapade före, med samma klubba och samma vy
+    /// (kameran på samma plats, research 1 del 4). Äldst först.
+    public static func candidates(_ nu: PassState, among alla: [PassState]) -> [PassState] {
         alla.filter { p in
-            p.id != nu.id && p.created < nu.created && p.setup.club == nu.setup.club
-                && p.setup.view == nu.setup.view && !p.countedSwings.isEmpty
+            p.id != nu.id && p.created < nu.created && p.setup.club == nu.setup.club && p.setup.view == nu.setup.view
         }
         .sorted { $0.created < $1.created || ($0.created == $1.created && $0.id < $1.id) }
+    }
+
+    /// De tidigare passen att jämföra med (baslinjen och "vs"): kandidaterna med minst ett
+    /// slag som räknas och mätta med **samma längd** som `nu`, så att ett mått i cm aldrig
+    /// jämförs mellan två skalor. Appen mäter först om passen med längden som gäller
+    /// (`measureShots`), så att bara pass utan leder faller bort; dem räknar `unmeasured`.
+    public static func earlier(_ nu: PassState, among alla: [PassState]) -> [PassState] {
+        let h = nu.measuredHeight?.heightM
+        return candidates(nu, among: alla).filter { p in
+            !p.countedSwings.isEmpty && (h == nil || p.measuredHeight?.heightM == h)
+        }
+    }
+
+    /// Kandidaterna som inte kom med i `earlier`: utan mätta slag, eller med en annan längd.
+    public static func unmeasured(_ nu: PassState, among alla: [PassState]) -> Int {
+        candidates(nu, among: alla).count - earlier(nu, among: alla).count
     }
 
     /// Måttens värden i de tidigare passen (alla slag som räknas), för den egna baslinjen.
