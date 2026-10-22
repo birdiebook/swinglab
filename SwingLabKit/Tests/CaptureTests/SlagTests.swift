@@ -113,11 +113,17 @@ final class SlagTests: XCTestCase {
     /// tredje ruta borta, som det glesa passet läser dem.
     static func skanna(sving: Bool, fonster: ClosedRange<Double>, stride: Int, klick: Double = 10,
                        width: Int = 270, height: Int = 480) -> [ScannedFrame] {
-        let rutor = (0..<(240 * 20)).filter { $0 % 3 != 2 }.map { Double($0) / 240 }.filter { fonster.contains($0) }
-        return rutor.enumerated().filter { $0.offset % stride == 0 }.map { _, pts in
-            ScannedFrame(pts: pts, candidates: DemoLeder.kandidater(pts: pts, klick: klick, sving: sving,
-                                                                    width: width, height: height))
+        var rutor: [Double] = []
+        for k in 0..<(240 * 20) where k % 3 != 2 {
+            let pts = Double(k) / 240
+            if fonster.contains(pts) { rutor.append(pts) }
         }
+        var ut: [ScannedFrame] = []
+        for (n, pts) in rutor.enumerated() where n % stride == 0 {
+            let kandidater = DemoLeder.kandidater(pts: pts, klick: klick, sving: sving, width: width, height: height)
+            ut.append(ScannedFrame(pts: pts, candidates: kandidater))
+        }
+        return ut
     }
 
     func testPersonvaletOchDomenGenomEnSerie() {

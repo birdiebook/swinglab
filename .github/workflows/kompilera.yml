@@ -7,7 +7,7 @@
 # Resultatet läses utan gh, på grenen ci-resultat (som test.yml, men egen fil så
 # att de två inte skriver över varandra):
 #   git fetch origin ci-resultat && git show origin/ci-resultat:resultat/<sha>.kompilera.txt
-# Bilderna som provet ritade ligger bredvid som resultat/<sha>.<namn>.png (startvy, kvitto).
+# Bilderna som provet ritade ligger bredvid som resultat/<sha>.<namn>.png (startvy, kvitto, slag, traff).
 # testflight.yml vägrar en commit som inte är grön här.
 
 name: kompilera
@@ -106,7 +106,7 @@ jobs:
               python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
               grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
               echo "== provets mätningar (påhittad film)"
-              grep -E '^PROV: ' prov.log | head -40 || true
+              grep -E '^PROV: ' prov.log | head -80 || true
             fi
           } > "$RUNNER_TEMP/resultat.txt"
           cat "$RUNNER_TEMP/resultat.txt"

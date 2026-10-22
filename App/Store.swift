@@ -13,6 +13,7 @@ import Capture
 ///   Pass/<id>/pass.json       PassState
 ///   Pass/<id>/Video/01.mov    inspelningar och importerade original   (utanför backupen)
 ///   Pass/<id>/Klipp/          klippen kring slagen (S2e)                (utanför backupen)
+///   Pass/<id>/Leder/s01.json  ett slags leder (JointSeries, S2e)
 /// Documents/Export/           paketen (S2f), synliga i Filer             (utanför backupen)
 /// ```
 @Observable
@@ -87,6 +88,26 @@ final class Store {
         } catch {
             problem = String(localized: "pass.json could not be saved.")
         }
+    }
+
+    // MARK: Lederna (S2e)
+
+    /// Ett slags leder till `Leder/<id>.json`, avrundade som i paketet (METOD MS12).
+    /// Svarar sökvägen i passet.
+    func writeJoints(_ series: JointSeries, shot id: String, in passID: String) throws -> String {
+        let rel = ShotRecord.jointsPath(id)
+        let fil = url(rel, in: passID)
+        try FileManager.default.createDirectory(at: fil.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let e = JSONEncoder()
+        e.outputFormatting = [.sortedKeys]
+        try e.encode(series.rounded()).write(to: fil, options: .atomic)
+        return rel
+    }
+
+    /// Ett slags leder, eller nil när filen saknas eller inte går att läsa.
+    func joints(_ rel: String, in passID: String) -> JointSeries? {
+        guard let data = try? Data(contentsOf: url(rel, in: passID)) else { return nil }
+        return try? JSONDecoder().decode(JointSeries.self, from: data)
     }
 
     // MARK: Originalen (BESLUT B26)

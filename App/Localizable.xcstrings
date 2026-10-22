@@ -23,6 +23,28 @@
         }
       }
     },
+    "%@ ms/frame": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ms/frame"
+          }
+        }
+      }
+    },
+    "%@ s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ s"
+          }
+        }
+      }
+    },
     "%@, timeline": {
       "extractionState": "manual",
       "localizations": {
@@ -63,6 +85,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Address"
+          }
+        }
+      }
+    },
+    "Analyze": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyze"
           }
         }
       }
@@ -122,6 +155,17 @@
         }
       }
     },
+    "DTL": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DTL"
+          }
+        }
+      }
+    },
     "Distance": {
       "extractionState": "manual",
       "localizations": {
@@ -166,17 +210,6 @@
         }
       }
     },
-    "DTL": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DTL"
-          }
-        }
-      }
-    },
     "External microphone": {
       "extractionState": "manual",
       "localizations": {
@@ -188,17 +221,6 @@
         }
       }
     },
-    "Finish": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finish"
-          }
-        }
-      }
-    },
     "FO": {
       "extractionState": "manual",
       "localizations": {
@@ -206,6 +228,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "FO"
+          }
+        }
+      }
+    },
+    "Finish": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish"
           }
         }
       }
@@ -276,17 +309,6 @@
         }
       }
     },
-    "installningar.json could not be saved.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "installningar.json could not be saved."
-          }
-        }
-      }
-    },
     "Interrupted.": {
       "extractionState": "manual",
       "localizations": {
@@ -342,17 +364,6 @@
         }
       }
     },
-    "median": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "median"
-          }
-        }
-      }
-    },
     "Microphone off": {
       "extractionState": "manual",
       "localizations": {
@@ -397,13 +408,35 @@
         }
       }
     },
-    "pass.json could not be saved.": {
+    "Not a swing": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "pass.json could not be saved."
+            "value": "Not a swing"
+          }
+        }
+      }
+    },
+    "Not analyzed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not analyzed"
+          }
+        }
+      }
+    },
+    "Orientation suspect": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientation suspect"
           }
         }
       }
@@ -452,13 +485,13 @@
         }
       }
     },
-    "session": {
+    "Sessions": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "session"
+            "value": "Sessions"
           }
         }
       }
@@ -474,13 +507,24 @@
         }
       }
     },
-    "set 1": {
+    "Shot %lld could not be analyzed: %@": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "set 1"
+            "value": "Shot %lld could not be analyzed: %@"
+          }
+        }
+      }
+    },
+    "Shot %lld of %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shot %lld of %lld"
           }
         }
       }
@@ -514,6 +558,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stop"
+          }
+        }
+      }
+    },
+    "Swing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swing"
           }
         }
       }
@@ -562,6 +617,17 @@
         }
       }
     },
+    "The click is outside the file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The click is outside the file."
+          }
+        }
+      }
+    },
     "The clip could not be loaded.": {
       "extractionState": "manual",
       "localizations": {
@@ -569,6 +635,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The clip could not be loaded."
+          }
+        }
+      }
+    },
+    "The clip could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The clip could not be saved."
           }
         }
       }
@@ -639,6 +716,17 @@
         }
       }
     },
+    "Uncertain": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uncertain"
+          }
+        }
+      }
+    },
     "View": {
       "extractionState": "manual",
       "localizations": {
@@ -646,6 +734,61 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
+          }
+        }
+      }
+    },
+    "installningar.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "installningar.json could not be saved."
+          }
+        }
+      }
+    },
+    "median": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "median"
+          }
+        }
+      }
+    },
+    "pass.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pass.json could not be saved."
+          }
+        }
+      }
+    },
+    "session": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "session"
+          }
+        }
+      }
+    },
+    "set 1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "set 1"
           }
         }
       }

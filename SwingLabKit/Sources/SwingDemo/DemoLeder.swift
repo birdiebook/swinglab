@@ -39,7 +39,13 @@ public enum DemoLeder {
             (590, 1350), (490, 1350),           // knän
             (600, 1650), (480, 1650),           // fotleder
         ]
-        return pkt.map { ((($0.0 - 540) * skala + 540 + dx), 1650 - (1650 - $0.1) * skala) }
+        var ut: [(Double, Double)] = []
+        for (x, y) in pkt {
+            let nx: Double = (x - 540) * skala + 540 + dx
+            let ny: Double = 1650 - (1650 - y) * skala
+            ut.append((nx, ny))
+        }
+        return ut
     }
 
     /// Vision-kandidaterna i en ruta: grannen först, sedan personen som svingar (eller
