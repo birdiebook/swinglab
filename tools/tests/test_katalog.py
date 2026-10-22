@@ -31,12 +31,19 @@ class Formen(unittest.TestCase):
         self.assertEqual(pos["early_extension"], ["P7"])
         self.assertEqual(pos["chicken_wing"], ["P9"])
         self.assertEqual(pos["tempo"], [])                    # hela svingen
+        self.assertEqual(pos["backens_resa_framat"], [])      # resan visas vid P5, som måttet hittills
+        self.assertEqual(pos["tappad_hallning"], ["P7"])      # avvikelse mot skissen (METOD M29)
         matt = {(m["vy"], m["matt"]): m["positioner"] for m in k["matt"]}
         self.assertEqual(matt[("fo", "backen_sway_p3")], ["P3"])
         self.assertEqual(matt[("fo", "framre_armbage_p3")], ["P3"])
         self.assertEqual(matt[("fo", "backen_resa_p5")], ["P5"])
         self.assertEqual(matt[("fo", "huvud_backen_finish")], ["P10"])
         self.assertEqual(matt[("dtl", "brost_bojning_adress")], ["P1"])
+        # Accenten (B31) följer felet: sway hittills hör till sway-felet, resan till resans.
+        kopplat = {m["matt"]: m.get("fel") for m in k["matt"]}
+        self.assertEqual(kopplat["backen_sway_p3"], "sway_topp")
+        self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
+        self.assertIsNone(kopplat["stans_bredd"])
         # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
         alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
         self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
@@ -69,6 +76,9 @@ class Formen(unittest.TestCase):
         ('{"matt": "stans_bredd"', '{"matt": "backen_sway_topp"', "matt backen_sway_topp: står redan i katalogen"),
         ('"positioner": ["P10"]', '"positioner": []', "matt huvud_backen_finish: positioner ska vara"),
         ('{"matt": "stans_bredd", "vy": "fo"', '{"matt": "stans_bredd", "vy": "bada"', "matt stans_bredd: vy ska vara"),
+        ('"fel": "sway_topp"}', '"fel": "finns_inte"}', "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
+        ('{"matt": "stans_bredd", "vy": "fo",', '{"matt": "stans_bredd", "x": 1, "vy": "fo",',
+         "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),

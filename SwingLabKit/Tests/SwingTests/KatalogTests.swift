@@ -31,6 +31,10 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(try fel("sway_topp").positioner, ["P4"])
         XCTAssertEqual(try fel("over_the_top").positioner, ["P5"])
         XCTAssertEqual(try fel("tempo").positioner, [])
+        XCTAssertEqual(try fel("backens_resa_framat").positioner, [])       // resan visas vid P5
+        XCTAssertEqual(k.matt.first { $0.matt == "backen_sway_p3" }?.fel, "sway_topp")
+        XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
+        XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
         XCTAssertEqual(k.matt.count, 10)
         for m in k.matt {
             let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
@@ -68,6 +72,9 @@ final class KatalogTests: XCTestCase {
         ("\"positioner\": [\"P10\"]", "\"positioner\": []", "matt huvud_backen_finish: positioner ska vara"),
         ("{\"matt\": \"stans_bredd\", \"vy\": \"fo\"", "{\"matt\": \"stans_bredd\", \"vy\": \"bada\"",
          "matt stans_bredd: vy ska vara"),
+        ("\"fel\": \"sway_topp\"}", "\"fel\": \"finns_inte\"}", "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
+        ("{\"matt\": \"stans_bredd\", \"vy\": \"fo\",", "{\"matt\": \"stans_bredd\", \"x\": 1, \"vy\": \"fo\",",
+         "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
     ]
 
     func testKontrollernaSomPython() throws {

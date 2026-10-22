@@ -17,7 +17,7 @@ final class MattTests: XCTestCase {
 
     func testVarjeSvingGerPythonsTal() throws {
         XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
-                                                       "fo_kort_arm", "dtl_vanster"])
+                                                       "fo_kort_arm", "fo_lucka_arm", "dtl_vanster"])
         var jamforda = 0
         var positioner = 0
         for f in Fixturer.svingar {
@@ -47,10 +47,10 @@ final class MattTests: XCTestCase {
                 }
             }
         }
-        // Kvittot: testet jämförde verkligen måtten (38 + 33 + 28 + 23 + 32 + 22 + 35 + 28 = 239)
-        // och positionerna (8 × 7 − 4 saknade = 52).
-        XCTAssertEqual(jamforda, 239)
-        XCTAssertEqual(positioner, 52)
+        // Kvittot: testet jämförde verkligen måtten (38 + 33 + 28 + 23 + 32 + 22 + 35 + 37 + 28 = 276)
+        // och positionerna (9 × 7 − 5 saknade = 58).
+        XCTAssertEqual(jamforda, 276)
+        XCTAssertEqual(positioner, 58)
     }
 
     func testDePahittadeFormerna() throws {
@@ -138,31 +138,90 @@ final class MattTests: XCTestCase {
     }
 
     func testPositionernaIOrdning() throws {
-        for i in [0, 2, 7] {
+        for i in [0, 2, 8] {
             let p = try Matt.mat(Sving.las(json: Fixturer.svingar[i].indata)).positioner
             let tider = Positioner.namn.compactMap { p.tid($0) }
             XCTAssertEqual(tider.count, 7, Fixturer.svingar[i].namn)
             XCTAssertEqual(tider, tider.sorted(), Fixturer.svingar[i].namn)
         }
         let h = try Matt.mat(Sving.las(json: Fixturer.svingar[2].indata)).positioner
-        let v = try Matt.mat(Sving.las(json: Fixturer.svingar[7].indata)).positioner
+        let v = try Matt.mat(Sving.las(json: Fixturer.svingar[8].indata)).positioner
         XCTAssertEqual(h.p3!, v.p3!, accuracy: 1 / 240.0)       // vänsterspelaren, en annan påhittad sving
     }
 
     func testPassagerna() {
         let t = [0.0, 0.01, 0.02, 0.03, 0.04, 0.2, 0.21]
-        let a = [-2.0, -1.0, 1.0, 0.0, -1.0, 1.0, 2.0]
-        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.1, uppat: true), [0.015])
-        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.1, uppat: false), [0.03])   // 0 räknas som vågrät
-        XCTAssertEqual(Positioner.passager(t, a, fran: 0, till: 0.3, uppat: true), [0.015])   // luckan 0,16 s
-        var b = a
+        let h = [-2.0, -1.0, 1.0, 0.0, -1.0, 1.0, 2.0]
+        let p = Positioner.passager(t, h, fran: 0, till: 0.1)
+        XCTAssertEqual(p.map { $0.tid }, [0.015, 0.03])                 // 0 räknas som vågrät
+        XCTAssertEqual(p.map { $0.uppat }, [true, false])
+        XCTAssertEqual(Positioner.passager(t, h, fran: 0, till: 0.3).count, 2)   // luckan 0,16 s
+        var b = h
         b[2] = .nan
-        XCTAssertEqual(Positioner.passager(t, b, fran: 0, till: 0.1, uppat: true), [0.03])
-        XCTAssertEqual(Positioner.passager(t, b, fran: 0, till: 0.1, uppat: false), [0.03])
-        let v = Positioner.armensVinkel(axel: [Punkt(0, 0), Punkt(0, 0), Punkt(0, 0)],
-                                        handled: [Punkt(-10, -10), Punkt(10, 10), .saknad])
-        XCTAssertEqual(v[0], 45, accuracy: 1e-12)
-        XCTAssertEqual(v[1], -45, accuracy: 1e-12)
+        XCTAssertEqual(Positioner.passager(t, b, fran: 0, till: 0.1).map { $0.tid }, [0.03, 0.03])
+        let v = Positioner.armensHojd(axel: [Punkt(0, 0), Punkt(0, 0), Punkt(0, 0)],
+                                      handled: [Punkt(-10, -4), Punkt(10, 10), Punkt(.nan, 1)])
+        XCTAssertEqual(Array(v.prefix(2)), [4, -10])
         XCTAssertTrue(v[2].isNaN)
+    }
+
+    /// Samma fall som test_positioner.py (Passagerna). METOD M28
+    static let t2 = (0..<260).map { (Double($0) / 100 * 1e6).rounded() / 1e6 }
+    static func faser(topp: Double = 1.0) -> Fastider {
+        Fastider(start: 0.3, topp: topp, traff: 1.5, adressFran: -0.1, adressTill: 0.2, finishFran: 2.5, finishTill: 2.7)
+    }
+
+    static func serie(_ f: (Double) -> Double) -> [Double] { t2.map(f) }
+
+    func testIngenPassageOverEnLucka() {
+        let t = Self.t2
+        let h = Self.serie { $0 > 0.5 && $0 < 1.3 ? 5 : -5 }
+        let minus = h.map { -$0 }
+        let p = Positioner.hitta(t, Self.faser(), framre: h, bakre: minus)
+        XCTAssertEqual(p.p3!, 0.505, accuracy: 1e-9)
+        XCTAssertEqual(p.p5!, 1.295, accuracy: 1e-9)
+        var g = h
+        for k in t.indices {
+            if t[k] > 0.7 && t[k] < 0.75 { g[k] = -5 }
+            if t[k] >= 0.75 && t[k] < 0.9 { g[k] = .nan }
+        }
+        XCTAssertNil(Positioner.hitta(t, Self.faser(), framre: g, bakre: minus).p3)
+        g = h
+        for k in t.indices {
+            if t[k] > 1.02 && t[k] < 1.15 { g[k] = .nan }
+            if t[k] >= 1.15 && t[k] < 1.2 { g[k] = -5 }
+            if t[k] >= 1.2 && t[k] < 1.25 { g[k] = .nan }
+        }
+        XCTAssertNil(Positioner.hitta(t, Self.faser(), framre: g, bakre: minus).p5)
+        var b = Self.serie { $0 > 1.8 ? 5 : -5 }
+        XCTAssertEqual(Positioner.hitta(t, Self.faser(), framre: h, bakre: b).p9!, 1.805, accuracy: 1e-9)
+        b = Self.serie { $0 > 1.9 ? 5 : -5 }
+        for k in t.indices {
+            if t[k] > 1.55 && t[k] < 1.7 { b[k] = .nan }
+            if t[k] >= 1.7 && t[k] < 1.72 { b[k] = 5 }
+            if t[k] >= 1.72 && t[k] < 1.85 { b[k] = .nan }
+        }
+        XCTAssertNil(Positioner.hitta(t, Self.faser(), framre: h, bakre: b).p9)
+    }
+
+    func testRutparetOverToppen() {
+        let t = Self.t2
+        var h = Self.serie { $0 > 1.0 && $0 < 1.3 ? 5 : -5 }
+        var p = Positioner.hitta(t, Self.faser(topp: 1.004), framre: h, bakre: h.map { -$0 })
+        XCTAssertEqual(p.p3!, 1.005, accuracy: 1e-9)                    // efter toppen, inom rutan
+        XCTAssertEqual(p.p5!, 1.295, accuracy: 1e-9)
+        h = Self.serie { $0 > 0.5 && $0 < 1.0 ? 5 : -5 }
+        p = Positioner.hitta(t, Self.faser(topp: 0.996), framre: h, bakre: h.map { -$0 })
+        XCTAssertEqual(p.p3!, 0.505, accuracy: 1e-9)
+        XCTAssertEqual(p.p5!, 0.995, accuracy: 1e-9)                    // före toppen, inom rutan
+    }
+
+    func testLuckanIArmenKringGransen() throws {
+        // fo_lucka_arm: rå lucka 0,096 s kring P3 interpoleras, 0,104 s kring P5 inte. METOD M3, M28
+        let r = try Matt.mat(Sving.las(json: Fixturer.svingar[7].indata))
+        XCTAssertNotNil(r.positioner.p3)
+        XCTAssertNil(r.positioner.p5)
+        XCTAssertNil(r.matt["backen_resa_p5"])
+        XCTAssertNotNil(r.matt["backen_sway_p3"])
     }
 }

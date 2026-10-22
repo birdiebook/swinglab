@@ -12,12 +12,39 @@ public struct Katalog: Decodable, Sendable {
     /// Måtten som granskningen visar vid en position utan att de är fel (BESLUT B32).
     public let matt: [Mattpost]
 
-    /// Ett mått i granskningen: namnet, vyn och positionerna. METOD M29
+    /// Ett mått i granskningen: namnet, vyn och positionerna, och valfritt felet vars
+    /// accent (BESLUT B31) måttet följer. METOD M29
     public struct Mattpost: Decodable, Sendable {
         public let matt: String
         /// "dtl" eller "fo".
         public let vy: String
         public let positioner: [String]
+        /// Katalogens id för felet som måttet hör till (sway hittills → sway_topp), eller nil.
+        public let fel: String?
+        /// Fält utöver matt, vy, positioner och fel; kontrollen fäller dem, som Python.
+        let andraFalt: [String]
+
+        enum CodingKeys: String, CodingKey, CaseIterable {
+            case matt, vy, positioner, fel
+        }
+
+        struct Nyckel: CodingKey {
+            let stringValue: String
+            init?(stringValue: String) { self.stringValue = stringValue }
+            var intValue: Int? { nil }
+            init?(intValue: Int) { nil }
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            matt = try c.decode(String.self, forKey: .matt)
+            vy = try c.decode(String.self, forKey: .vy)
+            positioner = try c.decode([String].self, forKey: .positioner)
+            fel = try c.decodeIfPresent(String.self, forKey: .fel)
+            let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
+            andraFalt = try decoder.container(keyedBy: Nyckel.self).allKeys.map { $0.stringValue }
+                .filter { !kanda.contains($0) }
+        }
     }
 
     /// Felets och måttens positioner: en lista ur `Positioner.namn`, utan dubbletter och
@@ -123,8 +150,14 @@ public struct Katalog: Decodable, Sendable {
             if !positionernaOK(e.positioner, tom: true) { fel.append("\(e.id): \(positionerFel)") }
             for vy in e.vy == "bada" ? ["dtl", "fo"] : [e.vy] { visade.insert("\(vy)/\(e.matt)") }
         }
+        let felen = Set(k.fel.map { $0.id })
         for e in k.matt {
             let namn = "matt \(e.matt)"
+            if !e.andraFalt.isEmpty {
+                fel.append("\(namn): ska ha matt, vy och positioner, och får ha fel")
+                continue
+            }
+            if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
             if let vy = Vy(rawValue: e.vy) {
                 if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
             } else {

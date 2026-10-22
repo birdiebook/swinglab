@@ -122,8 +122,8 @@ public enum Matt {
         let N = led(.nasa)
         let f = try Faser.hitta(t, G, tKlick: s.tKlick)
         // Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
-        let pos = Positioner.hitta(t, f, framre: Positioner.armensVinkel(axel: led(.axelF), handled: handF),
-                                   bakre: Positioner.armensVinkel(axel: led(.axelB), handled: handB))
+        let pos = Positioner.hitta(t, f, framre: Positioner.armensHojd(axel: led(.axelF), handled: handF),
+                                   bakre: Positioner.armensHojd(axel: led(.axelB), handled: handB))
 
         func L(_ p: [Punkt], _ fas: Fas) -> Punkt { Faser.lage(t, p, f, fas) }
 

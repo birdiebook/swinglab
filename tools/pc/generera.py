@@ -214,10 +214,9 @@ def facit_start(figur, p: dict, langd_cm: float) -> float:
     return float(tt[k - 1] + (troskel - d[k - 1]) / (d[k] - d[k - 1]) * (tt[k] - tt[k - 1]))
 
 
-def _armens_vinkel(L: np.ndarray, axel: int, handled: int) -> np.ndarray:
-    """α på den exakta figuren (Z uppåt): + när handleden står över axeln. METOD M28"""
-    d = L[:, handled] - L[:, axel]
-    return np.degrees(np.arctan2(d[:, 1], np.abs(d[:, 0])))
+def _armens_hojd(L: np.ndarray, axel: int, handled: int) -> np.ndarray:
+    """Handledens höjd över axeln på den exakta figuren (Z uppåt), cm. METOD M28"""
+    return L[:, handled, 1] - L[:, axel, 1]
 
 
 def facit_positioner(figur, p: dict, langd_cm: float, t_start: float) -> dict:
@@ -228,7 +227,7 @@ def facit_positioner(figur, p: dict, langd_cm: float, t_start: float) -> dict:
 
     def passage(a: float, b: float, axel: int, handled: int, uppat: bool, sista: bool):
         t = np.arange(a, b, 1e-5)
-        v = _armens_vinkel(figur(t, p, langd_cm), axel, handled)
+        v = _armens_hojd(figur(t, p, langd_cm), axel, handled)
         k = np.where((v[:-1] < 0) & (v[1:] >= 0) if uppat else (v[:-1] >= 0) & (v[1:] < 0))[0]
         if len(k) == 0:
             return None
@@ -424,6 +423,9 @@ FIXTURSVINGAR = {
     # Främre armen blir aldrig vågrät i baksvingen: P3 och P5 saknas, och måtten
     # vid dem (METOD M28, M29). P9 finns.
     "fo_kort_arm": ("fo", "hoger", 17, 0.8, (), {"arm": (-14, -60, -6, 140)}),
+    # Främre handleden borta kring P3 (rå lucka 0,096 s: interpoleras) och kring P5
+    # (0,104 s: P5 saknas, och resan vid P5). METOD M3, METOD M28
+    "fo_lucka_arm": ("fo", "hoger", 19, 0.8, (("handled_v", 1.7525, 1.8425), ("handled_v", 2.2587, 2.3587)), {}),
     # Vänsterspelaren bakifrån med alla positioner (de speglade armarna).
     "dtl_vanster": ("dtl", "vanster", 18, 0.8, (), {}),
 }
