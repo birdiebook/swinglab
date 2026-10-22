@@ -27,7 +27,8 @@ struct PythonSving: Decodable {
         }
 
         func tid(_ namn: String) -> Double? {
-            ["P1": p1, "P3": p3, "P4": p4, "P5": p5, "P7": p7, "P9": p9, "P10": p10][namn] ?? nil
+            let d: [String: Double?] = ["P1": p1, "P3": p3, "P4": p4, "P5": p5, "P7": p7, "P9": p9, "P10": p10]
+            return d[namn] ?? nil
         }
     }
 
