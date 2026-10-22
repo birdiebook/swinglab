@@ -88,8 +88,10 @@ final class TvaTelefonerTests: XCTestCase {
 
     func testPriorUtanforFonstretParadeInget() {
         let (a, b) = Self.listor(2.347)
-        let p = ClickPairing.pair(a, b, prior: 1.0)
-        XCTAssertEqual(p.offset, 1.0)
+        // Ett prior långt fel: inget parar (a:s eget klick 7,15 parar med b:s 8,25 vid 1,1 s,
+        // så fönstret läggs där inget kan para).
+        let p = ClickPairing.pair(a, b, prior: -30)
+        XCTAssertEqual(p.offset, -30)
         XCTAssertTrue(p.pairs.isEmpty)
         XCTAssertNil(p.medianAbsResidual)
         // Ingen ping efter stopp: fönstret vidgas till ± 0,5 s (S2_SPEC §7.4).
