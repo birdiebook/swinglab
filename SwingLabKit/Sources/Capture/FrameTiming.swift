@@ -4,7 +4,7 @@ import Foundation
 /// slowmotion-originalet. METOD MS3
 public struct FrameTiming: Codable, Equatable, Sendable {
     public var count: Int
-    /// Rutnätets frekvens: 1 / medel av de korta stegen (högst 1,5 × 5:e percentilen),
+    /// Rutnätets frekvens: 1 / medel av de korta stegen (högst 1,75 × 5:e percentilen),
     /// avrundat till heltal. 0 = okänt.
     public var gridRate: Double
     /// (count − 1) / (sista − första).
@@ -31,8 +31,9 @@ public struct FrameTiming: Codable, Equatable, Sendable {
     public static let gridPercentile = 0.05
     /// De korta stegen är de upp till så många gånger percentilen. Deras medel tål en
     /// grov tidsskala: 1/240 s i filmens standard 600 blir steg om 2 och 3 enheter,
-    /// och percentilen ensam gav 300 (simulatorprovet S2c). METOD MS3
-    public static let shortStepFactor = 1.5
+    /// och percentilen ensam gav 300 (simulatorprovet S2c). 1,75 ligger mellan 3/2
+    /// (avrundningen) och 2 (en tappad ruta), så att 3/2 inte faller på flyttalets kant. METOD MS3
+    public static let shortStepFactor = 1.75
     /// Gränsen för slowmotion, bilder/s. METOD MS3
     public static let slowMotionRate = 100.0
 
