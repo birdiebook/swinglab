@@ -1401,12 +1401,11 @@ dataregeln). Bandet i PLAN.md: S2 ✓.
    visar först hur långt det är kvar.
 3. **Slutartiden:** 1/2000 s (BESLUT B11) eller kortare (1/4000 s halverar
    oskärpan men kräver dubbelt ljus).
-4. **Två telefoner i S2 eller i S6:** S2g är specad men kan vänta till S6, så
-   att första bygget blir mindre.
+4. **Två telefoner i S2 eller i S6:** *besvarat 2026-10-22: i S2.* S2g byggs
+   som en del av S2.
 5. **Originalen:** behålla hela serierna, eller "Spara bara klippen" efter
    export (sparar flera GB per pass).
 6. **Ett TestFlight-bygge per etapp eller ihop:** förslaget är S2a ensam
    (prövar byggkedjan med minst möjligt), sedan S2c–S2f i ett bygge.
-7. **Kompileringsprovet på varje push** (F6): gratis i det publika repot, men
-   en avvikelse från arbetssättets regel om simulatorprov. Ja behövs, och
-   läxan skrivs i `birdiebook/arbetssatt` om den håller.
+7. **Kompileringsprovet på varje push** (F6): *besvarat 2026-10-22: ja.*
+   Läxan skrivs i `birdiebook/arbetssatt` om den håller.

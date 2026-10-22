@@ -72,6 +72,7 @@ Status: alla är **förslag**. De som kräver Johannes svar är märkta **vänta
 - **Omprövas:** när den andra telefonens modell är känd.
 
 ## F6 — Appen kompileras och provas i simulatorn på GitHubs macOS, gratis
+*Johannes ja 2026-10-22*
 *väntar (avviker från arbetssättet) · S2_SPEC §10.2*
 
 - **Valt:** `kompilera.yml` bygger appen för simulatorn som TestFlight gör
@@ -90,6 +91,7 @@ Status: alla är **förslag**. De som kräver Johannes svar är märkta **vänta
   minuterna. Håller det skrivs läxan i `birdiebook/arbetssatt`.
 
 ## F7 — Två telefoner kopplas med Network.framework
+*Två telefoner redan i S2: Johannes 2026-10-22*
 *förslag · S2_SPEC §7.1*
 
 - **Valt:** `NWListener`, `NWBrowser` och `NWConnection` över TCP med Bonjour
