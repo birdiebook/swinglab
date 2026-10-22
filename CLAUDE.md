@@ -42,8 +42,9 @@ från `birdiebook/arbetssatt`: ändra där och synka, aldrig i kopian.
   (BESLUT B20), gratis: `git show origin/ci-resultat:resultat/<sha>.kompilera.txt`,
   och startvyn som `resultat/<sha>.startvy.png`.
 - **TestFlight** byggs i GitHub Actions på macOS, gratis eftersom repot är
-  publikt (BESLUT B7). Bygget startas **bara för hand**, efter Johannes ja,
-  högst ett per dag. Aldrig med en tagg eller push.
+  publikt (BESLUT B7). Bygget startas **bara för hand**, efter Johannes ja.
+  Ingen dagsgräns här: den kom från Codemagics minuter (Johannes 2026-10-22).
+  Aldrig med en tagg eller push.
 
 ## Beslut och metod
 

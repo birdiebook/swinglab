@@ -1183,7 +1183,7 @@ jobs:
   Codemagic-minut. Arbetssättets regel om prov i simulatorn "bara när sparad
   data rörs" kom av att minuterna kostade; här kostar provet bara väntan.
 - **Gränsen:** TestFlight-bygget startas bara när `kompilera` är grönt för
-  samma commit, efter Johannes ja, högst ett per dag (CLAUDE.md).
+  samma commit, efter Johannes ja (CLAUDE.md).
 
 **Simulatorprovet** (`Prov/SwingLabProv.swift`, XCTest) prövar App-koden mot
 riktiga AVFoundation-anrop, med en film som provet själv skriver:

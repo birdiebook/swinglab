@@ -59,7 +59,8 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
 *2026-10-22 · gäller · Johannes beslut*
 
 - **Valt:** publikt repo, som Airtime (B7, B9): TestFlight byggs gratis på
-  GitHubs macOS-maskin, startas för hand efter Johannes ja, högst ett per dag.
+  GitHubs macOS-maskin, startas för hand efter Johannes ja. Ingen dagsgräns:
+  "ett bygge om dagen" kom från Codemagics minuter (Johannes 2026-10-22).
 - **Bortvalt:** privat repo, där bygget hade tagit av Codemagics 500 minuter,
   som delas med de andra apparna.
 - **Kostnad:** koden syns. Repot bär aldrig en svingvideo, en mätning, en

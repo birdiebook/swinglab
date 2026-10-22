@@ -2,8 +2,8 @@
 # Airtime. Repot är publikt, så macOS-maskinerna kostar inget. Codemagics öppna
 # kommandoradsverktyg (codemagic-cli-tools) hämtar signeringen och laddar upp.
 #
-# Startas bara för hand ("Run workflow" eller API:t), efter Johannes ja och högst
-# en gång per dag, och bara från main. Aldrig av push, tagg eller pull request: då
+# Startas bara för hand ("Run workflow" eller API:t), efter Johannes ja, och bara
+# från main. Aldrig av push, tagg eller pull request: då
 # når ingen utomstående hemligheterna. Hemligheterna ges bara till stegen som
 # behöver dem.
 #
