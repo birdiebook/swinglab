@@ -1,0 +1,14 @@
+147079a602a1f0dc6652f4a6ed007ad338d17cb7 s2e 2026-10-22T15:34:41Z run 39805009565 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/PoseRunner.swift:88:29: error: cannot call value of non-function type '[VNComputeStage : [MLComputeDevice]]'
+/Users/runner/work/swinglab/swinglab/App/PoseRunner.swift:88:61: error: cannot infer contextual base in reference to member 'main'
+
+/Users/runner/work/swinglab/swinglab/App/PoseRunner.swift:88:29: error: cannot call value of non-function type '[VNComputeStage : [MLComputeDevice]]'
+/Users/runner/work/swinglab/swinglab/App/PoseRunner.swift:88:61: error: cannot infer contextual base in reference to member 'main'
+** TEST FAILED **
+== provets mätningar (påhittad film)
