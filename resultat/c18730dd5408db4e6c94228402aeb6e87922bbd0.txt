@@ -1,0 +1,9 @@
+c18730dd5408db4e6c94228402aeb6e87922bbd0 s2cd 2026-10-22T12:45:59Z run 39780882841
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/InspelningTests.swift:87:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/InspelningTests.swift:99:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+error: fatalError
+
