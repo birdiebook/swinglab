@@ -1,6 +1,6 @@
-af81563c9f6030c98e9cf275757e7243bdaf0902 s4c 2026-10-22T22:37:32Z run 39866093759
+ce15e705a8bbf979ef0006bf5d4392e4db814ad9 main 2026-10-22T22:49:50Z run 39867538009
 == swift-release
-GRÖNT: 197 test, 0 fel, 8 s i testerna, bygget 58 s
+GRÖNT: 197 test, 0 fel, 7 s i testerna, bygget 56 s
 Långsammast (av 197):
       1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
@@ -9,12 +9,12 @@ Långsammast (av 197):
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
       0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  FormatTests.testFixturernaGarAttLasa
       0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  MattTests.testToppfartenVidLuckaOchNaraTraffen
+      0.1 s  MattTests.testTillaggenMotSportsbox
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
-      0.1 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
-      0.1 s  VisningTests.testGranskningensSlag
-      0.1 s  VisningTests.testPasset
       0.1 s  FlikarTests.testLangdenIPassJson
-      0.1 s  VisningTests.testVillkorenOchFormen
+      0.1 s  PaketTests.testFelFilTasInteEmot
+      0.1 s  RedigeringTests.testLinjernaIRutansKoordinater
 
