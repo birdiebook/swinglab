@@ -10,6 +10,8 @@ let package = Package(
     products: [
         .library(name: "Swing", targets: ["Swing"]),
         .library(name: "Capture", targets: ["Capture"]),
+        // Påhittade pass och svingar för vyernas prov (Prov/). Appen länkar inte in det.
+        .library(name: "SwingDemo", targets: ["SwingDemo"]),
     ],
     targets: [
         // Mätningen (METOD M1–M27): formatet, utjämningen och faserna, måtten per vy,
@@ -25,5 +27,8 @@ let package = Package(
         // KlickFixturer.swift är Pythons tal (tools/pc/klickljud.py --swift), BESLUT B12.
         // Swing behövs bara för att pröva att ledernas namn är formatets (docs/FORMAT.md).
         .testTarget(name: "CaptureTests", dependencies: ["Capture", "Swing"]),
+        // Vyernas data (S4): Swing/Visning räknar texten och lägena, SwingDemo är provets påhittade pass.
+        .target(name: "SwingDemo", dependencies: ["Swing"]),
+        .testTarget(name: "VisningTests", dependencies: ["Swing", "SwingDemo"]),
     ]
 )
