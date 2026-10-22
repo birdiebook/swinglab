@@ -11,6 +11,9 @@ public struct AttJobbaPaVisning: Sendable {
         public let vag: [String]
         public let varde: String
         public let enhet: String
+
+        /// "Sidböjning, Thrust +3,3 cm"
+        public var upplasning: String { "\(vag.joined(separator: ", ")) \(Tal.medEnhet(varde, enhet))" }
     }
 
     public enum Steglage: Sendable { case klart, nu, kommer }
@@ -38,6 +41,27 @@ public struct AttJobbaPaVisning: Sendable {
         public let villkor: String
         /// "2 pass i rad"
         public let villkorUnder: String
+
+        /// Saken i ord för VoiceOver: namnet, Du nu, målet och veckan.
+        public var upplasning: String {
+            var d = ["\(namn) \(Tal.medEnhet(nu, enhet))"]
+            if let m = mal, !m.upplasning.isEmpty { d.append(m.upplasning) }
+            if let m = markning { d.append(m.upplasning) }
+            d.append(rubrik)
+            return d.joined(separator: ", ")
+        }
+
+        /// Hela saken i ord, för en sammanslagen VoiceOver-etikett.
+        public var upplasningHel: String {
+            var d = [upplasning]
+            d += foljd.map { "följd: \($0.upplasning)" }
+            d.append("övning: \(ovning)")
+            if let nu = steg.first(where: { $0.lage == .nu }) { d.append("steg: \(nu.namn)") }
+            if let r = rorlighet { d.append("rörlighet: \(r.test)" + (r.ovning.map { ", \($0)" } ?? "")) }
+            d.append("tanke: \(tanke)")
+            d.append("klart när: \(villkor), \(villkorUnder)")
+            return d.joined(separator: ". ")
+        }
     }
 
     /// Stegens namn i vyn, i S5:s ordning.
@@ -55,7 +79,7 @@ public struct AttJobbaPaVisning: Sendable {
         /// Måttets etikett för ett fel i katalogen, eller filens namn när felet saknas där.
         func etikett(_ id: String, namn: String, enhet: String) -> Mattetikett {
             if let f = fel[id] { return Etiketter.etikett(f.matt) }
-            return Mattetikett(namn, enhet, 1, "")
+            return Mattetikett(namn, enhet, Avrundning.decimaler(enhet: enhet), "")
         }
 
         saker = a.saker.sorted { $0.ordning < $1.ordning }.map { s -> Sakvisning in
@@ -66,7 +90,7 @@ public struct AttJobbaPaVisning: Sendable {
             let markning: Markning? = s.markning == "B10" ? .b10 : s.markning == "egen" ? .egen : nil
             var mal: Spann? = nil
             if let nu = s.nu, let g = s.spann {
-                mal = Spann(nu: nu, spridning: nil, forra: nil, gront: g, baslinje: nil, decimaler: e.decimaler)
+                mal = Spann(nu: nu, spridning: nil, forra: nil, gront: g, baslinje: nil, decimaler: e.decimaler, enhet: s.enhet)
             }
             let foljd = s.foljdfel.map { f -> Foljd in
                 let fe = etikett(f.fel, namn: f.namn, enhet: f.enhet)
@@ -111,6 +135,12 @@ public struct Idagvisning: Sendable {
         /// Enheten efter talet, utan kvoten ": 1".
         public let enhet: String
         public let spann: Spann
+
+        /// "Sway −2,4 cm, mål från 0 cm"
+        public var upplasning: String {
+            let m = spann.upplasning
+            return "\(namn) \(Tal.medEnhet(varde, enhet))" + (m.isEmpty ? "" : ", \(m)")
+        }
     }
 
     public struct Forsta: Sendable {

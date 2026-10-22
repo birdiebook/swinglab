@@ -32,10 +32,13 @@ public enum Tal {
         return (v > 0 ? "+" : minus) + belopp(v, decimaler)
     }
 
-    /// En gräns på en axel: heltal utan decimaler (som skissen), annars `decimaler`.
+    /// En gräns på en axel: högst `decimaler` decimaler, utan nollor på slutet ("0", "2,5").
     public static func axel(_ v: Double, decimaler: Int) -> String {
-        let heltal = abs(v - v.rounded()) < 1e-9
-        return tal(v, decimaler: heltal ? 0 : decimaler)
+        var s = tal(v, decimaler: decimaler)
+        guard s.contains(",") else { return s }
+        while s.hasSuffix("0") { s.removeLast() }
+        if s.hasSuffix(",") { s.removeLast() }
+        return s == minus + "0" ? "0" : s
     }
 
     /// Enheten efter ett tal i löptext: grader sitter ihop, kvoten ": 1" utelämnas.

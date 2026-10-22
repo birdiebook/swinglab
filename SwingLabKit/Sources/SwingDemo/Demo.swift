@@ -125,23 +125,31 @@ public enum Demo {
         }
     }
 
+    /// Förra passets tider: 0,15 s tidigare start, 0,20 s tidigare topp, 0,08 s längre nedsving.
+    public static let forraTider = DemoSving.Tider(start: 1.10, topp: 2.00, klick: 2.38, slut: 3.70)
+
     /// Mediansvingen i passet och förra passet, som leder: bäckenets sway i FO och
     /// thrusten i DTL ligger på passens medianer.
     public static func sving(_ vy: Vy, forra: Bool = false) -> Sving {
         let i = forra ? datum.count - 2 : datum.count - 1
+        // Förra passets sving har andra tider (tidigare start, längre nedsving), så att
+        // granskningen måste lägga passen i linje efter faserna, inte efter klipptiden.
+        let tider = forra ? forraTider : DemoSving.Tider.standard
         switch vy {
         case .fo:
             let topp = serier["backen_sway_topp"]!.pass[i], resa = serier["backen_resa_framat"]!.pass[i]
-            return DemoSving.fo(sway: (topp, topp + resa, 14))
+            return DemoSving.fo(sway: (topp, topp + resa, 14), tider: tider)
         case .dtl:
             let traff = serier["backen_thrust_traff"]!.pass[i], tapp = serier["brost_bojning_tapp"]!.pass[i]
-            return DemoSving.dtl(thrust: (-1, traff, 8), bojning: (40, 38, 40 - tapp, 10))
+            return DemoSving.dtl(thrust: (-1, traff, 8), bojning: (40, 38, 40 - tapp, 10), tider: tider)
         }
     }
 
     /// Att jobba på efter det senaste passet (9 jan), i S5:s kontrakt (docs/FORMAT.md,
-    /// Att jobba på): swayen med sin kedja av följdfel, och early extension med en
-    /// rörlighetsövning. Talen är passens medianer; övningarna katalogens ordagrant.
+    /// Att jobba på): swayen med sin kedja av följdfel (övningen fortsätter sedan 12 dec),
+    /// och flying elbow, som saknar orsak i kedjorna, med ett rörlighetstest. Talen är
+    /// passens medianer; övningarna katalogens ordagrant. tools/tests/test_s4_demo.py
+    /// kör filen genom tools/pc/att_jobba_pa.py.
     public static let attJobbaPaJSON = #"""
     {
      "format": "swinglab-att-jobba-pa/1",
@@ -173,21 +181,21 @@ public enum Demo {
       },
       {
        "ordning": 2,
-       "fel": "early_extension",
-       "namn": "Early extension: bäckenet mot bollen",
-       "vy": "dtl", "matt": "backen_thrust_traff", "enhet": "cm",
-       "nu": 2.6, "spann": null, "markning": "egen",
+       "fel": "flying_elbow",
+       "namn": "Flying elbow: bakre armbågen pekar ut i toppen",
+       "vy": "dtl", "matt": "bakre_armbage_topp", "enhet": "°",
+       "nu": 56.0, "spann": null, "markning": "egen",
        "ovning": {
-        "text": "Stjärten mot en stol bakom dig i adressen. Långsamma svingar som håller kontakten till träffen, och bäckenet roterar samtidigt.",
-        "tanke": "Stolen ska känna stjärten hela vägen.",
+        "text": "Ingen svingövning hittad. Testa 90/90 (bakre axelns utåtrotation) först: är den begränsad är det rörlighet.",
+        "tanke": "En handduk under bakre armen ska sitta kvar till toppen.",
         "kalla": "katalog",
         "steg": "langsamt_med_foremal"
        },
-       "klart_nar": {"villkor": "<=", "grans": 1.5, "pa": "forsta_serien", "pass_i_rad": 2},
+       "klart_nar": {"villkor": "<=", "grans": 51.5, "pa": "forsta_serien", "pass_i_rad": 2},
        "foljdfel": [],
        "typ": "teknik_kroppen_gor_det_svart",
-       "fysik": {"test": "Toe touch", "treregeln": [true, true, false], "ovning": "Raka ben, händerna mot tårna, långsamt och utan gungning."},
-       "block": {"start": "2027-01-02", "vecka": 2}
+       "fysik": {"test": "90/90, bakre axelns utåtrotation", "treregeln": [true, true, false], "ovning": "Ligg på rygg med armen i rät vinkel och låt handen sjunka bakåt utan att axeln lyfter."},
+       "block": {"start": "2027-01-09", "vecka": 1}
       }
      ]
     }

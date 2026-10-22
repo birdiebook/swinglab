@@ -25,9 +25,59 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(Tal.tecken(2, decimaler: 0), "+2")
         XCTAssertEqual(Tal.axel(-12, decimaler: 1), "−12")
         XCTAssertEqual(Tal.axel(2.5, decimaler: 1), "2,5")
+        XCTAssertEqual(Tal.axel(3.1, decimaler: 2), "3,1")
+        XCTAssertEqual(Tal.axel(12.5, decimaler: 1), "12,5")
+        XCTAssertEqual(Tal.axel(0, decimaler: 1), "0")
         XCTAssertEqual(Tal.medEnhet("+1,2", "cm"), "+1,2 cm")
         XCTAssertEqual(Tal.medEnhet("+2", "°"), "+2°")
         XCTAssertEqual(Tal.medEnhet("+0,1", ": 1"), "+0,1")
+    }
+
+    func testDecimalregelnArPCns() {
+        // tools/pc/analys.py enhet och avrunda (METOD MT3).
+        XCTAssertEqual(Avrundning.enhet("tempo"), "")
+        XCTAssertEqual(Avrundning.enhet("baksving_s"), "s")
+        XCTAssertEqual(Avrundning.enhet("brost_bojning_tapp"), "°")
+        XCTAssertEqual(Avrundning.enhet("bakre_kna_topp"), "°")
+        XCTAssertEqual(Avrundning.enhet("backen_sway_topp"), "cm")
+        XCTAssertEqual(Avrundning.decimaler("tempo"), 2)
+        XCTAssertEqual(Avrundning.decimaler("brost_bojning_tapp"), 1)
+        XCTAssertEqual(Avrundning.avrunda("brost_bojning_tapp", 5.94), 5.9)
+        XCTAssertEqual(Avrundning.avrunda("tempo", 2.876), 2.88)
+        XCTAssertNil(Avrundning.avrunda("tempo", nil))
+        // Grader med en decimal överallt: 5,9° blir inte 6°.
+        XCTAssertEqual(Mattkort.text(5.9, Etiketter.etikett("brost_bojning_tapp")), "+5,9")
+        XCTAssertEqual(Etiketter.etikett("sidbojning_topp").decimaler, 1)
+    }
+
+    func testSaknadeEnheter() {
+        // Ett mått utan rad får enheten och decimalerna ur regeln.
+        XCTAssertEqual(Etiketter.etikett("nytt_s").enhet, "s")
+        XCTAssertEqual(Etiketter.etikett("nytt_s").decimaler, 2)
+        XCTAssertEqual(Etiketter.etikett("nytt_matt").enhet, "cm")
+        // Tom enhet: talet utan något efter.
+        XCTAssertEqual(Tal.medEnhet("1,25", ""), "1,25")
+        XCTAssertEqual(Tal.medEnhet("2,90", ": 1"), "2,90")
+        // Varje mått i katalogen har en enhet i regeln (tempot är kvoten "").
+        if let k = try? katalog() {
+            for f in k.fel where f.matt != "tempo" {
+                XCTAssertFalse(Avrundning.enhet(f.matt).isEmpty, f.matt)
+            }
+        }
+    }
+
+    func testUpplasningen() throws {
+        let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
+        let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
+        XCTAssertEqual(sway.upplasning, "Sway −2,4 cm, mål från 0 cm, förra −3,6 cm, +1,2 cm mot 6 jan, gränsen ej läst i original")
+        let tempo = try XCTUnwrap(v.kort.first { $0.id == "tempo" })
+        XCTAssertTrue(tempo.upplasning.hasPrefix("Tempo 2,90, mål 2,5 till 3,1"), tempo.upplasning)
+        let tapp = try XCTUnwrap(v.kort.first { $0.id == "tappad_hallning" })
+        XCTAssertTrue(tapp.upplasning.contains("egen baslinje"), tapp.upplasning)
+        XCTAssertEqual(v.kort.last?.upplasning, "Axellutning, avstängt")
+        let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
+        XCTAssertEqual(j.saker[0].upplasning, "Sway −2,4 cm, mål från 0 cm, gränsen ej läst i original, FO · topp · vecka 5")
+        XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Resa framåt, Böjning +2,0°")
     }
 
     func testDatumen() {
@@ -105,15 +155,15 @@ final class VisningTests: XCTestCase {
 
         let tempo = try XCTUnwrap(k["tempo"])
         XCTAssertEqual(tempo.rubrik, "Klick · start–topp–träff")
-        XCTAssertEqual(tempo.varde, "2,9")
-        XCTAssertEqual(tempo.skillnad, "+0,1 mot 6 jan")
+        XCTAssertEqual(tempo.varde, "2,90")
+        XCTAssertEqual(tempo.skillnad, "+0,10 mot 6 jan")
         guard case let .tempo(bak, ned, bakText, _)? = tempo.geometri else { return XCTFail("tempot utan sträckor") }
         XCTAssertEqual(bak / ned, 2.9, accuracy: 0.05)
         XCTAssertEqual(bakText, "0,85")
 
         let tapp = try XCTUnwrap(k["tappad_hallning"])
         XCTAssertEqual(tapp.markning, .egen)
-        XCTAssertEqual(tapp.varde, "+2")
+        XCTAssertEqual(tapp.varde, "+2,0")
         XCTAssertEqual(tapp.enhet, "°")
         guard case let .bojning(a, t)? = tapp.geometri else { return XCTFail("böjningen utan linjer") }
         XCTAssertEqual(a - t, 2, accuracy: 1e-6)
@@ -177,7 +227,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(sv.nu, "−5,7")
         XCTAssertEqual(sv.foljd.map { $0.vag }, [["Sidböjning"], ["Sidböjning", "Thrust"], ["Resa framåt"],
                                                 ["Resa framåt", "Böjning"], ["Sway gap"]])
-        XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4", "+3,3", "13,8", "+6", "+16,5"])
+        XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4,0", "+3,3", "13,8", "+5,9", "+16,5"])   // filens tal, inte avrundade om
         XCTAssertEqual(sv.steg.map { $0.namn }, ["Långsamt", "Halv fart", "Full fart", "Varierat"])
         XCTAssertEqual(sv.steg[0].lage, .nu)
         XCTAssertEqual(sv.villkor, "Första serien ≥ 0 cm")
@@ -217,6 +267,21 @@ final class VisningTests: XCTestCase {
             XCTAssertTrue("\(e)".contains("steg"), "\(e)")
             XCTAssertFalse("\(e)".contains("snabbt"))
         }
+        // Formen är stängd: nu, spann, markning och fysik måste stå med, även som null.
+        for nyckel in [#""nu": -5.7,"#, #""spann": [0, null],"#, #""markning": "B10","#, #""fysik": null,"#] {
+            let utan = AttJobbaPaFixtur.exempel.replacingOccurrences(of: nyckel, with: "")
+            XCTAssertNotEqual(utan, AttJobbaPaFixtur.exempel, nyckel)
+            XCTAssertThrowsError(try AttJobbaPa.las(json: utan), nyckel)
+        }
+        // "klart när" med en decimal visas som den står: 12,5° blir inte 12°.
+        let grader = AttJobbaPaFixtur.exempel
+            .replacingOccurrences(of: #""klart_nar": {"villkor": ">=", "grans": 0,"#,
+                                  with: #""klart_nar": {"villkor": "<=", "grans": 12.5,"#)
+            .replacingOccurrences(of: #""matt": "backen_sway_topp""#, with: #""matt": "brost_bojning_tapp""#)
+            .replacingOccurrences(of: #""enhet": "cm",\#n   "nu""#, with: #""enhet": "°",\#n   "nu""#)
+        let v = AttJobbaPaVisning(try AttJobbaPa.las(json: grader), katalog: try katalog())
+        XCTAssertEqual(v.saker[0].villkor, "Första serien ≤ 12,5°")
+        XCTAssertEqual(v.saker[0].nu, "−5,7")
         let utanTanke = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""tanke": "Rör inte käppen.","#, with: "")
         XCTAssertThrowsError(try AttJobbaPa.las(json: utanTanke)) { e in
             XCTAssertTrue("\(e)".contains("tanke"), "\(e)")
@@ -242,12 +307,13 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(s.villkorUnder, "2 pass i rad")
         XCTAssertNil(s.rorlighet)
         let t = v.saker[1]
-        XCTAssertEqual(t.namn, "Thrust")
+        XCTAssertEqual(t.namn, "Bakre armbåge")
         XCTAssertEqual(t.markning, .egen)
         XCTAssertNil(t.mal)                                   // egen baslinje: inget spann i filen
         XCTAssertTrue(t.foljd.isEmpty)
-        XCTAssertEqual(t.villkor, "Första serien ≤ 1,5 cm")
-        XCTAssertEqual(t.rorlighet?.test, "Toe touch")
+        XCTAssertEqual(t.nu, "+56,0")
+        XCTAssertEqual(t.villkor, "Första serien ≤ 51,5°")
+        XCTAssertEqual(t.rorlighet?.test, "90/90, bakre axelns utåtrotation")
     }
 
     func testIdagVisarDenForstaSaken() throws {
@@ -314,6 +380,24 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(dtl.matt["brost_bojning_tapp"]!, 2, accuracy: 0.1)
         let forra = try Matt.mat(Demo.sving(.fo, forra: true))
         XCTAssertEqual(forra.matt["backen_sway_topp"]!, -3.6, accuracy: 0.05)
+    }
+
+    func testForraPassetLiggerILinjeEfterFaserna() throws {
+        let s = Demo.sving(.fo), f = Demo.sving(.fo, forra: true)
+        let y = Matyta(sving: s, resultat: try Matt.mat(s)), g = Matyta(sving: f, resultat: try Matt.mat(f))
+        // Demots förra pass har andra tider, så samma klipptid är inte samma fas.
+        XCTAssertGreaterThan(abs(y.faser.topp - g.faser.topp), 0.1)
+        for (a, b) in zip(y.fastider, g.fastider) {
+            XCTAssertEqual(y.motsvarande(a.t, i: g), b.t, accuracy: 1e-9, "\(a.fas)")
+        }
+        // Mitt mellan toppen och träffen här är mitt mellan dem där.
+        XCTAssertEqual(y.motsvarande((y.faser.topp + y.faser.traff) / 2, i: g), (g.faser.topp + g.faser.traff) / 2,
+                       accuracy: 1e-9)
+        // Före adressen och efter finishen: samma förskjutning som fasen.
+        XCTAssertEqual(y.motsvarande(y.fran - 0.2, i: g) - g.fastider[0].t, y.fran - 0.2 - y.fastider[0].t, accuracy: 1e-9)
+        // Vid toppen visar förra passet sin egen sway vid toppen.
+        let l = try XCTUnwrap(g.lage(y.motsvarande(y.faser.topp, i: g)))
+        XCTAssertEqual(l.matt, -3.6, accuracy: 0.05)
     }
 
     func testGranskningensSlag() throws {

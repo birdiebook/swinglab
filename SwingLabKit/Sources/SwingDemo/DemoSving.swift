@@ -10,8 +10,23 @@ public enum DemoSving {
     static let x0 = 540.0, y0 = 1750.0
     static let frekvens = 240.0
     static let kroppSen = 0.10
-    /// Tiderna (s): start, topp, klick, klippets slut.
-    public static let start = 1.25, topp = 2.20, klick = 2.50, slut = 3.80
+    /// Tiderna (s): baksvingens start, toppen, klicket och klippets slut.
+    public struct Tider: Sendable {
+        public let start: Double
+        public let topp: Double
+        public let klick: Double
+        public let slut: Double
+
+        public init(start: Double, topp: Double, klick: Double, slut: Double) {
+            self.start = start
+            self.topp = topp
+            self.klick = klick
+            self.slut = slut
+        }
+
+        /// Som generera.py: baksving 0,95 s och nedsving 0,30 s.
+        public static let standard = Tider(start: 1.25, topp: 2.20, klick: 2.50, slut: 3.80)
+    }
 
     static func smoothstep(_ u: Double) -> Double {
         let v = Swift.min(1, Swift.max(0, u))
@@ -29,10 +44,10 @@ public enum DemoSving {
     }
 
     /// Kroppens fyra lägen: adress, topp (±0,06 s), träff (±0,04 s), finish.
-    static func kropp(_ t: Double, _ v: (Double, Double, Double, Double)) -> Double {
-        let ts = start + kroppSen
-        return profil(t, [(-.infinity, ts, v.0), (topp - 0.06, topp + 0.06, v.1), (klick - 0.04, klick + 0.04, v.2),
-                          (klick + 0.8, .infinity, v.3)])
+    static func kropp(_ t: Double, _ v: (Double, Double, Double, Double), _ T: Tider) -> Double {
+        let ts = T.start + kroppSen
+        return profil(t, [(-.infinity, ts, v.0), (T.topp - 0.06, T.topp + 0.06, v.1), (T.klick - 0.04, T.klick + 0.04, v.2),
+                          (T.klick + 0.8, .infinity, v.3)])
     }
 
     static func rad(_ g: Double) -> Double { g * .pi / 180 }
@@ -48,17 +63,17 @@ public enum DemoSving {
     }
 
     /// FO: bäckenets sway (cm) i adress, topp, träff och finish.
-    static func figurFO(_ t: Double, sway: (Double, Double, Double, Double), langdCm: Double) -> [Punkt] {
+    static func figurFO(_ t: Double, sway: (Double, Double, Double, Double), langdCm: Double, _ T: Tider) -> [Punkt] {
         let za = Matt.fotledshojd * langdCm, ben = Matt.ben * langdCm, bal = Matt.bal * langdCm
         let hals = 0.12 * langdCm, ua = 0.186 * langdCm, fa = 0.146 * langdCm
-        let lyft = kropp(t, (0, 1, 2, 5))
-        let beta = rad(kropp(t, (6, 4, 25, 10))), alfa = rad(kropp(t, (2, 6, 8, 0))), gamma = rad(kropp(t, (8, 20, 30, 0)))
-        let phi = rad(profil(t, [(-.infinity, start + kroppSen, 5), (topp - 0.06, topp + 0.06, 15),
-                                 (klick - 0.04, klick + 0.20, 20), (klick + 0.8, .infinity, 90)]))
-        let psi = rad(profil(t, [(-.infinity, start, -14), (topp, topp, -130), (klick - 0.04, klick + 0.04, -6),
-                                 (klick + 0.8, .infinity, 140)]))
+        let lyft = kropp(t, (0, 1, 2, 5), T)
+        let beta = rad(kropp(t, (6, 4, 25, 10), T)), alfa = rad(kropp(t, (2, 6, 8, 0), T)), gamma = rad(kropp(t, (8, 20, 30, 0), T))
+        let phi = rad(profil(t, [(-.infinity, T.start + kroppSen, 5), (T.topp - 0.06, T.topp + 0.06, 15),
+                                 (T.klick - 0.04, T.klick + 0.20, 20), (T.klick + 0.8, .infinity, 90)]))
+        let psi = rad(profil(t, [(-.infinity, T.start, -14), (T.topp, T.topp, -130), (T.klick - 0.04, T.klick + 0.04, -6),
+                                 (T.klick + 0.8, .infinity, 140)]))
         var L = [Punkt](repeating: Punkt(0, 0), count: 13)
-        let P = Punkt(kropp(t, sway), za + ben + lyft)
+        let P = Punkt(kropp(t, sway, T), za + ben + lyft)
         let hw = 16.0, sw = 20.0
         L[7] = Punkt(P.x + hw * cos(alfa), P.y + hw * sin(alfa))
         L[8] = Punkt(P.x - hw * cos(alfa), P.y - hw * sin(alfa))
@@ -66,8 +81,8 @@ public enum DemoSving {
         L[1] = Punkt(C.x + sw * cos(gamma), C.y + sw * sin(gamma))
         L[2] = Punkt(C.x - sw * cos(gamma), C.y - sw * sin(gamma))
         let b0 = rad(6)
-        L[0] = Punkt(-(bal + hals) * sin(b0) + kropp(t, (0, -3, -2, 10)),
-                     za + ben + (bal + hals) * cos(b0) + kropp(t, (0, -1, -1, 2)))
+        L[0] = Punkt(-(bal + hals) * sin(b0) + kropp(t, (0, -3, -2, 10), T),
+                     za + ben + (bal + hals) * cos(b0) + kropp(t, (0, -1, -1, 2), T))
         L[11] = Punkt(24, za)
         L[12] = Punkt(-24, za)
         L[9] = Punkt((L[7].x + L[11].x) / 2 + 2, (L[7].y + L[11].y) / 2)
@@ -82,29 +97,29 @@ public enum DemoSving {
 
     /// DTL: bäckenets thrust (cm) och bröstets böjning (grader) i de fyra lägena.
     static func figurDTL(_ t: Double, thrust: (Double, Double, Double, Double),
-                         bojning: (Double, Double, Double, Double), langdCm: Double) -> [Punkt] {
+                         bojning: (Double, Double, Double, Double), langdCm: Double, _ T: Tider) -> [Punkt] {
         let za = Matt.fotledshojd * langdCm, bal = Matt.bal * langdCm
         let hals = 0.12 * langdCm, ua = 0.186 * langdCm
         let px0 = -14.0, pz0 = za + 0.47 * langdCm
-        let theta = rad(kropp(t, bojning)), eta = rad(kropp(t, (10, 60, 5, 40)))
+        let theta = rad(kropp(t, bojning, T)), eta = rad(kropp(t, (10, 60, 5, 40), T))
         var L = [Punkt](repeating: Punkt(0, 0), count: 13)
-        let P = Punkt(px0 + kropp(t, thrust), pz0 + kropp(t, (0, 0.5, 3, 6)))
+        let P = Punkt(px0 + kropp(t, thrust, T), pz0 + kropp(t, (0, 0.5, 3, 6), T))
         L[7] = Punkt(P.x + 1.5, P.y)
         L[8] = Punkt(P.x - 1.5, P.y)
         let C = Punkt(P.x + bal * sin(theta), P.y + bal * cos(theta))
         L[1] = Punkt(C.x + 1.5, C.y)
         L[2] = Punkt(C.x - 1.5, C.y)
         let t0 = rad(bojning.0)
-        L[0] = Punkt(px0 + (bal + hals) * sin(t0) + kropp(t, (0, -1, 2, 8)),
-                     pz0 + (bal + hals) * cos(t0) + kropp(t, (0, -0.5, 1, 12)))
+        L[0] = Punkt(px0 + (bal + hals) * sin(t0) + kropp(t, (0, -1, 2, 8), T),
+                     pz0 + (bal + hals) * cos(t0) + kropp(t, (0, -0.5, 1, 12), T))
         L[11] = Punkt(2, za)
         L[12] = Punkt(-2, za)
         L[9] = kna(L[7], L[11], 20)
-        L[10] = kna(L[8], L[12], kropp(t, (22, 30, 25, 10)))
+        L[10] = kna(L[8], L[12], kropp(t, (22, 30, 25, 10), T))
         L[4] = Punkt(L[2].x - ua * sin(eta), L[2].y - ua * cos(eta))
-        let u = profil(t, [(-.infinity, start, 0), (topp, topp, 1), (klick - 0.04, .infinity, 0)])
-        let v = profil(t, [(-.infinity, klick + 0.04, 0), (klick + 0.8, .infinity, 1)])
-        let utanfor = (t > topp && t < klick) ? 4.0 * sin(.pi * u) : 0
+        let u = profil(t, [(-.infinity, T.start, 0), (T.topp, T.topp, 1), (T.klick - 0.04, .infinity, 0)])
+        let v = profil(t, [(-.infinity, T.klick + 0.04, 0), (T.klick + 0.8, .infinity, 1)])
+        let utanfor = (t > T.topp && t < T.klick) ? 4.0 * sin(.pi * u) : 0
         let G = Punkt(px0 + 32 - 20 * u + utanfor + 15 * v, pz0 - 12 + 70 * u + 60 * v)
         L[5] = Punkt(G.x + 0.5, G.y + 1)
         L[6] = Punkt(G.x - 0.5, G.y - 1)
@@ -113,22 +128,25 @@ public enum DemoSving {
     }
 
     /// En FO-sving där bäckenet ligger `sway` cm från adressen i topp, träff och finish.
-    public static func fo(sway: (topp: Double, traff: Double, finish: Double), langdM: Double = 1.80) -> Sving {
-        sving(.fo, langdM: langdM) { figurFO($0, sway: (0, sway.topp, sway.traff, sway.finish), langdCm: langdM * 100) }
+    public static func fo(sway: (topp: Double, traff: Double, finish: Double), langdM: Double = 1.80,
+                          tider: Tider = .standard) -> Sving {
+        sving(.fo, langdM: langdM, tider: tider) {
+            figurFO($0, sway: (0, sway.topp, sway.traff, sway.finish), langdCm: langdM * 100, tider)
+        }
     }
 
     /// En DTL-sving med bäckenets thrust (cm) och bröstets böjning (grader).
     public static func dtl(thrust: (topp: Double, traff: Double, finish: Double),
                            bojning: (adress: Double, topp: Double, traff: Double, finish: Double) = (40, 38, 34, 10),
-                           langdM: Double = 1.80) -> Sving {
-        sving(.dtl, langdM: langdM) {
+                           langdM: Double = 1.80, tider: Tider = .standard) -> Sving {
+        sving(.dtl, langdM: langdM, tider: tider) {
             figurDTL($0, thrust: (0, thrust.topp, thrust.traff, thrust.finish),
-                     bojning: (bojning.adress, bojning.topp, bojning.traff, bojning.finish), langdCm: langdM * 100)
+                     bojning: (bojning.adress, bojning.topp, bojning.traff, bojning.finish), langdCm: langdM * 100, tider)
         }
     }
 
-    static func sving(_ vy: Vy, langdM: Double, figur: (Double) -> [Punkt]) -> Sving {
-        let n = Int((slut * frekvens).rounded())
+    static func sving(_ vy: Vy, langdM: Double, tider: Tider, figur: (Double) -> [Punkt]) -> Sving {
+        let n = Int((tider.slut * frekvens).rounded())
         let t = (0...n).map { Double($0) / frekvens }
         var leder = [[Punkt]](repeating: [], count: 13)
         for tc in t {
@@ -137,6 +155,6 @@ public enum DemoSving {
                 leder[j].append(Punkt(x0 + L[j].x * kPx, y0 - L[j].y * kPx))
             }
         }
-        return Sving(vy: vy, hand: .hoger, xTecken: 1, langdM: langdM, tKlick: klick, t: t, leder: leder)
+        return Sving(vy: vy, hand: .hoger, xTecken: 1, langdM: langdM, tKlick: tider.klick, t: t, leder: leder)
     }
 }

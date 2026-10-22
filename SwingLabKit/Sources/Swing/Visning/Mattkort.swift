@@ -11,6 +11,15 @@ public enum Markning: String, Sendable {
 
     public var etikett: String { self == .b10 ? "B10" : rawValue }
 
+    /// Märkningen i ord för VoiceOver.
+    public var upplasning: String {
+        switch self {
+        case .b10: return "gränsen ej läst i original"
+        case .egen: return "egen baslinje"
+        case .av: return "avstängt"
+        }
+    }
+
     public static func fran(_ fel: Katalog.Fel) -> Markning? {
         if !fel.aktiv { return .av }
         if fel.gront == nil { return .egen }
@@ -59,6 +68,15 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         self.geometri = geometri
     }
 
+    /// Kortet i ord för VoiceOver: "Sway −2,4 cm, mål från 0 cm, förra −3,6 cm, +1,2 cm mot 6 jan, B10".
+    public var upplasning: String {
+        var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet == ": 1" ? "" : enhet))"]
+        if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
+        if let k = skillnad { d.append(k) }
+        if let m = markning { d.append(m.upplasning) }
+        return d.joined(separator: ", ")
+    }
+
     /// Värdet som text, med tecken för mått där noll är adressen.
     public static func text(_ v: Double?, _ e: Mattetikett) -> String {
         e.tecken ? Tal.tecken(v, decimaler: e.decimaler) : Tal.tal(v, decimaler: e.decimaler)
@@ -79,11 +97,13 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         let forraMedian = forra?.median(fel.matt, grupp)
         var skillnad: String? = nil
         if let f = forraMedian, let d = forra?.datum {
-            skillnad = Tal.medEnhet(Tal.tecken(s.median - f, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(d)
+            // På de avrundade talen, så att skillnaden stämmer med de två tal som visas.
+            let a = Avrundning.avrunda(fel.matt, s.median)!, b = Avrundning.avrunda(fel.matt, f)!
+            skillnad = Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(d)
         }
         let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
         let spann = Spann(nu: s.median, spridning: (s.q1, s.q3), forra: forraMedian, gront: fel.gront,
-                          baslinje: bas, decimaler: e.decimaler)
+                          baslinje: bas, decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet)
         var geometri: Geometri? = nil
         switch e.geometri {
         case .bojning:
@@ -99,7 +119,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
             break
         }
         return Mattkort(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: Etiketter.rubrik(fel), vy: vy,
-                        markning: markning, varde: text(s.median, e), enhet: e.enhet, skillnad: skillnad,
+                        markning: markning, varde: text(Avrundning.avrunda(fel.matt, s.median), e), enhet: e.enhet, skillnad: skillnad,
                         spann: spann, geometri: geometri)
     }
 

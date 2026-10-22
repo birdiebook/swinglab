@@ -16,8 +16,8 @@ struct UtvecklingVy: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Utveckling")
-                    .font(.system(size: 30, weight: .semibold))
                     .tracking(-0.6)
+                    .typsnitt(30, .semibold)
                     .foregroundStyle(Theme.text)
                 Spacer()
                 Under(text: visning.period)
@@ -78,7 +78,7 @@ struct UtvecklingKort: View {
             }
             .frame(width: 10, height: 10)
             Text(text)
-                .font(.system(size: 12))
+                .typsnitt(12)
                 .foregroundStyle(Theme.tertiary)
         }
     }
