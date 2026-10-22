@@ -1,0 +1,16 @@
+d73845ab087b10bd177f7ac601037808fa190f64 s2g 2026-10-22T20:41:51Z run 39850799887 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
+
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
+** TEST FAILED **
+== provets mätningar (påhittad film)
