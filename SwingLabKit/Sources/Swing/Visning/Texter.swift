@@ -40,9 +40,22 @@ public enum Texter {
         "bakre_armbage_topp": "Trail elbow",
         "handbana": "Hand path",
         "framre_armbage_topp": "Lead arm",
+        // Måtten som granskningen visar vid en position utan att de är fel (katalogens `matt`).
+        "brost_bojning_adress": "Chest bend",
+        "bakre_kna_adress": "Trail knee",
+        "stans_bredd": "Stance",
+        "axellinje_lutning_adress": "Shoulder tilt",
+        "hoftlinje_lutning_adress": "Hip tilt",
+        "backen_sway_p3": "Sway",
+        "framre_armbage_p3": "Lead arm",
+        "backen_resa_p5": "Hip shift",
+        "hander_fore_adress_traff": "Hands ahead",
+        "huvud_backen_finish": "Head to pelvis",
     ]
 
     /// Var i svingen måttet hör hemma, i kortets rubrik.
+    public static let address = "address"
+    public static let finish = "finish"
     public static let top = "top"
     public static let impact = "impact"
     public static let downswing = "downswing"

@@ -148,6 +148,16 @@ public struct Sving: Sendable {
         try las(Data(json.utf8))
     }
 
+    /// En sving ur rutor i minnet, med samma kontroller och samma omräkning som filen:
+    /// varje ruta är tiden och 13 leder `[x, y, konfidens]` i filens ordning, en saknad led
+    /// `[0, 0, 0]`. Riktningen är standarden för spelhanden (docs/FORMAT.md). Telefonen
+    /// mäter så ett slags leder (METOD MS14); PC:n går via filen (METOD MT1), med samma tal.
+    public static func las(vy: Vy, hand: Hand, langdM: Double, tKlick: Double,
+                           rutor: [(t: Double, leder: [[Double]])]) throws -> Sving {
+        try fran(Fil(format: format, vy: vy.rawValue, hand: hand.rawValue, xMotMalet: nil, xMotBollen: nil,
+                     langd: langdM, tKlick: tKlick, rutor: rutor.map { Ruta(t: $0.t, leder: $0.leder) }))
+    }
+
     private static func fran(_ f: Fil) throws -> Sving {
         guard f.format == format else { throw FormatFel("format: ska vara \(format)") }
         guard let vyText = f.vy, let vy = Vy(rawValue: vyText) else {

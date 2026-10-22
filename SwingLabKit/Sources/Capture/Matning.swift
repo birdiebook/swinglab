@@ -1,0 +1,168 @@
+import Foundation
+import Swing
+
+// Från analysens leder till måtten på telefonen (PLAN S4, S4b): ett slags leder
+// (`JointSeries`, S2e) görs om till en sving i S1:s form och mäts med Matt.mat,
+// samma väg som PC:n går med paketet (METOD MT1), och resultatet sparas i passet.
+// Passets mått (sessionen, katalogen, förra passet) räknas sedan av Swing/Visning
+// ur de slag som räknas. METOD MS14
+
+/// Ett slags mått, sparat i passet (`ShotRecord.measure`). Tiderna är lederna tidsskala:
+/// s relativt klicket. METOD MS14
+public struct ShotMeasure: Codable, Equatable, Sendable {
+    /// Längden som gav skalan, m (METOD M2).
+    public var heightM: Double
+    /// Längden är standarden, inte Johannes (`AppSettings.heightM` saknas): skalan är antagen.
+    public var heightAssumed: Bool
+    public var cmPerPx: Double?
+    /// P1–P10 som tider (s relativt klicket); en position som saknas står inte med (METOD M28).
+    public var positions: [String: Double]
+    /// Måtten per namn (`Matt.namn`); ett mått som inte gick att räkna står inte med.
+    public var values: [String: Double]
+    /// Varför slaget inte gick att mäta: "hands" (händerna syns inte före träffen),
+    /// "scale" (skalans segment syns inte i adressen) eller "format"; nil när det gick.
+    public var problem: String?
+
+    public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
+                values: [String: Double] = [:], problem: String? = nil) {
+        self.heightM = heightM
+        self.heightAssumed = heightAssumed
+        self.cmPerPx = cmPerPx
+        self.positions = positions
+        self.values = values
+        self.problem = problem
+    }
+
+    /// Slaget gick att mäta.
+    public var ok: Bool { problem == nil }
+}
+
+/// Mätningen av ett slag. METOD MS14
+public enum ShotMeasuring {
+    /// Längden när Johannes inte angett någon, m: skalan märks då antagen. METOD MS14
+    public static let assumedHeightM = 1.80
+    /// Längderna som går att välja i appen, cm (inom formatets 1,0–2,5 m). METOD MS14
+    public static let heightChoicesCm = 140...210
+
+    /// Ett slags leder som en sving i S1:s form (docs/FORMAT.md): rutornas tid relativt
+    /// klicket, en saknad led som `[0, 0, 0]` (räknas som saknad, METOD M1), träffen
+    /// `impact` (s relativt klicket) som `t_klick`, och kamerans riktning som standarden för
+    /// spelhanden. Samma som PC:ns `paket.till_sving` (METOD MT1, BESLUT B12).
+    public static func sving(_ s: JointSeries, view: Vy, hand: Hand, heightM: Double, impact: Double) throws -> Sving {
+        let rutor = s.frames.map { f -> (t: Double, leder: [[Double]]) in
+            let leder = (0..<Sving.antalLeder).map { i -> [Double] in
+                guard i < f.joints.count, let j = f.joints[i], j.x.isFinite, j.y.isFinite, j.c.isFinite else {
+                    return [0, 0, 0]
+                }
+                return [j.x, j.y, j.c]
+            }
+            return (t: f.t, leder: leder)
+        }
+        return try Sving.las(vy: view, hand: hand, langdM: heightM, tKlick: impact, rutor: rutor)
+    }
+
+    /// Slagets mått ur dess leder. `height` = Johannes längd i m, nil = standarden (antagen).
+    /// Ett slag som inte går att mäta får `problem` i stället för måtten. METOD MS14
+    public static func measure(_ s: JointSeries, shot: ShotRecord, setup: PassSetup, height: Double?) -> ShotMeasure {
+        let h = height ?? assumedHeightM
+        var ut = ShotMeasure(heightM: h, heightAssumed: height == nil)
+        do {
+            let sv = try sving(s, view: setup.view, hand: setup.hand, heightM: h, impact: shot.impact - shot.click.time)
+            let r = try Matt.mat(sv)
+            ut.cmPerPx = r.cmPerPx
+            for p in Positioner.namn {
+                if let t = r.positioner.tid(p), t.isFinite { ut.positions[p] = t }
+            }
+            ut.values = r.matt.filter { $0.value.isFinite }
+        } catch SvingFel.handernaSaknas {
+            ut.problem = "hands"
+        } catch SvingFel.skalanSaknas {
+            ut.problem = "scale"
+        } catch {
+            ut.problem = "format"
+        }
+        return ut
+    }
+}
+
+extension ShotRecord {
+    /// Slaget räknas i passets mått: en sving eller osäkert (METOD MT1), mätt, och inte
+    /// märkt "Detection wrong" (BESLUT B35). METOD MS14
+    public var counts: Bool {
+        wantsDetail && detectionWrong != true && measure?.ok == true
+    }
+}
+
+extension PassState {
+    /// Slaget har leder men inga mått, eller mått med en annan längd än den som gäller nu.
+    public func needsMeasure(_ shot: ShotRecord, height: Double?) -> Bool {
+        guard shot.joints != nil else { return false }
+        guard let m = shot.measure else { return true }
+        return m.heightAssumed != (height == nil) || m.heightM != (height ?? ShotMeasuring.assumedHeightM)
+    }
+
+    /// Mäter (om) slagen som behöver det; `joints` läser ett slags leder. Svarar om något
+    /// ändrades (då ska passet sparas). Ett pass från före S4b får sina mått här. METOD MS14
+    @discardableResult
+    public mutating func measureShots(height: Double?, joints: (ShotRecord) -> JointSeries?) -> Bool {
+        var andrat = false
+        for i in shots.indices where needsMeasure(shots[i], height: height) {
+            guard let s = joints(shots[i]) else { continue }
+            shots[i].measure = ShotMeasuring.measure(s, shot: shots[i], setup: setup, height: height)
+            andrat = true
+        }
+        return andrat
+    }
+
+    /// Johannes märker slaget "Detection wrong", eller ångrar det. BESLUT B35
+    public mutating func setDetectionWrong(_ wrong: Bool, shot id: String) {
+        guard let i = shots.firstIndex(where: { $0.id == id }) else { return }
+        shots[i].detectionWrong = wrong ? true : nil
+    }
+
+    /// Måtten för slagen som räknas, i passets ordning, med passets vy.
+    public var countedSwings: [SvingMatt] {
+        shots.filter(\.counts).compactMap { s in s.measure.map { SvingMatt(vy: setup.view, matt: $0.values) } }
+    }
+
+    /// Passet som vyerna ser det (Swing/Visning): dagen, klubban, svingarna som räknas och
+    /// serie 1 (de första fem i serie 1, METOD MT2).
+    public var visningsPass: Swing.Pass {
+        let forsta = series.map(\.nr).min()
+        let iSerie1 = shots.filter { $0.counts && $0.series == forsta }.count
+        return Swing.Pass(datum: created, klubba: PassSetup.clubLabel(setup.club), svingar: countedSwings,
+                          serie1: Swift.min(PassHistory.firstSet, iSerie1))
+    }
+
+    /// Längden som slagens mått bär, och om den är antagen: den första mätta. nil = inget mätt.
+    public var measuredHeight: (heightM: Double, assumed: Bool)? {
+        shots.compactMap(\.measure).first.map { ($0.heightM, $0.heightAssumed) }
+    }
+}
+
+/// Passen före: baslinjen och "vs" (METOD M26, M27). METOD MS14
+public enum PassHistory {
+    /// Första serien är de fem första slagen i serie 1. METOD MT2
+    public static let firstSet = 5
+
+    /// De tidigare passen att jämföra med, äldst först: skapade före `nu`, med samma klubba
+    /// och samma vy (kameran på samma plats, research 1 del 4) och minst ett slag som räknas.
+    public static func earlier(_ nu: PassState, among alla: [PassState]) -> [PassState] {
+        alla.filter { p in
+            p.id != nu.id && p.created < nu.created && p.setup.club == nu.setup.club
+                && p.setup.view == nu.setup.view && !p.countedSwings.isEmpty
+        }
+        .sorted { $0.created < $1.created || ($0.created == $1.created && $0.id < $1.id) }
+    }
+
+    /// Måttens värden i de tidigare passen (alla slag som räknas), för den egna baslinjen.
+    public static func baseline(_ tidigare: [PassState]) -> [String: [Double]] {
+        var ut: [String: [Double]] = [:]
+        for p in tidigare {
+            for s in p.countedSwings {
+                for (k, v) in s.matt where v.isFinite { ut[k, default: []].append(v) }
+            }
+        }
+        return ut
+    }
+}

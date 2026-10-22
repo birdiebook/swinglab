@@ -32,11 +32,17 @@ public struct ShotRecord: Codable, Equatable, Sendable {
     public var clickInClip: Double?
     /// Klicket i klippet ligger mer än 10 ms från det väntade, eller hittades inte. METOD MS12
     public var clipFlagged: Bool?
+    /// Måtten ur lederna (S4b, `Matning.swift`); nil = inte mätt än. METOD MS14
+    public var measure: ShotMeasure?
+    /// Johannes har märkt slaget "Detection wrong" i granskningen: lederna stämmer inte,
+    /// och slaget räknas inte i passets mått. Går att ångra. nil = inte märkt. BESLUT B35
+    public var detectionWrong: Bool?
 
     public init(id: String, series: Int, click: Click, impact: Double, verdict: SwingVerdict? = nil,
                 verdictByJohannes: Bool = false, joints: String? = nil, jointFrames: Int? = nil,
                 orientationSuspect: Bool? = nil, clip: String? = nil, clipStart: Double? = nil,
-                clickInClip: Double? = nil, clipFlagged: Bool? = nil) {
+                clickInClip: Double? = nil, clipFlagged: Bool? = nil, measure: ShotMeasure? = nil,
+                detectionWrong: Bool? = nil) {
         self.id = id
         self.series = series
         self.click = click
@@ -50,6 +56,8 @@ public struct ShotRecord: Codable, Equatable, Sendable {
         self.clipStart = clipStart
         self.clickInClip = clickInClip
         self.clipFlagged = clipFlagged
+        self.measure = measure
+        self.detectionWrong = detectionWrong
     }
 
     /// "s01" … ur numret.
@@ -496,6 +504,8 @@ public struct ShotRow: Equatable, Sendable, Identifiable {
     public var changedByJohannes: Bool
     /// Lederna finns (det täta passet är gjort).
     public var hasJoints: Bool
+    /// Märkt "Detection wrong": räknas inte i passets mått (BESLUT B35).
+    public var detectionWrong: Bool = false
 
     public static func rows(_ pass: PassState) -> [ShotRow] {
         pass.shots.map { s in
@@ -503,7 +513,8 @@ public struct ShotRow: Equatable, Sendable, Identifiable {
             let warn = s.verdict == .uncertain || s.clipFlagged == true || s.orientationSuspect == true
             return ShotRow(id: s.id, number: ShotRecord.number(s.id) ?? 0, series: s.series, club: klubba,
                            time: Taltext.decimal(s.click.time, digits: 1), verdict: s.verdict, warning: warn,
-                           changedByJohannes: s.verdictByJohannes, hasJoints: s.joints != nil)
+                           changedByJohannes: s.verdictByJohannes, hasJoints: s.joints != nil,
+                           detectionWrong: s.detectionWrong == true)
         }
     }
 

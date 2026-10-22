@@ -410,8 +410,13 @@ public enum PassStorage {
 public struct AppSettings: Codable, Equatable, Sendable {
     /// BESLUT B26: behåll hela serierna (standard) eller bara klippen efter export.
     public var keepOriginals: Bool
+    /// Spelarens längd, m: skalan för måtten i cm (METOD M2). nil = inte angiven; då
+    /// mäts med `ShotMeasuring.assumedHeightM` och skalan märks antagen (METOD MS14).
+    /// Saknas i en installningar.json från före S4b.
+    public var heightM: Double?
 
-    public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault) {
+    public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil) {
         self.keepOriginals = keepOriginals
+        self.heightM = heightM
     }
 }

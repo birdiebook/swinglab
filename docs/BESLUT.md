@@ -491,3 +491,27 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   Vision renderar den); tiden per ruta mäts på telefonen (`msPerFrame`, MS12).
 - **Omprövas:** efter telefonprovet av S2i, och i S3 om MediaPipe på samma ruta
   skiljer mer än utan ruta.
+
+## B35 — Granskningen med riktig video, och "Detection wrong"
+*2026-10-22 · prövas · PLAN.md S4 (S4b) · Johannes efter telefonprovet med S2e+S2i*
+
+- **Valt:** ett tryck på ett slag i passet öppnar granskningen: seriens video i
+  `AVPlayer` med utsnittet (S2i), spela/pausa i 1/8 fart och stega ruta för ruta, med
+  alla 13 leder och linjerna mellan dem ovanpå som Vision gav dem (METOD MS15), en
+  växel som döljer dem, positionsraden P1–P10 och slagets mått vid positionen. En meny
+  märker slaget **"Detection wrong"**: det sparas i `pass.json`, slaget räknas inte i
+  passets mått, och det går att ångra. Efter Analyze visar passet måtten överst
+  (S4:s `PassetVy` med riktig data) och slagen under, med vägen till varje slags
+  granskning (METOD MS14).
+- **Varför:** Johannes första prov (S2e+S2i) gav "1 Swing" och en miniatyr, men inget
+  sätt att se om Vision hittat rätt leder, och inget resultat. Lederna ska gå att
+  kontrollera innan måtten tas på allvar.
+- **Bortvalt:** att avkoda rutorna själv till bilder (minnet: 960 rutor per slag), en
+  bild ur `AVAssetImageGenerator` per steg (avkodar från nyckelbilden varje gång), och
+  de utjämnade lederna i överlägget (döljer Visions fel). Att ta bort slaget helt (då
+  går märkningen inte att ångra, och paketet tappar slaget). Klubban visas inte (S7).
+- **Kostnad:** `AVPlayerLayer` syns inte i simulatorns bilder; provet ritar ytan med
+  rutan ur filen i stället, med samma koordinater, så att spelarens lager bara prövas
+  på telefonen.
+- **Omprövas:** efter telefonprovet av S4b.
+

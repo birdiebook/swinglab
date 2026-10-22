@@ -777,6 +777,63 @@ värden i `CaptureTests`.
   rutan och bilderna av redigeraren. **Visions leder i rutan provas bara på
   telefonen.**
 
+## MS14 — Måtten på telefonen (S4b)
+
+- **Lederna till en sving.** Efter det täta passet görs slagets leder (de avrundade, som
+  i `Leder/` och paketet) om till en sving i S1:s form (docs/FORMAT.md) och mäts med
+  `Matt.mat` (M1–M29): rutornas tid relativt klicket, en saknad led som `[0, 0, 0]`
+  (konfidens 0, räknas som saknad, M1), träffen relativt klicket (`impact − klick`,
+  MS6) som `t_klick`, vyn och spelhanden ur uppställningen och kamerans riktning som
+  standarden för spelhanden. Samma väg som PC:ns `paket.till_sving` (MT1), så att
+  telefonen och PC:n ger samma tal på samma slag (BESLUT B12); provat mot filformatet
+  (`MatningTests`). **räkning.**
+- **Längden** (skalan, M2) är Johannes egen (`AppSettings.heightM`, valbar 140–210 cm
+  i passet). Saknas den mäts med **1,80 m** och skalan märks antagen ("assumed") i
+  passet, i stället för att stoppa som PC:n gör (MT1): måtten i cm skalar med längden
+  (±5 cm i längd ≈ ±3 % i varje cm-mått), vinklarna och tempot inte. **antagande**
+  (en genomsnittlig vuxen man; ingen källa). En ny längd mäter om passets slag när
+  passet öppnas.
+- **Vilka slag som räknas** i passets mått: domen sving eller osäker (MT1), mätt, och
+  inte märkt "Detection wrong" (BESLUT B35). Ett slag som inte går att mäta (händerna
+  syns inte före träffen, eller skalans segment syns inte i adressen) räknas inte och
+  märks i listan. **räkning.**
+- **Passet** visar katalogens mått med sessionen (M25), den egna baslinjen (M27) och
+  "vs" förra passet (M26), där de tidigare passen är de med **samma klubba och samma
+  vy** (kameran på samma plats, research 1 del 4). **antagande.** Under tre svingar
+  (M25:s gräns) visar kortet ändå medianen av de som finns, utan spridning och utan
+  "vs", så att ett pass med ett slag inte står tomt efter Analyze. Sessionens
+  sammanfattning och bedömningen ändras inte. **antagande.**
+- **Ändras fönstret eller utsnittet** (MS13) tas måtten och märkningen bort med
+  lederna.
+- **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
+  samma sving, samma sving som filformatet, längden och den antagna skalan, slag som
+  inte går att mäta, passets median med och utan "Detection wrong", omätningen, gamla
+  filer och de tidigare passen. Simulatorn (`SwingLabProvGranskning`): analysen med
+  påhittade leder ger måtten i passet, och "Detection wrong" tar bort slaget ur dem.
+
+## MS15 — Granskningen av ett slag: videon och lederna (S4b)
+
+- **Videon** är seriens fil (eller klippet när originalet är borttaget, BESLUT B26,
+  med klicket mätt i klippet, MS12), skuren till utsnittet på hela pixlar (MS13).
+  **Rutnätet** är slagets egna rutor (lederna har en ruta per videobild i det täta
+  fönstret, med bildens egen tid): ett steg är en ruta, en position (M28) visar rutan
+  närmast positionens tid. Uppspelningen går i **1/8** fart: 240 bilder/s blir 30 per
+  sekund. **antagande** (läsbart med ögat).
+- **Lederna** ritas som Vision gav dem i rutan, inte utjämnade (M3): granskningen ska
+  visa vad Vision såg. Fylld punkt vid konfidens **≥ 0,3** (leden mäts, M1), ihålig
+  vid **0,1–0,3** (Vision räknar den säker, MS8, men måtten räknar den som saknad),
+  ingen under 0,1. Linjerna är axellinjen, höftlinjen, armarna och benen, streckade när
+  en ände är ihålig; näsan är huvudpunkten. Ingen bål och ingen kropp (BESLUT B13).
+  **räkning.**
+- **Koordinaterna:** en led (x, y) i hela den upprätta bildens pixlar blir
+  ((x/B − x₀)/b, (y/H − y₀)/h) i ytan, med (x₀, y₀, b, h) utsnittet på hela pixlar,
+  samma ruta som bilden skärs till. Provat i simulatorn med en markör i en påhittad
+  film: markören i bilden och leden på markörens koordinat hamnar på samma punkt i
+  ytan, med och utan utsnitt.
+- **Måtten under videon** är slagets (inte passets median) vid den valda positionen,
+  ur katalogens `positioner` och `matt` i slagets vy (M29), med katalogens gräns
+  eller den egna baslinjen ur de tidigare passen (MS14).
+
 ---
 
 # Tolkningen (S5)

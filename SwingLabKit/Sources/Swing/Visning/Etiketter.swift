@@ -61,6 +61,17 @@ public enum Etiketter {
             e("bakre_armbage_topp", "°", T.top, tecken: true),
             e("handbana", "cm", T.downswing, tecken: true),
             e("framre_armbage_topp", "°", T.top),
+            // Granskningens mått vid en position (katalogens `matt`, METOD M29).
+            e("brost_bojning_adress", "°", T.address),
+            e("bakre_kna_adress", "°", T.address),
+            e("stans_bredd", "", T.address),
+            e("axellinje_lutning_adress", "°", T.address, tecken: true),
+            e("hoftlinje_lutning_adress", "°", T.address, tecken: true),
+            e("backen_sway_p3", "cm", "P3", tecken: true, plus: T.target),
+            e("framre_armbage_p3", "°", "P3"),
+            e("backen_resa_p5", "cm", "P5", tecken: true, plus: T.target),
+            e("hander_fore_adress_traff", "cm", T.impact, tecken: true, plus: T.target),
+            e("huvud_backen_finish", "cm", T.finish, tecken: true, plus: T.target),
         ])
     }()
 

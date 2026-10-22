@@ -97,6 +97,19 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         let grupp = fel.grupp
         let markning = Markning.fran(fel)
         let vy = Vy(rawValue: fel.vy)
+        // Färre än tre svingar ger ingen sammanfattning (M25). Passet visar ändå medianen av
+        // de som finns, utan spridning och utan jämförelse mot förra passet. METOD MS14
+        let fa = nu.varden(fel.matt, grupp)
+        if fel.aktiv, nu.sammanfattning(fel.matt, grupp) == nil, !fa.isEmpty {
+            let v = Session.percentil(fa.sorted(), 0.5)
+            let forra = tidigare.last?.median(fel.matt, grupp)
+            let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
+            let spann = Spann(nu: v, spridning: nil, forra: forra, gront: fel.gront, baslinje: bas,
+                              decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet)
+            return Mattkort(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: Etiketter.rubrik(fel), vy: vy,
+                            markning: markning, varde: text(Avrundning.avrunda(fel.matt, v), e), enhet: e.enhet,
+                            skillnad: nil, spann: spann, geometri: nil)
+        }
         guard fel.aktiv, let s = nu.sammanfattning(fel.matt, grupp) else {
             return Mattkort(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: Etiketter.rubrik(fel), vy: vy,
                             markning: markning, varde: "—", enhet: e.enhet, skillnad: nil, spann: nil, geometri: nil)

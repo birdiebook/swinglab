@@ -295,6 +295,9 @@ extension PassState {
             shots[k].clipStart = nil
             shots[k].clickInClip = nil
             shots[k].clipFlagged = nil
+            // Lederna görs om: måtten och "Detection wrong" gällde de gamla (METOD MS14).
+            shots[k].measure = nil
+            shots[k].detectionWrong = nil
         }
         syncShots()
         if status == .analyzed { status = .recorded }
