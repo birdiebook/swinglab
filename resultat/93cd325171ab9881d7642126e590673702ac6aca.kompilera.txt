@@ -1,0 +1,14 @@
+93cd325171ab9881d7642126e590673702ac6aca s4b 2026-10-22T20:48:47Z run 39851826201 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:209:16: error: static stored properties not supported in generic types
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:209:16: error: static stored properties not supported in generic types
+
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:209:16: error: static stored properties not supported in generic types
+** TEST FAILED **
+== provets mätningar (påhittad film)
