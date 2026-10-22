@@ -1,26 +1,26 @@
-958e0a20022f03a3b4607542dc7d397d8b900732 s4c 2026-10-22T22:35:12Z run 39864064238 kompilera
+af81563c9f6030c98e9cf275757e7243bdaf0902 s4c 2026-10-22T22:45:35Z run 39866093741 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 31 test, 0 fel, 96 s i testerna
+GRÖNT: 31 test, 0 fel, 68 s i testerna
 Långsammast (av 31):
-     36.3 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+     33.1 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      5.6 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      5.2 s  SwingLabProvInspelning.testFilmenMedLPCM
-      5.0 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      4.6 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      3.9 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      3.4 s  SwingLabProvInspelning.testFilmenMedAAC
-      3.0 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      2.9 s  SwingLabProvInspelning.testLuckaILjudet
-      2.8 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      2.3 s  SwingLabProvSlag.testSteg6Klippet
-      2.2 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      1.9 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
-      1.9 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      4.2 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      3.3 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      2.0 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.8 s  SwingLabProvInspelning.testFilmenMedLPCM
+      1.7 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      1.7 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      1.5 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      1.4 s  SwingLabProvInspelning.testFilmenMedAAC
+      1.3 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      1.3 s  SwingLabProvInspelning.testKvittotUrFilen
+      1.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      1.1 s  SwingLabProvLink.testParningenEfterAttVynStangts
+      1.0 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -54,11 +54,11 @@ PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Len
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.046 ms, osäkerhet 0.174 ms, 30 prov
+PROV: link klocka θ 0.035 ms, osäkerhet 0.172 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.1 MB, topp 59.3 MB (+1.1 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 55.2 MB, topp 55.2 MB (+0.0 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1490565 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -81,7 +81,7 @@ PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup 
 PROV: skrev jobba.png (1170×4618 px)
 PROV: skrev jobba-stor.png (390×4368 px)
 PROV: flikarna Idag: Sat, Jan 9 · 7i · 8, sway −2.3 cm, 7 rader, fokus ["Sway", "Trail elbow"]
-PROV: flikarna Utveckling: 7i · Nov–Jan · 6, 1 not measured, sway ["-6.17", "-5.41", "-4.75", "-3.89", "-2.98", "-2.28"], block [3]
+PROV: flikarna Utveckling: 7i · Nov–Jan · 6, 1 at another height, sway ["-6.17", "-5.41", "-4.75", "-3.89", "-2.98", "-2.28"], block [3]
 PROV: skrev flik-idag.png (1170×2321 px)
 PROV: skrev flik-idag-utan-fokus.png (1170×1566 px)
 PROV: skrev flik-utveckling.png (1170×1621 px)
