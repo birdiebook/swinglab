@@ -70,7 +70,7 @@ public struct Spann: Equatable, Sendable {
     public static func == (a: Spann, b: Spann) -> Bool {
         a.axel == b.axel && a.zon == b.zon && a.nu == b.nu && a.forra == b.forra
             && a.spridning?.lo == b.spridning?.lo && a.spridning?.hi == b.spridning?.hi
-            && a.etiketter.map(\.text) == b.etiketter.map(\.text)
+            && a.etiketter.map { $0.text } == b.etiketter.map { $0.text }
     }
 
     /// `gront` som i katalogen ([lo, hi], nil = öppen ände); utan den används `baslinje`.

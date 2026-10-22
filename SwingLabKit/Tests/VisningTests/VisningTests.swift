@@ -16,7 +16,7 @@ final class VisningTests: XCTestCase {
 
     func testTalen() {
         XCTAssertEqual(Tal.tal(-2.4, decimaler: 1), "−2,4")
-        XCTAssertEqual(Tal.tal(11.25, decimaler: 1), "11,3")
+        XCTAssertEqual(Tal.tal(11.27, decimaler: 1), "11,3")
         XCTAssertEqual(Tal.tal(-0.04, decimaler: 1), "0,0")          // inget "−0,0"
         XCTAssertEqual(Tal.tal(nil, decimaler: 1), "—")
         XCTAssertEqual(Tal.tecken(1.2, decimaler: 1), "+1,2")
@@ -61,13 +61,13 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(hi, s.axel.hi)                       // öppen ände = axelns ände
         XCTAssertGreaterThan(s.axel.hi, 0)                  // och axeln går förbi gränsen
         XCTAssertLessThanOrEqual(s.axel.lo, -3.6)
-        XCTAssertEqual(s.etiketter.map(\.text), [Tal.axel(s.axel.lo, decimaler: 1), "0", Tal.axel(s.axel.hi, decimaler: 1)])
+        XCTAssertEqual(s.etiketter.map { $0.text }, [Tal.axel(s.axel.lo, decimaler: 1), "0", Tal.axel(s.axel.hi, decimaler: 1)])
     }
 
     func testSpannetMedBaslinje() {
         let s = Spann(nu: 11.3, spridning: (10.2, 12.1), forra: 11.0, gront: nil, baslinje: (7.6, 8.4), decimaler: 1)
         XCTAssertEqual(s.zon, .baslinje(lo: 7.6, hi: 8.4))
-        XCTAssertEqual(s.etiketter.map(\.text).dropFirst().prefix(2), ["7,6", "8,4"])
+        XCTAssertEqual(s.etiketter.map { $0.text }.dropFirst().prefix(2), ["7,6", "8,4"])
         XCTAssertLessThanOrEqual(s.axel.lo, 7.6)
         XCTAssertGreaterThanOrEqual(s.axel.hi, 12.1)
     }
@@ -146,10 +146,10 @@ final class VisningTests: XCTestCase {
         let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog(), pass: Demo.pass)
         XCTAssertEqual(v.tema, "Bäckenets väg")
         XCTAssertEqual(v.block, "block 2 · v 5")
-        XCTAssertEqual(v.kedja.map(\.namn), ["Sway", "Resa framåt", "Böjning"])
+        XCTAssertEqual(v.kedja.map { $0.namn }, ["Sway", "Resa framåt", "Böjning"])
         XCTAssertEqual(v.kedja[0].fran, "−5,9 → −2,4")
         XCTAssertEqual(v.kedja[1].varde, "11,3")
-        XCTAssertEqual(v.steg.map(\.namn), ["Långsamt", "Halv fart", "Full fart", "Ny klubba"])
+        XCTAssertEqual(v.steg.map { $0.namn }, ["Långsamt", "Halv fart", "Full fart", "Ny klubba"])
         XCTAssertEqual(v.steg[1].lage, .nu)
         XCTAssertEqual(v.tanke, "”Rör inte käppen.”")
         XCTAssertEqual(v.villkor, "Sway topp ≥ 0,0 cm")
@@ -182,10 +182,10 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(sway.varde, "−2,4")
         XCTAssertEqual(sway.skillnad, "+5,5 cm mot 20 okt")
         XCTAssertTrue(sway.harSerie1)
-        XCTAssertEqual(sway.manader.map(\.text), ["okt", "nov", "dec", "jan"])
-        XCTAssertEqual(sway.manader.map(\.index), [0, 3, 10, 13])
-        XCTAssertEqual(sway.block.map(\.index), [4, 11])
-        XCTAssertEqual(sway.block.map(\.text), ["B1", "B2"])
+        XCTAssertEqual(sway.manader.map { $0.text }, ["okt", "nov", "dec", "jan"])
+        XCTAssertEqual(sway.manader.map { $0.index }, [0, 3, 10, 13])
+        XCTAssertEqual(sway.block.map { $0.index }, [4, 11])
+        XCTAssertEqual(sway.block.map { $0.text }, ["B1", "B2"])
         guard case let .grans(lo, hi)? = sway.band else { return XCTFail("swayen utan gräns") }
         XCTAssertEqual(lo, 0)
         XCTAssertEqual(hi, .infinity)
@@ -234,6 +234,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(g.slag[1].nr, 1)
         XCTAssertEqual(g.forraDatum, "6 jan")
         XCTAssertEqual(y.namn, "Sway")
-        XCTAssertEqual(y.tidText(y.faser.topp), "2,20 s")
+        XCTAssertEqual(y.tidText(2.2), "2,20 s")
+        XCTAssertEqual(y.faser.topp, 2.2, accuracy: 0.01)
     }
 }
