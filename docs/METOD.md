@@ -305,3 +305,154 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - `kontrollerad: false` = källan är inte läst i original (BESLUT B10).
   Gränsen används ändå, märkt. Ett fel med `aktiv: false` bedöms inte
   (axellutningen, M17).
+
+---
+
+# Inspelningen (S2)
+
+Konstanterna i SwingLabKit-modulen `Capture` (S2_SPEC §2–§7, §9). Numreringen
+MS följer specens METOD-förslag (§11.1). Swift och Python (`tools/pc/klick.py`)
+räknar klicket och parningen lika (BESLUT B12); resten provas med påhittade
+värden i `CaptureTests`.
+
+## MS1 — Formatvalet
+
+- Bara format med **exakt 1920 × 1080** (lagrat, liggande) och högsta
+  bildfrekvens ≥ **240 − 0,5** bilder/s (flyttalen i telefonens rapport, t.ex.
+  239,76). Bland dem: störst vågrätt synfält (`videoFieldOfView`, 0 = okänt
+  räknas som minst), sedan binnat (Apple: "greater low light sensitivity"),
+  sedan 8-bitars före 10-bitars, sedan lägst index. **antagande**, prövas i S2c.
+- Finns inget i 240: högst frekvens ≥ **120** i 1080p, samma ordning vid lika
+  frekvens, och vyn visar frekvensen i gult (`FormatChoice.reaches`).
+- Valet görs ur det telefonen själv rapporterar (`device.formats`), aldrig ur en
+  modellista: Johannes telefoner är iPhone 17 och iPhone 13, och listorna skiljer.
+
+## MS2 — Exponeringsplanen
+
+- Låst tid = 1/2000 s (BESLUT B11), klämd till formatets
+  `[minExposure, maxExposure]`. ISO-behovet
+  `neededISO = aeISO · (aeTid / låst tid) · 2^(−exposureTargetOffset)`, låst ISO =
+  behovet klämt till `[minISO, maxISO]`, EV-bristen `max(0, log2(neededISO / maxISO))`.
+  **räkning (fysik):** exponeringen är tid × ISO, och offset är i EV
+  (Apple, `exposureTargetOffset`).
+- **good** om behovet ≤ maxISO / 2 (ett steg kvar), **marginal** om ≤ maxISO,
+  annars **tooDark**. **antagande.**
+- Ett tal ur autoexponeringen som inte är ändligt och positivt ersätts (tiden
+  med den låsta, ISO med minISO, offset med 0), så att planen alltid går att
+  låsa (risk R2) och skriva som JSON.
+- Tabellen över belysning (S2_SPEC §2.3, K = 12,5, 18 % grått, N = 1,78): ISO
+  1000 ≈ 1 400 lux, 2000 ≈ 700 lux, 4000 ≈ 350 lux på golfaren. **räkning +
+  antagande**, en storleksordning (telefonens ISO är inte kalibrerad mot standarden).
+
+## MS3 — Ljusprovet och rutornas tider
+
+- **Rutnätet** = 1 / 5:e percentilen (linjär interpolation) av de positiva
+  stegen mellan rutornas egna tider, avrundat till heltal. De kortaste stegen,
+  inte medianen: oktobers klipp låg på 240-rutnätet med drygt en tredjedel av
+  rutorna borta (**mätt**, Golf SG; research 2 §2). Andelen tappade =
+  `1 − antal / ((sista − första) · rutnät + 1)`. **Slowmotion** = rutnät ≥
+  **100** bilder/s; under det är en import omräknad och vägras (S2_SPEC §5).
+  **antagande** (gränsen).
+- **Flimret** = `sqrt(a² + b²) / c` ur en minsta kvadrat-anpassning av
+  `c + a·cos(2πft) + b·sin(2πft)` på rutornas egna tider, vid 100 Hz (50 Hz-nät)
+  och 120 Hz (60 Hz-nät). En kolumn som är noll på rutorna (sinus vid exakt halva
+  bildfrekvensen) lämnas ute, så 120 Hz kan underskattas. **standard** (minsta
+  kvadrat) för räkningen. Provat: 20 % djup vid 100 Hz på oregelbundna tider ger
+  0,20 ± 0,01; konstant ljus < 0,005.
+- **Gränserna:** flimmer (det större av 100 och 120 Hz) under 3 % grönt, 3–10 %
+  gult, över 10 % rött; tappade rutor under 1 % grönt, 1–5 % gult, över 5 % rött;
+  medelljusheten 0,20–0,60 grönt, utanför gult. Domen är den sämsta av ISO
+  (MS2), flimmer, rutor och ljushet. **antagande**, kalibreras på de första passen.
+
+## MS4 — Klicket
+
+- Golf SG:s `handled_video.klick()` rad för rad (S2_SPEC §4.1): första
+  differensen, RMS i ett centrerat fönster om **0,002 s** (96 prov vid 48 kHz,
+  `n − 48 … n + 47`), toppar över **25 ×** bitens median (+ 1e-9), toppar närmare
+  än **0,5 s** blir den största (jämfört mot den senaste), och ansatsen är första
+  provet över **0,5 ×** toppen inom **0,02 s** före den. Styrkan = toppen / medianen.
+  **mätt** i Golf SG: 41 av 41 klick i oktobers mätning, rest mot bandet 1–7 ms i
+  median (HANDLED_PLAN §3).
+- **Avvikelse:** en signal kortare än fönstret ger inga klick (Golf SG:s
+  `np.convolve` byter då plats på fönstret och signalen). Påverkar bara de
+  första 2 ms.
+- En impuls i prov k ger ansatsen **k − 47** (fönstrets första prov). Specens
+  "k − 48" är ett prov fel. Ett klick på 10 prov ger ansatsen ≈ 44 prov (0,9 ms)
+  före klicket, lika i båda språken och för båda telefonerna.
+- **Bitar om 30 s med 1 s överlapp**, medianen per bit, och klick närmare än
+  0,5 s över bitarnas gräns blir det starkaste. **antagande** (minnet på
+  telefonen). PC:n delar in likadant (`klick_i_bitar`). Provat på påhittat ljud:
+  klicken i överlappen hittas en gång på samma prov som utan bitar; styrkan
+  skiljer under 1 %.
+- **Paritet:** Swift hittar samma ansats på provet och styrkan inom 1e-6
+  relativt som Python på 8 påhittade signaler (`KlickFixturer.swift`), och Python
+  ger Golf SG:s tal exakt (`tools/tests/test_klick.py`, lokalt där Golf SG finns).
+  Swift räknar energin med löpande summa i double, förankrad om var 4096:e prov.
+
+## MS5 — Svingdomen
+
+- Ett klick blir ett slag när glesa leder (var **8:e** ruta i **[−1,6; +0,1] s**
+  kring klicket) visar en sving (S2_SPEC §4.3): kroppens längd H = medianen av
+  fotledernas mitt − näsan i y, px; händerna = handledernas mitt (greppregeln,
+  M1); farten mellan rutorna i H per sekund, med tiden i stegets mitt.
+- **Slag** om (a) högsta farten i **[−0,10; +0,05] s** är minst **2,0 H/s** och
+  (b) händerna står över axlarnas mitt någon gång i **[−1,6; −0,15] s**. **Inte
+  slag** om (a) eller (b) brister. **Osäkert** om färre än **60 %** av rutorna har
+  alla 13 leder säkra (MS8) eller kroppens längd saknas.
+- Bekräftade och osäkra slag får Vision på varje ruta i **[−2,5; +1,5] s**
+  (samma fönster som Golf SG:s MediaPipe).
+- **antagande**: 2,0 H/s ≈ 3,2 m/s för H = 1,6 m, med marginal mot proffsens
+  händer över 6 m/s vid träffen. Kalibreras på oktobers 41 slag i S2e (alla ska
+  bli slag).
+
+## MS6 — Träffen ur klicket
+
+- Träffen = klicket − avstånd / **343 m/s** (ljudets fart i luft vid cirka 20 °C).
+  **fysik**; Golf SG mätte cirka 9 ms framifrån på 3 m (HANDLED_PLAN §4), och
+  3 / 343 = 8,7 ms. Ett fel på 0,5 m i avståndet är 1,5 ms.
+
+## MS7 — Orienteringen
+
+- EXIF ur spårets `preferredTransform` (a, b, c, d) med toleransen **0,01**:
+  (0, 1, −1, 0) → 6, (0, −1, 1, 0) → 8, (1, 0, 0, 1) → 1, (−1, 0, 0, −1) → 3;
+  annat (speglat) → 1. Upprätt storlek byter bredd och höjd för 6 och 8. Visions
+  punkt (origo nere till vänster) → pixlar `(x·B, (1 − y)·H)`. **vedertagen
+  avbildning**; prövas i simulatorn (S2c) och med klapprovet (T2).
+- **Vakten:** i adressen (seriens första **0,3 s**) ska kroppens axel, fotledernas
+  mitt → näsan, vara mer lodrät än vågrät: |medianen av Δy| > **2 ×** |medianen av
+  Δx| över rutorna med de tre lederna säkra. Passet märks när **fler än hälften**
+  av slagen brister. **antagande.**
+
+## MS8 — Lederna: konfidensen och personen
+
+- En led räknas som säker vid **c ≥ 0,1**, en observation vid **≥ 0,6**, som
+  Apples exempel (WWDC20 session 10653). **tillverkare, ej läst i original.**
+  Gäller telefonens svingdom (MS5). Mätningen läser samma leder med gränsen 0,3
+  (M1).
+- **Flera personer:** i första rutan räknas de som är minst **hälften** så höga
+  (H) som den högsta, och den vars höfters mitt ligger närmast bildens mitt i x
+  väljs; sedan den vars höfters mitt ligger närmast föregående ruta. Grannen
+  längre bort är mindre i bild. **antagande.**
+
+## MS9 — Klockorna
+
+- NTP:s fyra tider: `θ = ((t1 − t0) + (t2 − t3)) / 2`, `δ = (t3 − t0) − (t2 − t1)`.
+  **standard** (NTP, RFC 5905).
+- Förskjutningen = medianen av θ bland **fjärdedelen** av proven med lägst δ
+  (avrundat uppåt, minst ett). Osäkerheten = **största** δ / 2 bland dem: varje
+  provs θ ligger inom δ/2 från den sanna förskjutningen hur osymmetrisk vägen än
+  är, så det är en gräns för medianen. Specen föreslog minsta δ / 2, som inte är
+  en gräns. **antagande** (fjärdedelen). Provat med 30 påhittade ping med 1–20 ms
+  osymmetrisk väg: inom osäkerheten och inom 10 ms. Pingen är bara ett
+  förhandsvärde; synken är klicket (MS10).
+
+## MS10 — Parningen
+
+- Golf SG:s `para()`: förskjutningen d (b ≈ a + d) som parar flest klick inom
+  **30 ms**, sökt i steg om **5 ms** (det första vid lika), förfinad med medianen
+  av de parade resterna. **mätt** i Golf SG (klicken mot bandets stötar, oktobers
+  mätning). Python (`tools/pc/klick.py para`) ger Golf SG:s förskjutning inom 1e-9.
+- Sökfönstret: **prior ± 0,25 s** med ping, **± 0,5 s** när pingen efter stopp
+  saknas, **± 10 s** utan. Golf SG sökte ± 3 s. **antagande.**
+- **Avvikelser:** stegen räknas `lo + i·steg` (numpys `arange` gör nästan det),
+  och parar inget svaras prior (eller 0) i stället för sökningens början.

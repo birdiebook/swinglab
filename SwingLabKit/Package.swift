@@ -9,6 +9,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "Swing", targets: ["Swing"]),
+        .library(name: "Capture", targets: ["Capture"]),
     ],
     targets: [
         // Mätningen (METOD M1–M27): formatet, utjämningen och faserna, måtten per vy,
@@ -16,5 +17,12 @@ let package = Package(
         .target(name: "Swing"),
         // Fixturerna är Swift-källa (Fixturer.swift), inga resurser och inget Bundle.module.
         .testTarget(name: "SwingTests", dependencies: ["Swing"]),
+        // Inspelningens logik (S2_SPEC §9, METOD MS1–MS10): klicket, rutornas tider, formatet,
+        // exponeringen, ljusprovet, orienteringen, lederna, svingdomen, klockorna och parningen.
+        // Bara Foundation; App/ fyller i värdena ur AVFoundation och Vision.
+        .target(name: "Capture"),
+        // KlickFixturer.swift är Pythons tal (tools/pc/klickljud.py --swift), BESLUT B12.
+        // Swing behövs bara för att pröva att ledernas namn är formatets (docs/FORMAT.md).
+        .testTarget(name: "CaptureTests", dependencies: ["Capture", "Swing"]),
     ]
 )
