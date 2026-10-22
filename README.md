@@ -19,11 +19,12 @@ tränas. Se [PLAN.md](PLAN.md) och [CLAUDE.md](CLAUDE.md).
    (måste vara unikt; hemskärmen visar "SwingLab", BESLUT B8), SKU `swinglab`,
    språk svenska. Under TestFlight: en intern testgrupp med automatisk
    distribution. Tryck aldrig "Add for Review".
-2. **Hemligheterna, som organisationshemligheter** så att SwingLab och Airtime
-   delar dem: GitHub → organisationen `birdiebook` → Settings → Secrets and
-   variables → Actions → New organization secret, med tillgång för `swinglab`
-   och `hopp`. En GitHub-hemlighet går inte att läsa tillbaka, så värdena hämtas
-   från källan:
+2. **Hemligheterna, som repository secrets:** GitHub → `birdiebook/swinglab` →
+   Settings → Secrets and variables → **Actions** → fliken Secrets → New
+   repository secret (inte Codespaces eller Dependabot). `birdiebook` är ett
+   personligt konto, så det finns inga organisationshemligheter att dela; Airtime
+   behöver samma fyra i `birdiebook/hopp`. En GitHub-hemlighet går inte att läsa
+   tillbaka, så värdena hämtas från källan:
    1. `APP_STORE_CONNECT_ISSUER_ID` och `APP_STORE_CONNECT_KEY_IDENTIFIER`: App
       Store Connect → Users and Access → Integrations → App Store Connect API
       (Issuer ID överst, Key ID på nyckelns rad).
