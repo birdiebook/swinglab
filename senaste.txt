@@ -1,9 +1,20 @@
-c18730dd5408db4e6c94228402aeb6e87922bbd0 s2cd 2026-10-22T12:45:59Z run 39780882841
+18cd60de7010b919cecbecb4804fb9df37429f4f s4-vyn 2026-10-22T12:49:56Z run 39781444965
 == swift-release
-RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/InspelningTests.swift:87:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/InspelningTests.swift:99:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-error: fatalError
+GRÖNT: 82 test, 0 fel, 3 s i testerna, bygget 17 s
+Långsammast (av 82):
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MattTests.testVansterspelarenRaknasSomHoger
+      0.1 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
+      0.1 s  VardenaTests.testExponeringenLamnarAldrigFormatet
+      0.1 s  VardenaTests.test240MedVarTredjeBorta
+      0.1 s  VardenaTests.testExponeringenDomarna
+      0.1 s  MattTests.testVinklarna
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  VisningTests.testUtveckling
+      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
+      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
 
