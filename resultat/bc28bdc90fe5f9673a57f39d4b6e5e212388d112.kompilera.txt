@@ -1,0 +1,51 @@
+bc28bdc90fe5f9673a57f39d4b6e5e212388d112 main 2026-10-22T14:16:23Z run 39791553211 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+GRÖNT: 15 test, 0 fel, 38 s i testerna
+Långsammast (av 15):
+     11.3 s  SwingLabProvInspelning.testFilmenMedLPCM
+      6.6 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      4.9 s  SwingLabProvInspelning.testFilmenMedAAC
+      4.5 s  SwingLabProvInspelning.testKvittotUrFilen
+      4.1 s  SwingLabProvInspelning.testLuckaILjudet
+      2.5 s  SwingLabProvInspelning.testLjusprovetsLasning
+      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
+      0.9 s  SwingLabProvVyer.testAttJobbaPa
+      0.8 s  SwingLabProvVyer.testPasset
+      0.5 s  SwingLabProvVyer.testGranskning
+      0.3 s  SwingLabProvVyer.testUtveckling
+      0.2 s  SwingLabProvVyer.testIdag
+      0.1 s  SwingLabProvInspelning.testLagringen
+      0.0 s  SwingLabProv.testSwingLabKitLankat
+      0.0 s  SwingLabProv.testInfoPlist
+
+** TEST SUCCEEDED **
+== provets mätningar (påhittad film)
+PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
+PROV: aac i filen aac 44100.0 Hz 2 kanaler
+PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm första tiderna ["0.000000", "0.005000", "0.013333", "0.016667", "0.025000", "0.030000", "0.038333", "0.041667", "0.050000", "0.055000", "0.063333", "0.066667"]
+PROV: lpcm stegen i 10 µs: ["333×128", "500×128", "833×255"]
+PROV: lpcm rutor 512, rutnät 240.0, saknas 0.3324641460234681, största hål 0.008333333333333748
+PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
+PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
+PROV: lpcm ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
+PROV: kvitto Bilder/s 240 · Tappade 33 % · Rutor 512 · Klick 2 · MB/min 7 · Längd 0:03
+PROV: ljusprov ISO 800 good · Flimmer 0,5 % good · Rutor 240 bilder/s, 33 % tappade tooDark · Ljushet 50 % good
+PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
+PROV: skrev jobba.png (1170×4665 px)
+PROV: skrev jobba-stor.png (390×4331 px)
+PROV: skrev granskning-fo.png (1170×2178 px)
+PROV: skrev granskning-dtl.png (1170×2178 px)
+PROV: skrev idag.png (1170×2259 px)
+PROV: skrev idag-stor.png (390×1793 px)
+PROV: skrev passet.png (1170×7897 px)
+PROV: skrev passet-dtl.png (1170×3602 px)
+PROV: skrev passet-dtl-stor.png (390×2249 px)
+PROV: skrev utveckling.png (1170×1808 px)
+PROV: skrev utveckling-resa.png (1170×1808 px)
+PROV: skrev utveckling-tempo.png (1170×1808 px)

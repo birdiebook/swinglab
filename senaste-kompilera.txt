@@ -1,23 +1,23 @@
-649971655df9e26be9dc7662d35ecdb9ca6d1bb2 s4-vyn 2026-10-22T13:56:14Z run 39789333088 kompilera
+bc28bdc90fe5f9673a57f39d4b6e5e212388d112 main 2026-10-22T14:16:23Z run 39791553211 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 15 test, 0 fel, 39 s i testerna
+GRÖNT: 15 test, 0 fel, 38 s i testerna
 Långsammast (av 15):
-     23.6 s  SwingLabProvInspelning.testFilmenMedAAC
-      5.0 s  SwingLabProvInspelning.testFilmenMedLPCM
-      2.1 s  SwingLabProvInspelning.testLuckaILjudet
-      1.9 s  SwingLabProvInspelning.testKvittotUrFilen
-      1.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+     11.3 s  SwingLabProvInspelning.testFilmenMedLPCM
+      6.6 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      4.9 s  SwingLabProvInspelning.testFilmenMedAAC
+      4.5 s  SwingLabProvInspelning.testKvittotUrFilen
+      4.1 s  SwingLabProvInspelning.testLuckaILjudet
+      2.5 s  SwingLabProvInspelning.testLjusprovetsLasning
       1.3 s  SwingLabProv.testAppenStartarMedStartvyn
-      1.2 s  SwingLabProvInspelning.testLjusprovetsLasning
-      0.8 s  SwingLabProvVyer.testAttJobbaPa
-      0.5 s  SwingLabProvVyer.testPasset
+      0.9 s  SwingLabProvVyer.testAttJobbaPa
+      0.8 s  SwingLabProvVyer.testPasset
       0.5 s  SwingLabProvVyer.testGranskning
-      0.2 s  SwingLabProvVyer.testUtveckling
-      0.1 s  SwingLabProvVyer.testIdag
+      0.3 s  SwingLabProvVyer.testUtveckling
+      0.2 s  SwingLabProvVyer.testIdag
       0.1 s  SwingLabProvInspelning.testLagringen
       0.0 s  SwingLabProv.testSwingLabKitLankat
       0.0 s  SwingLabProv.testInfoPlist
