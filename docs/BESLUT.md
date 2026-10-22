@@ -96,3 +96,23 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   Import ur Bilder finns kvar för gamla klipp.
 - **Varför:** oskärpan är fart × exponeringstid (45 mm för klubbhuvudet vid
   1/1000 s). Kamera-appen låser inte slutartiden.
+
+## B12 — Python är facit för Swift, med påhittade svingar som Swift-källa
+*2026-10-22 · gäller*
+
+- **Valt:** måtten skrivs två gånger, i `tools/pc/` (Python med numpy) och i
+  `SwingLabKit/` (Swift med bara Foundation), med samma definitioner (METOD
+  M1–M27). `tools/pc/generera.py --swift` bygger påhittade svingar, räknar dem i
+  Python och skriver indata och Pythons tal som JSON-strängar i
+  `SwingLabKit/Tests/SwingTests/Fixturer.swift`. Swift-testerna kräver samma tal
+  inom 0,05. Ett Python-test fäller fixturerna när de inte längre är Pythons tal.
+- **Varför:** Swift kan inte köras utan Mac eller CI, Python kan. De påhittade
+  svingarna har kända förflyttningar (bäckenet −6 cm vid toppen ger −6,0), så
+  Python provas mot facit lokalt och Swift mot Python i Actions.
+- **Varför Swift-källa, inte resurser:** en resursfil kräver `Bundle.module`,
+  som har strulat på Linux; en strängliteral fungerar överallt (som Idunns
+  `Fixtures.swift`).
+- **Bortvalt:** en gemensam kärna (C eller Python i appen): fler beroenden i
+  appen och ingen vinst så länge måtten är få och enkla.
+- **Kostnad:** två implementationer att hålla i takt; fixturfilen är ≈ 0,7 MB.
+- **Omprövas:** om måtten växer så att dubbelskrivningen kostar mer än den ger.
