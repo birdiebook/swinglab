@@ -40,7 +40,18 @@ struct RecordView: View {
         }
         .preferredColorScheme(.dark)
         .task { await camera.start() }
-        .onDisappear { camera.stop() }
+        .onDisappear {
+            // En serie som pågår när vyn försvinner avslutas och sparas i passet:
+            // ingen fil utan ägare.
+            let cam = camera, pending = current, id = pass.id, club = pass.setup.club, butik = store
+            Task { @MainActor in
+                if let f = await cam.finishSeries(), let pending {
+                    _ = try? await Self.save(f, nr: pending.nr, file: pending.file, passID: id, club: club,
+                                             camera: cam, store: butik)
+                }
+                cam.stop()
+            }
+        }
         .onChange(of: camera.finished) { _, f in
             guard let f else { return }
             camera.finished = nil
@@ -87,10 +98,10 @@ struct RecordView: View {
     @ViewBuilder private var warnings: some View {
         VStack(alignment: .leading, spacing: 4) {
             if camera.pressure.warns {
-                Text("Värme: \(Receipt.pressureName(camera.pressure))")
+                Text("\(Receipt.pressureLabel): \(Receipt.pressureName(camera.pressure))")
             }
-            if camera.micWarning, let mic = camera.microphone {
-                Text("Mikrofon: \(mic)")
+            if camera.micWarning {
+                Text("Extern mikrofon")
             }
             if camera.audioDenied {
                 Text("Mikrofon av")
@@ -153,22 +164,34 @@ struct RecordView: View {
     private func analyze(_ f: Camera.Finished) async {
         guard let current else { return }
         self.current = nil
-        guard FileManager.default.fileExists(atPath: f.url.path) else { return }
         working = true
         defer { working = false }
         do {
-            var s = try await SeriesMaker.make(url: f.url, nr: current.nr, file: current.file, source: .recording,
-                                               club: pass.setup.club, start: f.started, startHost: f.startHost,
-                                               microphone: camera.microphone)
-            s.format = camera.chosen
-            s.exposure = camera.exposure
-            s.pressure = f.pressure
-            pass.series.append(s)
-            store.save(pass)
-            receipt = s
+            if let r = try await Self.save(f, nr: current.nr, file: current.file, passID: pass.id,
+                                           club: pass.setup.club, camera: camera, store: store) {
+                pass = r.pass
+                receipt = r.series
+            }
         } catch {
             camera.problem = "\(current.file) gick inte att läsa."
         }
+    }
+
+    /// Läser serien ur filen och lägger den i passet som det står på disken, så att
+    /// det fungerar även när vyn redan har försvunnit. nil = ingen fil.
+    @MainActor
+    static func save(_ f: Camera.Finished, nr: Int, file: String, passID: String, club: String,
+                     camera: Camera, store: Store) async throws -> (pass: PassState, series: SeriesRecord)? {
+        guard FileManager.default.fileExists(atPath: f.url.path), var pass = store.load(passID) else { return nil }
+        var s = try await SeriesMaker.make(url: f.url, nr: nr, file: file, source: .recording, club: club,
+                                           start: f.started, startHost: f.startHost, microphone: camera.microphone)
+        s.format = camera.chosen
+        s.exposure = camera.exposure
+        s.pressure = f.pressure
+        pass.series.removeAll { $0.file == file }
+        pass.series.append(s)
+        store.save(pass)
+        return (pass, s)
     }
 
     /// Ljusprovet: 2 s med låst exponering, läst och borttaget (S2_SPEC §2.7).

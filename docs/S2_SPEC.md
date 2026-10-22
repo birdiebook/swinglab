@@ -453,7 +453,7 @@ enum MediaReader {
 ```swift
 public struct FrameTiming: Codable, Equatable, Sendable {
     public var count: Int
-    public var gridRate: Double        // rutnätets frekvens: 1 / medel av stegen ≤ 1,75 × 5:e percentilen (METOD MS3)
+    public var gridRate: Double        // rutnätets frekvens: de korta stegen, förfinat med hela spannet (METOD MS3)
     public var meanRate: Double        // (count − 1) / (sista − första)
     public var missingFraction: Double // 1 − count / ((sista − första)·gridRate + 1), ≥ 0
     public var largestGap: Double      // s
@@ -1404,8 +1404,10 @@ klick.
 
 Ett pass inspelat i appen (minst 10 slag) och oktobers klipp körda på
 telefonen; båda paketen på PC:n. Golf SG:s `klick()` och SwingLabs Swift hittar
-samma klick i oktobers klipp (talen jämförs lokalt och stannar i Golf SG,
-dataregeln). Bandet i PLAN.md: S2 ✓.
+samma klick i oktobers klipp, med tiden inom ±1 prov (talen jämförs lokalt och
+stannar i Golf SG, dataregeln). Inte exakt: ljudet läses om till 48 kHz på två
+olika sätt (ffmpeg och AVAssetReader), och telefonen fyller luckor och kapar
+längden till spårets (METOD MS11). Bandet i PLAN.md: S2 ✓.
 
 ---
 

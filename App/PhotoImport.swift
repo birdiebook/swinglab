@@ -82,7 +82,12 @@ final class PhotoImport {
             file = PassState.videoPath(nr: nr, extension: Self.fileExtension(resource.originalFilename))
             url = store.url(file, in: pass.id)
             try? FileManager.default.removeItem(at: url)        // writeData kräver att filen inte finns
-            try await write(resource, to: url)
+            do {
+                try await write(resource, to: url)
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                throw error
+            }
         } else {
             // Reserven (Airtime): filen ur väljaren. Samma kontroll fäller en omräknad fil.
             if asset == nil { askFullAccess = true }
@@ -90,15 +95,25 @@ final class PhotoImport {
             file = PassState.videoPath(nr: nr, extension: Self.fileExtension(movie.url.lastPathComponent))
             url = store.url(file, in: pass.id)
             try? FileManager.default.removeItem(at: url)
-            try FileManager.default.moveItem(at: movie.url, to: url)
+            do {
+                try FileManager.default.moveItem(at: movie.url, to: url)
+            } catch {
+                try? FileManager.default.removeItem(at: movie.url)
+                throw error
+            }
         }
-        guard try await Self.accept(url) else { return nil }
-        var start = asset?.creationDate
-        if start == nil { start = await Self.creationDate(url) }
-        var s = try await SeriesMaker.make(url: url, nr: nr, file: file, source: .photos, club: pass.setup.club,
-                                           start: start ?? Date(), startHost: nil, microphone: nil)
-        s.markedSlowMotion = asset.map { $0.mediaSubtypes.contains(.videoHighFrameRate) }
-        return s
+        do {
+            guard try await Self.accept(url) else { return nil }
+            var start = asset?.creationDate
+            if start == nil { start = await Self.creationDate(url) }
+            var s = try await SeriesMaker.make(url: url, nr: nr, file: file, source: .photos, club: pass.setup.club,
+                                               start: start ?? Date(), startHost: nil, microphone: nil)
+            s.markedSlowMotion = asset.map { $0.mediaSubtypes.contains(.videoHighFrameRate) }
+            return s
+        } catch {
+            try? FileManager.default.removeItem(at: url)                 // ingen fil utan ägare
+            throw error
+        }
     }
 
     /// Rutnätets kontroll (S2_SPEC §5 steg 6): en fil som inte är slowmotion-originalet

@@ -53,6 +53,14 @@ public enum FormatChoice {
     /// Frekvensen räknas som nådd inom så mycket (flyttal i rapporten). METOD MS1
     public static let rateSlack = 0.5
 
+    /// Den önskade frekvensen, bilder/s (BESLUT B17). METOD MS1
+    public static let wantedRate = 240.0
+
+    /// Frekvensen som faktiskt ställdes in (läst tillbaka ur kameran) når den önskade. METOD MS1
+    public static func reaches(rate: Double, wantedRate: Double = FormatChoice.wantedRate) -> Bool {
+        rate >= wantedRate - rateSlack
+    }
+
     /// Formatet når den önskade frekvensen. Annars visar vyn frekvensen i gult.
     public static func reaches(_ f: CameraFormat, wantedRate: Double = 240) -> Bool {
         f.maxFrameRate >= wantedRate - rateSlack

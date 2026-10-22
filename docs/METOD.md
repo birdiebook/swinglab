@@ -346,17 +346,27 @@ värden i `CaptureTests`.
 
 ## MS3 — Ljusprovet och rutornas tider
 
-- **Rutnätet** = 1 / medel av de korta stegen, avrundat till heltal, där de
-  korta är de positiva stegen upp till **1,75 ×** 5:e percentilen (linjär
-  interpolation), mellan avrundningens 3/2 och en tappad rutas 2. Medlet tål en grov tidsskala: en film i standardskalan 600
-  har 1/240 s som steg om 2 och 3 enheter, och percentilen ensam gav 300 bilder/s
-  i simulatorprovet (S2c: stegen var 2, 3 och 5 enheter); det tål också
-  skakning i tiderna. De kortaste stegen,
-  inte medianen: oktobers klipp låg på 240-rutnätet med drygt en tredjedel av
-  rutorna borta (**mätt**, Golf SG; research 2 §2). Andelen tappade =
-  `1 − antal / ((sista − första) · rutnät + 1)`. **Slowmotion** = rutnät ≥
-  **100** bilder/s; under det är en import omräknad och vägras (S2_SPEC §5).
-  **antagande** (gränsen).
+- **Rutnätet** i två steg. (1) Skattningen g0 = 1 / medel av de korta stegen,
+  de positiva stegen upp till **1,75 ×** 5:e percentilen (linjär interpolation),
+  mellan avrundningens 3/2 och en tappad rutas 2. De kortaste stegen, inte
+  medianen: oktobers klipp låg på 240-rutnätet med drygt en tredjedel av rutorna
+  borta (**mätt**, Golf SG; research 2 §2). (2) Förfiningen med hela spannet:
+  `g = Σ max(1, round(steg · g)) / (sista − första)`, upprepad (högst **5** varv)
+  tills det avrundade talet står still; svaret är g avrundat. Skälet: en film i
+  standardskalan 600 har 1/240 s som steg om 2 och 3 enheter (simulatorprovet
+  S2c: stegen var 2, 3 och 5 enheter, och percentilen ensam gav 300), och med
+  skurar av tappade rutor vandrade de korta stegens medel till 229–249
+  (granskningens simulering). Med förfiningen ger 0,5 s, 3 s och 10 s med 36 %
+  tappade i skurar om 1,5 och 60 % i skurar om 2 och 5 rutnätet 240 i 50 av 50
+  (`InspelningTests`, tiderna som `tools/pc/tre_d/kamera.py`). **räkning.**
+- **Gränsen för skakning:** tidernas skakning (sd) upp till **0,3 ms** ger
+  rutnätet exakt; **0,5 ms** ger 239–241; **0,8 ms** ger 244–342 och rutnätet är
+  då fel (simulering, 300 påhittade filer om 3 s med 36 % tappade). Kamerans
+  tider kommer ur filens tidsskala, inte en klocka med skakning; skulle
+  telefonen visa mer än 0,3 ms omprövas regeln. **antagande** (telefonens skakning).
+- Andelen tappade = `1 − antal / ((sista − första) · rutnät + 1)`.
+  **Slowmotion** = rutnät ≥ **100** bilder/s; under det är en import omräknad och
+  vägras (S2_SPEC §5). **antagande** (gränsen).
 - **Flimret** = `sqrt(a² + b²) / c` ur en minsta kvadrat-anpassning av
   `c + a·cos(2πft) + b·sin(2πft)` på rutornas egna tider, vid 100 Hz (50 Hz-nät)
   och 120 Hz (60 Hz-nät). En kolumn som är noll på rutorna (sinus vid exakt halva
@@ -485,7 +495,8 @@ värden i `CaptureTests`.
   storlek per minut i MB (10⁶ byte, `byte / längd · 60`), längden och det högsta
   värmetrycket under serien. **räkning**; storleken per minut mäts på telefonen
   i S2c (S2_SPEC §2.6 antog några hundra MB i 1080p 240 HEVC).
-- **Trycket** (`systemPressureState.level`): nominal och fair vita, serious gul
+- **Värmen** (`systemPressureState.level`, raden "Värme" i kvittot och i
+  vyn): nominal och fair vita, serious gul
   och en varning i vyn, critical och shutdown röda. Apple: systemet kan sänka
   kvaliteten under tryck och avbryter sessionen vid shutdown. **tillverkare +
   antagande** (gränsen för varningen).
@@ -494,7 +505,12 @@ värden i `CaptureTests`.
   pågående. **antagande** (en minut i 240 bilder/s är några hundra MB).
 - **Ljudet ur filen** läses i bitar som klipps exakt vid `ClickDetector.segments`
   (30 s med 1 s överlapp, räknat i prov från filens första ljudprov), med de
-  inre gränserna till `detect` (MS4). Omsamplat ljud (AAC 44,1 kHz stereo → 48 kHz
+  inre gränserna till `detect` (MS4). **Tidslinjen:** varje buffert läggs på
+  sin egen tid; en lucka över **1 ms** fylls med nollor och ett överlapp hoppas
+  över (`AudioTimeline`), så att prov n ligger på första + n / 48 000 och klicken
+  inte glider. Antalet prov är spårets, `floor((slut − första) · 48 000)`: kapat
+  eller utfyllt med nollor, så att varje läsning ger lika många (provat i
+  simulatorn med en lucka på 0,1 s). Omsamplat ljud (AAC 44,1 kHz stereo → 48 kHz
   mono) gav i simulatorn 153 548 och 153 549 prov i två läsningar av samma fil:
   bitarnas gränser följer proven, så telefonen och PC:n kan skilja i sista biten
   på ett omsamplat ljud. Klicken hamnade ändå inom 0,6 ms från de påhittade
