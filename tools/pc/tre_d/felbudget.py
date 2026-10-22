@@ -476,6 +476,17 @@ def main(argv=None) -> int:
         ]
         svep("Bidragen ett i taget: RMSE", "Felkälla", rader, n, a.seed)
 
+    if vill("brusdelar"):
+        ren = replace(bas, synkfel_ms=0.0, synk="perfekt", kalib="perfekt", skymning=False)
+        delar = {"Vitt 5 px": km.Brus(5, 0, 0, 0), "Vandring 5 px (τ 0,15 s)": km.Brus(0, 5, 0, 0),
+                 "Fast 5 px per led och vy": km.Brus(0, 0, 5, 0), "Utliggare 3 % × 50 px": km.Brus(0, 0, 0, 0.03),
+                 "Typiskt utan fast avvikelse": km.Brus(5, 5, 0, 0.03), "Typiskt, alla delar": km.BRUS["typiskt"]}
+        rader = []
+        for namn, b in delar.items():
+            km.BRUS["_" + namn] = b
+            rader.append((namn, replace(ren, brus="_" + namn)))
+        svep("Brusets delar, en i taget (tappade rutor, ingen skymning): RMSE", "Brusdel", rader, n, a.seed)
+
     if vill("brus"):
         rader = [(f"2D-brus {b}", replace(bas, brus=b)) for b in ("bra", "typiskt", "daligt", "mycket_daligt")]
         svep("Hela kedjan per brusnivå: RMSE", "Brus", rader, n, a.seed)
