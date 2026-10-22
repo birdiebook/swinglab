@@ -87,8 +87,9 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         var geometri: Geometri? = nil
         switch e.geometri {
         case .bojning:
-            if let a = nu.median("brost_bojning_adress", grupp), let t = nu.median("brost_bojning_traff", grupp) {
-                geometri = .bojning(adress: a, traff: t)
+            // Vinkeln mellan linjerna är kortets tal (medianen av tappet), från adressens median.
+            if let a = nu.median("brost_bojning_adress", grupp) {
+                geometri = .bojning(adress: a, traff: a - s.median)
             }
         case .tempo:
             if let b = nu.median("baksving_s", grupp), let n = nu.median("nedsving_s", grupp) {
