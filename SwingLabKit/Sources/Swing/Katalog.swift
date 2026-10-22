@@ -1,8 +1,12 @@
 import Foundation
 
 /// Katalogen över fel (`katalog.json` i repots rot, BESLUT B6). Samma fil läses
-/// av PC:n (tools/pc/katalog.py). Fälten står i docs/FORMAT.md.
+/// av PC:n (tools/pc/katalog.py), och samma kontroller görs här som där.
+/// Fälten står i docs/FORMAT.md.
 public struct Katalog: Decodable, Sendable {
+    public static let vyer = ["dtl", "fo", "bada"]
+    public static let statusar = ["tillverkare", "forskning", "tranare", "antagande"]
+
     public let version: Int
     public let fel: [Fel]
 
@@ -26,21 +30,84 @@ public struct Katalog: Decodable, Sendable {
         public let ovning: String
         public let tanke: String
         public let notering: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            // gront, gult och samre ska stå med även när de är null, som i Python.
+            for nyckel in [CodingKeys.gront, .gult, .samre] where !c.contains(nyckel) {
+                throw DecodingError.keyNotFound(nyckel, DecodingError.Context(codingPath: c.codingPath,
+                                                                              debugDescription: "saknas"))
+            }
+            id = try c.decode(String.self, forKey: .id)
+            namn = try c.decode(String.self, forKey: .namn)
+            vy = try c.decode(String.self, forKey: .vy)
+            matt = try c.decode(String.self, forKey: .matt)
+            fas = try c.decode(String.self, forKey: .fas)
+            gront = try c.decodeIfPresent([Double?].self, forKey: .gront)
+            gult = try c.decodeIfPresent([Double?].self, forKey: .gult)
+            kalla = try c.decode(String.self, forKey: .kalla)
+            status = try c.decode(String.self, forKey: .status)
+            kontrollerad = try c.decode(Bool.self, forKey: .kontrollerad)
+            aktiv = try c.decode(Bool.self, forKey: .aktiv)
+            samre = try c.decodeIfPresent(String.self, forKey: .samre)
+            ovning = try c.decode(String.self, forKey: .ovning)
+            tanke = try c.decode(String.self, forKey: .tanke)
+            notering = try c.decodeIfPresent(String.self, forKey: .notering)
+        }
     }
 
-    public static func las(_ data: Data) throws -> Katalog {
-        let k: Katalog
+    /// Katalogens form, som `kontrollera` i tools/pc/katalog.py. Felen nämner felets id och fältet.
+    public static func kontrollera(_ k: Katalog) -> [String] {
+        var fel: [String] = []
+        if k.version != 1 { fel.append("katalogen: ska ha version 1") }
+        var sedda = Set<String>()
+        for e in k.fel {
+            if sedda.contains(e.id) { fel.append("\(e.id): id finns två gånger") }
+            sedda.insert(e.id)
+            if !vyer.contains(e.vy) {
+                fel.append("\(e.id): vy ska vara dtl, fo eller bada")
+            } else {
+                let namn: [String]
+                if let vy = Vy(rawValue: e.vy) {
+                    namn = Matt.namn(vy)
+                } else {
+                    namn = Matt.namnDTL.filter { Matt.namnFO.contains($0) }      // bada
+                }
+                if !namn.contains(e.matt) { fel.append("\(e.id): måttet finns inte i vyn") }
+            }
+            if !statusar.contains(e.status) {
+                fel.append("\(e.id): status ska vara en av \(statusar.joined(separator: ", "))")
+            }
+            if let s = e.samre, s != "+" && s != "-" {
+                fel.append("\(e.id): samre ska vara \"+\", \"-\" eller null")
+            }
+            for (namn, spann) in [("gront", e.gront), ("gult", e.gult)] {
+                if let s = spann, s.count != 2 { fel.append("\(e.id): \(namn) ska vara [min, max] eller null") }
+            }
+            if e.gront == nil && e.gult != nil { fel.append("\(e.id): gult utan gront") }
+        }
+        return fel
+    }
+
+    /// Avkodningen utan kontrollerna.
+    static func avkoda(_ data: Data) throws -> Katalog {
         do {
-            k = try JSONDecoder().decode(Katalog.self, from: data)
+            return try JSONDecoder().decode(Katalog.self, from: data)
+        } catch let DecodingError.keyNotFound(nyckel, _) {
+            throw FormatFel("katalogen: \(nyckel.stringValue) saknas")
         } catch {
             throw FormatFel("katalogen: går inte att läsa")
         }
-        guard k.version == 1 else { throw FormatFel("katalogen: ska ha version 1") }
-        for f in k.fel {
-            for spann in [f.gront, f.gult] {
-                if let s = spann, s.count != 2 { throw FormatFel("\(f.id): gränsen ska vara [min, max]") }
-            }
-        }
+    }
+
+    public static func las(_ data: Data) throws -> Katalog {
+        let k = try avkoda(data)
+        let fel = kontrollera(k)
+        guard fel.isEmpty else { throw FormatFel(fel.joined(separator: "; ")) }
         return k
     }
 
