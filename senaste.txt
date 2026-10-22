@@ -1,20 +1,20 @@
-fca5058ff5f0319ca65c34ed3f29b4cc2d6fdc4d main 2026-10-22T10:43:47Z run 39765134198
+c76b0ff35950808df73d3b69ca472548335adc8d main 2026-10-22T11:30:46Z run 39770985310
 == swift-release
-GRÖNT: 26 test, 0 fel, 0 s i testerna, bygget 8 s
+GRÖNT: 26 test, 0 fel, 0 s i testerna, bygget 11 s
 Långsammast (av 26):
-      0.1 s  KatalogTests.testKatalogenPekarPaMattSomFinns
+      0.1 s  KatalogTests.testTempotBlirAldrigRott
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
-      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
       0.0 s  MattTests.testVansterspelarenRaknasSomHoger
+      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
       0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
       0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
-      0.0 s  SessionTests.testSammanfattningenSomPython
       0.0 s  SessionTests.testJamforelsenSomPython
       0.0 s  KatalogTests.testKontrollernaSomPython
       0.0 s  KatalogTests.testBedomningenSomPython
+      0.0 s  SessionTests.testSammanfattningenSomPython
+      0.0 s  KatalogTests.testEttFaltSomSaknasFalls
+      0.0 s  KatalogTests.testBaslinjen
       0.0 s  FormatTests.testFelenNamnerFaltet
-      0.0 s  SessionTests.testRangernaOchTrenden
-      0.0 s  SessionTests.testPercentilenOchMedianen
 
