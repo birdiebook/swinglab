@@ -42,7 +42,10 @@ struct PassShotsView: View {
                 PassScreenContent(pass: pass, visning: visning, images: images, overlays: overlays,
                                   analysis: AnalysisState(analysis), unmeasured: unmeasured, onClose: onClose, onAnalyze: analyze,
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
-                                  onHeight: setHeight)
+                                  onHeight: setHeight, sendToPC: true)
+                    // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
+                    // och granskningen, så att pass.json inte ändras under.
+                    .disabled(store.exporting.contains(passID))
             }
         }
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
@@ -108,7 +111,7 @@ struct PassShotsView: View {
     }
 
     private func analyze() {
-        guard !analysis.running else { return }
+        guard !analysis.running, !store.exporting.contains(passID) else { return }
         job = Task {
             if let p = await analysis.run(passID: passID, store: store) {
                 show(p)
@@ -191,10 +194,14 @@ struct PassScreenContent: View {
     var onThumb: (String) -> Void = { _ in }
     var onEdit: (Int) -> Void = { _ in }
     var onHeight: (Double) -> Void = { _ in }
+    /// "Send to PC" i raden (S2f, Export.swift); false i provets bilder, som saknar Store.
+    var sendToPC = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Navrad(titel: Tal.dag(pass.created), hoger: { EmptyView() }, tillbaka: onClose)
+            Navrad(titel: Tal.dag(pass.created), hoger: {
+                if sendToPC { SendToPCButton(passID: pass.id) }
+            }, tillbaka: onClose)
                 .disabled(analysis.running)
                 .padding(.horizontal, 20)
             if let visning {

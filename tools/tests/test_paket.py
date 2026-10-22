@@ -134,6 +134,22 @@ class Paketet(unittest.TestCase):
         m["slag"][0]["klipp"] = "slag/s02.json"     # en fil som finns
         self.assertIn("klick_i_klipp_s", "; ".join(self.fel(manifest=m)))
 
+    def test_klippets_langd_och_rutorna_i_klippet(self) -> None:
+        """S2f: telefonen skriver klippets längd; bara [0; längd) räknas (METOD MS12)."""
+        m = json.loads(json.dumps(self.manifest))
+        m["slag"][0].update(klipp="slag/s02.json", klick_i_klipp_s=2.5, klipp_langd_s=4.0)
+        p = P.las(_skriv_om(self.fo, self.mapp / "langd.zip", manifest=m))
+        s = next(x for x in p.slag if x.id == m["slag"][0]["id"])
+        self.assertEqual(s.klipp_langd_s, 4.0)
+        self.assertEqual([P.i_klippet(s, t) for t in (-0.001, 0.0, 3.999, 4.0, 4.1)], [False, True, True, False, False])
+        utan = next(x for x in p.slag if x.id != s.id)
+        self.assertIsNone(utan.klipp_langd_s)
+        self.assertTrue(P.i_klippet(utan, 100.0))
+        m["slag"][0]["klipp_langd_s"] = -1.0
+        fel = "; ".join(self.fel(manifest=m))
+        self.assertIn("slag[0].klipp_langd_s ska vara ett positivt tal", fel)
+        self.assertNotIn("-1.0", fel)
+
 
 def _skada(src: Path, dst: Path, fil: str) -> Path:
     """Kopia (lagrad, okomprimerad) där en byte mitt i `fil` är ändrad: fel CRC."""
@@ -169,6 +185,25 @@ class Slagen(unittest.TestCase):
         self.assertEqual(sum(1 for r in rader if "matt" in r), 7)
         self.assertEqual([r for r in rader if "utelamnat" in r][0]["id"], "s08")
         self.assertEqual(sum(1 for r in rader if r.get("forsta_serien")), A.FORSTA_SERIEN_SLAG)
+
+    def test_detection_wrong_mats_inte(self) -> None:
+        """S2f/S4b: ett slag Johannes märkt "Detection wrong" mäts inte på PC:n, som på
+        telefonen (METOD MT1, BESLUT B12); ett fel värde är ett formfel utan värdet."""
+        with tempfile.TemporaryDirectory() as tmp:
+            src = GP.paket(tmp, PASS, "fo", n=4, inte_sving=0, serier=1)
+            with zipfile.ZipFile(src) as z:
+                m = json.loads(z.read("manifest.json"))
+            m["slag"][1]["detection_wrong"] = True
+            m["slag"][2]["detection_wrong"] = False
+            p = P.las(_skriv_om(src, Path(tmp) / "fel.zip", manifest=m))
+            rader = A.mat_paket(p, 1.80)
+            self.assertEqual([r["id"] for r in rader if "utelamnat" in r], [m["slag"][1]["id"]])
+            self.assertEqual(sum(1 for r in rader if "matt" in r), 3)
+            m["slag"][1]["detection_wrong"] = "ja"
+            with self.assertRaises(P.PaketFel) as e:
+                P.las(_skriv_om(src, Path(tmp) / "fel2.zip", manifest=m))
+            self.assertIn("slag[1].detection_wrong ska vara true eller false", "; ".join(e.exception.fel))
+            self.assertNotIn("ja", "; ".join(e.exception.fel))
 
     def test_forsta_serien_ar_de_fem_forsta_i_serie_ett(self) -> None:
         """Granskningen fynd 11: serie 1 med sju slag ger fem, med tre slag tre. METOD MT2"""

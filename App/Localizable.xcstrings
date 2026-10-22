@@ -122,6 +122,17 @@
         }
       }
     },
+    "Analyze the session first.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyze the session first."
+          }
+        }
+      }
+    },
     "Camera": {
       "extractionState": "manual",
       "localizations": {
@@ -327,6 +338,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Focus"
+          }
+        }
+      }
+    },
+    "Focus saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus saved"
           }
         }
       }
@@ -716,6 +738,17 @@
         }
       }
     },
+    "Send to PC": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send to PC"
+          }
+        }
+      }
+    },
     "Session": {
       "extractionState": "manual",
       "localizations": {
@@ -969,6 +1002,17 @@
         }
       }
     },
+    "The package could not be written.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The package could not be written."
+          }
+        }
+      }
+    },
     "The recording was interrupted.": {
       "extractionState": "manual",
       "localizations": {
@@ -987,6 +1031,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Today"
+          }
+        }
+      }
+    },
+    "Too large. Send without clips.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too large. Send without clips."
           }
         }
       }
@@ -1020,6 +1075,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
+          }
+        }
+      }
+    },
+    "With clips": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With clips"
+          }
+        }
+      }
+    },
+    "Without clips": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without clips"
           }
         }
       }

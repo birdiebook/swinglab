@@ -1,0 +1,122 @@
+"""Kontraktet mellan telefon och PC (S2f, BESLUT B27): paketen som APPEN skrev i
+simulatorprovet (`Prov/SwingLabProvPaket.swift`, App/Export.swift, påhittad film och
+påhittade leder) läses av PC:ns `paket.py` och körs genom `session.py` utan fel,
+PC:ns mått på lederna är Swifts (facit.json, samma byte; BESLUT B12), och klippen
+avkodas ruta för ruta med OpenCV (som kontaktarket använder utan ffmpeg).
+
+Körs av kompilera.yml efter simulatorprovet, med mappen i miljövariabeln
+SWINGLAB_APPENS_PAKET (/tmp/swinglab_prov/paket). Utan den hoppas provet över: på
+Linux finns inget paket som appen skrivit (test_paket.py prövar formen där).
+
+    SWINGLAB_APPENS_PAKET=/tmp/swinglab_prov/paket python3 -m unittest discover -s tools/tests -p test_appens_paket.py -v
+"""
+from __future__ import annotations
+
+import io
+import json
+import os
+import tempfile
+import unittest
+import zipfile
+from contextlib import redirect_stdout
+from pathlib import Path
+
+import _hjalp  # noqa: F401  (sökvägen till tools/)
+from pc import paket as P
+from pc import session as S
+
+MAPP = os.environ.get("SWINGLAB_APPENS_PAKET")
+
+
+def _avkoda(data: bytes) -> tuple[int, float]:
+    """Klippet avkodat ruta för ruta med OpenCV (kompilera.yml installerar det; utan det
+    fäller provet): antalet rutor och den sista rutans tid i s."""
+    import cv2
+    with tempfile.NamedTemporaryFile(suffix=".mov", delete=False) as t:
+        t.write(data)
+        namn = t.name
+    try:
+        v = cv2.VideoCapture(namn)
+        n, sist = 0, 0.0
+        while True:
+            ok, _ = v.read()
+            if not ok:
+                break
+            n += 1
+            sist = v.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        v.release()
+        return n, sist
+    finally:
+        os.unlink(namn)
+RELATIV = 1e-6          # BESLUT B12: samma algoritm, bara summeringsordningen skiljer
+GOLV = 1e-9
+
+
+@unittest.skipUnless(MAPP, "SWINGLAB_APPENS_PAKET saknas: inget paket från appen (körs i kompilera.yml)")
+class AppensPaket(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        rot = Path(MAPP)
+        cls.facit = json.loads((rot / "facit.json").read_text(encoding="utf-8"))
+        cls.med = sorted((rot / "med-klipp").glob("swinglab-*.zip"))
+        cls.utan = sorted((rot / "utan-klipp").glob("swinglab-*.zip"))
+
+    def test_bada_paketen_finns(self) -> None:
+        self.assertEqual(len(self.med), 1, "paketet med klipp")
+        self.assertEqual(len(self.utan), 1, "paketet utan klipp")
+        self.assertEqual(self.med[0].name, f"swinglab-{self.facit['pass']}-fo.zip")
+
+    def test_paket_py_laser_dem(self) -> None:
+        for fil, klipp in ((self.med[0], True), (self.utan[0], False)):
+            p = P.las(fil)
+            self.assertEqual(p.pass_id, self.facit["pass"])
+            self.assertEqual(sorted(s.id for s in p.slag), sorted(self.facit["slag"]))
+            self.assertTrue(all(s.lederna for s in p.slag))
+            # Fönstret och utsnittet ur redigeraren, utplattade per serie (METOD MS13).
+            serie = p.serier[1]
+            self.assertIsNotNone(serie.fonster)
+            self.assertIsNotNone(serie.utsnitt)
+            if klipp:
+                for s in p.slag:
+                    self.assertIsNotNone(s.klipp_langd_s)
+                    self.assertTrue(P.i_klippet(s, float(s.klick_i_klipp_s)), "klicket bland klippets rutor")
+                    with zipfile.ZipFile(fil) as z:
+                        data = z.read(s.klipp)            # CRC kontrolleras av zipfile
+                    self.assertEqual(data[4:8], b"ftyp", f"{s.klipp} är en QuickTime-fil")
+                    n, sist = _avkoda(data)
+                    self.assertGreater(n, 0, f"{s.klipp} spelar inte")
+                    print(f"PAKET: {s.id} klippet avkodat med OpenCV: {n} rutor, sista vid {sist:.4f} s; "
+                          f"telefonens längd {s.klipp_langd_s:.4f} s")
+            else:
+                self.assertTrue(all(s.klipp is None for s in p.slag))
+            print(f"PAKET: {fil.parent.name}/{fil.name} läst av paket.py: {len(p.slag)} slag, "
+                  f"{sum(1 for s in p.slag if s.klipp)} klipp")
+
+    def test_session_py_kor_utan_fel_och_ger_swifts_matt(self) -> None:
+        for fil in (self.med[0], self.utan[0]):
+            with tempfile.TemporaryDirectory() as ut:
+                utskrift = io.StringIO()
+                with redirect_stdout(utskrift):
+                    kod = S.main([str(fil), "--ut", ut, "--langd", str(self.facit["spelarens_langd_m"])])
+                self.assertEqual(kod, 0, utskrift.getvalue())
+                analys = json.loads((Path(ut) / "analys.json").read_text(encoding="utf-8"))
+            slag = {r["id"]: r for r in analys["slag"]}
+            jamforda, storst = 0, 0.0
+            for sid, f in self.facit["slag"].items():
+                self.assertIn("matt", slag[sid], f"{sid} mättes inte: {slag[sid].get('fel')}")
+                pc = slag[sid]["matt"]
+                self.assertEqual(set(pc), set(f["matt"]), f"{sid}: samma mått i Python och Swift")
+                for k, v in f["matt"].items():
+                    d = abs(pc[k] - v)
+                    storst = max(storst, d)
+                    self.assertLessEqual(d, RELATIV * max(abs(v), abs(pc[k])) + GOLV, f"{sid} {k}: Python mot Swift")
+                    jamforda += 1
+                self.assertAlmostEqual(pc["backen_sway_topp"], f["sway_satt"], delta=0.5)
+            print(f"PAKET: {fil.parent.name} genom session.py: {len(analys['slag'])} slag mätta, "
+                  f"{jamforda} mått lika Swifts (största skillnad {storst:.1e}), "
+                  + ", ".join(f"{sid} sway i toppen {slag[sid]['matt']['backen_sway_topp']:.2f} cm"
+                              for sid in sorted(self.facit["slag"])))
+
+
+if __name__ == "__main__":
+    unittest.main()

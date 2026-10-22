@@ -66,7 +66,8 @@ def avrunda(matt: str, v: float | None) -> float | None:
 
 def mat_paket(p: Paket, langd_m: float) -> list[dict]:
     """Varje slag i paketet: måtten (matt.mat) eller felet. Slag med domen
-    inte_sving mäts inte (METOD MT1). Första serien märks (METOD MT2)."""
+    inte_sving och slag som Johannes märkt "Detection wrong" mäts inte (METOD MT1),
+    som på telefonen. Första serien märks (METOD MT2)."""
     serier = sorted({s.serie for s in p.slag})
     ut = []
     for s in p.slag:
@@ -74,6 +75,10 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
                "plats": s.serie_ordning, "paket": p.fil}
         if s.dom not in MATS:
             rad["utelamnat"] = "domen är inte_sving"
+            ut.append(rad)
+            continue
+        if s.detection_wrong:
+            rad["utelamnat"] = "lederna märkta fel (detection_wrong)"
             ut.append(rad)
             continue
         try:

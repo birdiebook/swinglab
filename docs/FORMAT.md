@@ -149,7 +149,16 @@ står). PC:n (`tools/pc/paket.py`) läser och kräver:
 | `avstand_m` | valfri, 0,5–20; ger träffen när `traff_s` saknas (METOD MT1) |
 | `spelarens_langd_m` | **valfri, nytt i S5**: 1,0–2,5. Saknas den tas längden ur `--langd` eller historiken |
 | `serier[]` | `nr` heltal, `klubba` valfri text, `fonster` och `utsnitt` valfria (nedan) |
-| `slag[]` | `id` (`s01`…), `serie` (ett `nr`), `klick_s`, `traff_s` (valfri), `dom` (`sving`, `inte_sving`, `osaker`), `leder` (fil i zippen), `klipp` (valfri fil i zippen) med `klick_i_klipp_s` |
+| `slag[]` | `id` (`s01`…), `serie` (ett `nr`), `klick_s`, `traff_s` (valfri), `dom` (`sving`, `inte_sving`, `osaker`), `leder` (fil i zippen), `klipp` (valfri fil i zippen) med `klick_i_klipp_s` och, valfritt, `klipp_langd_s` (positivt tal) och `detection_wrong` (bool: Johannes märkte lederna fel på telefonen; slaget mäts inte, METOD MT1) |
+
+**Telefonen skriver** (S2f, `SwingLabKit/Sources/Capture/PackageManifest.swift`, App/Export.swift)
+bara slag som har leder, eftersom `leder` krävs: ett slag utan dom, eller "Not a swing"
+som aldrig fick det täta passet, står inte i paketet. Ett klipp kommer med bara när
+klicket hittades i det (`klick_i_klipp_s`). `klipp_langd_s` är klippets längd: ett
+passthrough-klipp bär rutor efter redigeringens slut, så PC:n räknar bara klippets rutor
+i **[0; klipp_langd_s)** (`paket.i_klippet`, METOD MS12). `matt` står alltid med, `null`
+tills telefonen räknar måtten. Utan klipp är paketet samma utom klippen och deras tre fält.
+Zippen är okomprimerad (metoden 0, BESLUT B27).
 
 **Fönstret och utsnittet** (S2i, redigeraren på telefonen, METOD MS13, BESLUT B34),
 per serie och valfria; saknas de gäller hela filen och hela bilden:
@@ -172,7 +181,14 @@ MediaPipe se samma ruta (`paket.utsnitt_px`) och föra punkterna tillbaka med
 fönstret.
 
 Övriga fält (`telefon`, `enhet.json`, `ljusprov.json`, `par.json`, `vision`)
-läses inte än. Sökvägarna får inte börja med `/` eller innehålla `..`.
+läses inte än. `par.json` ligger i paketet när passets mapp har den (S2g). Sökvägarna får inte börja med `/` eller innehålla `..`.
+`enhet.json` är `{"modell", "ios", "format": [CameraFormat …], "valt_index"}` (alla format
+bakkameran rapporterar), `ljusprov.json` passets `LightCheck` som i `pass.json`; ett tal
+som JSON inte tål skrivs som text (`"inf"`, `"nan"`).
+
+Att det appen skriver är det PC:n läser prövas med appens egna byte: simulatorprovet
+packar ett påhittat pass med `Export.swift`, och `tools/tests/test_appens_paket.py` läser
+det med `paket.py` och `session.py` i kompilera.yml, och klippen avkodas med OpenCV (BESLUT B27).
 
 **`slag/s01.json`** är SwingLabKits `JointSeries` (S2_SPEC §6.3):
 
@@ -255,7 +271,9 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 ## Att jobba på: `att_jobba_pa.json` — kontraktet med appen
 
 Det Claude valt efter ett pass, tillbaka till telefonen (S2_SPEC §8.5, BESLUT
-B28). **Den här formen är kontraktet:** appens vy (S4, fliken Att jobba på)
+B28). Telefonen hämtar den med "Import focus" (Filer) och sparar den som
+`AttJobbaPa/att_jobba_pa-<pass>.json` i appens mapp; den med högst `pass` är den som
+gäller. En fil vars `pass` inte är `yyyyMMdd-HHmmss` tas inte emot. **Den här formen är kontraktet:** appens vy (S4, fliken Att jobba på)
 läser den och visar den som den är, utan att räkna om något. Telefonen kräver
 att `format` börjar med `swinglab-att-jobba-pa/`; PC:n kontrollerar resten med
 `tools/pc/att_jobba_pa.py <fil> --analys <analys.json>` mot passets analys och

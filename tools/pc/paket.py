@@ -48,6 +48,8 @@ class Slag:
     klipp: str | None
     klick_i_klipp_s: float | None
     serie_ordning: int         # platsen i passet (0 först), efter serie och klick
+    klipp_langd_s: float | None = None    # klippets längd: bara rutorna i [0; längd) räknas (METOD MS12)
+    detection_wrong: bool = False         # Johannes märkte lederna fel på telefonen: mäts inte (METOD MT1)
     lederna: dict | None = None    # JointSeries, läst
 
 
@@ -143,6 +145,8 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
             fel.append(f"{p}.klick_s ligger utanför seriens fonster")
         if s.get("traff_s") is not None and not _tal(s["traff_s"]):
             fel.append(f"{p}.traff_s ska vara ett tal")
+        if s.get("detection_wrong") is not None and not isinstance(s["detection_wrong"], bool):
+            fel.append(f"{p}.detection_wrong ska vara true eller false")
         if s.get("dom") not in DOMAR:
             fel.append(f"{p}.dom ska vara en av {', '.join(DOMAR)}")
         if not _sakert_namn(s.get("leder")):
@@ -156,6 +160,8 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
                 fel.append(f"{p}.klipp: filen saknas i paketet")
             if not _tal(s.get("klick_i_klipp_s")):
                 fel.append(f"{p}.klick_i_klipp_s ska vara ett tal när klipp finns")
+            if s.get("klipp_langd_s") is not None and not (_tal(s["klipp_langd_s"]) and s["klipp_langd_s"] > 0):
+                fel.append(f"{p}.klipp_langd_s ska vara ett positivt tal")
     return fel
 
 
@@ -296,7 +302,10 @@ def las(sokvag, med_leder: bool = True) -> Paket:
                                klick_s=float(s["klick_s"]),
                                traff_s=float(s["traff_s"]) if s.get("traff_s") is not None else None,
                                leder=s["leder"], klipp=s.get("klipp"),
-                               klick_i_klipp_s=s.get("klick_i_klipp_s"), serie_ordning=plats[i]))
+                               klick_i_klipp_s=s.get("klick_i_klipp_s"), serie_ordning=plats[i],
+                               klipp_langd_s=float(s["klipp_langd_s"]) if s.get("klipp") and s.get("klipp_langd_s")
+                               is not None else None,
+                               detection_wrong=s.get("detection_wrong") is True))
         if med_leder:
             for s in p.slag:
                 try:
@@ -316,6 +325,15 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         if fel:
             raise PaketFel(fel)
     return p
+
+
+def i_klippet(s: Slag, t: float) -> bool:
+    """Ligger tiden t (s i klippet) bland klippets rutor? Passthrough-klippet bär rutor
+    efter redigeringens slut (uppmätt i simulatorn), så bara [0; klipp_langd_s) räknas,
+    samma halvöppna fönster som telefonens läsare. Utan längd: allt från 0. METOD MS12"""
+    if t < 0:
+        return False
+    return s.klipp_langd_s is None or t < s.klipp_langd_s
 
 
 def traff_i_serien(p: Paket, s: Slag) -> float:

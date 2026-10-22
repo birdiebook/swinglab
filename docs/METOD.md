@@ -858,7 +858,9 @@ värden i `CaptureTests`.
   följer med (**mätt**, påhittad film). Den som läser klippet utan att avkoda
   (`MediaReader.frameTimes`, PC:n i S2f och S3) räknar därför bara klippets rutor
   i **[0; längd)** i båda ändar: ingen ruta före 0 och ingen på eller efter längden,
-  samma halvöppna fönster som läsaren.
+  samma halvöppna fönster som läsaren. Paketet bär längden per slag (`klipp_langd_s`,
+  telefonens `AVURLAsset.duration`), och PC:n läser bara rutor där (`paket.i_klippet`;
+  kontaktarket ritar en svart ruta i stället för en ruta utanför, S2f).
 - **Miniatyren ur klippet** (när originalet är borttaget, BESLUT B26): träffen i
   klippets tid = klicket mätt i klippet + (träffen − klicket i serien), inte den
   begärda starten, eftersom var passthrough-klippet börjar inte är dokumenterat.
@@ -1033,6 +1035,9 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   saknad (M1).
 - **Domarna:** `sving` och `osaker` mäts (S2_SPEC §4.3: osäkra behålls men
   märks), `inte_sving` utelämnas. **antagande.**
+- **"Detection wrong":** ett slag med `detection_wrong: true` (Johannes märkte på
+  telefonen att lederna är fel, BESLUT B35) utelämnas som `inte_sving`, så att telefonen och
+  PC:n räknar på samma slag (BESLUT B12). **räkning.**
 - `avstand_m` godtas mellan **0,5** och **20** m. **antagande** (rimlighet, ett
   fält utanför är fel).
 - **Spelarens längd** (skalan, M2): `--langd`, annars `spelarens_langd_m` i

@@ -25,12 +25,17 @@ enum AppKatalog {
 ///   Pass/<id>/Video/01.mov    inspelningar och importerade original   (utanför backupen)
 ///   Pass/<id>/Klipp/          klippen kring slagen (S2e)                (utanför backupen)
 ///   Pass/<id>/Leder/s01.json  ett slags leder (JointSeries, S2e)
+///   AttJobbaPa/att_jobba_pa-<pass>.json   vägen tillbaka från PC:n (S2f, BESLUT B28)
 /// Documents/Export/           paketen (S2f), synliga i Filer             (utanför backupen)
 /// ```
 @Observable
 final class Store {
     let root: URL
     let exportFolder: URL
+    /// Zippen under skrivning (`.part`), i Caches och aldrig i Filer (S2f).
+    let scratchFolder: URL
+    /// Passen vars paket skrivs just nu: Analyze och redigeraren väntar (S2f).
+    private(set) var exporting: Set<String> = []
     private(set) var index = PassIndex()
     /// Passen som lästs, per id: `allPasses` läser disken en gång, och varje sparat pass
     /// uppdaterar sin rad (S4b). Inte observerad: den ändrar inget som syns.
@@ -38,6 +43,9 @@ final class Store {
     private(set) var settings = AppSettings()
     /// Visas när en fil inte gick att läsa eller skriva.
     var problem: String?
+    /// Den senaste `att_jobba_pa.json` från PC:n, för Idag och Att jobba på (vyerna
+    /// kopplas in i S4c). nil = ingen hämtad, eller den gick inte att läsa.
+    private(set) var focus: AttJobbaPa?
 
     static let defaultRoot: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -49,14 +57,24 @@ final class Store {
         return base.appending(path: "Export", directoryHint: .isDirectory)
     }()
 
-    init(root: URL = Store.defaultRoot, exportFolder: URL = Store.defaultExport) {
+    static let defaultScratch: URL = {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return base.appending(path: "SwingLab-export", directoryHint: .isDirectory)
+    }()
+
+    init(root: URL = Store.defaultRoot, exportFolder: URL = Store.defaultExport,
+         scratchFolder: URL = Store.defaultScratch) {
         self.root = root
         self.exportFolder = exportFolder
+        self.scratchFolder = scratchFolder
+        // En export som avbröts (appen stängdes) lämnar en .part; den tas bort här.
+        PassPackage.removeStaleParts(in: scratchFolder)
         try? FileManager.default.createDirectory(at: root.appending(path: "Pass", directoryHint: .isDirectory),
                                                  withIntermediateDirectories: true)
         Self.createOutsideBackup(exportFolder)
         index = read(PassIndex.self, at: indexFile, aside: "pass") ?? PassIndex()
         settings = read(AppSettings.self, at: settingsFile, aside: "installningar") ?? AppSettings()
+        focus = latestFocus()
     }
 
     private var indexFile: URL { root.appending(path: "pass.json") }
@@ -286,6 +304,51 @@ final class Store {
             }
             return p
         }
+    }
+
+    // MARK: Paketet och vägen tillbaka (S2f)
+
+    /// Paketets plats: `Documents/Export/swinglab-<pass>-<vy>.zip`.
+    func exportURL(_ pass: PassState) -> URL {
+        exportFolder.appending(path: PassPackage.fileName(pass))
+    }
+
+    func setExporting(_ id: String, _ pagar: Bool) {
+        if pagar { exporting.insert(id) } else { exporting.remove(id) }
+    }
+
+    var focusFolder: URL { root.appending(path: FocusInbox.folder, directoryHint: .isDirectory) }
+
+    /// Hämtar `att_jobba_pa.json` ur Filer (fileImporter): läses inom den säkra åtkomsten,
+    /// kontrolleras av SwingLabKit (`FocusInbox.accept`: formatet, 1–3 saker, passets id)
+    /// och sparas som `AttJobbaPa/att_jobba_pa-<pass>.json`. En fil som inte går igenom
+    /// sparas aldrig; felet nämner fältet, aldrig värdet. BESLUT B28
+    @discardableResult
+    func importFocus(from url: URL) throws -> AttJobbaPa {
+        let skyddad = url.startAccessingSecurityScopedResource()
+        defer { if skyddad { url.stopAccessingSecurityScopedResource() } }
+        // Storleken före läsningen: en stor fil läses aldrig hel in i minnet.
+        let storlek = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard storlek <= FocusInbox.maxBytes else { throw FocusInbox.tooLarge }
+        let data = try Data(contentsOf: url)
+        return try importFocus(data)
+    }
+
+    @discardableResult
+    func importFocus(_ data: Data) throws -> AttJobbaPa {
+        let r = try FocusInbox.accept(data)
+        try FileManager.default.createDirectory(at: focusFolder, withIntermediateDirectories: true)
+        try data.write(to: focusFolder.appending(path: r.fileName), options: .atomic)
+        focus = latestFocus()
+        return r.focus
+    }
+
+    /// Den senaste sparade filen (högst pass-id), tolkad, eller nil.
+    func latestFocus() -> AttJobbaPa? {
+        let namn = (try? FileManager.default.contentsOfDirectory(atPath: focusFolder.path)) ?? []
+        guard let senaste = FocusInbox.latest(namn),
+              let data = try? Data(contentsOf: focusFolder.appending(path: senaste)) else { return nil }
+        return try? FocusInbox.accept(data).focus
     }
 
     // MARK: Originalen (BESLUT B26)

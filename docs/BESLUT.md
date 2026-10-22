@@ -365,6 +365,27 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   enklare). Ett gemensamt paket från båda telefonerna (videon skulle behöva gå
   över kopplingen).
 - **Kostnad:** ingen zip64: högst 4 GB per paket.
+- **Byggt i S2f:** `ZipWriter`, `ZipCatalog` och `PassPackage`/`PackageManifest` i
+  SwingLabKit (`Capture`, provade på Linux), `App/Export.swift` med "Send to PC" i
+  passet (med eller utan klipp) och delningsbladet. Bara slag med leder kommer med (PC:n
+  kräver `leder`), och klippets längd följer med (METOD MS12). `par.json` följer med när
+  den finns i passets mapp (S2g, provat med S2g:s egen `Store.savePair`), `telefon.roll` är
+  passets roll (`PassSetup.role`), och ett slag märkt "Detection wrong" (BESLUT B35) bär
+  `detection_wrong`, som PC:n inte mäter (METOD MT1).
+  Gränserna är 0xFFFE filer och 0xFFFF_FFFE byte (fältens största värde betyder zip64 för
+  en läsare). Zippen skrivs som `.part` i appens Caches och byter plats med paketet i
+  Export först när den är hel; gamla `.part` tas bort när appen startar. Varje bit om
+  1 MB läses i en egen autoreleasepool; minnets topp med ett klipp på 400 MB mäts i
+  simulatorprovet (`testMinnetMedEttStortKlipp`). Analyze, domen och redigeraren väntar
+  medan paketet skrivs, och passet läses om innan statusen "exporterat" sparas.
+- **Kontraktet bevisas med appens egna byte:** simulatorprovet (`SwingLabProvPaket`)
+  packar ett påhittat pass med appens Export, riktiga passthrough-klipp och leder ur
+  SwingDemo:s påhittade sving, och kompilera.yml låter PC:ns `paket.py` och `session.py`
+  läsa paketen (`tools/tests/test_appens_paket.py`); PC:ns mått ska vara Swifts på samma
+  byte (BESLUT B12). Bortvalt: en Swift-fixtur som skriver paketet på Linux och ett
+  Python-test som läser den. Det prövar SwingLabKit men inte appens väg (iOS Foundation,
+  klippen ur AVFoundation, Store och Export), och de två jobben i test.yml delar inga
+  filer. Flödet körs också när `tools/pc/` ändras, så att båda sidor prövas mot varandra.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B28 — Vägen tillbaka via Filer
@@ -374,6 +395,15 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   kopieras in. S5 bestämmer innehållet.
 - **Bortvalt (till S5):** "Öppna i SwingLab" direkt ur delningsbladet, som
   kräver en egen filtyp i Info.plist.
+- **Byggt i S2f:** "Import focus" i startvyn öppnar `fileImporter` (JSON); filen
+  kontrolleras av SwingLabKit (`FocusInbox.accept`: formatet, 1–3 saker, stegen och att
+  `pass` är ett pass-id) och sparas som `AttJobbaPa/att_jobba_pa-<pass>.json`;
+  `Store.focus` är den senaste, för vyerna i S4c. En fil som inte går igenom sparas inte.
+  Storleken (högst 1 MB) kontrolleras innan filen läses hel.
+- **Vem kontrollerar vad:** telefonen kontrollerar formen. Textens regler (engelska, inga
+  värdeord, siffror eller utropstecken i fritext, BESLUT B30, METOD MT8) och talen mot
+  analysen kontrolleras av PC:ns `tools/pc/att_jobba_pa.py` innan filen skickas; telefonen
+  gör inte om den kontrollen.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B29 — Lederna heter som i Golf SG och har MediaPipes index

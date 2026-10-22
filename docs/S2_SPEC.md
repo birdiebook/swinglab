@@ -1440,6 +1440,28 @@ utan redigering får inga fält. METOD MS13
 **Klart när:** T4, och ett paket med klipp från S2e ligger på PC:n och läses
 med Pythons `zipfile` (manifestet, ett slag, ett klipp som spelar).
 
+**Byggt (grenen `s2f`).** SwingLabKit `Capture/ZipWriter.swift` (`CRC32`, `ZipWriter`,
+`ZipCatalog`), `Capture/PackageManifest.swift` (`PackageManifest`, `DeviceInfo`,
+`PassPackage`: vad som läggs i zippen, skrivet till en `.part`-fil som byter namn när
+zippen är hel) och `Capture/FocusInbox.swift` (vägen tillbaka). App: `Export.swift`
+("Send to PC" i passets verktygsrad, med eller utan klipp, `ActivitySheet`),
+`Store.importFocus`/`Store.focus` och "Import focus" i startvyn (`fileImporter`).
+Manifestet bär bara slag med leder (PC:n kräver dem) och per klipp `klipp_langd_s`, så
+att PC:n bara räknar klippets rutor i [0; längd) (METOD MS12).
+
+| Var | Vad |
+|---|---|
+| Linux (`CaptureTests/PaketTests`) | CRC mot "123456789", en liten och en stor fil (5 MB) tur och retur genom katalogläsaren, filens exakta storlek, DOS-tiden i UTC, gränserna (tooLarge, namn), manifestets nycklar som i FORMAT.md, fönstret och utsnittet utplattade och klampade, slag utan leder utelämnade, med och utan klipp, paketet ur passets mapp byte för byte, inget paket utan slag, `att_jobba_pa.json` tas emot eller inte, den senaste |
+| Simulatorn (`Prov/SwingLabProvPaket`, steg 8) | appens Export på ett pass ur den påhittade filmen med leder ur SwingDemo:s påhittade sving och riktiga passthrough-klipp, läst tillbaka med katalogläsaren (namn, storlek, CRC), med och utan klipp; vägen tillbaka genom Store |
+| macOS i kompilera.yml (`tools/tests/test_appens_paket.py`) | **kontraktet**: PC:ns `paket.py` läser appens två paket och `session.py` kör dem utan fel; PC:ns mått på varje slag är Swifts på samma byte (BESLUT B12, B27) |
+| Bara telefonen | T4: Exportera T3:s pass utan klipp till Filer; delningsbladet, Filer, AirDrop och Apple Devices |
+
+**T4 på 1 minut:** öppna passet från T3 (efter Analyze; utan leder säger appen "Analyze the session first.") → **Send to PC** uppe till höger → **Without
+clips** → spara i Filer (På min iPhone → SwingLab → Export finns redan som mapp). Se:
+`swinglab-<pass>-<vy>.zip` i Filer → SwingLab → Export. Med klipp: samma väg med **With
+clips**. Vägen tillbaka: **Import focus** i startvyn → välj en `att_jobba_pa.json` →
+"Focus saved" (en felaktig fil ger raden med fältet i stället).
+
 ### S2g — Två telefoner (kan flyttas till S6, §13)
 
 `Link.swift` (App) och `Link` (`LinkMessage`, `Wire`) i SwingLabKit, `par.json`.

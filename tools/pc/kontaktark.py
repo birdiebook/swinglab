@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from .faser import ADRESS, FINISH, TOPP_ADRESS_S
-from .paket import las_ur_zip
+from .paket import i_klippet, las_ur_zip
 
 BREDD = 180                # METOD MT7: px per ruta i arket
 MAX_RADER = 12             # METOD MT7: högst så många slag per ark (de första i passet)
@@ -129,7 +129,9 @@ def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | N
             rutor = s.lederna["frames"]
             sx, sy = BREDD / s.lederna["width"], hojd / s.lederna["height"]
             for k, (fas, t) in enumerate(tider(matta[s.id]["faser"]).items()):
-                img = las_ruta(klipp, t + float(s.klick_i_klipp_s), BREDD, hojd, satt)
+                tk = t + float(s.klick_i_klipp_s)
+                # Bara klippets rutor i [0; längd), inte de som följer med efter (METOD MS12).
+                img = las_ruta(klipp, tk, BREDD, hojd, satt) if i_klippet(s, tk) else None
                 if img is None:
                     img = np.zeros((hojd, BREDD, 3), np.uint8)
                 narmast = min(rutor, key=lambda r: abs(r["t"] - t))

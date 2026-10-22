@@ -9,12 +9,18 @@
 #   git fetch origin ci-resultat && git show origin/ci-resultat:resultat/<sha>.kompilera.txt
 # Bilderna som provet ritade ligger bredvid som resultat/<sha>.<namn>.png (startvy, kvitto, slag, traff).
 # testflight.yml vägrar en commit som inte är grön här.
+#
+# Kontraktet med PC:n (S2f, BESLUT B27): simulatorprovet skriver två paket med appens
+# Export (påhittad film, påhittade leder) till /tmp/swinglab_prov/paket, och PC:ns
+# tools/pc/paket.py och session.py läser dem (tools/tests/test_appens_paket.py). Därför
+# körs flödet också när PC-sidan ändras. Paketen sparas som artefakten swinglab-paket.
 
 name: kompilera
 
 on:
   push:
-    paths: ["App/**", "Prov/**", "SwingLabKit/**", "project.yml", ".github/workflows/kompilera.yml"]
+    paths: ["App/**", "Prov/**", "SwingLabKit/**", "project.yml", ".github/workflows/kompilera.yml",
+            "tools/pc/**", "tools/tests/test_appens_paket.py"]
   workflow_dispatch:
 
 concurrency:
@@ -81,6 +87,19 @@ jobs:
           xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
             -destination "id=$UDID" ENABLE_TESTABILITY=YES 2>&1 | tee prov.log
 
+      - uses: actions/setup-python@v5
+        if: always() && steps.gen.outcome == 'success'
+        with:
+          python-version: "3.12"
+
+      - name: PC:n läser appens paket (kontraktet, S2f)
+        if: always() && steps.gen.outcome == 'success'
+        run: |
+          set -o pipefail
+          python -m pip install --quiet numpy opencv-python-headless
+          SWINGLAB_APPENS_PAKET=/tmp/swinglab_prov/paket \
+            python -m unittest discover -s tools/tests -p test_appens_paket.py -v 2>&1 | tee pc.log
+
       - name: Lägg sammanfattningen på ci-resultat
         if: always()
         shell: bash
@@ -108,6 +127,17 @@ jobs:
               echo "== provets mätningar (påhittad film)"
               grep -E '^PROV: ' prov.log | head -80 || true
             fi
+            echo
+            echo "== PC:n läser appens paket (tools/tests/test_appens_paket.py)"
+            if [ ! -f pc.log ]; then
+              echo "RÖTT: PC-steget kördes inte"
+            elif grep -qE '^OK$' pc.log && ! grep -q 'skipped' pc.log; then
+              echo "GRÖNT: paket.py och session.py läste paketen som appen skrev"
+            else
+              echo "RÖTT: PC:n läste inte appens paket"
+              grep -E '^(FAIL|ERROR|AssertionError|.*Error:)' pc.log | head -20 || true
+            fi
+            grep -E '^PAKET: ' pc.log | head -20 || true
           } > "$RUNNER_TEMP/resultat.txt"
           cat "$RUNNER_TEMP/resultat.txt"
           TOKEN="${{ github.token }}"
@@ -127,10 +157,18 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swinglab-paket
+          path: /tmp/swinglab_prov/paket
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: kompilera-loggar
           path: |
             arkiv.log
             prov.log
+            pc.log
           if-no-files-found: ignore
