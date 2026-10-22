@@ -135,7 +135,11 @@ final class SwingLabProvSlag: XCTestCase {
         try await Clips.export(film, range: 0.5...2.0, to: klipp)
         let geo = try await MediaReader.geometry(klipp)
         let upp = Orientation.uprightSize(width: geo.width, height: geo.height, exif: geo.exif)
-        let antal = try await MediaReader.frameTimes(klipp).count
+        // Passthrough-klippet bär fler rutor än redigeringen visar (260 mot 240 på 1,5 s,
+        // uppmätt 2026-10-22): de odekodade tiderna räknas därför inom klippets längd.
+        let allaTider = try await MediaReader.frameTimes(klipp)
+        let antal = allaTider.filter { $0 >= -1e-6 && $0 <= 1.5 + 1e-6 }.count
+        print("PROV: steg 7 klippets rutor: \(allaTider.count) i filen, \(antal) inom 0–1,5 s, sista \(allaTider.last ?? -1)")
         let req = PoseScanRequest(file: klipp, from: 0, to: 1.5, stride: 1, exif: geo.exif,
                                   uprightWidth: upp.width, uprightHeight: upp.height)
 
