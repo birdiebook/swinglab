@@ -220,10 +220,10 @@ final class SwingLabProvRedigering: XCTestCase {
         try XCTUnwrap(UIImage(cgImage: cg).pngData()).write(to: URL(fileURLWithPath: "\(Self.ut)/redigering-utskuren.png"))
         // Rutan som punkterna förs tillbaka genom är den utskurna på hela pixlar.
         let buffert = try await forstaBufferten(film, t: 0.5)
-        let px = VisionPoseSource.cutOut(try XCTUnwrap(buffert), orientation: .right, crop: Self.utsnitt)
-        XCTAssertEqual(px.image.extent.width, 212)
-        XCTAssertEqual(px.image.extent.height, 336)
-        XCTAssertEqual(px.crop, Self.utsnitt.snapped(width: 270, height: 480))
+        let cut = VisionPoseSource.cutOut(try XCTUnwrap(buffert), orientation: .right, crop: Self.utsnitt)
+        XCTAssertEqual(cut.image.extent.width, 212)
+        XCTAssertEqual(cut.image.extent.height, 336)
+        XCTAssertEqual(cut.crop, Self.utsnitt.snapped(width: 270, height: 480))
         // Utan utsnitt: rutan som den är, med orienteringen (vägen från S2e).
         _ = try await vision.scan(PoseScanRequest(file: film, from: 0.4, to: 0.5, stride: 1, exif: 6, uprightWidth: 270,
                                                   uprightHeight: 480)) { _ in }
