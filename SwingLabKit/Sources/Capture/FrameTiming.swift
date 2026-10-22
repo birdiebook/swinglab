@@ -4,7 +4,8 @@ import Foundation
 /// slowmotion-originalet. METOD MS3
 public struct FrameTiming: Codable, Equatable, Sendable {
     public var count: Int
-    /// Rutnätets frekvens: 1 / 5:e percentilen av stegen, avrundat till heltal. 0 = okänt.
+    /// Rutnätets frekvens: 1 / medel av de korta stegen (högst 1,5 × 5:e percentilen),
+    /// avrundat till heltal. 0 = okänt.
     public var gridRate: Double
     /// (count − 1) / (sista − första).
     public var meanRate: Double
@@ -28,6 +29,10 @@ public struct FrameTiming: Codable, Equatable, Sendable {
     /// Percentilen som ger rutnätet. De kortaste stegen, inte medianen: oktobers klipp
     /// låg på 240-rutnätet med drygt en tredjedel av rutorna borta. METOD MS3
     public static let gridPercentile = 0.05
+    /// De korta stegen är de upp till så många gånger percentilen. Deras medel tål en
+    /// grov tidsskala: 1/240 s i filmens standard 600 blir steg om 2 och 3 enheter,
+    /// och percentilen ensam gav 300 (simulatorprovet S2c). METOD MS3
+    public static let shortStepFactor = 1.5
     /// Gränsen för slowmotion, bilder/s. METOD MS3
     public static let slowMotionRate = 100.0
 
@@ -51,7 +56,9 @@ public struct FrameTiming: Codable, Equatable, Sendable {
         let largest = steg.max() ?? 0
         let positiva = steg.filter { $0 > 0 }.sorted()   // två rutor med samma tid ger inget steg
         let p = positiva.isEmpty ? 0 : percentile(positiva, gridPercentile)
-        let grid = p > 0 ? (1 / p).rounded() : 0
+        let korta = positiva.filter { $0 <= shortStepFactor * p }
+        let medel = korta.isEmpty ? 0 : korta.reduce(0, +) / Double(korta.count)
+        let grid = medel > 0 ? (1 / medel).rounded() : 0
         let langd = sista - forsta
         let mojliga = langd * grid + 1
         let saknas = grid > 0 ? max(0, 1 - Double(t.count) / mojliga) : 0

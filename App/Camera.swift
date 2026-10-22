@@ -70,11 +70,19 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         UIApplication.shared.isIdleTimerDisabled = true
         observeInterruptions()
         do {
-            let (formats, chosen) = try await onQueueThrowing { try self.configure(audio: audio) }
-            self.formats = formats
-            self.chosen = chosen
-            frameRate = chosen.maxFrameRate.rounded()
-            reachesWanted = FormatChoice.reaches(chosen)
+            if chosen == nil {                               // en gång per kamera: in- och utgångar finns sedan
+                let (formats, chosen) = try await onQueueThrowing { try self.configure(audio: audio) }
+                self.formats = formats
+                self.chosen = chosen
+                frameRate = chosen.maxFrameRate.rounded()
+                reachesWanted = FormatChoice.reaches(chosen)
+            }
+            if pressureObservation == nil, let device {
+                pressureObservation = device.observe(\.systemPressureState, options: [.initial, .new]) { [weak self] d, _ in
+                    let p = Pressure(rawValue: d.systemPressureState.level.rawValue) ?? .nominal
+                    DispatchQueue.main.async { self?.pressureChanged(p) }
+                }
+            }
             await onQueue { self.session.startRunning() }
             checkMicrophone()
             phase = .metering
@@ -223,10 +231,6 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             if c.isVideoStabilizationSupported { c.preferredVideoStabilizationMode = .off }
         }
         self.device = device
-        pressureObservation = device.observe(\.systemPressureState, options: [.initial, .new]) { [weak self] d, _ in
-            let p = Pressure(rawValue: d.systemPressureState.level.rawValue) ?? .nominal
-            DispatchQueue.main.async { self?.pressureChanged(p) }
-        }
         return (described, described[index])
     }
 

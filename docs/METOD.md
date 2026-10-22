@@ -346,8 +346,11 @@ värden i `CaptureTests`.
 
 ## MS3 — Ljusprovet och rutornas tider
 
-- **Rutnätet** = 1 / 5:e percentilen (linjär interpolation) av de positiva
-  stegen mellan rutornas egna tider, avrundat till heltal. De kortaste stegen,
+- **Rutnätet** = 1 / medel av de korta stegen, avrundat till heltal, där de
+  korta är de positiva stegen upp till **1,5 ×** 5:e percentilen (linjär
+  interpolation). Medlet tål en grov tidsskala: en film i standardskalan 600
+  har 1/240 s som steg om 2 och 3 enheter, och percentilen ensam gav 300 bilder/s
+  i simulatorprovet (S2c); det tål också skakning i tiderna. De kortaste stegen,
   inte medianen: oktobers klipp låg på 240-rutnätet med drygt en tredjedel av
   rutorna borta (**mätt**, Golf SG; research 2 §2). Andelen tappade =
   `1 − antal / ((sista − första) · rutnät + 1)`. **Slowmotion** = rutnät ≥
@@ -490,7 +493,11 @@ värden i `CaptureTests`.
   pågående. **antagande** (en minut i 240 bilder/s är några hundra MB).
 - **Ljudet ur filen** läses i bitar som klipps exakt vid `ClickDetector.segments`
   (30 s med 1 s överlapp, räknat i prov från filens första ljudprov), med de
-  inre gränserna till `detect` (MS4). `ClickStream` ger samma klick som
+  inre gränserna till `detect` (MS4). Omsamplat ljud (AAC 44,1 kHz stereo → 48 kHz
+  mono) gav i simulatorn 153 548 och 153 549 prov i två läsningar av samma fil:
+  bitarnas gränser följer proven, så telefonen och PC:n kan skilja i sista biten
+  på ett omsamplat ljud. Klicken hamnade ändå inom 0,6 ms från de påhittade
+  (LPCM inom 0,5 ms). **mätt** i simulatorprovet, påhittad film. `ClickStream` ger samma klick som
   `detectSegmented` på hela signalen och som PC:ns `klick_i_bitar`, provat med
   buffertar av slumpad storlek på recepten `lang` och `bitgrans`. **räkning.**
 
