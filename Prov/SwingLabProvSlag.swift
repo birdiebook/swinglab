@@ -47,7 +47,8 @@ final class DemoPoseSource: PoseSource, @unchecked Sendable {
             return calls
         }
         if n == failOnCall { throw ProvFel("påhittat avbrott i anrop \(n)") }
-        let tider = try await MediaReader.frameTimes(r.file).filter { $0 >= r.from - 1e-6 && $0 <= r.to + 1e-6 }
+        // Halvöppet som AVAssetReaders fönster [från; till) (uppmätt i steg 7).
+        let tider = try await MediaReader.frameTimes(r.file).filter { $0 >= r.from - 1e-6 && $0 < r.to - 1e-6 }
         // Klicket som fönstret hör till: fönstret slutar 0,1 s (glest) eller 1,5 s (tätt)
         // efter klicket, om filen inte tog slut före (METOD MS5).
         func avstand(_ c: Double) -> Double {
@@ -135,10 +136,11 @@ final class SwingLabProvSlag: XCTestCase {
         try await Clips.export(film, range: 0.5...2.0, to: klipp)
         let geo = try await MediaReader.geometry(klipp)
         let upp = Orientation.uprightSize(width: geo.width, height: geo.height, exif: geo.exif)
-        // Passthrough-klippet bär fler rutor än redigeringen visar (260 mot 240 på 1,5 s,
-        // uppmätt 2026-10-22): de odekodade tiderna räknas därför inom klippets längd.
+        // Passthrough-klippet bär fler rutor än redigeringen visar (260 på 1,5 s, till
+        // 1,617 s; uppmätt 2026-10-22), och läsarens fönster är halvöppet [0; 1,5): de
+        // odekodade tiderna räknas därför så (METOD MS12).
         let allaTider = try await MediaReader.frameTimes(klipp)
-        let antal = allaTider.filter { $0 >= -1e-6 && $0 <= 1.5 + 1e-6 }.count
+        let antal = allaTider.filter { $0 >= -1e-6 && $0 < 1.5 - 1e-6 }.count
         print("PROV: steg 7 klippets rutor: \(allaTider.count) i filen, \(antal) inom 0–1,5 s, sista \(allaTider.last ?? -1)")
         let req = PoseScanRequest(file: klipp, from: 0, to: 1.5, stride: 1, exif: geo.exif,
                                   uprightWidth: upp.width, uprightHeight: upp.height)
