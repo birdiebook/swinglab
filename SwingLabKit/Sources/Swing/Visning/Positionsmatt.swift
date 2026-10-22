@@ -42,7 +42,7 @@ public enum Positionsmatt {
             ut.append(r)
         }
         for m in k.matt where m.vy == vy.rawValue && m.positioner.contains(position) {
-            var r = rad(m.matt, varden: varden, gront: nil, aktiv: true, markning: .egen,
+            var r = rad(m.matt, varden: varden, gront: nil, aktiv: true, markning: Markning.fran(m),
                         baslinje: baslinje[m.matt] ?? [], under: nil)
             r.ovas = m.fel.map { ovas.contains($0) } ?? false
             ut.append(r)

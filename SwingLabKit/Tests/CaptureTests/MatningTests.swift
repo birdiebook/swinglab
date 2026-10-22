@@ -303,7 +303,11 @@ final class MatningTests: XCTestCase {
         let sv = DemoSving.fo(sway: (topp: -3, traff: 4, finish: 8))
         let m = ShotMeasuring.measure(Self.serie(sv), shot: Self.slag(), setup: Self.fo, height: 1.8)
         let p4 = Positionsmatt.rader(k, vy: .fo, position: "P4", varden: m.values, ovas: ["sway_topp"])
-        XCTAssertEqual(p4.map(\.matt), ["backen_sway_topp", "sidbojning_topp", "framre_armbage_topp"])
+        // Felen först, sedan katalogens mått (S1b: knänas sway, bröstets och handens lyft, METOD M31–M34).
+        XCTAssertEqual(p4.map(\.matt), ["backen_sway_topp", "sidbojning_topp", "framre_armbage_topp",
+                                        "framre_kna_sway_topp", "bakre_kna_sway_topp", "brost_lyft_topp",
+                                        "hand_lyft_topp"])
+        XCTAssertTrue(p4.first { $0.matt == "bakre_kna_sway_topp" }!.ovas, "bakre knäets sway följer sway-felet")
         let sway = try XCTUnwrap(p4.first)
         XCTAssertEqual(sway.namn, "Sway")
         XCTAssertTrue(sway.ovas)
@@ -324,6 +328,11 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(av.varde, "—")
         XCTAssertEqual(av.markning, .av)
         XCTAssertTrue(p7.contains { $0.matt == "hander_fore_adress_traff" })
+        // Farterna märks oprövade (METOD M35–M37, BESLUT B11), i m/s.
+        let fart = try XCTUnwrap(p7.first { $0.matt == "handfart_max" })
+        XCTAssertEqual(fart.markning, .oprovad)
+        XCTAssertEqual(fart.enhet, "m/s")
+        XCTAssertTrue(fart.upplasning.contains("untested"))
         XCTAssertFalse(p7.contains { $0.matt == "backen_thrust_traff" }, "DTL:s mått syns inte i FO")
 
         let p9 = Positionsmatt.rader(k, vy: .fo, position: "P9", varden: m.values)
@@ -339,8 +348,10 @@ final class MatningTests: XCTestCase {
                                         shot: Self.slag(), setup: PassSetup(view: .dtl, club: "j7", distance: 3, hand: .hoger),
                                         height: 1.8)
         let p1 = Positionsmatt.rader(k, vy: .dtl, position: "P1", varden: dtl.values)
-        XCTAssertEqual(p1.map(\.matt), ["brost_bojning_adress", "bakre_kna_adress"])
+        XCTAssertEqual(p1.map(\.matt), ["brost_bojning_adress", "bakre_kna_adress", "backen_bojning_adress",
+                                        "framre_kna_adress"])
         XCTAssertTrue(p1.allSatisfy { $0.varde != "—" && $0.enhet == "°" })
+        XCTAssertEqual(dtl.values["framre_kna_adress"]!, 20, accuracy: 0.5)     // DemoSving: främre knät 20°
         let svenska = CharacterSet(charactersIn: "åäöÅÄÖ")
         for r in p1 + p3 + p4 + p7 + p9 { XCTAssertNil((r.namn + r.upplasning).rangeOfCharacter(from: svenska), r.namn) }
     }

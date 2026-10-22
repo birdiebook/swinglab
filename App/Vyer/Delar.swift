@@ -288,7 +288,8 @@ struct Radbrytning<Innehall: View>: View {
 }
 
 /// Märkningen: en liten symbol och en kort etikett (regel 5). Streckad ring = B10
-/// (gränsen ej läst i original), ram = egen baslinje, överstruken ring = avstängt.
+/// (gränsen ej läst i original), ram = egen baslinje, överstruken ring = avstängt,
+/// streckad triangel = oprövat på telefonen (farterna, METOD M35–M37).
 struct MarkningVy: View {
     let markning: Markning
 
@@ -310,6 +311,13 @@ struct MarkningVy: View {
                     streck.move(to: CGPoint(x: 2.8 * k, y: 9.2 * k))
                     streck.addLine(to: CGPoint(x: 9.2 * k, y: 2.8 * k))
                     c.stroke(streck, with: .color(Theme.tertiary), lineWidth: 1.4)
+                case .oprovad:
+                    var tri = Path()
+                    tri.move(to: CGPoint(x: 6 * k, y: 1.6 * k))
+                    tri.addLine(to: CGPoint(x: 10.8 * k, y: 10.2 * k))
+                    tri.addLine(to: CGPoint(x: 1.2 * k, y: 10.2 * k))
+                    tri.closeSubpath()
+                    c.stroke(tri, with: .color(Theme.tertiary), style: StrokeStyle(lineWidth: 1.4, dash: [2.2, 1.8]))
                 }
             }
             .frame(width: 11, height: 11)
