@@ -58,7 +58,9 @@ final class FlikarTests: XCTestCase {
         XCTAssertEqual(try PassCoding.decoder().decode(PassState.self, from: utan).heightM, 1.86, "slagens längd")
         let antagen = Self.matt("20261110-120000", dag: 0, heightM: nil)
         var g2 = try XCTUnwrap(JSONSerialization.jsonObject(with: PassCoding.encoder().encode(antagen)) as? [String: Any])
-        XCTAssertNil(g2["heightM"])
+        XCTAssertTrue(g2["heightM"] is NSNull, "antagen står som null")
+        XCTAssertFalse(try PassCoding.decoder().decode(PassState.self, from: JSONSerialization.data(withJSONObject: g2))
+            .heightPending)
         g2["heightM"] = nil
         XCTAssertNil(try PassCoding.decoder().decode(PassState.self, from: JSONSerialization.data(withJSONObject: g2)).heightM)
         let omatt = DemoPass.fo(id: "20261110-120000", created: Self.dag0, sway: [-1]).pass
@@ -94,10 +96,11 @@ final class FlikarTests: XCTestCase {
         XCTAssertFalse(m.heightPending)
         m.fillMissingHeight(1.70)
         XCTAssertEqual(m.heightM, 1.86)
-        // Ett pass med längden nil i filen (antagen) är inte gammalt.
-        var ny = DemoPass.fo(id: "20261110-120000", created: Self.dag0, sway: [-1]).pass
-        ny = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(ny))
-        XCTAssertTrue(ny.heightPending, "nil skrivs inte: samma som en gammal fil, och omätt: Me:s längd")
+        // Ett nytt pass med längden antagen (null i filen) är inte gammalt: det rörs inte.
+        let ny = DemoPass.fo(id: "20261110-120000", created: Self.dag0, sway: [-1]).pass
+        let lasd = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(ny))
+        XCTAssertFalse(lasd.heightPending)
+        XCTAssertEqual(lasd, ny)
     }
 
     // MARK: Filerna från PC:n och manifestet

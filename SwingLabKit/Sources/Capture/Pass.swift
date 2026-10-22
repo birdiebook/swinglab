@@ -320,6 +320,23 @@ public struct PassState: Codable, Equatable, Sendable {
         }
     }
 
+    /// Som den härledda, men längden står alltid med (`null` när den är antagen), så att ett
+    /// nytt pass aldrig läses som ett från före S4c. METOD MS16
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(format, forKey: .format)
+        try c.encode(id, forKey: .id)
+        try c.encode(created, forKey: .created)
+        try c.encode(setup, forKey: .setup)
+        try c.encode(series, forKey: .series)
+        try c.encodeIfPresent(lightCheck, forKey: .lightCheck)
+        try c.encode(status, forKey: .status)
+        try c.encode(shots, forKey: .shots)
+        try c.encodeIfPresent(vision, forKey: .vision)
+        try c.encode(lastShotNumber, forKey: .lastShotNumber)
+        try c.encode(heightM, forKey: .heightM)
+    }
+
     /// Ett pass från före S4c utan mätta slag tar Me:s längd (`settings`); andra rörs inte.
     /// METOD MS16
     public mutating func fillMissingHeight(_ settings: Double?) {

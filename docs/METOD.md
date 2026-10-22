@@ -1019,8 +1019,8 @@ värden i `CaptureTests`.
 - **Passets längd.** Jag (`AppSettings.heightM`) är standarden för **nya** pass: den
   skrivs in i passet när det skapas (`PassState.heightM`), och passet mäts med sin egen
   längd. En ny längd i Me rör inga gamla pass; en ny längd i passet mäter om bara det
-  passet. Ett pass vars fil saknar längden (från före S4c, eller sparat med längden
-  antagen) tar längden som slagen mättes med, så att dess tal står kvar; utan mätta slag
+  passet. pass.json bär alltid längden (`null` när den är antagen). Ett pass vars fil
+  saknar nyckeln (från före S4c) tar längden som slagen mättes med, så att dess tal står kvar; utan mätta slag
   tar det Me:s längd när det läses, som före S4c. Paketet bär passets längd som
   `spelarens_langd_m`, så att PC:n mäter med samma skala (BESLUT B12); antagen står den
   inte med. **antagande** (Johannes beslut i uppdraget: "passet behåller sin").
