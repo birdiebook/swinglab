@@ -1,7 +1,20 @@
-d73845ab087b10bd177f7ac601037808fa190f64 s2g 2026-10-22T20:40:57Z run 39850799914
+93cd325171ab9881d7642126e590673702ac6aca s4b 2026-10-22T20:48:34Z run 39851826208
 == swift-release
-RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/__w/swinglab/swinglab/SwingLabKit/Sources/Capture/LinkSession.swift:279:47: error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
-|                                               `- error: overlapping accesses to 'self.followers', but modification requires exclusive access; consider copying to a local variable
-error: fatalError
+GRÖNT: 164 test, 0 fel, 6 s i testerna, bygget 41 s
+Långsammast (av 164):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.1 s  VisningTests.testPasset
+      0.1 s  VisningTests.testS5sExempelGarAttLasa
+      0.1 s  VisningTests.testSaknadeEnheter
+      0.1 s  RedigeringTests.testAnalysensFonsterInomRedigeringenOchUtsnittetIFragan
+      0.1 s  FormatTests.testLagKonfidensArSaknad
+      0.1 s  TvaTelefonerTests.testLjudetsVag
 
