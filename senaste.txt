@@ -1,20 +1,7 @@
-fde4ba3932dd8af802b8c008701b72e06b7391b8 main 2026-10-22T14:57:43Z run 39800135403
+5380f87ae71f89ac7868bc27bc3899076ffafad9 s2e 2026-10-22T15:06:32Z run 39801456116
 == swift-release
-GRÖNT: 108 test, 0 fel, 4 s i testerna, bygget 31 s
-Långsammast (av 108):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.1 s  TvaTelefonerTests.testKandForskjutningMedOchUtanPrior
-      0.1 s  InspelningTests.testImportenVagrarEnOmraknadFil
-      0.1 s  MattTests.testVarjeSvingGerPythonsTal
-      0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  VisningTests.testAccentenBaraForDetSomOvas
-      0.0 s  VisningTests.testIngaSvenskaTeckenIVisningen
-      0.0 s  MattTests.testDePahittadeFormerna
-      0.0 s  VisningTests.testUtveckling
-      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
-      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
-      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/SlagTests.swift:116:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+error: fatalError
 
