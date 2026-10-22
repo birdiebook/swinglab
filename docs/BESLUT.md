@@ -571,3 +571,66 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Kostnad:** Sessions är startvyn i ett blad: "New session" står där och på Today.
   Utveckling visar bara den senaste klubban.
 - **Omprövas:** efter telefonprovet av S4c.
+
+---
+
+Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val och
+**prövas**; de omprövas när riktiga svingar och markörer finns (PLAN S6a, "Återstår").
+
+## B37 — 3D på PC:n: egen katalog, trend utan bedömning, och 2D först
+*2026-10-22 · prövas · PLAN.md S6a · METOD MK1–MK8*
+
+- **Valt:** `tools/pc/tva_kameror.py` gör två paket från samma pass (DTL och FO) till
+  3D och skriver `tre_d` i `analys.json` (docs/FORMAT.md). Måtten står i
+  **`katalog_3d.json`** i repots rot, som bara PC:n läser (`katalog.las_3d`), och i
+  historikens minne (`historik.py minne`, `tre_d`). Utan markörer visas de bara som
+  passets median över minst 10 slag (B14) och bedöms aldrig grönt, gult eller rött;
+  de blir aldrig en sak i `att_jobba_pa.json`. En skillnad mot förra passet är tydlig
+  först över ett golv per mått (METOD MK7). Går 3D inte (ett paket, för få slag i båda,
+  kalibreringen) står skälet i `tre_d.hoppat`, och 2D-analysen går som förut.
+- **Varför egen katalog:** `katalog.json` ligger ordagrant i Swift-fixturerna
+  (`Fixturer.swift`, B12) och läses av appen, som kontrollerar varje mått mot sina vyer;
+  ett nytt mått där kräver nya fixturer och en ny vy i SwingLabKit. Samma skäl som
+  kedjorna i `tools/pc/kedjor.json` (skillen svinganalys, F-S5-1).
+- **Bortvalt:** 3D-måtten i `katalog.json` med en ny vy (`"3d"`): rör appen i S6a.
+  Att bedöma höfterna vid träffen mot 35–45° (research 1 §1.7): passets median har
+  5–12° fel med typiskt brus (S6_FELBUDGET §6.7), så en gräns blir brus; spannet står
+  bara som riktmärke.
+- **Kostnad:** två kataloger. När appen ska visa trenden (S6b) flyttar måtten in i
+  `katalog.json` och fixturerna.
+- **Omprövas:** när vyn i appen byggs, eller när markörerna ger mått per sving.
+
+## B38 — Självkalibrering ur lederna, per pass, med brännvidden ur specifikationen
+*2026-10-22 · prövas · METOD MK3, MK4 · S6_FELBUDGET §6.5*
+
+- **Valt:** kamerorna kalibreras ur passets egna leder (åttapunktsmetoden och
+  Sampson-felet), alla slag ihop eftersom stativen står still, med f ur
+  specifikationen. Synken finjusteras på återprojektionen och kalibreringen görs om
+  med den (två varv).
+- **Varför:** paketen bär inga mattpunkter och ingen ChArUco-mätning än, och
+  självkalibreringen kräver ingenting av Johannes. Utan brus är kedjan exakt (under
+  0,5° på passets median).
+- **Bortvalt:** mattan (6–10 klickade punkter per pass): bäst i felbudgeten (0,2°),
+  men kräver punkterna i paketet och ett verktyg att klicka dem. En kalibrering per
+  slag: sämre underlag och olika kameror inom samma pass.
+- **Kostnad (uppmätt på facit):** med typiskt brus är kalibreringens vridningsfel i
+  snitt 5°, upp till 14°, eftersom posemodellens fasta avvikelse per led böjer
+  geometrin. Det höjer bröstets passmedian-SD från 6,4° (sanna kameror) till 9,6°.
+- **Omprövas:** när S3 mätt den fasta avvikelsen. Är den stor: mattan, eller en
+  utjämning där varje leds fasta avvikelse skattas med kamerorna.
+
+## B39 — Lodlinjen: valfritt fält i manifestet, annars kamerornas vågräta
+*2026-10-22 · prövas · METOD MK3 · följdjobb för appen*
+
+- **Valt:** `serier[].lodlinje` i `manifest.json` (docs/FORMAT.md): uppåt (−gravitationen,
+  i g) i kamerans ram i den upprätta bilden, valfritt. PC:n använder det när någon vy
+  bär det. Utan det tas uppåt vinkelrätt mot båda bildernas x-axel, vilket antar att
+  ingen telefon lutar åt sidan.
+- **Varför:** felbudgeten visar att 0,5–3° fel i lodlinjen inte syns (vridningen mäts
+  mot adressen), så antagandet räcker tills appen skriver fältet.
+- **Följdjobb (appen, inte S6a):** spara `CMDeviceMotion.gravity` vid seriens start,
+  vriden till den upprätta bildens axlar, i `serier[].lodlinje`, och visa i
+  uppställningen om telefonen lutar åt sidan.
+- **Bortvalt:** att kräva fältet (då går dagens paket inte), och lodlinjen ur kroppen
+  (fötterna och höfterna i adressen lutar med hållningen).
+- **Omprövas:** när appen skriver fältet; då jämförs de två på riktiga pass.

@@ -205,6 +205,15 @@ def main(argv=None) -> int:
     for vy, k in analys["kontaktark"].items():
         print(f"  kontaktark {vy}: {k.get('fil') or 'hoppat (' + k['hoppat'] + ')'}")
     print(f"  kandidater: {', '.join(k['fel'] + ' (' + k['status'] + ')' for k in analys['kandidater']) or 'inga'}")
+    t = analys["tre_d"]
+    if "hoppat" in t:
+        print(f"  3D: hoppat ({t['hoppat']})")
+    else:
+        med = [x["matt"] for x in t["trend"] if x["median"] is not None]
+        print(f"  3D utan markörer: {t['parning']['par']} slag parade ({t['parning']['kalla']}), "
+              f"lodlinjen ur {t['kalibrering']['lodlinje']}, "
+              f"{t['kalibrering']['vinkel_mellan_kamerorna']}° mellan kamerorna, "
+              + (f"trend för {len(med)} mått" if med else f"ingen trend (färre än {t['min_slag']} slag)"))
     print(f"Skrev {ut / 'analys.json'}")
     return 0
 

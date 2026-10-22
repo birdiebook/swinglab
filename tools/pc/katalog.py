@@ -16,6 +16,11 @@ from .matt import MATT
 from .positioner import POSITIONER
 
 KATALOG = Path(__file__).resolve().parents[2] / "katalog.json"
+# Måtten ur två kameror (S6a): en egen fil som bara PC:n läser. BESLUT B37
+KATALOG_3D = Path(__file__).resolve().parents[2] / "katalog_3d.json"
+FALT_3D = ("matt", "namn", "enhet", "fas", "lage", "min_slag", "spann", "kalla", "status", "kontrollerad",
+           "notering")
+LAGEN_3D = ("utan_markorer", "med_markorer")      # BESLUT B14
 VYER = ("dtl", "fo", "bada")
 STATUS = ("tillverkare", "forskning", "tranare", "antagande")
 SAMRE = ("+", "-", None)
@@ -110,6 +115,49 @@ def kontrollera(k: dict) -> list[str]:
 def las(sokvag: Path = KATALOG) -> dict:
     k = json.loads(Path(sokvag).read_text(encoding="utf-8"))
     fel = kontrollera(k)
+    if fel:
+        raise KatalogFel("; ".join(fel))
+    return k
+
+
+def kontrollera_3d(k: dict) -> list[str]:
+    """katalog_3d.json: formen, och att varje mått är ett av 3D-måtten
+    (tva_kameror.MATT) en gång. BESLUT B37"""
+    from .tva_kameror import MATT as MATT_3D
+    if not isinstance(k, dict) or k.get("version") != 1 or not isinstance(k.get("matt"), list):
+        return ["katalog_3d: ska ha version 1 och listan matt"]
+    fel, sedda = [], set()
+    for i, e in enumerate(k["matt"]):
+        namn = e.get("matt", f"matt {i}") if isinstance(e, dict) else f"matt {i}"
+        if not isinstance(e, dict) or set(e) != set(FALT_3D):
+            fel.append(f"{namn}: ska ha fälten {', '.join(FALT_3D)}")
+            continue
+        if e["matt"] not in MATT_3D:
+            fel.append(f"{namn}: inget 3D-mått")
+        if e["matt"] in sedda:
+            fel.append(f"{namn}: står två gånger")
+        sedda.add(e["matt"])
+        if e["lage"] not in LAGEN_3D:
+            fel.append(f"{namn}: lage ska vara {' eller '.join(LAGEN_3D)}")
+        if isinstance(e["min_slag"], bool) or not isinstance(e["min_slag"], int) or e["min_slag"] < 1:
+            fel.append(f"{namn}: min_slag ska vara ett positivt heltal")
+        v = e["spann"]
+        if v is not None and not (isinstance(v, list) and len(v) == 2
+                                  and all(x is None or isinstance(x, (int, float)) for x in v)):
+            fel.append(f"{namn}: spann ska vara [min, max] eller null")
+        if e["status"] not in STATUS:
+            fel.append(f"{namn}: status ska vara en av {', '.join(STATUS)}")
+        if not isinstance(e["kontrollerad"], bool):
+            fel.append(f"{namn}: kontrollerad ska vara true/false")
+    saknas = set(MATT_3D) - sedda
+    if saknas:
+        fel.append("katalog_3d: saknar " + ", ".join(sorted(saknas)))
+    return fel
+
+
+def las_3d(sokvag: Path = KATALOG_3D) -> dict:
+    k = json.loads(Path(sokvag).read_text(encoding="utf-8"))
+    fel = kontrollera_3d(k)
     if fel:
         raise KatalogFel("; ".join(fel))
     return k

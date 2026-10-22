@@ -284,9 +284,18 @@ def sjalvkalibrera(KA, uvA, kA, KB, uvB, kB, upp_A: np.ndarray, min_konf: float 
 
     uvA, uvB (M, J, 2) på samma tidsaxel; kA, kB konfidenser.
     """
+    R, t, _ = relativ_ur_leder(KA, uvA, kA, KB, uvB, kB, min_konf, max_par, rng)
+    return varld(KA, KB, R, t, upp_A)
+
+
+def relativ_ur_leder(KA, uvA, kA, KB, uvB, kB, min_konf: float = 0.5, max_par: int = 3000, rng=None):
+    """Kamera B:s läge mot A (x_B = R x_A + t, |t| = 1) ur ledernas punktpar, och
+    Sampson-felets median i pixlar (kalibreringens kvalitet)."""
     ok = np.isfinite(uvA).all(-1) & np.isfinite(uvB).all(-1) & (kA > min_konf) & (kB > min_konf)
     a, b = uvA[ok], uvB[ok]
     w = np.sqrt(kA[ok] * kB[ok])
+    if len(a) < 8:
+        raise ValueError("för få punktpar för självkalibreringen")
     if len(a) > max_par:
         rng = rng or np.random.default_rng(0)
         val = rng.choice(len(a), max_par, replace=False)
@@ -294,6 +303,27 @@ def sjalvkalibrera(KA, uvA, kA, KB, uvB, kB, upp_A: np.ndarray, min_konf: float 
     x1 = np.column_stack([a, np.ones(len(a))]) @ np.linalg.inv(KA).T
     x2 = np.column_stack([b, np.ones(len(b))]) @ np.linalg.inv(KB).T
     R, t = relativ_orientering(x1, x2, w, f_px=KA[0, 0])
+    sampson = float(np.median(np.abs(_sampson(_skev(t) @ R, x1, x2)))) * KA[0, 0]
+    return R, t, sampson
+
+
+def upp_ur_vagrata(R: np.ndarray) -> np.ndarray:
+    """Lodlinjen i A:s ram när båda kamerorna står utan lutning åt sidan: bildernas
+    x-axlar ligger då båda i markplanet, och uppåt är vinkelrät mot dem. Tecknet
+    väljs så att uppåt pekar mot bildens överkant (−y). METOD MK3"""
+    xA = np.array([1.0, 0.0, 0.0])
+    xB = R.T @ np.array([1.0, 0.0, 0.0])
+    u = np.cross(xA, xB)
+    n = np.linalg.norm(u)
+    if n < 0.2:                        # kamerorna nästan parallella: riktningen är obestämd
+        raise ValueError("kamerorna står för nära samma riktning för lodlinjen ur bilderna")
+    u = u / n
+    return u if u[1] < 0 else -u
+
+
+def varld(KA, KB, R: np.ndarray, t: np.ndarray, upp_A: np.ndarray):
+    """Kamerorna i en värld där z är `upp_A` (A:s ram) och x är A:s blickriktning i
+    markplanet; origo i kamera A."""
     z = upp_A / np.linalg.norm(upp_A)
     f = np.array([0.0, 0.0, 1.0]) - z[2] * z
     x = f / np.linalg.norm(f)

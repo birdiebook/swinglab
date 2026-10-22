@@ -148,7 +148,7 @@ står). PC:n (`tools/pc/paket.py`) läser och kräver:
 | `spelhand` | `"hoger"` eller `"vanster"` (blir svingens `hand`) |
 | `avstand_m` | valfri, 0,5–20; ger träffen när `traff_s` saknas (METOD MT1) |
 | `spelarens_langd_m` | **valfri, nytt i S5**: 1,0–2,5. Telefonen skriver passets längd (S4c, METOD MS16), utom när den är antagen. Saknas den tas längden ur `--langd` eller historiken |
-| `serier[]` | `nr` heltal, `klubba` valfri text, `fonster` och `utsnitt` valfria (nedan) |
+| `serier[]` | `nr` heltal, `klubba` valfri text, `fonster` och `utsnitt` valfria (nedan), `lodlinje` valfri (nedan, nytt i S6a) |
 | `slag[]` | `id` (`s01`…), `serie` (ett `nr`), `klick_s`, `traff_s` (valfri), `dom` (`sving`, `inte_sving`, `osaker`), `leder` (fil i zippen), `klipp` (valfri fil i zippen) med `klick_i_klipp_s` och, valfritt, `klipp_langd_s` (positivt tal) och `detection_wrong` (bool: Johannes märkte lederna fel på telefonen; slaget mäts inte, METOD MT1) |
 
 **Telefonen skriver** (S2f, `SwingLabKit/Sources/Capture/PackageManifest.swift`, App/Export.swift)
@@ -174,14 +174,22 @@ per serie och valfria; saknas de gäller hela filen och hela bilden:
 | `fonster.fran_s`, `fonster.till_s` | tal, s i seriens fil, `0 <= fran_s < till_s`. Varje slags `klick_s` ligger i fönstret (telefonen räknar bara de klicken). |
 | `utsnitt.x`, `y`, `b`, `h` | tal, normaliserade i den **upprätta** bilden med origo uppe till vänster (som lederna), inom 0–1, `b` och `h` positiva |
 
+**Lodlinjen** (S6a, BESLUT B39, METOD MK3), per serie och valfri:
+`"lodlinje": [x, y, z]`, uppåt (−gravitationen) i g i kamerans ram i den **upprätta**
+bilden: x åt höger, y nedåt, z framåt ur linsen. Längden ska vara 0,8–1,2 (telefonen i
+vila på stativet); PC:n normerar den. En telefon som står rak och vågrät ger ungefär
+`[0, -1, 0]`. **Appen skriver den inte än** (följdjobb, B39): utan den tar PC:n uppåt ur
+kamerornas vågräta.
+
 Lederna i `slag/s01.json` står alltid i **hela** den upprätta bildens pixlar, även
 med utsnitt: telefonen för Visions punkter ur rutan tillbaka. PC:n kan låta
 MediaPipe se samma ruta (`paket.utsnitt_px`) och föra punkterna tillbaka med
 `paket.fran_utsnittet`. Klippen är passthrough och inte beskurna; de är kapade vid
 fönstret.
 
-Övriga fält (`telefon`, `enhet.json`, `ljusprov.json`, `par.json`, `vision`)
-läses inte än. `par.json` ligger i paketet när passets mapp har den (S2g). Sökvägarna får inte börja med `/` eller innehålla `..`.
+Övriga fält (`telefon`, `enhet.json`, `ljusprov.json`, `vision`)
+läses inte än. `par.json` ligger i paketet när passets mapp har den (S2g) och läses
+för 3D (S6a, METOD MK1); en `par.json` som inte går att läsa stoppar inte paketet. Sökvägarna får inte börja med `/` eller innehålla `..`.
 `enhet.json` är `{"modell", "ios", "format": [CameraFormat …], "valt_index"}` (alla format
 bakkameran rapporterar), `ljusprov.json` passets `LightCheck` som i `pass.json`; ett tal
 som JSON inte tål skrivs som text (`"inf"`, `"nan"`).
@@ -210,8 +218,10 @@ slag[3].klick_s ska vara ett tal`), aldrig värdet.
 
 `par.json` ligger i den styrande telefonens pass (`Pass/<id>/par.json`) och följer
 med i dess paket (S2_SPEC §8.3). En rad per serie och följare, skriven om när
-parningen ändras (METOD MS9, MS10, BESLUT B22). PC:n läser den inte än; den kan
-para om med samma algoritm ur båda paketens klick.
+parningen ändras (METOD MS9, MS10, BESLUT B22). PC:n läser den för 3D (S6a, METOD
+MK1): `format`, `pass`, `vy` och per serie `serie`, `forskjutning_s`, `osaker` och
+följarens `vy`, `pass` och `serie`. Utan den, eller när en serie är `osaker`, parar PC:n
+om på båda paketens klick.
 
 ```json
 {"format": "swinglab-par/1", "pass": "20261024-153012", "modell": "iPhone18,3", "vy": "dtl",
@@ -267,6 +277,42 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
+| `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}` |
+
+**`tre_d`** (BESLUT B37, METOD MK1–MK7) när passet har ett DTL- och ett FO-paket:
+
+| Fält | Innehåll |
+|---|---|
+| `lage` | `"utan_markorer"` (BESLUT B14) |
+| `min_slag` | 10: passets median kräver så många slag (MK7) |
+| `matt` | måttens namn: `backen_vrid_topp`, `brost_vrid_topp`, `xfaktor_topp`, `xfaktor_stretch`, `hofter_oppna_traff` (grader, MK6) |
+| `parning` | `kalla` (`par.json` eller `klicken`), `serier[]` (`dtl`, `fo`, `kalla`, `par`), `par`, `oparade` per vy, och `par_json_fel` när par.json inte gick att läsa (MK1) |
+| `kalibrering` | `lodlinje` (`manifest` eller `kamerornas_vagrata`), `sampson_px`, `vinkel_mellan_kamerorna` (grader) och `vinkel_ok` (60–120°) (MK3) |
+| `slag[]` | per par: `dtl` och `fo` (slagens id), `serie` per vy, `synk_ms` (DTL:s klocka före FO:s efter klicket, MK4), `aterprojektion_px`, och `matt` eller `fel` |
+| `n` | antal slag med måttet |
+| `session` | M25:s sammanfattning per mått, bara mått med minst `min_slag` slag |
+| `mot_forra` | `null`, eller `pass` och `jamforelse` per mått: `skillnad`, `spridning`, `golv`, `tydlig` (MK7) |
+| `trend[]` | katalogens mått i `katalog_3d.json`:s ordning: `matt`, `namn`, `enhet`, `fas`, `lage`, `n`, `min_slag`, `median` och `kvartiler` (1 decimal, `null` under `min_slag`), `spann`, `kalla_status`, `kontrollerad`, `mot_forra` (`skillnad`, `tydlig`) |
+
+Trenden är det skillen läser och rapporterar. Inget i `tre_d` bedöms eller blir en
+sak i `att_jobba_pa.json` (B14).
+
+## 3D-katalogen: `katalog_3d.json`
+
+I repots rot (BESLUT B37). Bara PC:n läser den (`tools/pc/katalog.py` `las_3d`); appens
+katalog är `katalog.json`. `{"version": 1, "om": "…", "matt": [ … ]}`, ett objekt per
+3D-mått, varje mått en gång och alla fem med (MK6), med exakt fälten:
+
+| Fält | Typ | Betydelse |
+|---|---|---|
+| `matt` | text | Måttets namn i `tre_d` (MK6). |
+| `namn` | text | Det Johannes ser, på engelska (BESLUT B30). |
+| `enhet` | text | `"°"`. |
+| `fas` | text | `topp`, `nedsving` eller `traff`. |
+| `lage` | text | `"utan_markorer"` eller `"med_markorer"` (BESLUT B14). |
+| `min_slag` | heltal | Slag som passets median kräver (10, MK7). |
+| `spann` | `[min, max]` eller `null` | Riktmärke att visa bredvid trenden, aldrig en bedömning (B37). |
+| `kalla`, `status`, `kontrollerad`, `notering` | | Som i `katalog.json`. |
 
 ## Att jobba på: `att_jobba_pa.json` — kontraktet med appen
 
@@ -412,7 +458,9 @@ att_jobba_pa/<pass>.json      sparad och kontrollerad med historik.py spara-att-
 ```
 
 `historik.py minne` skriver `"format": "swinglab-minne/1"`: passen, varje fels
-väg genom vintern (`varde`, `forsta_serien`, `status` per pass) och en rad per
+väg genom vintern (`varde`, `forsta_serien`, `status` per pass), 3D-trenden (`tre_d`:
+per mått en rad per pass med median, `pass`, `median`, `kvartiler`, `n`, `lage`; S6a,
+METOD MK7) och en rad per
 fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
 `valt_i_pass`, `fel_start`, `forra_ovningar` (id:n), `klart_nar` och `markning` (från valet), `steg`,
 `uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),

@@ -1,0 +1,71 @@
+{
+ "version": 1,
+ "om": "Måtten ur två kameror (PLAN S6, BESLUT B37). Läses bara av PC:n (tools/pc/katalog.py las_3d), inte av appen än: katalog.json ligger ordagrant i Swift-fixturerna (BESLUT B12). Utan markörer visas måtten bara som trend per pass, median över minst min_slag slag (BESLUT B14), och bedöms aldrig grönt, gult eller rött. Spannet är ett riktmärke att visa bredvid trenden, ej kontrollerat i original (BESLUT B10). Fälten står i docs/FORMAT.md, definitionerna i docs/METOD.md MK6.",
+ "matt": [
+  {
+   "matt": "backen_vrid_topp",
+   "namn": "Pelvis turn at the top",
+   "enhet": "°",
+   "fas": "topp",
+   "lage": "utan_markorer",
+   "min_slag": 10,
+   "spann": null,
+   "kalla": "https://www.golfdigest.com/story/useful-golf-swingfacts-sportsbox-ai-graph",
+   "status": "tillverkare",
+   "kontrollerad": false,
+   "notering": "Sportsbox tour ≈ 40° (deras tecken −40°), ej läst i original (research 1 §1.7). Inget spann: en siffra är ingen gräns."
+  },
+  {
+   "matt": "brost_vrid_topp",
+   "namn": "Shoulder turn at the top",
+   "enhet": "°",
+   "fas": "topp",
+   "lage": "utan_markorer",
+   "min_slag": 10,
+   "spann": null,
+   "kalla": "https://sam.ensam.eu/handle/10985/19475",
+   "status": "antagande",
+   "kontrollerad": false,
+   "notering": "Akromionlinjen, inte bröstkorgen: den följer skulderbladen och går 8–9° längre vid toppen (S6_FELBUDGET §5). Egen trend."
+  },
+  {
+   "matt": "xfaktor_topp",
+   "namn": "X-factor at the top",
+   "enhet": "°",
+   "fas": "topp",
+   "lage": "utan_markorer",
+   "min_slag": 10,
+   "spann": null,
+   "kalla": "https://dspace.lboro.ac.uk/2134/21663",
+   "status": "forskning",
+   "kontrollerad": false,
+   "notering": "Ingen gradgräns: definitionen ensam flyttar X-factor cirka 19° i samma sving (research 1 §1.8, S6_FELBUDGET §5). Egen trend."
+  },
+  {
+   "matt": "xfaktor_stretch",
+   "namn": "X-factor stretch",
+   "enhet": "°",
+   "fas": "nedsving",
+   "lage": "utan_markorer",
+   "min_slag": 10,
+   "spann": null,
+   "kalla": "https://works.bepress.com/philip_martin/5/",
+   "status": "forskning",
+   "kontrollerad": false,
+   "notering": "Visas före X-factor: stretchen hänger oftare ihop med klubbfarten (Cheetham 2001, Joyce 2017; research 1 §1.8). Grader, inte procent. Egen trend."
+  },
+  {
+   "matt": "hofter_oppna_traff",
+   "namn": "Hips open at impact",
+   "enhet": "°",
+   "fas": "traff",
+   "lage": "utan_markorer",
+   "min_slag": 10,
+   "spann": [35, 45],
+   "kalla": "https://www.golftec.co.za/swingtru · https://www.golfdigest.com/story/useful-golf-swingfacts-sportsbox-ai-graph · https://doi.org/10.1055/s-2008-1038732",
+   "status": "tillverkare",
+   "kontrollerad": false,
+   "notering": "35–45° där Sportsbox, GolfTEC och Zheng möts (research 1 §1.7). Riktmärke bredvid trenden, ingen bedömning utan markörer (BESLUT B14)."
+  }
+ ]
+}

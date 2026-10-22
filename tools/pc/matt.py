@@ -19,7 +19,8 @@ Positionerna P1–P10 (BESLUT B32, METOD M28) och måtten vid P3, P5 och P10 som
 inte är en fas (METOD M29): sway och främre armbågen vid P3, bäckenets resa
 från toppen vid P5, huvudet mot bäckenet i finishen.
 
-Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
+Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6) och räknas i
+`tva_kameror.py` (S6a).
 """
 from __future__ import annotations
 

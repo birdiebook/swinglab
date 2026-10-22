@@ -12,11 +12,14 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
+
 from . import faser as F
 from . import format as fm
 from . import katalog as KAT
 from . import matt as M
 from . import session as S
+from . import tva_kameror as TK
 from .paket import MATS, Paket, till_sving
 
 FORMAT = "swinglab-analys/1"
@@ -208,6 +211,40 @@ def kandidater(bedomning: list[dict], kedjor: dict) -> list[dict]:
     return ut
 
 
+# --- två kameror (S6a) -------------------------------------------------------------
+
+def tre_d(paket: list[Paket], slag: list[dict], forra: dict | None, katalog_3d: dict) -> dict:
+    """3D ur passets två paket (METOD MK1–MK7), eller {"hoppat": skäl}. Ett fel i 3D
+    stoppar aldrig 2D-analysen (BESLUT B37). `trend` är katalogens mått i dess
+    ordning med passets median (bara över minst min_slag slag, BESLUT B14) och
+    skillnaden mot förra passet."""
+    vyer = {p.vy: p for p in paket}
+    if set(vyer) != {"dtl", "fo"}:
+        return {"hoppat": "3D kräver ett DTL- och ett FO-paket från samma pass"}
+    try:
+        t = TK.analysera(vyer["dtl"], vyer["fo"], slag)
+    except TK.TreDFel as e:
+        return {"hoppat": str(e)}
+    except (ValueError, ArithmeticError, IndexError, KeyError, np.linalg.LinAlgError) as e:
+        return {"hoppat": f"3D gick inte ({type(e).__name__})"}
+    mot = TK.jamfor(t, forra.get("tre_d") if forra else None)
+    t["mot_forra"] = None if mot is None else {"pass": forra["pass"], "jamforelse": mot}
+    trend = []
+    for e in katalog_3d["matt"]:
+        m = e["matt"]
+        sn = t["session"].get(m) if e["lage"] == t["lage"] and t["n"].get(m, 0) >= e["min_slag"] else None
+        j = (mot or {}).get(m) if sn else None
+        trend.append({"matt": m, "namn": e["namn"], "enhet": e["enhet"], "fas": e["fas"], "lage": t["lage"],
+                      "n": t["n"].get(m, 0), "min_slag": e["min_slag"],
+                      "median": round(sn["median"], 1) if sn else None,
+                      "kvartiler": [round(sn["q1"], 1), round(sn["q3"], 1)] if sn else None,
+                      "spann": e["spann"], "kalla_status": e["status"], "kontrollerad": e["kontrollerad"],
+                      "mot_forra": None if j is None else {"skillnad": round(j["skillnad"], 1),
+                                                           "tydlig": j["tydlig"]}})
+    t["trend"] = trend
+    return t
+
+
 # --- hela analysen ---------------------------------------------------------------
 
 def _grupp(vy: str) -> str:
@@ -216,10 +253,11 @@ def _grupp(vy: str) -> str:
 
 def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: dict | None = None,
               katalog: dict | None = None, kedjor: dict | None = None, baslinje_pass: list[str] = (),
-              skapad: str | None = None) -> dict:
+              skapad: str | None = None, katalog_3d: dict | None = None) -> dict:
     """Passets analys. `tidigare` = svingarna ur tidigare pass (baslinjen, M27),
     `forra` = förra passets analys (eller None)."""
     katalog = katalog or KAT.las()
+    katalog_3d = katalog_3d or KAT.las_3d()
     kedjor = kedjor or las_kedjor()
     pass_id = paket[0].pass_id
     if any(p.pass_id != pass_id for p in paket):
@@ -269,6 +307,7 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
         bed.append(rad)
     a["bedomning"] = bed
     a["kandidater"] = kandidater(bed, kedjor)
+    a["tre_d"] = tre_d(paket, slag, forra, katalog_3d)
     a["kontaktark"] = {}
     return a
 

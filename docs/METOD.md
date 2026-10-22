@@ -1221,3 +1221,141 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
 - **Blocket** (research 3 §4 förslag 1: 4–6 veckor per grundorsak) börjar den
   dag felet först valdes och fortsätter genom bytta övningar; `vecka` = hela
   veckor sedan starten + 1. **antagande.**
+
+---
+
+# Två kameror (S6)
+
+Konstanterna i kedjan från två paket till 3D (`tools/pc/tva_kameror.py`, S6a) och
+facitet för den. Numreringen MK hålls skild från M, MS och MT. Simuleringen bakom
+valen står i [S6_FELBUDGET.md](S6_FELBUDGET.md); talen där är påhittade svingar
+med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
+
+## MK1 — Parningen av slagen
+
+- Den styrande telefonens `par.json` (S2g, MS10) ger per serie följarens serie och
+  `forskjutning_s`. Slagens klick paras med Golf SG:s `para()` kring den, i ett
+  fönster på **± 30 ms** (samma som toleransen). **räkning** (MS10).
+- **Utan `par.json`**, när raden säger `osaker`, eller för en serie den inte nämner:
+  klicken paras utan förhandsvärde. Varje skillnad b − a mellan två klick prövas
+  (ett slags filer kan börja hur långt isär som helst, så MS10:s ± 10 s räcker
+  inte), den som parar flest inom 30 ms förfinas med `para()`, och parningen är
+  osäker med färre än **3** par eller när en annan förskjutning minst 2 · 30 ms bort
+  parar lika många (MS10:s regel). Serierna paras serie mot serie, flest par först.
+  **antagande** (formen), **räkning**.
+- `par.json` som inte går att läsa stoppar inte paketet: PC:n parar på klicken
+  och skriver skälet (utan värden) i `parning.par_json_fel`.
+- Bara slag som mäts i båda vyerna kommer med (domen `sving` eller `osaker`, inte
+  "Detection wrong", MT1).
+
+## MK2 — Tiden: synken på klicket
+
+- Varje telefons leder läggs på **träffens tid**: `t − (traff_s − klick_s)`, eller
+  `t + avstånd / 343` utan `traff_s` (MT1, MS6). Då står träffen på t = 0 i båda,
+  och skillnaden i ljudets väg är borta. Det som är kvar är klickets fel (±7 ms,
+  MS4), som MK4 tar. **fysik** (MS6).
+- En led med konfidens under **0,3** är saknad (M1). Två rutor med samma tid: den
+  första.
+
+## MK3 — Kalibreringen: självkalibrering ur lederna
+
+- **Inre parametrar:** brännvidden ur specifikationen, **f = 1444 px** för 1920 px
+  långsida (26 mm ekvivalent, S6_FELBUDGET §3), skalad med bildens långsida, och
+  huvudpunkten i bildens mitt. **tillverkare, ej läst i original.** ChArUco väntar;
+  felbudgeten ger under 1° för f ±5 % och c ±20 px (§6.2).
+- **Yttre:** kamerorna står still under passet, så alla slags leder kalibrerar
+  ihop. Båda vyerna jämnas (MK5) på en tidsaxel i steg om **1/60 s**, punktpar
+  med konfidens över **0,5** i båda vyerna, högst **5 000** par (slumpade med frö
+  0). Viktad normaliserad åttapunktsmetod med robusta varv och förfining på
+  Sampson-felet (Hartley 1997, `tre_d/kalibrering.py`). **standard** (metoden),
+  **antagande** (talen). Skalan är okänd: vinklar behöver ingen.
+- **Lodlinjen:** ur manifestet (`serier[].lodlinje`, uppåt i kamerans ram, g) när
+  någon vy bär den: FO:s direkt, DTL:s vriden till FO, båda = summan. Fältet
+  godtas med längden **0,8–1,2 g** (telefonen i vila på stativet). Utan fältet:
+  **kamerornas vågräta**, uppåt vinkelrätt mot båda bildernas x-axel. Det antar
+  att ingen telefon lutar åt sidan (felet blir ungefär lutningen); felbudgeten
+  ger 0,5–3° fel i lodlinjen under slumpfelet, eftersom vridningen mäts mot
+  adressen (§6.5). **antagande.** Står kamerorna närmare än cirka 12° samma
+  riktning går lodlinjen inte att få ur bilderna, och 3D hoppas över.
+- **Vinkeln mellan kamerorna** (blickriktningarna i markplanet) skrivs ut och
+  märks utanför **60–120°**, där felbudgeten växer snabbt (§6.4).
+- **Uppmätt på facit** (typiskt brus, 12 pass): kalibreringens vridningsfel är i
+  snitt 5°, upp till 14°, oberoende av antalet par (1 500–20 000). Det kommer av
+  posemodellens fasta avvikelse per led och vy, som är densamma hela passet och
+  därför böjer epipolargeometrin. Den syns mest i bröstet: passmedianens SD 9,6°
+  mot 6,4° med sanna kameror (S6_FELBUDGET §6.7). Mattan (§6.5: 0,2°) eller en
+  utjämning där varje leds fasta avvikelse skattas med kamerorna är följdjobb.
+
+## MK4 — Synken: finjusteringen på återprojektionen
+
+- Per slag väljs den förskjutning av DTL:s tider som ger minst medianfel när
+  handlederna och armbågarna trianguleras och projiceras tillbaka i nedsvingen,
+  **−0,35…+0,10 s** kring träffen. Sökningen ± **10,5 ms** (1,5 × klickets ±7 ms)
+  i steg om **0,5 ms**, med utjämning ±**20 ms** i sökningen, och en parabel genom
+  minimum. Simuleringens metod (S6_FELBUDGET §4, §6.3: 2 ms RMS). **antagande.**
+- **Två varv:** kalibrera på klicket → synka varje slag → kalibrera om med synken
+  → synka igen, nu ± **3 ms** kring det första varvets värde → kalibrera en sista
+  gång. **antagande.** Uppmätt på facit:
+  synkens rest under 0,1 ms utan brus, RMS 1,5 ms med bra brus och 2,4 ms med
+  typiskt (24 pass).
+
+## MK5 — Trianguleringen och utjämningen
+
+- Varje vys 2D-spår jämnas på sina egna tider med LOESS (trikubisk kärna, lokal
+  andragradsregression, två bisquare-varv, MAD-golv 2 px), halvbredd **±40 ms**,
+  och samplas på en gemensam tidsaxel i steg om **1/240 s**. **0,05 s** av varje
+  ände av slagets tid lämnas utanför. ±40 ms är felbudgetens rekommendation
+  (§6.6: stretchen 14° → 10° mot ±20 ms). **standard** (Cleveland 1979),
+  **antagande** (bredden).
+- DTL:s tider flyttas med synken (MK4). Lederna trianguleras med konfidensviktad DLT
+  i normaliserade koordinater (Hartley & Zisserman). **standard.**
+- Återprojektionens median (px) skrivs per slag som en kvalitetssignal.
+
+## MK6 — Måtten i 3D
+
+- Definitionerna är felbudgetens (§5, `tre_d/matt.py`): höft- och axellinjen
+  projicerade på markplanet (lodlinjen, MK3), vinkeln mot adressen, positiv bort
+  från målet. `backen_vrid_topp`, `brost_vrid_topp` (akromionlinjen),
+  `xfaktor_topp` = bröst − bäcken vid toppen, `xfaktor_stretch` = största X i
+  tidig nedsving (toppen till halva tiden mot träffen) minus X vid toppen, i
+  grader, och `hofter_oppna_traff` = −bäckenet vid träffen. **standard** (Kwons
+  projektion), egen tillämpning.
+- **Adressen** är M4:s fönster, start −0,40…−0,10 s, med baksvingens start ur
+  2D-faserna i FO (annars DTL flyttad med synken; saknas starten: toppen −1,2 s,
+  M4). **Toppen** är där handledernas mitt står högst i 3D mellan starten och
+  träffen. **Träffen** är t = 0 (klicket, MK2). Vinkelkurvorna jämnas ±30 ms före
+  måtten (S6_FELBUDGET §6.6).
+- **Vänsterspelaren** speglas i 3D (x → −x), så att vridningen bort från målet är
+  positiv för båda. Provat: en speglad påhittad sving ger samma tal inom 0,5°.
+- Märkta `lage: "utan_markorer"` (BESLUT B14).
+
+## MK7 — Passets trend
+
+- Passets median per mått (M25) visas bara över minst **10** slag (BESLUT B14:
+  per sving är felet 10–16°). Färre slag ger `n` men ingen median. **Johannes
+  beslut** (B14).
+- **Mot förra passet:** skillnaden i median (M26). Den är **tydlig** först när den
+  är större än både förra passets spridning (M26) och ett **golv** per mått: √2 ×
+  passmedianens SD för kedjan med typiskt brus (24 påhittade pass, S6_FELBUDGET
+  §6.7): bäckenet **15,7°**, bröstet **13,6°**, X-factor **19,2°**, stretchen
+  **7,9°**, höfterna vid träffen **8,3°**. Kamerornas läge, kalibreringen och
+  posemodellens fasta avvikelse byts mellan pass, så två pass skiljer sig redan av
+  det. **antagande** tills S3 mätt bruset; med "bra" brus blir golvet ungefär hälften.
+- Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en sak i
+  `att_jobba_pa.json` (BESLUT B14, B37).
+
+## MK8 — Facit för kedjan
+
+- `generera_paket.tva_paket` filmar påhittade 3D-svingar (`tre_d/sving.py`,
+  längden 1,80 m, adress **0,8 s** före baksvingen och **0,7 s** efter finishen så
+  att M4:s fönster ryms) med en FO- och en DTL-kamera ur felbudgetens uppställning
+  (3 m, 1,0 m, 90° ±5°), bildtider med 36 % tappade rutor, 2D-brus och skymning
+  (§3), en fast avvikelse per led och vy för hela passet, klickets fel ±7 ms på
+  DTL och bollen i (0, −0,6, 0). Följarens (FO:s) fil börjar **12,345 s** före den
+  styrandes. Paketen bär `par.json` och, valfritt, lodlinjen med ±1° fel.
+  **antagande** (påhittat).
+- Facit är samma mått (MK6) på de sanna lederna, med samma adress och topp.
+- **Gränsen** i testerna (`tools/tests/test_tva_kameror.py`): passets median minus
+  de sannas median ligger inom |bias| + 3 SD av felbudgetens passmedian (§6.7,
+  raderna "Bra brus" och "Grund (typiskt brus)"), och utan brus inom 0,5° (varje
+  slag inom 1°). Uppmätt för kedjan på 24 pass per nivå står i §6.7.

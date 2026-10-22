@@ -26,6 +26,8 @@ PASS_ID = re.compile(r"^\d{8}-\d{6}$")
 SLAG_ID = re.compile(r"^s\d{2,4}$")
 AVSTAND_M = (0.5, 20.0)                    # METOD MT1: rimligt avstånd telefon–boll
 KANT = 1e-6                                # METOD MS13: tolerans för utsnittets kant och fönstrets gränser
+LODLINJE_G = (0.8, 1.2)                    # METOD MK3: lodlinjens längd i g (accelerometern i vila), BESLUT B39
+PAR_FORMAT = "swinglab-par/1"
 
 
 class PaketFel(ValueError):
@@ -62,6 +64,9 @@ class Serie:
     klubba: str | None
     fonster: tuple[float, float] | None = None
     utsnitt: tuple[float, float, float, float] | None = None
+    # Uppåt (−gravitationen) i kamerans ram i den upprätta bilden: x höger, y ned,
+    # z framåt ur linsen. Valfri, nytt i S6a; appen skriver den inte än. METOD MK3
+    lodlinje: tuple[float, float, float] | None = None
 
 
 @dataclass
@@ -75,6 +80,10 @@ class Paket:
     langd_m: float | None
     slag: list[Slag] = field(default_factory=list)
     serier: dict[int, Serie] = field(default_factory=dict)
+    # par.json (S2g) när paketet bär den och den går att läsa; annars None och,
+    # om den fanns men inte gick att läsa, skälet (utan värden). METOD MK1
+    par: dict | None = None
+    par_fel: str | None = None
 
 
 def _tal(v) -> bool:
@@ -119,6 +128,7 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
             if s.get("klubba") is not None and not isinstance(s["klubba"], str):
                 fel.append(f"{F}: serier[{i}].klubba ska vara text")
             fel += _kontrollera_redigering(s, f"{F}: serier[{i}]")
+            fel += _kontrollera_lodlinje(s, f"{F}: serier[{i}]")
     slag = m.get("slag")
     if not isinstance(slag, list) or not slag:
         fel.append(f"{F}: slag saknas eller är tom")
@@ -182,6 +192,58 @@ def _kontrollera_redigering(s: dict, p: str) -> list[str]:
         elif not (u["x"] >= -KANT and u["y"] >= -KANT and u["b"] > 0 and u["h"] > 0
                   and u["x"] + u["b"] <= 1 + KANT and u["y"] + u["h"] <= 1 + KANT):
             fel.append(f"{p}.utsnitt ska ligga inom bilden (0–1) med positiv b och h")
+    return fel
+
+
+def _kontrollera_lodlinje(s: dict, p: str) -> list[str]:
+    """Seriens `lodlinje` (valfri, S6a): tre tal, längd 0,8–1,2 g. METOD MK3"""
+    v = s.get("lodlinje")
+    if v is None:
+        return []
+    if not (isinstance(v, list) and len(v) == 3 and all(_tal(x) for x in v)):
+        return [f"{p}.lodlinje ska vara tre tal"]
+    if not LODLINJE_G[0] <= math.sqrt(sum(x * x for x in v)) <= LODLINJE_G[1]:
+        return [f"{p}.lodlinje ska ha längden {LODLINJE_G[0]}–{LODLINJE_G[1]} (g)"]
+    return []
+
+
+def kontrollera_par(d) -> list[str]:
+    """Formen på par.json (S2g, docs/FORMAT.md "Två telefoner") så långt PC:n läser
+    den: format, pass, vy och per serie `serie`, `forskjutning_s`, `osaker` och
+    följarens `vy`, `pass` och `serie`. METOD MK1"""
+    F = "par.json"
+    if not isinstance(d, dict):
+        return [f"{F}: ska vara ett JSON-objekt"]
+    fel = []
+    if d.get("format") != PAR_FORMAT:
+        fel.append(f"{F}: format ska vara {PAR_FORMAT}")
+    if not isinstance(d.get("pass"), str) or not PASS_ID.match(d["pass"]):
+        fel.append(f"{F}: pass ska vara yyyyMMdd-HHmmss")
+    if d.get("vy") not in ("dtl", "fo"):
+        fel.append(f"{F}: vy ska vara dtl eller fo")
+    if not isinstance(d.get("serier"), list):
+        return fel + [f"{F}: serier ska vara en lista"]
+    for i, r in enumerate(d["serier"]):
+        p = f"{F}: serier[{i}]"
+        if not isinstance(r, dict):
+            fel.append(f"{p} ska vara ett objekt")
+            continue
+        if isinstance(r.get("serie"), bool) or not isinstance(r.get("serie"), int):
+            fel.append(f"{p}.serie ska vara ett heltal")
+        if not _tal(r.get("forskjutning_s")):
+            fel.append(f"{p}.forskjutning_s ska vara ett tal")
+        if r.get("osaker") is not None and not isinstance(r["osaker"], bool):
+            fel.append(f"{p}.osaker ska vara true eller false")
+        f = r.get("foljare")
+        if not isinstance(f, dict):
+            fel.append(f"{p}.foljare ska vara ett objekt")
+            continue
+        if f.get("vy") not in ("dtl", "fo"):
+            fel.append(f"{p}.foljare.vy ska vara dtl eller fo")
+        if not isinstance(f.get("pass"), str) or not PASS_ID.match(f["pass"]):
+            fel.append(f"{p}.foljare.pass ska vara yyyyMMdd-HHmmss")
+        if isinstance(f.get("serie"), bool) or not isinstance(f.get("serie"), int):
+            fel.append(f"{p}.foljare.serie ska vara ett heltal")
     return fel
 
 
@@ -289,9 +351,11 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         serier = {}
         for s in m["serier"]:
             f, u = s.get("fonster"), s.get("utsnitt")
+            lod = s.get("lodlinje")
             serier[s["nr"]] = Serie(nr=s["nr"], klubba=s.get("klubba"),
                                     fonster=(float(f["fran_s"]), float(f["till_s"])) if f is not None else None,
-                                    utsnitt=tuple(float(u[k]) for k in ("x", "y", "b", "h")) if u is not None else None)
+                                    utsnitt=tuple(float(u[k]) for k in ("x", "y", "b", "h")) if u is not None else None,
+                                    lodlinje=tuple(float(x) for x in lod) if lod is not None else None)
         ordning = sorted(range(len(m["slag"])), key=lambda i: (m["slag"][i]["serie"], m["slag"][i]["klick_s"]))
         plats = {i: k for k, i in enumerate(ordning)}
         p = Paket(fil=namn, manifest=m, pass_id=m["pass"], vy=m["vy"], spelhand=m["spelhand"],
@@ -306,6 +370,19 @@ def las(sokvag, med_leder: bool = True) -> Paket:
                                klipp_langd_s=float(s["klipp_langd_s"]) if s.get("klipp") and s.get("klipp_langd_s")
                                is not None else None,
                                detection_wrong=s.get("detection_wrong") is True))
+        if "par.json" in i_zip:
+            # Valfri: ett fel här stoppar inte 2D-analysen, bara parningen ur filen. METOD MK1
+            try:
+                d = json.loads(las_ur_zip(z, namn, "par.json").decode("utf-8"))
+                f = kontrollera_par(d)
+            except PaketFel as e:
+                f = e.fel
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                f = ["par.json är inte giltig JSON"]
+            if f:
+                p.par_fel = "; ".join(f)
+            else:
+                p.par = d
         if med_leder:
             for s in p.slag:
                 try:

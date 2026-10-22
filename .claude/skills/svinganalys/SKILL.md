@@ -42,8 +42,9 @@ Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
    ```
    python3 tools/pc/historik.py minne
    ```
-3. **Läs.** `analys.json` (`kandidater`, `bedomning`, `forra`, `tempo_vy`),
-   minnet, och kontaktarken med Read-verktyget. Fråga Johannes det som bara han
+3. **Läs.** `analys.json` (`kandidater`, `bedomning`, `forra`, `tempo_vy`,
+   `tre_d`), minnet (med `tre_d`, 3D-trenden pass för pass), och kontaktarken med
+   Read-verktyget. Fråga Johannes det som bara han
    vet (steg C och G nedan) innan du väljer.
 4. **Skriv** `data/historik/pass/<pass>/att_jobba_pa.json` efter kontraktet i
    `docs/FORMAT.md` ("Att jobba på"). Formen är stängd: inga egna nycklar.
@@ -142,6 +143,29 @@ En övning som fortsätter: minnets, oförändrat. Alltid `pa: "forsta_serien"`
 `fel_start`, eller passets dag för ett nytt fel), `vecka` hela veckor sedan
 dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
 
+## 3D-trenden: vridningen och X-factor (S6a)
+
+När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
+(`tre_d` i analysen, BESLUT B37, METOD MK1–MK7). Läget är **utan markörer**
+(BESLUT B14): talen är passets median, aldrig en sving.
+
+- Läs `tre_d.trend`: bäckenets och axlarnas vridning vid toppen, X-factor, stretchen
+  och höfterna vid träffen, med `median`, `kvartiler`, `n` och `mot_forra`. Står
+  `median: null` har passet färre än `min_slag` (10) slag i båda vyerna: säg det, och
+  skriv inget tal. Står `tre_d.hoppat`: skriv skälet i en rad.
+- **Bara som trend.** Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en
+  sak i `att_jobba_pa.json` (kontrollen känner inte dem). Det får stödja en vald sak
+  i rapporten ("höfterna öppna vid träff 31° (trend, utan markörer)"), aldrig styra
+  valet ensamt.
+- **Tydlig** förändring bara när `mot_forra.tydlig` är sann: skillnaden är då större
+  än både förra passets spridning och golvet för två pass (MK7). Annars: "ingen
+  tydlig ändring".
+- **Stretchen före X-factor**, och X-factor aldrig mot en gradgräns eller mot
+  Sportsbox (definitionen flyttar den cirka 19°). Höfternas `spann` (35–45°) är ett
+  riktmärke, inte en bedömning.
+- Är `tre_d.kalibrering.vinkel_ok` falsk: säg att kamerorna stod utanför 60–120°
+  och att talen därför är osäkrare.
+
 ## Det Claude inte får göra
 
 - **Mäta själv.** Inget tal skattas ur kontaktarket, videon eller lederna.
@@ -161,6 +185,8 @@ dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
 - **Svenska i appens text** (BESLUT B30): filens fritext är engelska.
 - **Ge ett följdfel en egen övning**, väcka en avslutad övning, eller byta en
   övning som rör sig.
+- **Välja ett 3D-mått som sak, bedöma det mot en gräns, eller rapportera det per
+  sving** (BESLUT B14, B37). Det är passets trend, märkt "utan markörer".
 - **Säga att något är rörlighet** utan treregeln, eller säga "är" i stället för
   "troligen".
 - **Lägga in riktig data i repot** eller skriva ut Johannes tal i en commit.
@@ -168,7 +194,7 @@ dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
 ## Utdata
 
 1. **`att_jobba_pa.json`**, kontrollerad (steg 5) och sparad (steg 6).
-2. **Rapporten** i chatten, högst 8 rader (påhittade tal):
+2. **Rapporten** i chatten, högst 9 rader (påhittade tal):
    ```
    Pass 3 nov, 16 slag (8 FO, 8 DTL), j7. Missen: tunn (Johannes).
    1. Bäckenet glider bakåt i baksvingen: −5,7 cm, grönt ≥ 0 (B10). Rött.
@@ -176,6 +202,7 @@ dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
       Övning: käppen vid bakre höften, långsamt med käppen. Tanke: "Leave the stick standing."
       Klart när: första serien ≥ 0 cm, två pass i rad. Block vecka 1.
    Förra valet: — (första passet).
+   3D (trend, utan markörer, 12 slag): stretch 9°, höfter öppna vid träff 38°; ingen tydlig ändring.
    Fil att dela: data/historik/att_jobba_pa/20261103-180000.json
    ```
    Lite text: tal, tecken och kedjan. Ingen beröm, inga värdeord.

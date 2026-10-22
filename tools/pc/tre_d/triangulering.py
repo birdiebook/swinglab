@@ -63,28 +63,38 @@ def _lokal_kvadrat(band: _Band, y: np.ndarray, w: np.ndarray) -> np.ndarray:
     return ut
 
 
+def robusta_vikter(t_in: np.ndarray, uv: np.ndarray, konf: np.ndarray, halvbredd: float = 0.02):
+    """LOESS robusta varv (Cleveland 1979): bisquare på residualerna, skala = MAD
+    med golv 2 px (utan brus är MAD noll). Svarar (w0, w): konfidensen där punkten
+    finns, och samma med de robusta vikterna. Beror bara på tiderna inbördes, så en
+    förskjuten tidsaxel ger samma vikter."""
+    w = np.where(np.isfinite(uv).all(-1), konf, 0.0)
+    w0 = w
+    b_in = _Band(t_in, t_in, halvbredd)
+    for _ in range(2):
+        f_in = _lokal_kvadrat(b_in, uv, w)
+        r = np.linalg.norm(uv - f_in, axis=-1)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            mad = np.nanmedian(np.where(w0 > 0, r, np.nan), axis=0)
+        mad = np.where(np.isfinite(mad), mad, 2.0)
+        u = r / (6 * np.maximum(mad, 2.0))
+        w = w0 * np.where(np.isfinite(u), np.clip(1 - u ** 2, 0, None) ** 2, 1.0)
+    return w0, w
+
+
 def jamna(t_in: np.ndarray, uv: np.ndarray, konf: np.ndarray, t_ut: np.ndarray,
-          halvbredd: float = 0.02, robust: bool = True):
+          halvbredd: float = 0.02, robust: bool = True, vikter=None):
     """Jämna ut och sampla om 2D-spår. uv (N, J, 2), konf (N, J).
 
     Returnerar uv (M, J, 2) och konfidens (M, J) på `t_ut`. Konfidensen på
     utdata är kärnviktat medel av indata; NaN där underlaget är för tunt.
+    `vikter` = robusta_vikter(...) för samma spår och halvbredd, räknade en gång.
     """
-    w = np.where(np.isfinite(uv).all(-1), konf, 0.0)
-    w0 = w
     if robust:
-        # LOESS med robusta varv (Cleveland 1979): bisquare på residualerna,
-        # skala = MAD med golv 2 px (utan brus är MAD noll)
-        b_in = _Band(t_in, t_in, halvbredd)
-        for _ in range(2):
-            f_in = _lokal_kvadrat(b_in, uv, w)
-            r = np.linalg.norm(uv - f_in, axis=-1)
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                mad = np.nanmedian(np.where(w0 > 0, r, np.nan), axis=0)
-            mad = np.where(np.isfinite(mad), mad, 2.0)
-            u = r / (6 * np.maximum(mad, 2.0))
-            w = w0 * np.where(np.isfinite(u), np.clip(1 - u ** 2, 0, None) ** 2, 1.0)
+        w0, w = vikter if vikter is not None else robusta_vikter(t_in, uv, konf, halvbredd)
+    else:
+        w0 = w = np.where(np.isfinite(uv).all(-1), konf, 0.0)
     band = _Band(t_in, t_ut, halvbredd)
     ut = _lokal_kvadrat(band, uv, w)
     if robust:  # där de robusta vikterna lämnat för lite: den vanliga skattningen

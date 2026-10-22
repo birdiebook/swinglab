@@ -249,16 +249,21 @@ def minne(rot: Path = ROT, till: str | None = None) -> dict:
     """Det skillen läser före tolkningen: passen, varje fels väg genom vintern
     och övningarnas läge."""
     pass_ids = [p for p in lista(rot) if till is None or p <= till]
-    passen, fel = [], {}
+    passen, fel, tre_d = [], {}, {}
     for p in pass_ids:
         a = las_analys(rot, p)
+        # 3D-måttens trend (S6a): bara pass med en median över minst min_slag slag. METOD MK7
+        for x in (a.get("tre_d") or {}).get("trend", []):
+            if x["median"] is not None:
+                tre_d.setdefault(x["matt"], []).append({"pass": p, "median": x["median"], "kvartiler": x["kvartiler"],
+                                                        "n": x["n"], "lage": x["lage"]})
         passen.append({"pass": p, "datum": _datum(p).isoformat(), "klubbor": a.get("klubbor", []),
                        "slag": {vy: sum(1 for r in a["slag"] if r["vy"] == vy and "matt" in r) for vy in ("dtl", "fo")}})
         for b in a["bedomning"]:
             fel.setdefault(b["id"], []).append({"pass": p, "varde": b["visat"], "forsta_serien": b["forsta_serien"],
                                                 "status": b["status"]})
     return {"format": MINNE, "till": pass_ids[-1] if pass_ids else None, "pass": passen, "fel": fel,
-            "ovningar": ovningar(rot, till)}
+            "tre_d": tre_d, "ovningar": ovningar(rot, till)}
 
 
 def main(argv=None) -> int:
