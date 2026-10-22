@@ -1,39 +1,17 @@
-dc9023a01810adc81dd7508e3d2a062c90e8f134 s2cd 2026-10-22T12:42:12Z run 39779789762 kompilera
+ecccf69b223051c296c303c1e6c1a1dacf93d809 s4-vyn 2026-10-22T12:43:45Z run 39779562992 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 5 test, 6 fel, 16 s i testerna
-  fel: SwingLabProvInspelning.testFilmenMedLPCM
-  fel: SwingLabProvInspelning.testKvittotUrFilen
-  fel: SwingLabProvInspelning.testLjusprovetsLasning
-Långsammast (av 8):
-      7.8 s  SwingLabProvInspelning.testFilmenMedLPCM
-      3.5 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      3.3 s  SwingLabProvInspelning.testKvittotUrFilen
-      1.5 s  SwingLabProvInspelning.testLjusprovetsLasning
-      1.2 s  SwingLabProv.testAppenStartarMedStartvyn
-      0.1 s  SwingLabProvInspelning.testLagringen
+GRÖNT: 7 test, 0 fel, 5 s i testerna
+Långsammast (av 7):
+      1.5 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.4 s  SwingLabProvVyer.testAttJobbaPa
+      0.9 s  SwingLabProvVyer.testGranskning
+      0.7 s  SwingLabProvVyer.testPasset
+      0.4 s  SwingLabProvVyer.testUtveckling
       0.0 s  SwingLabProv.testSwingLabKitLankat
       0.0 s  SwingLabProv.testInfoPlist
 
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:284: error: -[SwingLabProv.SwingLabProvInspelning testFilmenMedAAC] : XCTAssertEqual failed: ("[Range(0..<48000), Range(24000..<72000), Range(48000..<96000), Range(72000..<120000), Range(96000..<144000), Range(120000..<153549)]") is not equal to ("[Range(0..<48000), Range(24000..<72000), Range(48000..<96000), Range(72000..<120000), Range(96000..<144000), Range(120000..<153548)]")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:212: error: -[SwingLabProv.SwingLabProvInspelning testFilmenMedLPCM] : XCTAssertEqual failed: ("300.0") is not equal to ("240.0")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:213: error: -[SwingLabProv.SwingLabProvInspelning testFilmenMedLPCM] : XCTAssertEqualWithAccuracy failed: ("0.4658320292123109") is not equal to ("0.3333333333333333") +/- ("0.01")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:305: error: -[SwingLabProv.SwingLabProvInspelning testKvittotUrFilen] : XCTAssertEqual failed: ("Optional("300")") is not equal to ("Optional("240")")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:307: error: -[SwingLabProv.SwingLabProvInspelning testKvittotUrFilen] : XCTAssertEqual failed: ("Optional("47 %")") is not equal to ("Optional("33 %")")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:334: error: -[SwingLabProv.SwingLabProvInspelning testLjusprovetsLasning] : XCTAssertEqual failed: ("300.0") is not equal to ("240.0")
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:335: error: -[SwingLabProv.SwingLabProvInspelning testLjusprovetsLasning] : XCTAssertEqualWithAccuracy failed: ("0.46532999164578115") is not equal to ("0.3333333333333333") +/- ("0.01")
-** TEST FAILED **
-== provets mätningar (påhittad film)
-PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
-PROV: aac i filen aac 44100.0 Hz 2 kanaler
-PROV: aac ljud 153548 prov à 48 kHz, första provet 0.0 s
-PROV: lpcm rutor 512, rutnät 300.0, saknas 0.4658320292123109, största hål 0.008333333333333748
-PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
-PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
-PROV: lpcm ljud 153600 prov à 48 kHz, första provet 0.0 s
-PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
-PROV: kvitto Bilder/s 300 · Tappade 47 % · Rutor 512 · Klick 2 · MB/min 7 · Längd 0:03
-PROV: ljusprov ISO 800 good · Flimmer 0,5 % good · Rutor 300 bilder/s, 47 % tappade tooDark · Ljushet 50 % good
+** TEST SUCCEEDED **
