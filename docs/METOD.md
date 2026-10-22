@@ -196,10 +196,10 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - `axellinje_lutning_<fas>`: linjen bakre axel → främre axel mot vågrätt i
   bild, grader, **+ = bakre axeln lägre**. Adress och träff (vid toppen och i
   finishen är axlarna vridna förbi linjen). Portat från Golf SG.
-- **Definitionen granskas i S0.** Oktobers värde vid träffen ligger 20–35°
-  under både GolfTEC:s 39° och Sportsbox 24–38°, troligen för att axelpunkterna
-  (akromion) är opålitliga vid träffen (Wheat) och linjen i bild inte är
-  bröstets sidböjning. **Måttet får ingen tour-gräns**, och felet i katalogen är
+- **Definitionen granskas i S0.** Oktobers värde passar ingen källa (Golf SG,
+  HANDLED_PLAN §4): GolfTEC anger 39° ("shoulder tilt") och Sportsbox 24–38°
+  (bröstets sidböjning) för tour. Troligen för att axelpunkterna (akromion) är
+  opålitliga vid träffen (Wheat) och linjen i bild inte är bröstets sidböjning. **Måttet får ingen tour-gräns**, och felet i katalogen är
   avstängt tills S0 är klar.
 
 ## M18 — Höftlinjens lutning (FO)
