@@ -163,8 +163,8 @@ och menyn "Detection wrong" (BESLUT B35). Simulatorprovet: `Prov/SwingLabProvGra
 
 **S4c — flikarna med riktig data (BESLUT B36, METOD MS16).** Byggt (grenen `s4c`): appen
 öppnar i Today, Progress och Me (`App/Vyer/Flikar.swift`). Today: senaste passet med
-måtten i korthet, Focus med de 1–3 sakerna ur den senaste `att_jobba_pa.json` (läst där
-S2f sparar den, `App/Fokus.swift`), Start session och Import from Photos. Progress: ett
+måtten i korthet, Focus med de 1–3 sakerna ur den senaste `att_jobba_pa.json`
+(`Store.focus`, S2f), Start session och Import from Photos. Progress: ett
 mått i taget över passen med samma klubba och längd (median, spridning, serie 1, gränsen
 eller baslinjen, blocken). Me (`JagVy`): längden, spelhanden och klubborna som standard
 för nya pass (passet behåller sin längd, `PassState.heightM`), och Sessions (startvyn med

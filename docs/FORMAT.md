@@ -147,7 +147,7 @@ står). PC:n (`tools/pc/paket.py`) läser och kräver:
 | `vy` | `"dtl"` eller `"fo"` |
 | `spelhand` | `"hoger"` eller `"vanster"` (blir svingens `hand`) |
 | `avstand_m` | valfri, 0,5–20; ger träffen när `traff_s` saknas (METOD MT1) |
-| `spelarens_langd_m` | **valfri, nytt i S5**: 1,0–2,5. Saknas den tas längden ur `--langd` eller historiken |
+| `spelarens_langd_m` | **valfri, nytt i S5**: 1,0–2,5. Telefonen skriver passets längd (S4c, METOD MS16), utom när den är antagen. Saknas den tas längden ur `--langd` eller historiken |
 | `serier[]` | `nr` heltal, `klubba` valfri text, `fonster` och `utsnitt` valfria (nedan) |
 | `slag[]` | `id` (`s01`…), `serie` (ett `nr`), `klick_s`, `traff_s` (valfri), `dom` (`sving`, `inte_sving`, `osaker`), `leder` (fil i zippen), `klipp` (valfri fil i zippen) med `klick_i_klipp_s` och, valfritt, `klipp_langd_s` (positivt tal) och `detection_wrong` (bool: Johannes märkte lederna fel på telefonen; slaget mäts inte, METOD MT1) |
 

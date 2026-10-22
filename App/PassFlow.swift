@@ -52,12 +52,19 @@ struct PassFlowView: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Close", action: onClose) }
                 }
             }
-            // Jags spelhand och klubborna; klubban från förra passet (S4c).
-            .onAppear {
+            // Me:s spelhand och klubborna; klubban från förra passet, läst utanför
+            // huvudtråden, om uppställningen inte ändrats under tiden (S4c).
+            .task {
                 guard !setupReady else { return }
                 setupReady = true
-                let senaste = store.index.passes.max { $0.created < $1.created }.flatMap { store.load($0.id) }
-                setup = store.settings.newSetup(lastClub: senaste?.setup.club)
+                setup = store.settings.newSetup()
+                let forsta = setup
+                guard let senaste = store.index.passes.max(by: { $0.created < $1.created })?.id else { return }
+                let root = store.root
+                let club = await Task.detached(priority: .userInitiated) {
+                    Store.reading([senaste], root: root, height: nil).first?.setup.club
+                }.value
+                if setup == forsta { setup = store.settings.newSetup(lastClub: club) }
             }
         }
     }

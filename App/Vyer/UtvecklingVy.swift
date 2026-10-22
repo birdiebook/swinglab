@@ -13,6 +13,11 @@ struct UtvecklingVy: View {
         _valt = State(initialValue: valt ?? visning.matt.first(where: \.ovas)?.id ?? visning.matt.first?.id ?? "")
     }
 
+    /// Det valda måttets period: klubban, månaderna och passen med en punkt (METOD MS16).
+    private var period: String {
+        visning.matt.first { $0.id == valt }?.period ?? visning.period
+    }
+
     private var rubrik: some View {
         Text("Progress")
             .tracking(-0.6)
@@ -27,11 +32,11 @@ struct UtvecklingVy: View {
                 HStack(alignment: .firstTextBaseline) {
                     rubrik.fixedSize()
                     Spacer()
-                    Under(text: visning.period).fixedSize()
+                    Under(text: period).fixedSize()
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     rubrik
-                    Under(text: visning.period)
+                    Under(text: period)
                 }
             }
             .padding(.top, 8)

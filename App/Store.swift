@@ -108,7 +108,31 @@ final class Store {
     /// undan och vyn säger det (Airtime).
     func load(_ id: String) -> PassState? {
         guard PassID.isValid(id) else { return nil }
-        return read(PassState.self, at: passFile(id), aside: "pass")
+        var p = read(PassState.self, at: passFile(id), aside: "pass")
+        // Ett omätt pass från före S4c tar Me:s längd, som förut (METOD MS16).
+        p?.fillMissingHeight(settings.heightM)
+        return p
+    }
+
+    /// Passen ur sina pass.json utan Store, för läsning utanför huvudtråden (flikarna,
+    /// METOD MS16); `height` = Me:s längd för ett omätt pass från före S4c. En fil som inte
+    /// går att läsa hoppas över här; `load` flyttar undan den när passet öppnas.
+    static func reading(_ ids: [String], root: URL, height: Double?) -> [PassState] {
+        ids.compactMap { id -> PassState? in
+            guard PassID.isValid(id) else { return nil }
+            let fil = root.appending(path: "Pass", directoryHint: .isDirectory)
+                .appending(path: id, directoryHint: .isDirectory).appending(path: "pass.json")
+            guard let data = try? Data(contentsOf: fil),
+                  var p = try? PassCoding.decoder().decode(PassState.self, from: data) else { return nil }
+            p.fillMissingHeight(height)
+            return p
+        }
+    }
+
+    /// De hämtade `att_jobba_pa.json` utan Store, äldst först (S2f:s mapp och kontroll), för
+    /// Utvecklings block utanför huvudtråden. METOD MS16
+    static func readingFocus(root: URL) -> [AttJobbaPa] {
+        FocusInbox.readAll(in: root.appending(path: FocusInbox.folder, directoryHint: .isDirectory))
     }
 
     func save(_ pass: PassState) {

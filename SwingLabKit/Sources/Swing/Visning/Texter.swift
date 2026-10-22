@@ -120,8 +120,10 @@ public enum Texter {
     /// Filtret Alla/FO/DTL.
     public static let alla = "All"
 
-    /// "2 not measured": pass med samma klubba som inte är med i Utveckling (METOD MS16).
+    /// "2 not measured": pass med samma klubba utan mått, inte med i Utveckling (METOD MS16).
     public static func ejMatta(_ n: Int) -> String { "\(n) not measured" }
+    /// "2 at another height": pass med samma klubba mätta med en annan längd (METOD MS16).
+    public static func annanLangd(_ n: Int) -> String { "\(n) at another height" }
 
     // MARK: Att jobba på
 

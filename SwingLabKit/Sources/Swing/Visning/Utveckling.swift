@@ -22,6 +22,8 @@ public struct Utveckling: Sendable {
     public let namn: String
     /// "FO · top"
     public let rubrik: String
+    /// "7i · Nov–Jan · 6": klubban, månaderna och antalet pass med en punkt i måttet.
+    public let period: String
     public let markning: Markning?
     /// Senaste passet: "−2.4"
     public let varde: String
@@ -55,6 +57,7 @@ public struct Utveckling: Sendable {
             guard let s = p.sammanfattning(fel.matt, grupp) else { return nil }
             return Passpunkt(datum: p.datum, pass: s.median, serie1: p.serie1Median(fel.matt, grupp), q1: s.q1, q3: s.q3)
         }
+        period = Utvecklingsvisning.periodText(klubba: pass.last?.klubba, datum: punkter.map(\.datum))
         varde = Mattkort.text(punkter.last?.pass, e)
         if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
             let d = Avrundning.avrunda(fel.matt, b.pass)! - Avrundning.avrunda(fel.matt, a.pass)!
@@ -64,7 +67,10 @@ public struct Utveckling: Sendable {
         }
         if let g = fel.gront, g.count == 2 {
             band = .grans(lo: g[0] ?? -Double.infinity, hi: g[1] ?? Double.infinity)
-        } else if let b = Baslinje.spann(pass.dropLast().flatMap { $0.varden(fel.matt, grupp) }) {
+        } else if let sista = pass.lastIndex(where: { $0.sammanfattning(fel.matt, grupp) != nil }),
+                  let b = Baslinje.spann(pass[..<sista].flatMap { $0.varden(fel.matt, grupp) }) {
+            // Baslinjen ur passen före måttets sista punkt, så att den aldrig rymmer punkten
+            // själv (ett DTL-pass sist ändrar inte ett FO-mått). METOD M27, MS16
             band = .baslinje(lo: b.lo, hi: b.hi)
         } else {
             band = nil
@@ -102,27 +108,32 @@ public struct Utveckling: Sendable {
 
 /// Skärmen Utveckling: perioden, måtten att välja bland och det valda måttet.
 public struct Utvecklingsvisning: Sendable {
-    /// "7i · Oct–Jan · 16": klubban, månaderna och antalet pass ("Jan" när det är en månad).
+    /// "7i · Oct–Jan · 16" över alla passen; skärmen visar det valda måttets (`Utveckling.period`).
     public let period: String
-    /// "2 not measured": pass med samma klubba som inte är med (METOD MS16); nil när alla är med.
+    /// "1 not measured · 2 at another height": pass med samma klubba som inte är med
+    /// (METOD MS16); nil när alla är med.
     public let ejMatta: String?
     public let matt: [Utveckling]
 
-    /// `pass` äldst först, med samma klubba; `ejMatta` = passen med samma klubba som inte
-    /// kom med (inga mått eller en annan längd, METOD MS16).
-    public init(katalog: Katalog, pass: [Pass], block: [Date] = [], ovas: Set<String> = [], ejMatta: Int = 0) {
-        if let a = pass.first, let b = pass.last {
-            let ma = Tal.manad(a.datum), mb = Tal.manad(b.datum)
-            let manader = ma == mb && b.datum.timeIntervalSince(a.datum) < 60 * 86_400 ? ma : "\(ma)–\(mb)"
-            period = [b.klubba, manader, "\(pass.count)"].joined(separator: Texter.skilje)
-        } else {
-            period = ""
-        }
-        self.ejMatta = ejMatta > 0 ? Texter.ejMatta(ejMatta) : nil
+    /// `pass` äldst först, med samma klubba. `ejMatta` = passen med samma klubba utan mått,
+    /// `annanLangd` = de mätta med en annan längd (METOD MS16).
+    public init(katalog: Katalog, pass: [Pass], block: [Date] = [], ovas: Set<String> = [], ejMatta: Int = 0,
+                annanLangd: Int = 0) {
+        period = Self.periodText(klubba: pass.last?.klubba, datum: pass.map(\.datum))
+        let delar = (ejMatta > 0 ? [Texter.ejMatta(ejMatta)] : []) + (annanLangd > 0 ? [Texter.annanLangd(annanLangd)] : [])
+        self.ejMatta = delar.isEmpty ? nil : delar.joined(separator: Texter.skilje)
         matt = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
             var u = Utveckling(f, pass: pass, block: block)
             u.ovas = ovas.contains(f.id)
             return u
         }.filter { !$0.punkter.isEmpty }
+    }
+
+    /// "7i · Oct–Jan · 16": klubban, månaderna och antalet ("Jan" inom en månad); "" utan datum.
+    static func periodText(klubba: String?, datum: [Date]) -> String {
+        guard let a = datum.first, let b = datum.last else { return "" }
+        let ma = Tal.manad(a), mb = Tal.manad(b)
+        let manader = ma == mb && b.timeIntervalSince(a) < 60 * 86_400 ? ma : "\(ma)–\(mb)"
+        return ([klubba].compactMap { $0 } + [manader, "\(datum.count)"]).joined(separator: Texter.skilje)
     }
 }

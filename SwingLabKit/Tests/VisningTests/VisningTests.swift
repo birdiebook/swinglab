@@ -544,16 +544,8 @@ final class VisningTests: XCTestCase {
 
     // MARK: Filerna från PC:n på telefonen (S4c)
 
-    /// Filernas namn i appens mapp, den senaste sist, och blockens första dagar ur alla
-    /// filer (Utvecklings B1, B2). METOD MS16
-    func testFokusFilernaPaTelefonen() throws {
-        XCTAssertEqual(AttJobbaPa.filnamn(pass: "20270109-180000"), "att_jobba_pa-20270109-180000.json")
-        XCTAssertNil(AttJobbaPa.filnamn(pass: "../../x-180000"))
-        XCTAssertNil(AttJobbaPa.filnamn(pass: "2027010-1800000"))
-        XCTAssertEqual(AttJobbaPa.filer(["att_jobba_pa-20270109-180000.json", "x.json", "att_jobba_pa-20261110-180000.json",
-                                         "att_jobba_pa-.json", "att_jobba_pa-20261110-180000.json.part",
-                                         "pass-unreadable-1.json"]),
-                       ["att_jobba_pa-20261110-180000.json", "att_jobba_pa-20270109-180000.json"])
+    /// Blockens första dagar ur alla hämtade filer (Utvecklings B1, B2). METOD MS16
+    func testBlockenUrFilerna() throws {
         let ny = Demo.attJobbaPa
         let gammal = try AttJobbaPa.las(json: Demo.attJobbaPaJSON
             .replacingOccurrences(of: "\"pass\": \"20270109-180000\"", with: "\"pass\": \"20261110-180000\"")
@@ -564,5 +556,35 @@ final class VisningTests: XCTestCase {
         // Blocken på Utvecklings axel: mellan passen före och efter blockens första dag.
         let u = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: AttJobbaPa.block([gammal, ny]))
         XCTAssertEqual(try XCTUnwrap(u.matt.first { $0.id == "sway_topp" }).block.map(\.text), ["B1", "B2"])
+    }
+
+    /// Utveckling med blandade vyer: ett DTL-pass sist. FO-måttets baslinje tas ur passen före
+    /// dess egen sista punkt, och perioden räknar måttets pass. METOD M27, MS16
+    func testUtvecklingMedBlandadeVyer() throws {
+        let k = try katalog()
+        let fo = Demo.pass.map { p in Pass(datum: p.datum, klubba: p.klubba, svingar: p.svingar.filter { $0.vy == .fo },
+                                            serie1: p.serie1) }
+        let dtl = Pass(datum: Tal.dag(2027, 1, 12), klubba: "7i", svingar: Demo.pass.last!.svingar.filter { $0.vy == .dtl })
+        let bara = Utvecklingsvisning(katalog: k, pass: fo)
+        let blandat = Utvecklingsvisning(katalog: k, pass: fo + [dtl])
+        let a = try XCTUnwrap(bara.matt.first { $0.id == "backens_resa_framat" })
+        let b = try XCTUnwrap(blandat.matt.first { $0.id == "backens_resa_framat" })
+        guard case let .baslinje(lo, hi)? = a.band, case let .baslinje(lo2, hi2)? = b.band else {
+            return XCTFail("resan utan baslinje")
+        }
+        XCTAssertEqual(lo, lo2, "DTL-passet sist rör inte FO-måttets baslinje")
+        XCTAssertEqual(hi, hi2)
+        let facit = try XCTUnwrap(Baslinje.spann(fo.dropLast().flatMap { $0.varden("backen_resa_framat", "fo") }))
+        XCTAssertEqual(lo, facit.lo, accuracy: 1e-12)
+        XCTAssertEqual(b.punkter.count, 16)
+        XCTAssertEqual(b.period, "7i\u{00A0}· Oct–Jan\u{00A0}· 16", "måttets pass, inte DTL-passet")
+        XCTAssertEqual(blandat.period, "7i\u{00A0}· Oct–Jan\u{00A0}· 17")
+        let thrust = try XCTUnwrap(blandat.matt.first { $0.id == "early_extension" })
+        XCTAssertEqual(thrust.punkter.count, 1)
+        XCTAssertEqual(thrust.period, "7i\u{00A0}· Jan\u{00A0}· 1")
+        // Räkningen av passen som inte är med, var för sig.
+        XCTAssertEqual(Utvecklingsvisning(katalog: k, pass: fo, ejMatta: 1, annanLangd: 2).ejMatta,
+                       "1 not measured\u{00A0}· 2 at another height")
+        XCTAssertEqual(Utvecklingsvisning(katalog: k, pass: fo, annanLangd: 1).ejMatta, "1 at another height")
     }
 }

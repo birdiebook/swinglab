@@ -4,17 +4,19 @@ import Capture
 
 /// Flikarnas data som värden (S4c), ur passen på telefonen och de hämtade
 /// `att_jobba_pa.json`: Idag (det senaste passet mot de tidigare med samma klubba, vy och
-/// längd), Utveckling (passen med samma klubba och längd som det senaste) och Att jobba på
-/// (den senaste filen). Det som övas bär accenten överallt (BESLUT B31). METOD MS16
-struct Flikdata {
+/// längd), Utveckling (passen med samma klubba och längd som det senaste) och Att jobba på.
+/// Fokus och accenten kommer ur samma källa, `Store.focus` (S2f); alla filerna bara för
+/// blocken (BESLUT B31, B36). METOD MS16
+struct Flikdata: Sendable {
     var idag: Idagvisning
     var utveckling: Utvecklingsvisning
     var jobba: AttJobbaPaVisning?
     /// Det senaste passets id: Idags tryck öppnar det.
     var senaste: String?
 
-    static func bygg(passes: [PassState], filer: [AttJobbaPa], katalog: Katalog, idag: Date = Date()) -> Flikdata {
-        let fokus = filer.last
+    /// `fokus` = den senaste filen (`Store.focus`), `filer` = alla, för blocken.
+    static func bygg(passes: [PassState], fokus: AttJobbaPa?, filer: [AttJobbaPa], katalog: Katalog,
+                     idag: Date = Date()) -> Flikdata {
         let ovas = fokus?.ovas ?? []
         var idagPass: [Swing.Pass] = []
         let nu = PassHistory.latest(passes)
@@ -25,26 +27,29 @@ struct Flikdata {
         return Flikdata(
             idag: Idagvisning(idag: idag, katalog: katalog, pass: idagPass, attJobbaPa: fokus),
             utveckling: Utvecklingsvisning(katalog: katalog, pass: utv.passes.map(\.visningsPass),
-                                           block: AttJobbaPa.block(filer), ovas: ovas, ejMatta: utv.unmeasured),
+                                           block: AttJobbaPa.block(filer), ovas: ovas, ejMatta: utv.unmeasured,
+                                           annanLangd: utv.otherHeight),
             jobba: fokus.map { AttJobbaPaVisning($0, katalog: katalog) },
             senaste: nu?.id)
     }
 
-    /// Passen på telefonen mätta med sin egen längd utanför huvudtråden (ett pass från före
-    /// S4b får sina mått här); de som ändrades sparas. METOD MS14, MS16
+    /// Passen läses, mäts med sin egen längd och flikarna räknas utanför huvudtråden (ett pass
+    /// från före S4b får sina mått här); de som ändrades sparas på huvudtråden. Svarar också
+    /// passen. METOD MS14, MS16
     @MainActor
-    static func passes(_ store: Store) async -> [PassState] {
-        let alla = store.allPasses()
+    static func load(_ store: Store, katalog: Katalog, idag: Date = Date()) async -> (data: Flikdata, passes: [PassState]) {
+        let ids = store.index.passes.map(\.id)
         let root = store.root
-        let efter = await Task.detached(priority: .userInitiated) { Store.measuring(alla, root: root) }.value
-        for (a, b) in zip(alla, efter) where a != b && store.load(a.id) == a { store.save(b) }
-        return efter
-    }
-
-    @MainActor
-    static func load(_ store: Store, katalog: Katalog) async -> Flikdata {
-        let p = await passes(store)
-        return bygg(passes: p, filer: FokusFiler.alla(root: store.root), katalog: katalog)
+        let hojd = store.settings.heightM
+        let fokus = store.focus
+        let r = await Task.detached(priority: .userInitiated) { () -> (Flikdata, [PassState], [PassState]) in
+            let fore = Store.reading(ids, root: root, height: hojd)
+            let efter = Store.measuring(fore, root: root)
+            let data = Flikdata.bygg(passes: efter, fokus: fokus, filer: Store.readingFocus(root: root), katalog: katalog, idag: idag)
+            return (data, fore, efter)
+        }.value
+        for (a, b) in zip(r.1, r.2) where a != b && store.load(a.id) == a { store.save(b) }
+        return (r.0, r.2)
     }
 }
 
@@ -55,7 +60,7 @@ struct Flikdata {
 struct Flikar: View {
     @Environment(Store.self) private var store
     @Environment(\.scenePhase) private var scenePhase
-    @State private var data: Flikdata? = AppKatalog.katalog.map { Flikdata.bygg(passes: [], filer: [], katalog: $0) }
+    @State private var data: Flikdata? = AppKatalog.katalog.map { Flikdata.bygg(passes: [], fokus: nil, filer: [], katalog: $0) }
     @State private var flik = Flik.idag
     @State private var flow: PassFlowView.Mode?
     @State private var opened: StartView.OpenPass?
@@ -68,6 +73,8 @@ struct Flikar: View {
 
     struct Nyckel: Equatable {
         let index: PassIndex
+        /// Den hämtade filen (`Store.focus`): en ny fil läser om flikarna.
+        let fokus: String?
         let omlasning: Int
     }
 
@@ -97,9 +104,9 @@ struct Flikar: View {
             }
         }
         .tint(Theme.text)
-        .task(id: Nyckel(index: store.index, omlasning: omlasning)) {
+        .task(id: Nyckel(index: store.index, fokus: store.focus.map { $0.pass + $0.skapad }, omlasning: omlasning)) {
             guard let k = AppKatalog.katalog else { return }
-            data = await Flikdata.load(store, katalog: k)
+            data = await Flikdata.load(store, katalog: k).data
         }
         .onChange(of: scenePhase) { _, fas in
             if fas == .active { omlasning += 1 }

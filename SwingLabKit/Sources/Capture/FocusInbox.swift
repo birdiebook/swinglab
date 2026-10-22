@@ -39,9 +39,25 @@ public enum FocusInbox {
 
     /// Den senaste filen bland namnen i mappen: passets id är tiden, så det högsta vinner.
     public static func latest(_ names: [String]) -> String? {
+        all(names).last
+    }
+
+    /// Filerna bland namnen i mappen, äldst först (Utvecklings block, S4c); annat hoppas över.
+    /// METOD MS16
+    public static func all(_ names: [String]) -> [String] {
         names.filter { n in
             n.hasPrefix("att_jobba_pa-") && n.hasSuffix(".json")
                 && fileName(pass: String(n.dropFirst(13).dropLast(5))) == n
-        }.max()
+        }.sorted()
+    }
+
+    /// Alla filer i mappen som går igenom kontrollen, äldst först; läses utan Store, så att det
+    /// går utanför huvudtråden. METOD MS16
+    public static func readAll(in folder: URL) -> [AttJobbaPa] {
+        let namn = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return all(namn).compactMap { n in
+            guard let data = try? Data(contentsOf: folder.appendingPathComponent(n)) else { return nil }
+            return try? accept(data).focus
+        }
     }
 }

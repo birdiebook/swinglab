@@ -57,7 +57,7 @@ Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
    python3 tools/pc/historik.py spara-att-jobba-pa data/historik/pass/<pass>/att_jobba_pa.json
    ```
    Filen `data/historik/att_jobba_pa/<pass>.json` är den Johannes delar till
-   telefonen (Filer eller AirDrop → "Hämta Att jobba på", BESLUT B28).
+   telefonen (Filer eller AirDrop, i appen "Import focus" under Me → Sessions, BESLUT B28).
 7. **Rapporten** till Johannes, i chatten (se Utdata).
 
 ## Beslutsförfarandet

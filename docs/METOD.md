@@ -1018,26 +1018,35 @@ värden i `CaptureTests`.
 
 - **Passets längd.** Jag (`AppSettings.heightM`) är standarden för **nya** pass: den
   skrivs in i passet när det skapas (`PassState.heightM`), och passet mäts med sin egen
-  längd. En ny längd i Jag rör inga gamla pass; en ny längd i passet mäter om bara det
-  passet. Ett pass från före S4c tar längden som slagen mättes med (då Jags), så att dess
-  tal står kvar; antagen eller omätt blir antagen. **antagande** (Johannes beslut i
-  uppdraget: "passet behåller sin").
+  längd. En ny längd i Me rör inga gamla pass; en ny längd i passet mäter om bara det
+  passet. Ett pass vars fil saknar längden (från före S4c, eller sparat med längden
+  antagen) tar längden som slagen mättes med, så att dess tal står kvar; utan mätta slag
+  tar det Me:s längd när det läses, som före S4c. Paketet bär passets längd som
+  `spelarens_langd_m`, så att PC:n mäter med samma skala (BESLUT B12); antagen står den
+  inte med. **antagande** (Johannes beslut i uppdraget: "passet behåller sin").
 - **Idag** visar det **senaste passet med slag som räknas** (MS14), mot de tidigare med
   samma klubba, vy och längd (baslinjen och "vs" som i passet). Ett pass som inte är
   analyserat än syns inte på Idag men i Sessions. **räkning.**
 - **Utveckling** tar passen med **samma klubba och samma längd som det senaste** (samma
   regel som baslinjen i MS14), äldst först; varje mått tar själv passen med sin vy (ett
-  FO-mått har bara FO-passens svingar). Ett pass med samma klubba som inte kom med (inga
-  mått, eller en annan längd) räknas: "2 not measured". Ett pass med en annan klubba hör
-  inte hit och räknas inte (research 1 del 4: klubban ändrar svingen). Per pass visas
-  medianen (M25) med **spridningen** som en stapel från första till tredje kvartilen,
-  serie 1:s median (MT2) och gränsen eller den egna baslinjen (M27). Ett pass med färre än
-  tre svingar i ett mått ger ingen punkt (M25). **antagande** (klubban), **räkning**.
-- **Att jobba på** är den senaste hämtade filen i `AttJobbaPa/` (passets id är tiden, så
-  det högsta namnet vinner; samma regel som S2f:s "Import focus"). En fil som inte går att
-  läsa hoppas över. **Blocken** i Utveckling (B1, B2 …) är `block.start` för den första
-  saken i **alla** hämtade filer, utan dubbletter (MT10); ett block som började före det
-  första passet ritas inte. **räkning.**
+  FO-mått har bara FO-passens svingar). Pass med samma klubba som inte kom med räknas var
+  för sig: "1 not measured" (inga slag som räknas) och "2 at another height". Ett pass med
+  en annan klubba hör inte hit och räknas inte (research 1 del 4: klubban ändrar svingen).
+  Per pass visas medianen (M25) med **spridningen** som en stapel från första till tredje
+  kvartilen, serie 1:s median (MT2) och gränsen eller den egna baslinjen (M27). Den egna
+  baslinjen tas ur passen **före måttets sista punkt**, och perioden ovanför ("7i · Nov–Jan
+  · 6") räknar måttets pass, så att ett DTL-pass sist inte ändrar ett FO-mått. Ett pass
+  med färre än tre svingar i ett mått ger ingen punkt (M25). **antagande** (klubban),
+  **räkning**.
+- **Att jobba på** är `Store.focus` (S2f): den senaste hämtade filen i `AttJobbaPa/`
+  (passets id är tiden, så det högsta namnet vinner, `FocusInbox`). Fokus på Today, Att
+  jobba på och accenten kommer ur den. **Blocken** i Utveckling (B1, B2 …) är `block.start` för den första
+  saken i **alla** hämtade filer (`FocusInbox.readAll`; en fil som inte går igenom
+  kontrollen hoppas över), utan dubbletter (MT10); ett block som började före det första
+  passet ritas inte. **räkning.**
+- **Utanför huvudtråden:** flikarna läser passen (`Store.reading`), mäter dem
+  (`Store.measuring`), läser filerna och räknar vyerna i en `Task.detached`; bara de pass
+  som fick nya mått sparas på huvudtråden.
 - **Accenten** (BESLUT B31) är felen i den senaste filen (`saker[].fel`): deras rad på
   Idag, kort i Passet, linje i Utveckling och rad under granskningens video. Utan fil
   syns ingen accent. Utveckling väljer först det som övas.

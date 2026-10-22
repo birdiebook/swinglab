@@ -214,29 +214,7 @@ public struct AttJobbaPa: Decodable, Sendable {
         try las(Data(json.utf8))
     }
 
-    // MARK: Filerna på telefonen (S4c)
-
-    /// Mappen i appens Application Support/SwingLab där "Import focus" sparar filerna, en
-    /// per pass: `AttJobbaPa/att_jobba_pa-<pass>.json` (S2f, BESLUT B28). METOD MS16
-    public static let mapp = "AttJobbaPa"
-
-    /// Filens namn för ett pass-id `yyyyMMdd-HHmmss`, eller nil när id:t inte är ett sådant.
-    public static func filnamn(pass: String) -> String? {
-        let c = Array(pass)
-        guard c.count == 15, c[8] == "-",
-              c.enumerated().allSatisfy({ $0.offset == 8 || ($0.element.isASCII && $0.element.isNumber) }) else {
-            return nil
-        }
-        return "att_jobba_pa-\(pass).json"
-    }
-
-    /// Namnen på filerna bland mappens namn, äldst först: passets id är tiden, så det sista
-    /// är det senaste. Annat i mappen hoppas över. METOD MS16
-    public static func filer(_ namn: [String]) -> [String] {
-        namn.filter { n in
-            n.hasPrefix("att_jobba_pa-") && n.hasSuffix(".json") && filnamn(pass: String(n.dropFirst(13).dropLast(5))) == n
-        }.sorted()
-    }
+    // MARK: Blocken i Utveckling (S4c)
 
     /// Blockens första dagar (Utvecklings B1, B2 …) ur alla hämtade filer: `block.start` för
     /// den första saken i varje fil, utan dubbletter, äldst först. METOD MS16, MT10

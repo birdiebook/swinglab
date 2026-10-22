@@ -4,7 +4,7 @@
 // svingar, CLAUDE.md: Dataregeln):
 //   passen    åtta pass på olika dagar i appens Store (sju med 7i, ett med Dr; det första
 //             före längden i Jag, alltså antagen), slagen med leder men utan mått;
-//   mätningen appens egen väg (Flikdata.passes: Store.measuring utanför huvudtråden)
+//   mätningen appens egen väg (Flikdata.load: Store.reading och Store.measuring utanför huvudtråden)
 //             mäter varje pass med sin egen längd och sparar det;
 //   fokus     två påhittade att_jobba_pa.json i AttJobbaPa/ (som "Import focus" sparar dem):
 //             den senaste är Att jobba på, båda ger blocken i Utveckling;
@@ -60,31 +60,32 @@ extension SwingLabProvVyer {
             }
             try store.write(p)
             ids.append(p.id)
+            // Det första passet mäts före längden i Me: antaget, och det behåller sin skala.
+            if i == 0 { _ = store.measured(try XCTUnwrap(store.load(p.id))) }
         }
         XCTAssertNil(store.load(ids[0])?.heightM, "före Jag: antagen")
         XCTAssertEqual(store.load(ids[1])?.heightM, langd, "Jags längd följer med passet")
 
-        // Två filer från PC:n, som "Import focus" sparar dem (S2f, BESLUT B28).
-        let mapp = rot.appending(path: AttJobbaPa.mapp, directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: mapp, withIntermediateDirectories: true)
+        // Två filer från PC:n genom "Import focus" (S2f:s Store.importFocus, BESLUT B28), och
+        // en trasig fil bredvid som hoppas över.
         let gammal = Demo.attJobbaPaJSON
             .replacingOccurrences(of: "\"pass\": \"20270109-180000\"", with: "\"pass\": \"20261110-180000\"")
             .replacingOccurrences(of: "\"start\": \"2026-12-12\"", with: "\"start\": \"2026-11-05\"")
-        try Data(gammal.utf8).write(to: mapp.appending(path: "att_jobba_pa-20261110-180000.json"))
-        try Data(Demo.attJobbaPaJSON.utf8).write(to: mapp.appending(path: "att_jobba_pa-20270109-180000.json"))
-        try Data("{".utf8).write(to: mapp.appending(path: "annat.json"))
+        try store.importFocus(Data(Demo.attJobbaPaJSON.utf8))
+        try store.importFocus(Data(gammal.utf8))
+        XCTAssertEqual(store.focus?.pass, "20270109-180000", "den senaste, inte den sist hämtade")
+        try Data("{".utf8).write(to: store.focusFolder.appending(path: "att_jobba_pa-20261201-180000.json"))
 
-        // Appens väg: passen mäts med sin egen längd och sparas.
-        let passes = await Flikdata.passes(store)
+        // Appens väg: passen läses, mäts med sin egen längd och sparas, utanför huvudtråden.
+        let (data, passes) = await Flikdata.load(store, katalog: k, idag: Tal.dag(2027, 1, 13))
         for id in ids {
             let p = try XCTUnwrap(store.load(id))
             XCTAssertTrue(p.shots.allSatisfy { $0.measure?.ok == true }, "\(id) mätt och sparat")
         }
         XCTAssertEqual(store.load(ids[0])?.measuredHeight?.assumed, true)
         XCTAssertEqual(store.load(ids[7])?.measuredHeight?.heightM, langd)
-        let filer = FokusFiler.alla(root: rot)
-        XCTAssertEqual(filer.map(\.pass), ["20261110-180000", "20270109-180000"], "den trasiga hoppas över")
-        let data = Flikdata.bygg(passes: passes, filer: filer, katalog: k, idag: Tal.dag(2027, 1, 13))
+        XCTAssertEqual(Store.readingFocus(root: rot).map(\.pass), ["20261110-180000", "20270109-180000"],
+                       "den trasiga hoppas över")
 
         // Idag: det senaste passet, swayen är medianen av dess mått, och bara den bär accenten.
         let senaste = try XCTUnwrap(store.load(ids[7]))
@@ -104,7 +105,7 @@ extension SwingLabProvVyer {
         // Utveckling: 7i med längden 1,82 (sex pass), det antagna räknas, Dr hör inte hit.
         let u = data.utveckling
         XCTAssertEqual(u.period, "7i\u{00A0}· Nov–Jan\u{00A0}· 6")
-        XCTAssertEqual(u.ejMatta, "1 not measured")
+        XCTAssertEqual(u.ejMatta, "1 at another height", "det antagna är mätt, med en annan längd")
         let us = try XCTUnwrap(u.matt.first { $0.id == "sway_topp" })
         XCTAssertTrue(us.ovas)
         let j7 = ids.indices.filter { $0 > 0 && Self.flikPass[$0].club == "j7" }
@@ -128,7 +129,7 @@ extension SwingLabProvVyer {
         XCTAssertEqual(jobba.saker.count, 2)
 
         // Passet och granskningens rader: accenten på swayen.
-        let ovas = FokusFiler.ovas(root: rot)
+        let ovas = store.focus?.ovas ?? []
         XCTAssertEqual(ovas, ["sway_topp", "flying_elbow"])
         let pv = try XCTUnwrap(PassShotsView.visning(senaste, earlier: PassHistory.earlier(senaste, among: passes), ovas: ovas))
         XCTAssertEqual(pv.kort.filter(\.ovas).map(\.id).sorted(), ["flying_elbow", "sway_topp"])
@@ -139,7 +140,7 @@ extension SwingLabProvVyer {
 
         // Bilderna.
         try rendera(IdagVy(visning: idag, importera: {}), namn: "flik-idag")
-        let utan = Flikdata.bygg(passes: passes, filer: [], katalog: k, idag: Tal.dag(2027, 1, 13))
+        let utan = Flikdata.bygg(passes: passes, fokus: nil, filer: [], katalog: k, idag: Tal.dag(2027, 1, 13))
         XCTAssertTrue(utan.idag.rader.allSatisfy { !$0.ovas } && utan.idag.fokus.isEmpty)
         try rendera(IdagVy(visning: utan.idag, importera: {}), namn: "flik-idag-utan-fokus", accent: false)
         try rendera(UtvecklingVy(visning: u), namn: "flik-utveckling")
@@ -152,7 +153,7 @@ extension SwingLabProvVyer {
         store.toggleClub("lw")
         XCTAssertFalse(store.settings.bag.contains("lw"))
         store.setHeight(1.90)
-        let efter = await Flikdata.passes(store)
+        let efter = await Flikdata.load(store, katalog: k).passes
         XCTAssertEqual(efter, passes, "inget pass mättes om")
         XCTAssertEqual(store.load(ids[7])?.measuredHeight?.heightM, langd)
         let ny = store.newPass(setup: store.settings.newSetup(lastClub: "j7"), at: Tal.dag(2027, 1, 13, timme: 18))

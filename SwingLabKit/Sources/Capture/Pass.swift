@@ -268,6 +268,14 @@ public struct PassState: Codable, Equatable, Sendable {
     /// antagen. Tas från Jag när passet skapas och ändras bara i passet: en ny längd i Jag
     /// rör inga gamla pass (S4c). METOD MS16
     public var heightM: Double?
+    /// Passet kom från före S4c, utan längd och utan mätta slag: det har aldrig mätts, så
+    /// det tar Me:s längd när det läses (`fillMissingHeight`), som förut. Skrivs inte i
+    /// pass.json. METOD MS16
+    public var heightPending = false
+
+    enum CodingKeys: String, CodingKey {
+        case format, id, created, setup, series, lightCheck, status, shots, vision, lastShotNumber, heightM
+    }
 
     public init(id: String, created: Date, setup: PassSetup, series: [SeriesRecord] = [],
                 lightCheck: LightCheck? = nil, status: PassStatus = .recorded, shots: [ShotRecord] = [],
@@ -300,10 +308,24 @@ public struct PassState: Codable, Equatable, Sendable {
         vision = try c.decodeIfPresent(VisionStats.self, forKey: .vision)
         lastShotNumber = try c.decodeIfPresent(Int.self, forKey: .lastShotNumber)
             ?? (shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
-        // Ett pass från före S4c saknar längden: den som slagen mättes med (då Jags), så att
-        // passet behåller sina tal; antagen eller omätt blir nil. METOD MS16
-        heightM = try c.decodeIfPresent(Double.self, forKey: .heightM)
-            ?? shots.compactMap(\.measure).first.flatMap { $0.heightAssumed ? nil : $0.heightM }
+        // Ett pass från före S4c saknar längden. Med mätta slag: den som slagen mättes med (då
+        // Me:s), så att passet behåller sina tal. Utan: Me:s längd när passet läses. METOD MS16
+        if c.contains(.heightM) {
+            heightM = try c.decodeIfPresent(Double.self, forKey: .heightM)
+        } else if let m = shots.compactMap(\.measure).first {
+            heightM = m.heightAssumed ? nil : m.heightM
+        } else {
+            heightM = nil
+            heightPending = true
+        }
+    }
+
+    /// Ett pass från före S4c utan mätta slag tar Me:s längd (`settings`); andra rörs inte.
+    /// METOD MS16
+    public mutating func fillMissingHeight(_ settings: Double?) {
+        guard heightPending else { return }
+        heightM = settings
+        heightPending = false
     }
 
     /// Nästa seriens nummer (1, 2, …).

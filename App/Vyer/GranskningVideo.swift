@@ -72,7 +72,7 @@ struct ShotReviewView: View {
               let rel = s.joints, let series = store.joints(rel, in: passID),
               let serie = p.series.first(where: { $0.nr == s.series }) else { return }
         pass = p
-        ovas = FokusFiler.ovas(root: store.root)
+        ovas = store.focus?.ovas ?? []
         let r = ShotReview(series: series, crop: serie.activeCrop)
         review = r
         // Baslinjen ur de tidigare passen med samma längd, mätta utanför huvudtråden (METOD MS14).

@@ -559,10 +559,12 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   följer den senaste filen. Reglerna för vilka pass som visas: METOD MS16.
 - **Passet behåller sin längd:** längden flyttar till Me och skrivs in i varje nytt pass;
   passets rad ändrar bara passet (METOD MS16). Förut ändrade passets rad Johannes längd
-  och mätte om alla pass.
-- **Läser filen där S2f sparar den** (`AttJobbaPa/att_jobba_pa-<pass>.json`) med
-  `App/Fokus.swift`, utan `Store.focus`, så att S4c och S2f landar oberoende; när båda
-  finns kan flikarna läsa `Store.focus` i stället.
+  och mätte om alla pass. Ett omätt pass från före S4c tar Me:s längd när det läses.
+- **En källa för fokus:** Today, Att jobba på och accenten (Passet, Progress,
+  granskningen) läser `Store.focus` från S2f:s "Import focus"; bara Progress block läser
+  alla filer i `AttJobbaPa/` (`FocusInbox.readAll`), utanför huvudtråden.
+- **Paketet bär passets längd** (`spelarens_langd_m`), så att PC:n mäter med samma skala
+  (BESLUT B12).
 - **Bortvalt:** en fjärde flik för passen (skissens öppna val 1), Utveckling över alla
   klubbor (en driver och ett 7-järn är inte samma sving), och att mäta om tidigare pass
   med en annan längd för jämförelsen (då visar passet andra tal än sina egna).

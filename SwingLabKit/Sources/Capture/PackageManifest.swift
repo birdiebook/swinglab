@@ -160,10 +160,14 @@ public struct PackageManifest: Codable, Equatable, Sendable {
     public var vision: Vision?
     /// S1:s mått per slag; `null` tills telefonen räknar dem (PC:n räknar).
     public var measures: [String: [String: Double]]?
+    /// Passets längd (`PassState.heightM`), m, så att PC:n mäter med samma skala som telefonen
+    /// (METOD M2, MS16, BESLUT B12); står inte med när längden är antagen.
+    public var playerHeight: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case format, created = "skapad", app, pass, phone = "telefon", view = "vy", distance = "avstand_m"
         case hand = "spelhand", series = "serier", shots = "slag", vision, measures = "matt"
+        case playerHeight = "spelarens_langd_m"
     }
 
     /// `matt` skrivs alltid, `null` när måtten saknas (S2_SPEC §8.3); övriga valfria fält
@@ -178,6 +182,7 @@ public struct PackageManifest: Codable, Equatable, Sendable {
         try c.encode(view, forKey: .view)
         try c.encode(distance, forKey: .distance)
         try c.encode(hand, forKey: .hand)
+        try c.encodeIfPresent(playerHeight, forKey: .playerHeight)
         try c.encode(series, forKey: .series)
         try c.encode(shots, forKey: .shots)
         try c.encodeIfPresent(vision, forKey: .vision)
@@ -268,7 +273,8 @@ public struct PackageManifest: Codable, Equatable, Sendable {
         telefon.role = pass.setup.role.rawValue
         return PackageManifest(format: formatName, created: timestamp(created, timeZone: timeZone), app: app,
                                pass: pass.id, phone: telefon, view: pass.setup.view, distance: pass.setup.distance,
-                               hand: pass.setup.hand, series: serier, shots: slag, vision: vision, measures: nil)
+                               hand: pass.setup.hand, series: serier, shots: slag, vision: vision, measures: nil,
+                               playerHeight: finite(pass.heightM))
     }
 }
 

@@ -100,7 +100,7 @@ struct PassShotsView: View {
             let r = await PassMeasures.load(p, store: store)
             guard r.pass.id == pass?.id else { return }
             pass = r.pass
-            visning = Self.visning(r.pass, earlier: r.earlier, ovas: FokusFiler.ovas(root: store.root))
+            visning = Self.visning(r.pass, earlier: r.earlier, ovas: store.focus?.ovas ?? [])
             unmeasured = r.unmeasured
         }
     }

@@ -65,6 +65,81 @@ final class FlikarTests: XCTestCase {
         XCTAssertNil(try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(omatt)).heightM)
     }
 
+    /// Ett omätt pass från före S4c (ingen längd i filen) tar Me:s längd när det läses, som
+    /// förut; ett med mätta slag behåller slagens, och ett nytt pass rörs aldrig. METOD MS16
+    func testGamlaOmattaPassTarMesLangd() throws {
+        let omatt = DemoPass.fo(id: "20261110-120000", created: Self.dag0, sway: [-1, -2, -3])
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: PassCoding.encoder().encode(omatt.pass)) as? [String: Any])
+        json["heightM"] = nil
+        var p = try PassCoding.decoder().decode(PassState.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertTrue(p.heightPending)
+        XCTAssertNil(p.heightM)
+        p.fillMissingHeight(1.84)
+        XCTAssertEqual(p.heightM, 1.84)
+        XCTAssertFalse(p.heightPending)
+        p.fillMissingHeight(1.70)
+        XCTAssertEqual(p.heightM, 1.84, "en gång")
+        XCTAssertTrue(p.measureShots { omatt.leder[$0.id] })
+        XCTAssertEqual(p.measuredHeight?.heightM, 1.84, "mätt med Me:s längd")
+        // Sparad står längden i filen: nästa läsning fyller inget.
+        let igen = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(p))
+        XCTAssertFalse(igen.heightPending)
+        XCTAssertEqual(igen, p)
+        XCTAssertFalse(String(decoding: try PassCoding.encoder().encode(p), as: UTF8.self).contains("heightPending"))
+        // Med mätta slag: slagens längd, inget att fylla.
+        let matt = Self.matt("20261110-120000", dag: 0, heightM: 1.86)
+        var g = try XCTUnwrap(JSONSerialization.jsonObject(with: PassCoding.encoder().encode(matt)) as? [String: Any])
+        g["heightM"] = nil
+        var m = try PassCoding.decoder().decode(PassState.self, from: JSONSerialization.data(withJSONObject: g))
+        XCTAssertFalse(m.heightPending)
+        m.fillMissingHeight(1.70)
+        XCTAssertEqual(m.heightM, 1.86)
+        // Ett pass med längden nil i filen (antagen) är inte gammalt.
+        var ny = DemoPass.fo(id: "20261110-120000", created: Self.dag0, sway: [-1]).pass
+        ny = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(ny))
+        XCTAssertTrue(ny.heightPending, "nil skrivs inte: samma som en gammal fil, och omätt: Me:s längd")
+    }
+
+    // MARK: Filerna från PC:n och manifestet
+
+    /// Filerna i AttJobbaPa/ äldst först (S2f:s namn), och alla som går igenom kontrollen.
+    func testFokusFilerna() throws {
+        XCTAssertEqual(FocusInbox.all(["att_jobba_pa-20270109-180000.json", "x.json", "att_jobba_pa-20261110-180000.json",
+                                       "att_jobba_pa-.json", "att_jobba_pa-20261110-180000.json.part"]),
+                       ["att_jobba_pa-20261110-180000.json", "att_jobba_pa-20270109-180000.json"])
+        XCTAssertEqual(FocusInbox.latest(["att_jobba_pa-20261110-180000.json", "att_jobba_pa-20270109-180000.json"]),
+                       "att_jobba_pa-20270109-180000.json")
+        let mapp = FileManager.default.temporaryDirectory.appendingPathComponent("fokus-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: mapp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: mapp) }
+        let gammal = Demo.attJobbaPaJSON
+            .replacingOccurrences(of: "\"pass\": \"20270109-180000\"", with: "\"pass\": \"20261110-180000\"")
+        try Data(gammal.utf8).write(to: mapp.appendingPathComponent("att_jobba_pa-20261110-180000.json"))
+        try Data(Demo.attJobbaPaJSON.utf8).write(to: mapp.appendingPathComponent("att_jobba_pa-20270109-180000.json"))
+        try Data("{".utf8).write(to: mapp.appendingPathComponent("att_jobba_pa-20270110-180000.json"))
+        XCTAssertEqual(FocusInbox.readAll(in: mapp).map(\.pass), ["20261110-180000", "20270109-180000"], "den trasiga hoppas över")
+    }
+
+    /// Manifestet bär passets längd, så att PC:n mäter med samma skala (BESLUT B12); antagen
+    /// står den inte med.
+    func testManifestetBarLangden() throws {
+        let app = PackageManifest.AppInfo(version: "0.1.0", build: "1")
+        let tel = PackageManifest.PhoneInfo(model: "iPhone", ios: "18.2")
+        func manifest(_ p: PassState) throws -> String {
+            let m = PackageManifest.make(pass: p, app: app, phone: tel, created: Self.dag0,
+                                         timeZone: TimeZone(identifier: "Europe/Stockholm")!, includeClips: false)
+            let e = JSONEncoder()
+            e.outputFormatting = [.sortedKeys]
+            return String(decoding: try e.encode(m), as: UTF8.self)
+        }
+        let med = try manifest(Self.matt("20261110-120000", dag: 0, heightM: 1.86))
+        XCTAssertTrue(med.contains("\"spelarens_langd_m\":1.86"), med)
+        let utan = try manifest(Self.matt("20261110-120000", dag: 0, heightM: nil))
+        XCTAssertFalse(utan.contains("spelarens_langd_m"))
+        let tillbaka = try JSONDecoder().decode(PackageManifest.self, from: Data(med.utf8))
+        XCTAssertEqual(tillbaka.playerHeight, 1.86)
+    }
+
     // MARK: Jag
 
     /// Spelhanden och klubborna i Jag, och uppställningen för ett nytt pass.
@@ -113,11 +188,12 @@ final class FlikarTests: XCTestCase {
         let j7 = alla.filter { $0.id != driver.id }
         let u = PassHistory.progress(j7)
         XCTAssertEqual(u.passes.map(\.id), [a.id, b.id, nu.id], "samma klubba och längd, äldst först")
-        XCTAssertEqual(u.unmeasured, 2, "den antagna längden och det omätta")
+        XCTAssertEqual(u.unmeasured, 1, "det omätta")
+        XCTAssertEqual(u.otherHeight, 1, "den antagna längden")
         XCTAssertEqual(PassHistory.earlier(nu, among: j7).map(\.id), [a.id, b.id])
         let dr = PassHistory.progress(alla)
         XCTAssertEqual(dr.passes.map(\.id), [driver.id])
-        XCTAssertEqual(dr.unmeasured, 0, "en annan klubba räknas inte")
+        XCTAssertEqual(dr.unmeasured + dr.otherHeight, 0, "en annan klubba räknas inte")
         XCTAssertTrue(PassHistory.progress([]).passes.isEmpty)
     }
 }

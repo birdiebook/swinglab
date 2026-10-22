@@ -183,16 +183,17 @@ public enum PassHistory {
 
     /// Passen i Utveckling (METOD MS16): samma regel som baslinjen (MS14) räknad från det
     /// senaste passet. Samma klubba, slag som räknas och samma längd, äldst först; vyn väljer
-    /// varje mått själv (ett FO-mått har bara FO-passens svingar). `unmeasured` = pass med
-    /// samma klubba som inte kom med (inga mått, eller en annan längd). Ett pass med en annan
-    /// klubba hör inte hit och räknas inte.
-    public static func progress(_ alla: [PassState]) -> (passes: [PassState], unmeasured: Int) {
-        guard let nu = latest(alla) else { return ([], 0) }
+    /// varje mått själv (ett FO-mått har bara FO-passens svingar). Pass med samma klubba som
+    /// inte kom med räknas var för sig: `unmeasured` utan slag som räknas, `otherHeight` mätta
+    /// med en annan längd. Ett pass med en annan klubba hör inte hit och räknas inte.
+    public static func progress(_ alla: [PassState]) -> (passes: [PassState], unmeasured: Int, otherHeight: Int) {
+        guard let nu = latest(alla) else { return ([], 0, 0) }
         let h = nu.measuredHeight?.heightM
         let klubba = alla.filter { $0.setup.club == nu.setup.club }
-        let med = klubba.filter { p in !p.countedSwings.isEmpty && p.measuredHeight?.heightM == h }
+        let matta = klubba.filter { !$0.countedSwings.isEmpty }
+        let med = matta.filter { $0.measuredHeight?.heightM == h }
             .sorted { ($0.created, $0.id) < ($1.created, $1.id) }
-        return (med, klubba.count - med.count)
+        return (med, klubba.count - matta.count, matta.count - med.count)
     }
 
     /// Måttens värden i de tidigare passen (alla slag som räknas), för den egna baslinjen.
