@@ -48,6 +48,10 @@ jobs:
           for n in APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_CONNECT_PRIVATE_KEY CERTIFICATE_PRIVATE_KEY; do
             if [ -z "${!n}" ]; then echo "FEL: hemligheten $n saknas (README, Första gången)." >&2; exit 1; fi
           done
+          # Läxa 2026-10-22: en .p8 utan BEGIN/END-raderna föll först i "Hämta signering".
+          if ! printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "FEL: APP_STORE_CONNECT_PRIVATE_KEY är inte hela .p8-filen (från -----BEGIN PRIVATE KEY----- till -----END PRIVATE KEY-----)." >&2; exit 1
+          fi
 
       - name: Kompilera är grönt för det som byggs
         run: |

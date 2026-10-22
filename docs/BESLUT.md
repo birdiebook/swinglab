@@ -64,6 +64,10 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   som delas med de andra apparna.
 - **Kostnad:** koden syns. Repot bär aldrig en svingvideo, en mätning, en
   e-postadress eller en nyckel.
+- **Bevisat 2026-10-22:** första bygget gick hela vägen till TestFlight via
+  GitHubs macOS (run 39816379051), efter två fel som nu fångas tidigt: tomma
+  hemligheter (`birdiebook` är ett personligt konto, så de är repository
+  secrets) och en `.p8` som inte var hela filen.
 
 ## B8 — Namnet är SwingLab
 *2026-10-22 · gäller · Johannes beslut*
