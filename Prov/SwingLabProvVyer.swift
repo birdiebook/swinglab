@@ -84,7 +84,8 @@ final class SwingLabProvVyer: XCTestCase {
             .environment(\.colorScheme, .dark)
             .environment(\.locale, Locale(identifier: "sv_SE"))
         let r = ImageRenderer(content: innehall)
-        r.scale = 3
+        // De största textstorlekarna blir mycket långa; i @1x ryms de i en PNG.
+        r.scale = textstorlek.isAccessibilitySize ? 1 : 3
         r.proposedSize = ProposedViewSize(width: Self.bredd, height: nil)
         let bild = try XCTUnwrap(r.uiImage, "kunde inte rita \(namn)")
         let png = try XCTUnwrap(bild.pngData())
