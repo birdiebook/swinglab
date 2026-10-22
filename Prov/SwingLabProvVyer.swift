@@ -36,6 +36,12 @@ final class SwingLabProvVyer: XCTestCase {
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl")
     }
 
+    func testIdag() throws {
+        let v = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass,
+                            attJobbaPa: Demo.attJobbaPa)
+        try rendera(IdagVy(visning: v), namn: "idag")
+    }
+
     func testAttJobbaPa() throws {
         let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog(), pass: Demo.pass)
         try rendera(AttJobbaPaVy(visning: v), namn: "jobba")

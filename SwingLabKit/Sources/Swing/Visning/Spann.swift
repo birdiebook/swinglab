@@ -108,9 +108,12 @@ public struct Spann: Equatable, Sendable {
             break
         }
         e.append(axel.hi)
-        etiketter = e.map { v -> (varde: Double, text: String) in
-            // Baslinjens ändar är räknade tal; axelns och gränsens är hela.
-            (v, Tal.axel(v, decimaler: decimaler))
+        // Baslinjens ändar är räknade tal och får minst en decimal; axelns och gränsens visas som de är.
+        let baslinjens: Bool
+        if case .baslinje? = zon { baslinjens = true } else { baslinjens = false }
+        etiketter = e.enumerated().map { i, v -> (varde: Double, text: String) in
+            let zonens = i > 0 && i < e.count - 1
+            return (v, Tal.axel(v, decimaler: zonens && baslinjens ? Swift.max(1, decimaler) : decimaler))
         }
     }
 }

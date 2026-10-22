@@ -33,16 +33,30 @@ struct SpannVy: View {
                 if let f = spann.forra {
                     c.linje(CGPoint(x: x(f), y: y - 7), CGPoint(x: x(f), y: y + 7), Theme.tertiary, 1.5)
                 }
-                // Talen: ändarna förankras inåt, de mellan i mitten; ett tal för nära det förra hoppas över.
-                var forraKant: CGFloat = -.infinity
-                let sista = spann.etiketter.count - 1
-                for (i, e) in spann.etiketter.enumerated() {
-                    let px = x(e.varde)
-                    let ankare: UnitPoint = i == 0 ? .topLeading : i == sista ? .topTrailing : .top
-                    let kant = i == 0 ? px : px - 12
-                    guard kant > forraKant + 6 || i == sista else { continue }
-                    c.etikett(e.text, CGPoint(x: px, y: y + 14), ankare: ankare)
-                    forraKant = i == 0 ? px + 22 : px + 12
+                // Talen: zonens ändar först (i mitten under sin punkt), sedan axelns ändar
+                // (förankrade inåt) där de inte krockar med ett tal som redan står.
+                let e = spann.etiketter
+                var upptaget: [ClosedRange<CGFloat>] = []
+                func bredd(_ t: String) -> CGFloat { CGFloat(t.count) * 6 + 2 }
+                func ledigt(_ r: ClosedRange<CGFloat>) -> Bool {
+                    !upptaget.contains { $0.lowerBound - 6 <= r.upperBound && r.lowerBound <= $0.upperBound + 6 }
+                }
+                if e.count > 2 {
+                    for z in e[1..<(e.count - 1)] {
+                        let px = x(z.varde), w = bredd(z.text)
+                        let r = (px - w / 2)...(px + w / 2)
+                        guard ledigt(r) else { continue }
+                        c.etikett(z.text, CGPoint(x: px, y: y + 14), ankare: .top)
+                        upptaget.append(r)
+                    }
+                }
+                if let forst = e.first {
+                    let px = x(forst.varde), r = px...(px + bredd(forst.text))
+                    if ledigt(r) { c.etikett(forst.text, CGPoint(x: px, y: y + 14), ankare: .topLeading) }
+                }
+                if e.count > 1, let sist = e.last {
+                    let px = x(sist.varde), r = (px - bredd(sist.text))...px
+                    if ledigt(r) { c.etikett(sist.text, CGPoint(x: px, y: y + 14), ankare: .topTrailing) }
                 }
             }
             c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, Theme.text)

@@ -139,11 +139,50 @@ public enum Demo {
         }
     }
 
-    /// Att jobba på: bäckenets väg, block 2.
-    public static let attJobbaPa = AttJobbaPa(
-        tema: "Bäckenets väg", block: 2, blockFran: block[1],
-        kedja: ["sway_topp", "backens_resa_framat", "tappad_hallning"],
-        ovning: "Käpp vid bakre höften", steg: ["Långsamt", "Halv fart", "Full fart", "Ny klubba"], stegNu: 1,
-        tanke: "Rör inte käppen.",
-        klartNar: .init(fel: "sway_topp", riktning: .minst, grans: 0, passIRad: 2))
+    /// Att jobba på efter passet 12 dec, i S5:s format (docs/FORMAT.md, Att jobba på):
+    /// swayen med sina följdfel, och early extension med en rörlighetsövning.
+    /// Övningarna är katalogens ordagrant (kalla "katalog").
+    public static let attJobbaPaJSON = #"""
+    {
+     "format": "swinglab-att-jobba-pa/1",
+     "pass": "20261212-180000",
+     "skapad": "2026-12-12T21:15:00+01:00",
+     "saker": [
+      {
+       "ordning": 1,
+       "fel": "sway_topp",
+       "namn": "Bäckenet glider bakåt i baksvingen",
+       "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
+       "nu": -5.9, "spann": [0, null], "markning": "B10",
+       "ovning": {
+        "text": "Käpp i marken utanför bakre höften. Baksving till toppen och stopp: höften roterar, käppen står kvar. Sedan fötterna ihop, 3/4-svingar.",
+        "tanke": "Rör inte käppen.",
+        "kalla": "katalog"
+       },
+       "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
+       "foljdfel": ["backens_resa_framat", "sway_gap"],
+       "typ": "teknik",
+       "fysik": null
+      },
+      {
+       "ordning": 2,
+       "fel": "early_extension",
+       "namn": "Early extension: bäckenet mot bollen",
+       "vy": "dtl", "matt": "backen_thrust_traff", "enhet": "cm",
+       "nu": 1.9, "spann": null, "markning": "egen",
+       "ovning": {
+        "text": "Stjärten mot en stol bakom dig i adressen. Långsamma svingar som håller kontakten till träffen, och bäckenet roterar samtidigt.",
+        "tanke": "Stolen ska känna stjärten hela vägen.",
+        "kalla": "katalog"
+       },
+       "klart_nar": {"villkor": "<=", "grans": 1.5, "pa": "forsta_serien", "pass_i_rad": 2},
+       "foljdfel": ["tappad_hallning"],
+       "typ": "teknik_kroppen_gor_det_svart",
+       "fysik": {"test": "Toe touch", "treregeln": [true, true, false], "ovning": "Raka ben, händerna mot tårna, 2 × 10 långsamt."}
+      }
+     ]
+    }
+    """#
+
+    public static var attJobbaPa: AttJobbaPa { try! AttJobbaPa.las(json: attJobbaPaJSON) }
 }
