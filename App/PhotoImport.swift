@@ -50,21 +50,41 @@ final class PhotoImport {
             current = i + 1
             fraction = 0
             let nr = pass.nextSeriesNumber
-            var outcome = Outcome()
-            do {
-                if let s = try await importOne(item, nr: nr, pass: pass, store: store, library: status) {
-                    pass.series.append(s)
-                    store.save(pass)
-                    outcome.series = s
-                } else {
-                    outcome.refused = true
-                }
-            } catch {
-                outcome.failed = true
+            let nu = pass
+            pass = await add(pass: pass, store: store) {
+                try await self.importOne(item, nr: nr, pass: nu, store: store, library: status)
             }
-            outcomes.append(outcome)
         }
         return pass
+    }
+
+    /// Ett klipp till passet: serien läggs till och sparas (passet syns då i startvyns
+    /// lista), och utfallet går till kvittot.
+    @MainActor
+    private func add(pass: PassState, store: Store, _ make: () async throws -> SeriesRecord?) async -> PassState {
+        var pass = pass
+        var outcome = Outcome()
+        do {
+            if let s = try await make() {
+                pass.series.append(s)
+                store.save(pass)
+                outcome.series = s
+            } else {
+                outcome.refused = true
+            }
+        } catch {
+            outcome.failed = true
+        }
+        outcomes.append(outcome)
+        return pass
+    }
+
+    /// Ett klipp som redan är en fil, samma väg som väljarens reserv: in i passet,
+    /// kontrollen och serien. Simulatorprovet går importen så med sin påhittade film.
+    @MainActor
+    func importFile(_ source: URL, pass: PassState, store: Store) async -> PassState {
+        let nr = pass.nextSeriesNumber
+        return await add(pass: pass, store: store) { try await Self.adopt(source, nr: nr, pass: pass, store: store) }
     }
 
     /// Ett klipp: originalresursen (eller reserven), rutnätets kontroll och serien.
@@ -76,11 +96,9 @@ final class PhotoImport {
         if library == .authorized || library == .limited, let id = item.itemIdentifier {
             asset = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject
         }
-        var file: String
-        var url: URL
         if let asset, let resource = Self.original(asset) {
-            file = PassState.videoPath(nr: nr, extension: Self.fileExtension(resource.originalFilename))
-            url = store.url(file, in: pass.id)
+            let file = PassState.videoPath(nr: nr, extension: Self.fileExtension(resource.originalFilename))
+            let url = store.url(file, in: pass.id)
             try? FileManager.default.removeItem(at: url)        // writeData kräver att filen inte finns
             do {
                 try await write(resource, to: url)
@@ -88,30 +106,43 @@ final class PhotoImport {
                 try? FileManager.default.removeItem(at: url)
                 throw error
             }
-        } else {
-            // Reserven (Airtime): filen ur väljaren. Samma kontroll fäller en omräknad fil.
-            if asset == nil { askFullAccess = true }
-            guard let movie = try await item.loadTransferable(type: PickedMovie.self) else { return nil }
-            file = PassState.videoPath(nr: nr, extension: Self.fileExtension(movie.url.lastPathComponent))
-            url = store.url(file, in: pass.id)
-            try? FileManager.default.removeItem(at: url)
-            do {
-                try FileManager.default.moveItem(at: movie.url, to: url)
-            } catch {
-                try? FileManager.default.removeItem(at: movie.url)
-                throw error
-            }
+            return try await Self.series(url, file: file, nr: nr, pass: pass, asset: asset)
         }
+        // Reserven (Airtime): filen ur väljaren. Samma kontroll fäller en omräknad fil.
+        if asset == nil { askFullAccess = true }
+        guard let movie = try await item.loadTransferable(type: PickedMovie.self) else { return nil }
+        return try await Self.adopt(movie.url, nr: nr, pass: pass, store: store)
+    }
+
+    /// En fil flyttas in i passets Video-mapp och blir en serie (eller vägras).
+    @MainActor
+    static func adopt(_ source: URL, nr: Int, pass: PassState, store: Store) async throws -> SeriesRecord? {
+        let file = PassState.videoPath(nr: nr, extension: fileExtension(source.lastPathComponent))
+        let url = store.url(file, in: pass.id)
+        try? FileManager.default.removeItem(at: url)
         do {
-            guard try await Self.accept(url) else { return nil }
+            try FileManager.default.moveItem(at: source, to: url)
+        } catch {
+            try? FileManager.default.removeItem(at: source)
+            throw error
+        }
+        return try await series(url, file: file, nr: nr, pass: pass, asset: nil)
+    }
+
+    /// Filen i passet: rutnätets kontroll, sedan serien som från en inspelning. En fil som
+    /// vägras eller inte går att läsa tas bort: ingen fil utan ägare.
+    @MainActor
+    static func series(_ url: URL, file: String, nr: Int, pass: PassState, asset: PHAsset?) async throws -> SeriesRecord? {
+        do {
+            guard try await accept(url) else { return nil }
             var start = asset?.creationDate
-            if start == nil { start = await Self.creationDate(url) }
+            if start == nil { start = await creationDate(url) }
             var s = try await SeriesMaker.make(url: url, nr: nr, file: file, source: .photos, club: pass.setup.club,
                                                start: start ?? Date(), startHost: nil, microphone: nil)
             s.markedSlowMotion = asset.map { $0.mediaSubtypes.contains(.videoHighFrameRate) }
             return s
         } catch {
-            try? FileManager.default.removeItem(at: url)                 // ingen fil utan ägare
+            try? FileManager.default.removeItem(at: url)
             throw error
         }
     }
@@ -185,6 +216,8 @@ struct PickedMovie: Transferable {
 struct ImportView: View {
     @Binding var pass: PassState
     var onClose: () -> Void
+    /// Vidare till passet med slagen och Analyze.
+    var onContinue: () -> Void = {}
 
     @Environment(Store.self) private var store
     @Environment(\.openURL) private var openURL
@@ -196,12 +229,12 @@ struct ImportView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Skarmrubrik("Import from Photos")
-                    PhotosPicker(selection: $items, matching: .videos, preferredItemEncoding: .current,
-                                 photoLibrary: .shared()) {
-                        Text("Choose clips")
+                    // Primär tills ett klipp är hämtat; sedan är Continue primär.
+                    if importer.outcomes.isEmpty {
+                        picker.buttonStyle(PrimaryButtonStyle())
+                    } else {
+                        picker.buttonStyle(RowButtonStyle())
                     }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(importer.running)
 
                     if importer.running {
                         VStack(alignment: .leading, spacing: 6) {
@@ -219,15 +252,9 @@ struct ImportView: View {
                         .buttonStyle(RowButtonStyle())
                     }
 
-                    ForEach(importer.outcomes) { o in
-                        if let s = o.series {
-                            ReceiptCard(title: String(localized: "Set \(s.nr)"), rows: Receipt.rows(s))
-                        } else {
-                            Text(verbatim: o.refused ? ImportCheck.refusal : String(localized: "The clip could not be loaded."))
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Theme.flag)
-                        }
-                    }
+                    ImportReceipts(outcomes: importer.outcomes,
+                                   canContinue: !pass.series.isEmpty && !importer.running,
+                                   onContinue: onContinue)
                 }
                 .padding(20)
             }
@@ -245,6 +272,39 @@ struct ImportView: View {
             Task {
                 pass = await importer.run(valda, pass: pass, store: store)
                 items = []
+            }
+        }
+    }
+
+    private var picker: some View {
+        PhotosPicker(selection: $items, matching: .videos, preferredItemEncoding: .current,
+                     photoLibrary: .shared()) {
+            Text("Choose clips")
+        }
+        .disabled(importer.running)
+    }
+}
+
+/// Kvittot per hämtat klipp och Continue till passet (B13: inga förklaringar). Ingen
+/// UIKit-del, så att provet kan rita den med ImageRenderer.
+struct ImportReceipts: View {
+    let outcomes: [PhotoImport.Outcome]
+    let canContinue: Bool
+    var onContinue: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(outcomes) { o in
+                if let s = o.series {
+                    ReceiptCard(title: String(localized: "Set \(s.nr)"), rows: Receipt.rows(s))
+                } else {
+                    Text(verbatim: o.refused ? ImportCheck.refusal : String(localized: "The clip could not be loaded."))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.flag)
+                }
+            }
+            if canContinue {
+                Button("Continue", action: onContinue).buttonStyle(PrimaryButtonStyle())
             }
         }
     }

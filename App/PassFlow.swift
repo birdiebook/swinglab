@@ -2,8 +2,10 @@ import SwiftUI
 import Swing
 import Capture
 
-/// Ett nytt pass från startvyn: uppställningen, sedan kameran (S2c) eller Bilder (S2d).
-/// Formspråket är BESLUT B13 med systemvyer i mörkt läge; S4 ger formen senare.
+/// Ett nytt pass från startvyn: uppställningen, sedan kameran (S2c) eller Bilder (S2d),
+/// och efter kvittot Continue till passet med slagen och Analyze (S2e). Passet står
+/// redan i startvyns lista när första serien sparats. Formspråket är BESLUT B13 med
+/// systemvyer i mörkt läge; S4 ger formen senare.
 struct PassFlowView: View {
     enum Mode: String, Identifiable {
         case record, photos
@@ -16,12 +18,16 @@ struct PassFlowView: View {
     @Environment(Store.self) private var store
     @State private var setup = PassSetup()
     @State private var pass: PassState?
+    /// Efter Continue: passet med slagen.
+    @State private var shots = false
 
     var body: some View {
-        if let binding = Binding($pass) {
+        if shots, let pass {
+            PassShotsView(passID: pass.id, onClose: onClose)
+        } else if let binding = Binding($pass) {
             switch mode {
-            case .record: RecordView(pass: binding, onClose: onClose)
-            case .photos: ImportView(pass: binding, onClose: onClose)
+            case .record: RecordView(pass: binding, onClose: onClose, onContinue: { shots = true })
+            case .photos: ImportView(pass: binding, onClose: onClose, onContinue: { shots = true })
             }
         } else {
             NavigationStack {

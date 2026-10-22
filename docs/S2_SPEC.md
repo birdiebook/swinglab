@@ -713,7 +713,8 @@ dokumentationen. Därför finns två vakter:
    ska kroppens axel (fotledernas mitt → näsan) vara mer lodrät än vågrät
    (|Δy| > 2·|Δx|). Brister det på fler än hälften av slagen märks passet
    "orienteringen misstänkt" i vyn och i manifestet.
-2. Klapprovet (§11.3, telefonprov T2): skelettet ritas över bilden vid träffen.
+2. Klapprovet (§11.3, telefonprov T2): de uppmätta linjerna ritas över bilden vid
+   träffen, med personens vänstra axel och handled fyllda och de högra ihåliga.
 
 ### 6.3 Lederna (F15)
 
@@ -1281,7 +1282,7 @@ Alla tester bär påhittad data (CLAUDE.md, dataregeln):
 | Prov | Gör | Ser | Tid |
 |---|---|---|---|
 | T1 Ljuset | Öppna SwingLab där passet ska vara, ge kamera och mikrofon, tryck Ljusprov | ISO-raden, flimret och "240 bilder/s, 0 % tappade" | 1 min |
-| T2 Klapprovet | Stå 3 m bort i bild, lyft **vänster** hand, klappa tre gånger, spela in 10 s | Tre klick hittade; skelettet över klappbilden; vänster hand i vänsterfärgen; rutan där händerna möts ligger inom 2 rutor från klicket | 2 min |
+| T2 Klapprovet | Stå 3 m bort vänd mot kameran, håll **vänster** arm rakt ut åt sidan, klicka tre gånger med höger hand mot låret, spela in 10 s | Tre klick hittade; linjerna över bilden vid klicket; den fyllda pricken (axel och handled) sitter på armen du lyfte, till höger i bilden; rutan där handen slår ligger inom 2 rutor från klicket | 2 min |
 | T3 Importen | Hämta IMG_1050 ur Bilder (oktober, framifrån) | 14 slag, "154 bilder/s" och domen "sving" på alla | 1 min |
 | T4 Exporten | Exportera T3:s pass utan klipp till Filer | Zip-filen i Filer → SwingLab → Export | 1 min |
 
@@ -1376,8 +1377,8 @@ bilder/s och tappade rutor, och en serie med tre klapp ger tre klick i kvittot.
 slag med domen och miniatyren vid träffen med skelettet ritat, mätt
 `msPerFrame`. Simulatorprovets steg 6–7.
 
-**Klart när:** T2 godkänt (vänster rätt, orienteringen rätt, klappen inom 2
-rutor från klicket), och oktobers 41 slag har domen "sving" och leder, med 0
+**Klart när:** T2 godkänt (den fyllda pricken på den lyfta vänstra armen,
+orienteringen rätt, handens slag inom 2 rutor från klicket), och oktobers 41 slag har domen "sving" och leder, med 0
 falska slag. Avviker domen kalibreras MS5 här, med siffrorna i METOD.
 
 **Byggt (grenen `s2e`).** SwingLabKit `Capture/Shots.swift`: `ShotRecord` (slagen i
@@ -1395,15 +1396,29 @@ med förloppet). Domen ändras med en meny på raden. METOD MS12.
 
 | Var | Vad |
 |---|---|
-| Linux (`CaptureTests/SlagTests`) | slagen ur klicken och id:n, ordningen och återupptagningen, Johannes ändrade dom, fönstren, personvalet och domen genom en serie med en granne i bild, rutor utan person, Visions punkter till pixlar, avrundningen, klippets kontroll, `msPerFrame`, linjerna vid träffen, listans rader, ett gammalt `pass.json` utan slag |
-| Simulatorn (`Prov/SwingLabProvSlag`) | steg 6: passthrough-klippet, klicket i klippet på den vita rutan (−0,44 ms från väntat); steg 7: Vision går inte att starta i simulatorn (kod 9, även på CPU), så provet prövar `VisionPoseSource`s läsning fram till anropet (varje ruta, egen tid, lagrad bild, EXIF 6, alla leder `null` utan personer), att Visions fel är ett Vision-fel och att analysen då stannar synligt utan dom; kedjan: `Analysis` på ett pass ur filmen med påhittade leder (`DemoLeder`) i Visions ställe: domen, `Leder/s01.json`, `Klipp/s01.mov`, passet, ett avbrott som syns och fortsätter, Johannes ändrade dom, och listan ritad (`slag.png`, `traff.png`) |
+| Linux (`CaptureTests/SlagTests`) | slagen ur klicken och id:n (räknaren som aldrig går bakåt), Visions konfidens (kandidater, median, max, vald person), ordningen och återupptagningen, Johannes ändrade dom, fönstren, personvalet och domen genom en serie med en granne i bild, rutor utan person, Visions punkter till pixlar, avrundningen, klippets kontroll, `msPerFrame`, linjerna vid träffen, listans rader, ett gammalt `pass.json` utan slag |
+| Simulatorn (`Prov/SwingLabProvSlag`) | vägen: importen av en påhittad film som serie, kvittot (240, 33 % utan varning) med Continue, passet i startvyns lista med Analyze, analysen som publicerar passet efter varje steg, domarna, lederna, klippet och Visions konfidens; steg 6: passthrough-klippet, klicket i klippet på den vita rutan (−0,44 ms från väntat); steg 7: Vision går inte att starta i simulatorn (kod 9, även på CPU), så provet prövar `VisionPoseSource`s läsning fram till anropet (varje ruta, egen tid, lagrad bild, EXIF 6, alla leder `null` utan personer), att Visions fel är ett Vision-fel och att analysen då stannar synligt utan dom; kedjan: `Analysis` på ett pass ur filmen med påhittade leder (`DemoLeder`) i Visions ställe: domen, `Leder/s01.json`, `Klipp/s01.mov`, passet, ett avbrott som syns och fortsätter, Johannes ändrade dom, och listan ritad (`slag.png`, `traff.png`) |
 | Bara telefonen | Visions leder: att en person hittas, vänster och höger, orienteringen, `msPerFrame` på riktigt (T2); domen på oktobers 41 slag (S2h) |
 
-**T2 på 2 minuter:** Nytt pass (FO, 3 m) → stå i bild, lyft vänster hand och klappa
-tre gånger → stopp → Close → passet i listan → Analyze. Se: tre slag (klappen ger
+**T2 på 2 minuter:** Nytt pass (FO, 3 m) → stå i bild vänd mot kameran, håll vänster
+arm rakt ut åt sidan och klicka tre gånger med höger hand mot låret → stopp → Continue
+(i kvittot, eller uppe till vänster) → passet → Analyze. Se: tre slag (klicken ger
 troligen "Not a swing", det är rätt), tryck på domen och välj "Swing" på ett, Analyze
-igen; miniatyren visar axel- och höftlinjen över dig, den fyllda pricken på din
-vänstra handled, och raden under rubriken visar ms/frame.
+igen; tryck på miniatyren: axel- och höftlinjen över dig, och den fyllda pricken (axeln
+och handleden) sitter på armen du lyfte, till höger i bilden. Den ihåliga sitter på
+höger sida. Raderna under rubriken visar ms/frame, kandidaterna per ruta,
+observationernas konfidens (median, max) och andelen rutor med en vald person (MS8).
+
+**Vägen från kvittot (granskningen efter första TestFlight-bygget).** Importen
+stannade vid kvittot: det fanns inget steg efter. Nu leder Continue från importens
+kvitto, från kvittot efter en serie och från knappen uppe till vänster (Continue när
+passet har en serie) till passet med slaglistan och Analyze; passet står i startvyns
+lista från första sparade serie. "Next set" i kvittot går tillbaka till kameran.
+Listan fylls under analysen (`Analysis.pass` publiceras efter varje sparat steg), ett
+fel vid sparningen stoppar analysen synligt, och slagens nummer kommer ur passets
+räknare (`lastShotNumber`), som aldrig går bakåt. Simulatorprovet går vägen import →
+kvitto → pass → analys med påhittade leder (`testImportenTillPassetOchAnalysen`,
+bilderna `import`, `import-pass`, `import-analys`).
 
 ### S2f — Paketet och vägen tillbaka
 

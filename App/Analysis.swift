@@ -12,12 +12,16 @@ import Capture
 ///
 /// I förgrunden med skärmen på, ett steg i taget, och passet sparas efter varje steg:
 /// avbryts appen fortsätter analysen nästa gång från första slag som saknar något.
-/// Ett fel stoppar analysen på slaget och visas; ingenting sväljs. BESLUT B25. METOD MS12
+/// Passet publiceras efter varje sparning (`pass`), så att listan fylls under analysen.
+/// Ett fel stoppar analysen på slaget och visas, även när passet inte gick att spara;
+/// ingenting sväljs. BESLUT B25. METOD MS12
 @MainActor
 @Observable
 final class Analysis {
     private(set) var running = false
     private(set) var step: AnalysisStep?
+    /// Passet som det senast sparades, för listan under analysen.
+    private(set) var pass: PassState?
     /// Slagets plats i listan och antalet slag ("Shot 7 of 23").
     private(set) var shotNumber = 0
     private(set) var shotTotal = 0
@@ -33,6 +37,12 @@ final class Analysis {
 
     var fraction: Double { total > 0 ? min(1, (Double(done) + stepFraction) / Double(total)) : 0 }
 
+    /// Sparar passet och publicerar det; ett fel kastas (analysen stannar). BESLUT B25
+    private func persist(_ p: PassState, _ store: Store) throws {
+        try store.write(p)
+        pass = p
+    }
+
     /// Kör alla steg som saknas och svarar passet som det står på disken efteråt.
     @discardableResult
     func run(passID: String, store: Store, source: PoseSource = VisionPoseSource()) async -> PassState? {
@@ -41,36 +51,44 @@ final class Analysis {
         problem = nil
         lastError = nil
         stepsRun = []
+        self.pass = pass
         UIApplication.shared.isIdleTimerDisabled = true
         defer {
             running = false
             step = nil
             UIApplication.shared.isIdleTimerDisabled = false
         }
-        pass.shots = ShotPlan.sync(pass)
-        store.save(pass)
-        while let next = ShotPlan.next(pass), !Task.isCancelled {
-            step = next
-            stepFraction = 0
-            let p = ShotPlan.progress(pass)
-            done = p.done
-            total = p.total
-            shotNumber = next.shot + 1
-            shotTotal = pass.shots.count
-            do {
-                pass = try await perform(next, pass: pass, store: store, source: source)
-            } catch {
-                lastError = error
-                problem = String(localized: "Shot \(shotNumber) could not be analyzed: \(error.localizedDescription)")
-                store.save(pass)
-                return pass
+        do {
+            pass.syncShots()
+            try persist(pass, store)
+            while let next = ShotPlan.next(pass), !Task.isCancelled {
+                step = next
+                stepFraction = 0
+                let p = ShotPlan.progress(pass)
+                done = p.done
+                total = p.total
+                shotNumber = next.shot + 1
+                shotTotal = pass.shots.count
+                do {
+                    pass = try await perform(next, pass: pass, store: store, source: source)
+                } catch {
+                    lastError = error
+                    problem = String(localized: "Shot \(shotNumber) could not be analyzed: \(error.localizedDescription)")
+                    try? persist(pass, store)
+                    return pass
+                }
+                stepsRun.append(next)
+                try persist(pass, store)
             }
-            stepsRun.append(next)
-            store.save(pass)
-        }
-        if ShotPlan.next(pass) == nil, pass.status == .recorded {
-            pass.status = .analyzed
-            store.save(pass)
+            if ShotPlan.next(pass) == nil, pass.status == .recorded {
+                pass.status = .analyzed
+                try persist(pass, store)
+            }
+        } catch {
+            // Passet gick inte att spara: analysen stannar här och säger det.
+            lastError = error
+            problem = String(localized: "pass.json could not be saved.")
+            return store.load(passID)
         }
         let p = ShotPlan.progress(pass)
         done = p.done
@@ -103,7 +121,7 @@ final class Analysis {
             let series = PoseTrack.series(scan.frames, click: shot.click.time, width: serie.uprightWidth,
                                           height: serie.uprightHeight)
             var stats = pass.vision ?? VisionStats()
-            stats.add(scan)
+            stats.add(scan, picked: series.frames.filter { $0.confidence >= PoseRules.observationConfidence }.count)
             pass.vision = stats
             if case .sparse = step {
                 pass.shots[i].verdict = SwingCheck.verdict(series)
@@ -161,9 +179,9 @@ enum ShotImages {
         var url = store.url(serie.file, in: pass.id)
         var t = shot.impact
         if !FileManager.default.fileExists(atPath: url.path) {
-            guard let clip = shot.clip, let start = shot.clipStart else { return nil }
+            guard let clip = shot.clip, let at = clipTime(shot) else { return nil }
             url = store.url(clip, in: pass.id)
-            t = shot.impact - start
+            t = at
         }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let g = AVAssetImageGenerator(asset: AVURLAsset(url: url))
@@ -172,6 +190,13 @@ enum ShotImages {
         g.requestedTimeToleranceAfter = .zero
         g.maximumSize = maxSize
         return try await g.image(at: CMTime(seconds: max(0, t), preferredTimescale: 48_000)).image
+    }
+
+    /// Träffen i klippets tid: utgår från klicket som mättes i klippet (var passthrough-
+    /// klippet börjar är inte dokumenterat), annars från den begärda starten. METOD MS12
+    static func clipTime(_ shot: ShotRecord) -> Double? {
+        if let k = shot.clickInClip { return k + (shot.impact - shot.click.time) }
+        return shot.clipStart.map { shot.impact - $0 }
     }
 
     /// Linjerna vid träffen ur slagets leder, eller nil före det täta passet.

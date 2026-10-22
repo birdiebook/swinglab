@@ -448,12 +448,35 @@ värden i `CaptureTests`.
   (granskningens simulering). Med förfiningen ger 0,5 s, 3 s och 10 s med 36 %
   tappade i skurar om 1,5 och 60 % i skurar om 2 och 5 rutnätet 240 i 50 av 50
   (`InspelningTests`, tiderna som `tools/pc/tre_d/kamera.py`). **räkning.**
+- **Den kända frekvensen** (S2e, efter Johannes första import 2026-10-22: kvittot
+  visade **239** på ett slowmotion-original i 240). Orsaken: regeln ovan svarar den
+  uppmätta klockan avrundad, och en klocka som går **0,25 %** långsamt (239,4)
+  avrundas till 239; 238,5 gav 238–239 och 241,5 gav 241–242 (9 s, 36 % tappade,
+  tidsskalorna 600 och 90 000; `testKlockanSomGarFelGerAnda240` visar att den gamla
+  regeln gav 239). Skakning avrundas bort och var inte orsaken (likformig ±0,5 ms gav
+  240). Nu: de kända frekvenserna **24, 25, 30, 48, 50, 60, 100, 120, 240** som ligger
+  inom **±10 %** från skattningen ovan prövas i stigande ordning (så att 120 inte tas
+  för en film i 40). För var och en: den frekvens inom **±1 %** vars faser
+  `2π·t·g` har den längsta medelvektorn på filens första **1 s** (steg om **0,1**
+  varv), sedan minsta kvadrat `t = a + n/g` med rutornas nummer `n = round((t − a)·g)`
+  på ett fönster som dubblas till hela filen, så att en klocka som går fel följs utan
+  att numren glider. Rutnätet är den kända frekvensen när den anpassade klockan ligger
+  inom ±1 % och fasernas medelvektor är minst **0,5** (skakning med sd σ ger
+  exp(−2π²σ²g²): 0,5 vid σ ≈ 0,78 ms i 240); annars gäller skattningen ovan, avrundad.
+  Den anpassade klockan sparas (`measuredRate`) och ger andelen tappade. Provat
+  (`InspelningTests`, påhittade tider som `skurtider`): klockan 240, 239,4, 238,5 och
+  241,5 i tidsskalorna 600, 90 000 och utan, 3 s och 9 s, 36 % tappade i skurar,
+  skakning 0 och ±0,5 ms (och ±0,8 ms utan tidsskalan 600): 240 i 1 280 av 1 280,
+  klockan inom 0,05; 29,97 → 30 och 119,88 → 120; 200, 90, 40 och 300 behåller sitt
+  rutnät. **räkning** (metoden), **antagande** (gränserna ±1 % och 0,5).
 - **Gränsen för skakning:** tidernas skakning (sd) upp till **0,3 ms** ger
-  rutnätet exakt; **0,5 ms** ger 239–241; **0,8 ms** ger 244–342 och rutnätet är
-  då fel (simulering, 300 påhittade filer om 3 s med 36 % tappade). Kamerans
-  tider kommer ur filens tidsskala, inte en klocka med skakning; skulle
-  telefonen visa mer än 0,3 ms omprövas regeln. **antagande** (telefonens skakning).
-- Andelen tappade = `1 − antal / ((sista − första) · rutnät + 1)`.
+  rutnätet exakt med de korta stegen; **0,5 ms** ger 239–241; **0,8 ms** ger 244–342
+  (simulering, 300 påhittade filer om 3 s med 36 % tappade). Med den kända
+  frekvensen ger likformig skakning ±0,5 ms i tidsskalan 600 (sd ≈ 0,5 ms med
+  avrundningen) 240; ±0,8 ms i tidsskalan 600 gav 246 i 1 av 20 (simulering).
+  **antagande** (telefonens skakning).
+- Andelen tappade = `1 − antal / ((sista − första) · klocka + 1)`, med den uppmätta
+  klockan (`measuredRate`; rutnätet när den saknas).
   **Slowmotion** = rutnät ≥ **100** bilder/s; under det är en import omräknad och
   vägras (S2_SPEC §5). **antagande** (gränsen).
 - **Flimret** = `sqrt(a² + b²) / c` ur en minsta kvadrat-anpassning av
@@ -545,6 +568,12 @@ värden i `CaptureTests`.
   (H) som den högsta, och den vars höfters mitt ligger närmast bildens mitt i x
   väljs; sedan den vars höfters mitt ligger närmast föregående ruta. Grannen
   längre bort är mindre i bild. **antagande.**
+- **Synligt på telefonen** (S2e, för att kunna kalibrera gränsen 0,6): raden under
+  ms/frame i passet visar kandidaterna per analyserad ruta, observationernas
+  konfidens som median (på en hundradel, ur en räkning per hundradel; nedre medianen
+  vid jämnt antal) och max, och andelen analyserade rutor där en person valdes
+  (`VisionStats`). Gränsen står kvar tills telefonens tal (T2, oktobers 41 slag) säger
+  annat. **räkning.**
 
 ## MS9 — Klockorna
 
@@ -579,8 +608,13 @@ värden i `CaptureTests`.
 ## MS11 — Kvittot, trycket och disken
 
 - **Kvittot** efter varje serie (S2_SPEC §12 S2c): rutnätets frekvens (vit när
-  den når 240 − 0,5, gul under, röd under 100 = inte slowmotion, MS1 och MS3),
-  tappade rutor (gränserna i MS3), antal rutor, klicken (gul vid noll), filens
+  den når 240 − 0,5, gul under, röd under 100 = inte slowmotion, MS1 och MS3), med
+  den uppmätta klockan inom parentes när den skiljer minst **0,05** ("240 (239.4)"),
+  tappade rutor efter källan: en egen inspelning med gränserna i MS3 (under 1 %
+  vitt), ett importerat original ur Kamera-appen vitt upp till **45 %**, gult
+  **45–55 %**, rött över (Kamera-appens slowmotion-original tappar 30–40 %:
+  oktobers klipp 36 %, **mätt** i Golf SG HANDLED_PLAN; Johannes första import
+  36 %; gränserna **antagande**), antal rutor, klicken (gul vid noll), filens
   storlek per minut i MB (10⁶ byte, `byte / längd · 60`), längden och det högsta
   värmetrycket under serien. **räkning**; storleken per minut mäts på telefonen
   i S2c (S2_SPEC §2.6 antog några hundra MB i 1080p 240 HEVC).
@@ -617,7 +651,10 @@ värden i `CaptureTests`.
   [−2,5; +1,5] s) och klippet. Fönstren kapas vid filens början och slut. Varje
   steg avgörs av det som står i `pass.json`, så att en avbruten analys
   fortsätter från första slag som saknar något. Ett slags id (`s01` …) ges en
-  gång och återanvänds aldrig. **räkning.**
+  gång och återanvänds aldrig: numret kommer ur passets räknare
+  (`lastShotNumber`), som aldrig går bakåt, även när slaget med det högsta numret
+  försvinner. Passet sparas efter varje steg; går det inte att spara stannar
+  analysen och säger det. **räkning.**
 - **Personen genom serien** (`PoseTrack`): PosePicker (MS8) per ruta, med
   föregående rutas höfter. En ruta utan säker person behålls med 13 saknade
   leder, så att tiden och andelen hela rutor (MS5) syns. Lederna sparas
@@ -647,8 +684,13 @@ värden i `CaptureTests`.
   s gav klicket 0,44 ms före det väntade, på den vita rutan, och längden 1,5000
   s, men filen bär 260 rutor till 1,617 s: rutorna efter redigeringens slut
   följer med (**mätt**, påhittad film). Den som läser klippet utan att avkoda
-  (`MediaReader.frameTimes`, PC:n i S2f/S3) ska därför bara räkna rutorna inom
-  klippets längd. `AVAssetReader.timeRange` är halvöppet: rutan exakt på
+  (`MediaReader.frameTimes`, PC:n i S2f och S3) räknar därför bara klippets rutor
+  i **[0; längd)** i båda ändar: ingen ruta före 0 och ingen på eller efter längden,
+  samma halvöppna fönster som läsaren.
+- **Miniatyren ur klippet** (när originalet är borttaget, BESLUT B26): träffen i
+  klippets tid = klicket mätt i klippet + (träffen − klicket i serien), inte den
+  begärda starten, eftersom var passthrough-klippet börjar inte är dokumenterat.
+  Saknas klicket i klippet gäller den begärda starten. **räkning.** `AVAssetReader.timeRange` är halvöppet: rutan exakt på
   fönstrets slut kommer inte med (**mätt**, 240 av 241). **Visions leder själva provas bara på telefonen** (T2, och
   oktobers 41 slag i S2h).
 

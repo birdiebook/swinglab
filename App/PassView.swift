@@ -17,13 +17,19 @@ struct PassShotsView: View {
     @State private var images: [String: CGImage] = [:]
     @State private var overlays: [String: ImpactOverlay] = [:]
     @State private var job: Task<Void, Never>?
+    /// Slaget vars miniatyr visas stor.
+    @State private var enlarged: ShotID?
+
+    struct ShotID: Identifiable {
+        let id: String
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 if let pass {
                     ShotsContent(pass: pass, images: images, overlays: overlays, analysis: AnalysisState(analysis),
-                                 onAnalyze: analyze, onVerdict: setVerdict)
+                                 onAnalyze: analyze, onVerdict: setVerdict, onThumb: { enlarged = ShotID(id: $0) })
                         .padding(20)
                 }
             }
@@ -38,6 +44,18 @@ struct PassShotsView: View {
         .preferredColorScheme(.dark)
         .task { reload() }
         .onDisappear { job?.cancel() }
+        // Listan fylls under analysen: passet efter varje sparat steg.
+        .onChange(of: analysis.pass) { _, p in
+            guard let p else { return }
+            pass = p
+            Task { await loadImages(p) }
+        }
+        .sheet(item: $enlarged) { s in
+            if let pass, let shot = pass.shots.first(where: { $0.id == s.id }) {
+                ImpactLarge(pass: pass, shot: shot, overlay: overlays[s.id])
+                    .environment(store)
+            }
+        }
     }
 
     private func reload() {
@@ -67,7 +85,7 @@ struct PassShotsView: View {
     /// får den tomma ytan (vyn visar då bara linjerna, eller inget).
     private func loadImages(_ p: PassState) async {
         for s in p.shots where s.verdict != nil {
-            if let o = ShotImages.overlay(shot: s, pass: p, store: store) { overlays[s.id] = o }
+            if overlays[s.id] == nil, let o = ShotImages.overlay(shot: s, pass: p, store: store) { overlays[s.id] = o }
             if images[s.id] == nil, let img = try? await ShotImages.impactFrame(pass: p, shot: s, store: store) {
                 images[s.id] = img
             }
@@ -107,6 +125,7 @@ struct ShotsContent: View {
     var editable = true
     var onAnalyze: () -> Void = {}
     var onVerdict: (SwingVerdict, String) -> Void = { _, _ in }
+    var onThumb: (String) -> Void = { _ in }
 
     var body: some View {
         let rows = ShotRow.rows(pass)
@@ -121,6 +140,12 @@ struct ShotsContent: View {
             }
             if let ms = n.msPerFrame {
                 Under(text: String(localized: "\(ms) ms/frame"))
+            }
+            // Vad Vision såg: kandidater per ruta, observationernas konfidens och andelen
+            // rutor med en vald person (gränsen 0,6, METOD MS8).
+            if let v = ShotRow.visionDetail(pass) {
+                Under(text: String(localized: "\(v.candidates) per frame · confidence \(v.median) median, \(v.max) max · person \(v.person)"))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if pass.orientationSuspect {
                 Text("Orientation suspect")
@@ -145,7 +170,7 @@ struct ShotsContent: View {
             VStack(spacing: 0) {
                 ForEach(rows) { row in
                     ShotRowView(row: row, image: images[row.id], overlay: overlays[row.id], editable: editable,
-                                onVerdict: { onVerdict($0, row.id) })
+                                onVerdict: { onVerdict($0, row.id) }, onThumb: { onThumb(row.id) })
                 }
             }
         }
@@ -168,11 +193,20 @@ struct ShotRowView: View {
     let overlay: ImpactOverlay?
     var editable = true
     var onVerdict: (SwingVerdict) -> Void = { _ in }
+    var onThumb: () -> Void = {}
+
+    /// Miniatyren: stor nog att se vilken axel som är fylld; ett tryck visar den stor.
+    static let thumbSize = CGSize(width: 81, height: 144)
 
     var body: some View {
         HStack(spacing: 14) {
-            ImpactThumb(image: image, overlay: overlay)
-                .frame(width: 54, height: 96)
+            if editable {
+                Button(action: onThumb) { thumb }
+                    .buttonStyle(.plain)
+                    .disabled(image == nil && overlay == nil)
+            } else {
+                thumb
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: "\(row.number)")
                     .typsnitt(22, .medium, siffror: true)
@@ -193,6 +227,11 @@ struct ShotRowView: View {
         .padding(.vertical, 10)
         .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
         .accessibilityElement(children: .combine)
+    }
+
+    private var thumb: some View {
+        ImpactThumb(image: image, overlay: overlay)
+            .frame(width: Self.thumbSize.width, height: Self.thumbSize.height)
     }
 
     private var detail: String {
@@ -228,8 +267,9 @@ struct ShotRowView: View {
 }
 
 /// Rutan vid träffen med de uppmätta linjerna (BESLUT B13: ingen figur): axellinjen,
-/// höftlinjen, och handlederna med personens vänstra fylld och högra ihålig, så att
-/// vänster och höger syns i klapprovet (T2).
+/// höftlinjen och handlederna. Personens vänstra axel och handled är fyllda, de högra
+/// ihåliga, så att vänster och höger syns med ögat (klapprovet T2: den fyllda axeln
+/// sitter på armen som lyfts).
 struct ImpactThumb: View {
     let image: CGImage?
     let overlay: ImpactOverlay?
@@ -252,26 +292,58 @@ struct ImpactThumb: View {
             func p(_ q: ImpactOverlay.Point) -> CGPoint {
                 CGPoint(x: r.minX + CGFloat(q.x) * r.width, y: r.minY + CGFloat(q.y) * r.height)
             }
-            for linje in [o.shoulders, o.hips] where linje.count == 2 {
+            // Linjerna och prickarna växer med bilden (miniatyren och den stora).
+            let linje = max(1.5, r.width * 0.006)
+            let radie = max(3.5, r.width * 0.022)
+            for l in [o.shoulders, o.hips] where l.count == 2 {
                 var path = Path()
-                path.move(to: p(linje[0]))
-                path.addLine(to: p(linje[1]))
-                c.stroke(path, with: .color(Theme.text), lineWidth: 1.5)
+                path.move(to: p(l[0]))
+                path.addLine(to: p(l[1]))
+                c.stroke(path, with: .color(Theme.text), lineWidth: linje)
             }
-            let radie: CGFloat = 3
-            if let v = o.leftWrist {
-                let q = p(v)
-                c.fill(Path(ellipseIn: CGRect(x: q.x - radie, y: q.y - radie, width: 2 * radie, height: 2 * radie)),
-                       with: .color(Theme.text))
+            func prick(_ q: ImpactOverlay.Point, fylld: Bool) {
+                let m = p(q)
+                let ring = Path(ellipseIn: CGRect(x: m.x - radie, y: m.y - radie, width: 2 * radie, height: 2 * radie))
+                if fylld {
+                    c.fill(ring, with: .color(Theme.text))
+                } else {
+                    c.fill(ring, with: .color(Theme.cam))
+                    c.stroke(ring, with: .color(Theme.text), lineWidth: linje)
+                }
             }
-            if let h = o.rightWrist {
-                let q = p(h)
-                c.stroke(Path(ellipseIn: CGRect(x: q.x - radie, y: q.y - radie, width: 2 * radie, height: 2 * radie)),
-                         with: .color(Theme.text), lineWidth: 1.2)
+            if o.shoulders.count == 2 {
+                prick(o.shoulders[0], fylld: true)      // personens vänstra
+                prick(o.shoulders[1], fylld: false)
             }
+            if let v = o.leftWrist { prick(v, fylld: true) }
+            if let h = o.rightWrist { prick(h, fylld: false) }
         }
         .clipShape(.rect(cornerRadius: 2))
         .accessibilityHidden(true)
+    }
+}
+
+/// Rutan vid träffen i full storlek, med samma linjer. Läses ur filen i högre upplösning.
+struct ImpactLarge: View {
+    let pass: PassState
+    let shot: ShotRecord
+    let overlay: ImpactOverlay?
+
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var image: CGImage?
+
+    var body: some View {
+        ImpactThumb(image: image, overlay: overlay)
+            .ignoresSafeArea(edges: .bottom)
+            .background(Theme.cam, ignoresSafeAreaEdges: .all)
+            .contentShape(.rect)
+            .onTapGesture { dismiss() }
+            .preferredColorScheme(.dark)
+            .task {
+                image = try? await ShotImages.impactFrame(pass: pass, shot: shot, store: store,
+                                                          maxSize: CGSize(width: 1080, height: 1920))
+            }
     }
 }
 

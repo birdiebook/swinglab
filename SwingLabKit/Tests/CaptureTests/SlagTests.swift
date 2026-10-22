@@ -26,7 +26,7 @@ final class SlagTests: XCTestCase {
 
     func testSlagenFarIdITidsordningOchTraffenUrAvstandet() {
         var p = Self.pass(klick: [[12.0, 4.0], [3.0]])
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         XCTAssertEqual(p.shots.map(\.id), ["s01", "s02", "s03"])
         XCTAssertEqual(p.shots.map(\.series), [1, 1, 2])
         XCTAssertEqual(p.shots.map(\.click.time), [4.0, 12.0, 3.0])
@@ -37,13 +37,13 @@ final class SlagTests: XCTestCase {
 
     func testEttIdAterAnvandsAldrigOchGjortArbeteBehalls() {
         var p = Self.pass(klick: [[4.0, 12.0]])
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         p.shots[1].verdict = .swing
         p.shots[1].joints = ShotRecord.jointsPath("s02")
         // Serien läses om: klicket vid 4 s försvinner, ett nytt kommer vid 20 s, och 12 s
         // ligger kvar inom en millisekund.
         p.series[0].clicks = [Click(time: 12.0004, strength: 50), Click(time: 20, strength: 40)]
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         XCTAssertEqual(p.shots.map(\.id), ["s02", "s03"])
         XCTAssertEqual(p.shots[0].verdict, .swing)
         XCTAssertEqual(p.shots[0].joints, "Leder/s02.json")
@@ -53,13 +53,36 @@ final class SlagTests: XCTestCase {
         XCTAssertNil(ShotRecord.number("x1"))
     }
 
+    /// Räknaren går aldrig bakåt: när slaget med det högsta numret försvinner får nästa
+    /// nya klick ändå ett nytt nummer, och räknaren sparas i pass.json. METOD MS12
+    func testRaknarenGarAldrigBakat() throws {
+        var p = Self.pass(klick: [[4.0, 12.0]])
+        p.syncShots()
+        XCTAssertEqual(p.lastShotNumber, 2)
+        p.series[0].clicks = [Click(time: 4.0, strength: 50)]
+        p.syncShots()
+        XCTAssertEqual(p.shots.map(\.id), ["s01"])
+        XCTAssertEqual(p.lastShotNumber, 2)
+        p.series[0].clicks.append(Click(time: 20, strength: 40))
+        p.syncShots()
+        XCTAssertEqual(p.shots.map(\.id), ["s01", "s03"])
+        XCTAssertEqual(p.lastShotNumber, 3)
+        let igen = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(p))
+        XCTAssertEqual(igen, p)
+        // Ett pass.json utan räknaren: det högsta numret bland slagen.
+        var d = try JSONSerialization.jsonObject(with: PassCoding.encoder().encode(p)) as! [String: Any]
+        d.removeValue(forKey: "lastShotNumber")
+        let gammal = try PassCoding.decoder().decode(PassState.self, from: JSONSerialization.data(withJSONObject: d))
+        XCTAssertEqual(gammal.lastShotNumber, 3)
+    }
+
     // MARK: Ordningen och återupptagningen
 
     /// Först domen på alla, sedan leder och klipp slag för slag; ett "inte slag" får
     /// inget av det, och en ändrad dom ger stegen som saknas (S2_SPEC §4.3, §6.4).
     func testOrdningenOchAterupptagningen() {
         var p = Self.pass(klick: [[4.0, 12.0, 20.0]])
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         XCTAssertEqual(ShotPlan.progress(p).done, 0)
         XCTAssertEqual(ShotPlan.progress(p).total, 9)
         var steg: [AnalysisStep] = []
@@ -90,7 +113,7 @@ final class SlagTests: XCTestCase {
 
     func testFonstrenHallerSigIFilen() throws {
         var p = Self.pass(klick: [[1.0, 29.0]], langd: 30)
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         let url = URL(fileURLWithPath: "/tmp/x.mov")
         let gles = try XCTUnwrap(ShotPlan.request(.sparse(0), pass: p, file: url))
         XCTAssertEqual(gles.from, 0)
@@ -223,6 +246,41 @@ final class SlagTests: XCTestCase {
         XCTAssertEqual(v.denseStride, 1)
     }
 
+    /// Visions konfidens syns (MS8): kandidater per ruta, observationernas median och max,
+    /// och andelen rutor med en vald person. Ett pass.json utan fälten läses med nollor.
+    func testVisionsKonfidensSyns() throws {
+        func k(_ c: Double) -> PoseFrame {
+            PoseFrame(t: 0, pts: 0, joints: Array(repeating: nil, count: JointSeries.names.count), confidence: c)
+        }
+        var v = VisionStats()
+        XCTAssertNil(v.confidenceMedian)
+        let rutor = [ScannedFrame(pts: 0, candidates: [k(0.9), k(0.3)]), ScannedFrame(pts: 0.1, candidates: [k(0.8)]),
+                     ScannedFrame(pts: 0.2, candidates: []),
+                     ScannedFrame(pts: 0.3, candidates: [k(0.95), k(0.5), k(0.2)])]
+        v.add(PoseScan(frames: rutor, decodedFrames: 4, visionSeconds: 0.04, wallSeconds: 0.05), picked: 3)
+        XCTAssertEqual(v.candidates, 6)
+        XCTAssertEqual(v.candidatesPerFrame ?? 0, 1.5, accuracy: 1e-12)
+        XCTAssertEqual(v.confidenceMedian ?? 0, 0.5, accuracy: 1e-12)
+        XCTAssertEqual(v.confidenceMax ?? 0, 0.95, accuracy: 1e-12)
+        XCTAssertEqual(v.pickedFraction ?? 0, 0.75, accuracy: 1e-12)
+
+        var p = Self.pass(klick: [[4.0]])
+        XCTAssertNil(ShotRow.visionDetail(p))
+        p.vision = v
+        let d = try XCTUnwrap(ShotRow.visionDetail(p))
+        XCTAssertEqual([d.candidates, d.median, d.max, d.person], ["1.5", "0.50", "0.95", "75%"])
+
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(v)) as! [String: Any]
+        for nyckel in ["candidates", "pickedFrames", "confidenceCounts", "confidenceMax"] {
+            XCTAssertNotNil(json.removeValue(forKey: nyckel), nyckel)
+        }
+        let gammal = try JSONDecoder().decode(VisionStats.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(gammal.candidates, 0)
+        XCTAssertEqual(gammal.confidenceCounts.count, 101)
+        XCTAssertNil(gammal.confidenceMedian)
+        XCTAssertEqual(gammal.msPerFrame ?? 0, 10, accuracy: 1e-9)
+    }
+
     // MARK: Linjerna vid träffen
 
     func testLinjernaVidTraffen() throws {
@@ -259,7 +317,7 @@ final class SlagTests: XCTestCase {
         XCTAssertEqual(gammal.series, p.series)
 
         var q = p
-        q.shots = ShotPlan.sync(q)
+        q.syncShots()
         q.shots[0].verdict = .uncertain
         q.vision = VisionStats()
         let igen = try PassCoding.decoder().decode(PassState.self, from: PassCoding.encoder().encode(q))
@@ -268,7 +326,7 @@ final class SlagTests: XCTestCase {
 
     func testListansRaderOchOrienteringen() {
         var p = Self.pass(klick: [[4.0, 12.26, 20.0]])
-        p.shots = ShotPlan.sync(p)
+        p.syncShots()
         p.shots[0].verdict = .swing
         p.shots[1].verdict = .uncertain
         p.shots[0].clipFlagged = false
