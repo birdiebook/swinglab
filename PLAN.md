@@ -48,8 +48,8 @@ Ett Swift-paket med bara Foundation, testat på Linux i Actions:
   definition, grönt spann och övning. Varje gräns bär sin källa och status.
   Där ingen källa har samma definition som vi är gränsen den egna baslinjen
   (X-factor, klubbmåtten, sway gap). Första gränserna: bäckenets sway vid
-  toppen ≥ 0 grönt, −5…0 gult, under −5 cm rött; höfterna öppna vid träffen
-  35–45°; tempo 2,5–3,1. Samma fil läses av PC:n.
+  toppen ≥ 0 grönt, −5…0 gult, under −5 cm rött; tempo 2,5–3,1. Samma fil
+  läses av PC:n.
 - **Sessionen**: median, spridning och trend per mått, och skillnaden mot förra
   passet.
 
@@ -116,7 +116,8 @@ och varje pass mot minst 10 kända punkter på mattan (Pose2Sims metod,
 BSD-3). Lederna trianguleras till 3D. Väntat fel 3–5°, men bara mätt på gång,
 löpning och hopp. Det ger
 bäckenets och bröstets vridning, X-factor, X-factor stretch och höfterna
-öppna vid träffen. X-factor visas som egen trend, inte mot en gradgräns
+öppna vid träffen, med gränsen 35–45° grönt (Sportsbox, GolfTEC och Zheng
+möts, research 1 §1.7). X-factor visas som egen trend, inte mot en gradgräns
 (metoderna skiljer sig med cirka 16°), och stretchen före X-factor vid toppen,
 eftersom den oftare hänger ihop med klubbfarten.
 
