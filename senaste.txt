@@ -1,20 +1,20 @@
-6a1b5f4f29efda6757450cc5bd13b4e2da77d5c5 s2b 2026-10-22T12:00:10Z run 39774718987
+13e15ed4a085e31e3de8922b4df9578ed84ce4bd main 2026-10-22T12:01:59Z run 39774946472
 == swift-release
-GRÖNT: 66 test, 0 fel, 3 s i testerna, bygget 17 s
+GRÖNT: 66 test, 0 fel, 3 s i testerna, bygget 19 s
 Långsammast (av 66):
       0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.1 s  SessionTests.testSammanfattningenSomPython
-      0.1 s  KlickTests.testEnImpulsGerAnsatsen47ProvFore
-      0.1 s  KatalogTests.testEttFaltSomSaknasFalls
-      0.1 s  VardenaTests.testExponeringenDomarna
+      0.1 s  KatalogTests.testBaslinjen
+      0.1 s  TvaTelefonerTests.testDriften
+      0.1 s  SessionTests.testPercentilenOchMedianen
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
       0.0 s  KlickTests.testTvaKlickNaraBlirEtt
       0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
       0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
       0.0 s  MattTests.testVansterspelarenRaknasSomHoger
-      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
+      0.0 s  SessionTests.testJamforelsenSomPython
 
