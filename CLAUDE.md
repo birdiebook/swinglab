@@ -37,7 +37,8 @@ från `birdiebook/arbetssatt`: ändra där och synka, aldrig i kopian.
   `python3 -m unittest discover -s tools/tests`.
 - **Appen i `App/` är ett tunt SwiftUI-skal** (från S2). Xcode-projektet
   genereras ur `project.yml` (XcodeGen) och är gitignorerat. `kompilera.yml`
-  bygger den för simulatorn och kör `Prov/` vid varje push som rör appen
+  arkiverar den för telefonen som TestFlight (utan signering), bygger den för
+  simulatorn och kör `Prov/` vid varje push som rör appen
   (BESLUT B20), gratis: `git show origin/ci-resultat:resultat/<sha>.kompilera.txt`,
   och startvyn som `resultat/<sha>.startvy.png`.
 - **TestFlight** byggs i GitHub Actions på macOS, gratis eftersom repot är

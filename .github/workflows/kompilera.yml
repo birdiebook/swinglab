@@ -1,6 +1,8 @@
 # Kompileringsprovet och simulatorprovet (BESLUT B20, S2_SPEC §10.2). Utan Mac
 # kompileras App-koden annars först i TestFlight-bygget. Repot är publikt, så
-# GitHubs macOS-maskin kostar inget (BESLUT B7).
+# GitHubs macOS-maskin kostar inget (BESLUT B7). Två byggen: arkivet för telefonen
+# i TestFlights konfiguration (Release, utan signering), och simulatorbygget som
+# provet körs i (Release med ENABLE_TESTABILITY).
 #
 # Resultatet läses utan gh, på grenen ci-resultat (som test.yml, men egen fil så
 # att de två inte skriver över varandra):
@@ -33,19 +35,31 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: XcodeGen 2.46.0 (låst version, kontrollerad summa)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
       - name: Generera Xcode-projektet
+        id: gen
         run: |
           xcodebuild -version | head -1 > xcode.txt
-          brew install xcodegen
+          xcodegen --version
           xcodegen generate
 
-      - name: Bygg som TestFlight, utan signering
+      - name: Arkivera för telefonen som TestFlight (Release, utan signering)
         run: |
           set -o pipefail
-          xcodebuild build -project SwingLab.xcodeproj -scheme SwingLab -configuration Release \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO 2>&1 | tee bygg.log
+          xcodebuild archive -project SwingLab.xcodeproj -scheme SwingLab -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/SwingLab.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee arkiv.log
 
-      - name: Simulatorprovet
+      - name: Bygg för simulatorn och kör provet (Release med ENABLE_TESTABILITY, som Idunn)
+        # Körs även när arkiveringen föll, så att resultatet visar båda.
+        if: always() && steps.gen.outcome == 'success'
         run: |
           set -o pipefail
           # Den nyaste iOS-körtiden med en iPhone (appen kräver iOS 18.2).
@@ -64,7 +78,8 @@ jobs:
           sys.exit("ingen iPhone med iOS 18.2 eller senare")
           ' 2>sim.txt)
           cat sim.txt
-          xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -destination "id=$UDID" 2>&1 | tee prov.log
+          xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
+            -destination "id=$UDID" ENABLE_TESTABILITY=YES 2>&1 | tee prov.log
 
       - name: Lägg sammanfattningen på ci-resultat
         if: always()
@@ -74,14 +89,14 @@ jobs:
           {
             echo "${GITHUB_SHA} ${GITHUB_REF_NAME} $(date -u +%FT%TZ) run ${GITHUB_RUN_ID} kompilera"
             echo "$(cat xcode.txt 2>/dev/null || echo 'Xcode okänd') · $(cat sim.txt 2>/dev/null || echo 'ingen simulator')"
-            echo "== bygg (Release, simulatorn, utan signering)"
-            if [ ! -f bygg.log ]; then
-              echo "RÖTT: ingen bygglogg (föll ett steg före bygget)"
-            elif grep -q '\*\* BUILD SUCCEEDED \*\*' bygg.log; then
-              echo "GRÖNT: BUILD SUCCEEDED"
+            echo "== arkiv (telefonen, Release, utan signering: TestFlights bygge)"
+            if [ ! -f arkiv.log ]; then
+              echo "RÖTT: ingen arkivlogg (föll ett steg före arkiveringen)"
+            elif grep -q '\*\* ARCHIVE SUCCEEDED \*\*' arkiv.log; then
+              echo "GRÖNT: ARCHIVE SUCCEEDED"
             else
-              echo "RÖTT: bygget gick inte igenom"
-              grep -E 'error:|\*\* BUILD FAILED \*\*' bygg.log | head -30 || true
+              echo "RÖTT: arkiveringen gick inte igenom"
+              grep -E 'error:|\*\* ARCHIVE FAILED \*\*' arkiv.log | head -30 || true
             fi
             echo
             if [ ! -f prov.log ]; then
@@ -113,6 +128,6 @@ jobs:
         with:
           name: kompilera-loggar
           path: |
-            bygg.log
+            arkiv.log
             prov.log
           if-no-files-found: ignore

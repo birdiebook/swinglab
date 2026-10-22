@@ -2,8 +2,9 @@
 
 Förslagen F1–F15 ur [S2_SPEC.md](S2_SPEC.md) står sedan S2a i
 [docs/BESLUT.md](BESLUT.md) som B15–B29, i samma ordning: **Fn är B(n+14)**.
-B20 (F6, kompileringsprovet) och B21 (F7, två telefoner) gäller; övriga prövas
-tills telefonproven har visat att de håller. Ändra dem där, inte här.
+B20 (F6, kompileringsprovet) och B21 (F7, två telefoner) gäller; B16 (F2,
+slutartiden) och B26 (F12, originalen) väntar på Johannes; övriga prövas tills
+telefonproven har visat att de håller. Ändra dem där, inte här.
 
 | Förslag | Beslut | | Förslag | Beslut |
 |---|---|---|---|---|

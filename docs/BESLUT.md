@@ -147,8 +147,9 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
 ---
 
 Besluten B15–B29 kommer ur S2:s förslag F1–F15 ([S2_SPEC.md](S2_SPEC.md)), i
-samma ordning (Fn blev B(n+14)). B20 och B21 har Johannes ja; övriga **prövas**
-tills telefonproven (S2_SPEC §11.3) har visat att de håller.
+samma ordning (Fn blev B(n+14)). B20 och B21 har Johannes ja. B16 (slutartiden)
+och B26 (originalen) **väntar** på Johannes. Övriga är tekniska val som
+arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11.3).
 
 ## B15 — Inspelningen med `AVCaptureMovieFileOutput`
 *2026-10-22 · prövas · S2_SPEC §2.1 · S2:s förslag F1*
@@ -167,7 +168,7 @@ tills telefonproven (S2_SPEC §11.3) har visat att de håller.
   telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B16 — Exponeringen mäts med auto och låses på 1/2000 s
-*2026-10-22 · prövas · S2_SPEC §2.3–2.4 · S2:s förslag F2*
+*2026-10-22 · väntar (Johannes: slutartiden, S2_SPEC §13.3) · S2_SPEC §2.3–2.4 · S2:s förslag F2*
 
 - **Valt:** autoexponeringen får taket 1/2000 s (`activeMaxExposureDuration`) och
   mäter ljuset. Sedan låses tid och ISO med `setExposureModeCustom`, med talen
@@ -179,6 +180,8 @@ tills telefonproven (S2_SPEC §11.3) har visat att de håller.
   flyttar varje ruta olika, vilket stör lederna och S6:s kalibrering).
 - **Kostnad:** ett ljus som ändras under passet (moln utomhus) rättas inte.
   Ljusprovet görs om vid behov.
+- **Väntar:** 1/2000 s (BESLUT B11) eller kortare; 1/4000 s halverar oskärpan
+  men kräver dubbelt ljus. Johannes beslut.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B17 — Formatet väljs i SwingLabKit
@@ -308,7 +311,7 @@ tills telefonproven (S2_SPEC §11.3) har visat att de håller.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B26 — Lagringen
-*2026-10-22 · prövas · S2_SPEC §8.1 · S2:s förslag F12*
+*2026-10-22 · väntar (Johannes: originalen, S2_SPEC §13.5) · S2_SPEC §8.1 · S2:s förslag F12*
 
 - **Valt:** allt i Application Support per pass; video och klipp utanför
   iCloud-backupen; exporten i `Documents/Export`, synlig i Filer och i Apple

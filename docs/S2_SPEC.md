@@ -12,7 +12,7 @@ push. Ett kompileringsfel kostar då en push, inte en dag.
 
 **Besluten** F1–F15 står sedan S2a i `docs/BESLUT.md` som B15–B29 (Fn är
 B(n+14), tabellen i [S2_BESLUT_FORSLAG.md](S2_BESLUT_FORSLAG.md)). B20 (F6) och
-B21 (F7) gäller, övriga prövas. Koden hänvisar med B-numret (`tools/kolla_metod.py`
+B21 (F7) gäller, B16 (F2) och B26 (F12) väntar på Johannes, övriga prövas. Koden hänvisar med B-numret (`tools/kolla_metod.py`
 fäller en `// BESLUT Bn` utan rubrik). **METOD-förslagen** (konstanter och algoritmer) står i §11 och
 flyttas till `docs/METOD.md` på samma sätt.
 
@@ -1320,7 +1320,10 @@ Läs §9 för filerna och §11.2 för testerna.
   ikonen, `kompilera.yml` (§10.2) med de första stegen i simulatorprovet som
   inte kräver senare etapper (provmålet startar appen), `testflight.yml`
   (§10.3), README:s "Första gången" (som Airtime).
-- Föreslagna beslut som Johannes sagt ja till förs in i `docs/BESLUT.md`.
+- F1–F15 förs in i `docs/BESLUT.md` som B15–B29. Det Johannes sagt ja till
+  gäller (B20, B21); det som är Johannes beslut och obesvarat väntar (B16
+  slutartiden, §13.3; B26 originalen, §13.5); övriga är arkitektens tekniska
+  val och prövas, och omprövas efter telefonproven (§11.3).
 
 **Klart när:** `kompilera` är grönt på GitHub, Johannes har gjort sin del i
 README, och efter hans ja ligger ett bygge i TestFlight som öppnar startvyn.

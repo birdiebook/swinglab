@@ -84,7 +84,8 @@ schemes:
         SwingLab: all
         SwingLabProv: [test]
     test:
-      config: Debug
+      # Release som TestFlight; kompilera.yml sätter ENABLE_TESTABILITY=YES (som Idunn).
+      config: Release
       language: sv
       region: SE
       targets:
