@@ -231,9 +231,11 @@ pass; och vyn visar läget (markör eller trend).
 
 **Gjort:** `tools/pc/tva_kameror.py` gör passets två paket (DTL och FO) till 3D:
 slagen paras på `par.json` eller klicken, lederna läggs på träffens tid, kamerorna
-kalibreras själva ur passets leder (lodlinjen ur det nya valfria fältet
-`serier[].lodlinje`, annars kamerornas vågräta), synken finjusteras per slag på
-återprojektionen, lederna trianguleras, och bäckenets och axlarnas vridning,
+kalibreras själva ur lederna en gång per uppställning (serie mot serie), med
+brännvidden ur seriens synfält och lodlinjen ur det nya valfria fältet
+`serier[].lodlinje` (annars kamerornas vågräta), en uppställning över spärren för
+Sampson-felet mäts inte, synken finjusteras per slag på återprojektionen, lederna
+trianguleras, och bäckenets och axlarnas vridning,
 X-factor, stretchen och höfterna vid träffen blir passets median över minst 10 slag,
 märkt "utan markörer". `session.py` skriver `tre_d` i `analys.json`, måtten står i
 `katalog_3d.json` (bara PC:n, BESLUT B37), minnet bär trenden pass för pass och
@@ -242,7 +244,8 @@ METOD MK1–MK8, BESLUT B37–B39.
 
 **Facit (påhittat):** `generera_paket.py --tva` filmar 3D-svingar ur `tre_d/sving.py`
 med två kameror och felbudgetens brus, och skriver paketen och de sanna måtten.
-Utan brus ligger passets median inom 0,5° och varje slag inom 1°. Med brus ligger
+Utan brus ligger passets median inom 0,5° och varje slag inom 1°, även för en
+vänsterspelare, med FO som styrande och med en annan brännvidd än specifikationens. Med brus ligger
 passets median inom felbudgetens gräns (|bias| + 3 SD, S6_FELBUDGET §6.7); uppmätt
 över 24 pass per nivå står i §6.7. Självkalibreringen kostar mest i bröstet: med
 typiskt brus är kalibreringens fel 5° i snitt, upp till 14° (B38).

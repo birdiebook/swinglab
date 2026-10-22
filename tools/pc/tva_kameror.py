@@ -8,9 +8,10 @@ Kedjan är simuleringens (`tre_d/`, docs/S6_FELBUDGET.md), på telefonernas pake
    säger `osaker`, paras klicken utan förhandsvärde.
 2. **Tiden** (METOD MK2): varje telefons leder läggs på träffens tid (klicket
    minus ljudets väg, METOD MT1), så att synken på klicket är gjord.
-3. **Kalibreringen** (METOD MK3, BESLUT B38): kamerorna kalibreras själva ur lederna över
-   hela passet (åttapunktsmetoden och Sampson-felet), med brännvidden ur
-   specifikationen och lodlinjen ur manifestet eller kamerornas vågräta.
+3. **Kalibreringen** (METOD MK3, BESLUT B38): kamerorna kalibreras själva ur lederna,
+   en gång per uppställning (serie mot serie, åttapunktsmetoden och Sampson-felet),
+   med brännvidden ur seriens synfält och lodlinjen ur manifestet eller kamerornas
+   vågräta. En uppställning över spärren hoppas över.
 4. **Synken** (METOD MK4) finjusteras per slag på minsta återprojektionsfel,
    och kalibreringen görs om med den.
 5. **Trianguleringen** (METOD MK5): utjämning på varje kameras egna tider och
@@ -43,6 +44,7 @@ KALIB_PAR = 5000               # METOD MK3: högst så många punktpar (slumpat,
 KALIB_STEG_S = 1 / 60          # METOD MK3: tidsaxeln för kalibreringens punktpar
 KALIB_VARV = 2                 # METOD MK4: kalibrering → synk, två varv
 VINKEL_OK = (60.0, 120.0)      # METOD MK3: vinkeln mellan kamerorna som felbudgeten godtar (§6.4)
+SAMPSON_MAX_PX = 8.0           # METOD MK3: spärren, Sampson-felets median i px på 1920 px långsida
 SYNK_SOK_S = 0.0105            # METOD MK4: ±1,5 × klickets ±7 ms
 SYNK_SOK2_S = 0.003            # METOD MK4: andra varvet söker så nära det första
 SYNK_STEG_S = 0.0005           # METOD MK4: sökningens steg
@@ -52,11 +54,12 @@ HALVBREDD_2D = 0.04            # METOD MK5: 2D-spåren (S6_FELBUDGET §6.6)
 HALVBREDD_VINKEL = 0.03        # METOD MK5: vinkelkurvorna före måtten
 RUTNAT_S = 1 / 240             # METOD MK5: den gemensamma tidsaxeln
 KANT_S = 0.05                  # METOD MK5: så mycket av varje ände av slagets tid lämnas utanför
+MIN_RUTOR = 10                 # METOD MK5: färre rutor i en vy (eller på den gemensamma axeln) = slaget hoppas över
 MIN_SLAG = 10                  # METOD MK7, BESLUT B14: passets median kräver minst 10 slag
 # METOD MK7: en skillnad mellan två pass är tydlig först över √2 × passmedianens SD
 # för kedjan på paketen (typiskt brus, 24 påhittade pass, S6_FELBUDGET §6.7), eftersom
 # kamerornas läge, kalibreringen och posemodellens fasta avvikelse byts mellan passen. Grader.
-TREND_GOLV = {"backen_vrid_topp": 15.7, "brost_vrid_topp": 13.6, "xfaktor_topp": 19.2, "xfaktor_stretch": 7.9,
+TREND_GOLV = {"backen_vrid_topp": 15.7, "brost_vrid_topp": 13.6, "xfaktor_topp": 19.2, "xfaktor_stretch": 8.1,
               "hofter_oppna_traff": 8.3}
 SNABBA = [I["v_handled"], I["h_handled"], I["v_armbage"], I["h_armbage"]]
 
@@ -180,12 +183,20 @@ def spar(p: Paket, s: Slag) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return t[unika], uv[unika], k[unika]
 
 
-def K_ur_bilden(lederna: dict) -> np.ndarray:
-    """Brännvidden ur specifikationen, skalad med bildens långsida, och
-    huvudpunkten i mitten. METOD MK3"""
-    w, h = lederna["width"], lederna["height"]
-    f = F_PX_1920 * max(w, h) / 1920.0
-    return np.array([[f, 0.0, w / 2], [0.0, f, h / 2], [0.0, 0.0, 1.0]])
+def K_for(p: Paket, s: Slag) -> tuple[np.ndarray, str]:
+    """Slagets K ur dess egen bild: brännvidden ur seriens synfält i manifestet
+    (`format.synfalt`), annars enhet.json:s valda format, annars specifikationen
+    (1444 px på 1920 px långsida). Synfältet är vågrätt över den liggande bildens
+    långsida, som är den upprätta bildens långsida. Huvudpunkten i mitten.
+    Svarar K och källan. METOD MK3"""
+    w, h = s.lederna["width"], s.lederna["height"]
+    lang = max(w, h)
+    f, kalla = F_PX_1920 * lang / 1920.0, "specifikationen"
+    for k, sf in (("serien", p.serier[s.serie].synfalt), ("enhet.json", p.enhet_synfalt)):
+        if sf is not None:
+            f, kalla = (lang / 2) / math.tan(math.radians(sf[2]) / 2), k
+            break
+    return np.array([[f, 0.0, w / 2], [0.0, f, h / 2], [0.0, 0.0, 1.0]]), kalla
 
 
 # --- 3–5. kalibreringen, synken och trianguleringen -------------------------------
@@ -216,17 +227,30 @@ def _upp_i_kamera(lodlinje) -> np.ndarray | None:
     return v / np.linalg.norm(v)
 
 
-def kalibrera(slagen: list[dict], forsk: list[float], KA, KB, uppA=None, uppB=None):
-    """Kamerorna ur alla slagens leder ihop (kamerorna står still under passet).
-    FO är kamera A, DTL kamera B. Lodlinjen: FO:s ur manifestet, annars DTL:s
-    vriden till A, annars kamerornas vågräta. METOD MK3"""
-    delar = [_jamnade(d, f, KALIB_STEG_S) for d, f in zip(slagen, forsk)]
-    a = np.concatenate([x[1] for x in delar])
-    ka = np.concatenate([x[2] for x in delar])
-    b = np.concatenate([x[3] for x in delar])
-    kb = np.concatenate([x[4] for x in delar])
+def _normera(uv: np.ndarray, K: np.ndarray) -> np.ndarray:
+    return np.column_stack([uv, np.ones(len(uv))]) @ np.linalg.inv(K).T
+
+
+def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
+    """Kamerorna för en uppställning (en serie per telefon) ur dess slags leder ihop.
+    Varje slags punkter normeras med slagets egen K. FO är kamera A, DTL kamera B.
+    Lodlinjen: FO:s ur manifestet, annars DTL:s vriden till A, annars kamerornas
+    vågräta. Svarar (R, t, upp i A:s ram, info). METOD MK3"""
+    x1, x2, w = [], [], []
+    for d, f in zip(slagen, forsk):
+        _, a, ka, b, kb = _jamnade(d, f, KALIB_STEG_S)
+        ok = np.isfinite(a).all(-1) & np.isfinite(b).all(-1) & (ka > KALIB_KONF) & (kb > KALIB_KONF)
+        x1.append(_normera(a[ok], d["KA"]))
+        x2.append(_normera(b[ok], d["KB"]))
+        w.append(np.sqrt(ka[ok] * kb[ok]))
+    x1, x2, w = np.concatenate(x1), np.concatenate(x2), np.concatenate(w)
+    if len(x1) > KALIB_PAR:
+        val = np.random.default_rng(0).choice(len(x1), KALIB_PAR, replace=False)
+        x1, x2, w = x1[val], x2[val], w[val]
+    f_px = float(np.median([d["KA"][0, 0] for d in slagen]))
+    lang = float(np.median([max(d["KA"][0, 2], d["KA"][1, 2]) * 2 for d in slagen]))
     try:
-        R, t, sampson = kal.relativ_ur_leder(KA, a, ka, KB, b, kb, KALIB_KONF, KALIB_PAR)
+        R, t, samp = kal.relativ_ur_normerade(x1, x2, w, f_px)
     except (ValueError, np.linalg.LinAlgError):
         raise TreDFel("kalibreringen: för få leder syns i båda vyerna") from None
     if uppA is not None and uppB is not None:
@@ -240,14 +264,19 @@ def kalibrera(slagen: list[dict], forsk: list[float], KA, KB, uppA=None, uppB=No
             upp, kalla = kal.upp_ur_vagrata(R), "kamerornas_vagrata"
         except ValueError:
             raise TreDFel("kalibreringen: kamerorna står för nära samma riktning") from None
-    kamA, kamB = kal.varld(KA, KB, R, t, upp)
+    kamA, kamB = kal.varld(np.eye(3), np.eye(3), R, t, upp)
     # Vinkeln mellan blickriktningarna i markplanet (uppställningen, S6_FELBUDGET §6.4).
     fa, fb = kamA.R[2].copy(), kamB.R[2].copy()
     fa[2] = fb[2] = 0.0
     vinkel = math.degrees(math.acos(float(np.clip(fa @ fb / (np.linalg.norm(fa) * np.linalg.norm(fb)), -1, 1))))
-    info = {"lodlinje": kalla, "sampson_px": round(float(sampson), 2), "vinkel_mellan_kamerorna": round(vinkel, 1),
-            "vinkel_ok": VINKEL_OK[0] <= vinkel <= VINKEL_OK[1]}
-    return kamA, kamB, info
+    info = {"lodlinje": kalla, "sampson_px": round(samp * f_px * 1920.0 / lang, 2),
+            "vinkel_mellan_kamerorna": round(vinkel, 1), "vinkel_ok": VINKEL_OK[0] <= vinkel <= VINKEL_OK[1]}
+    return R, t, upp, info
+
+
+def kameror(d: dict, R, t, upp):
+    """Slagets två kameror: uppställningens läge med slagets egen K."""
+    return kal.varld(d["KA"], d["KB"], R, t, upp)
 
 
 def synka(kamA, kamB, d: dict, mitt: float = 0.0, sok: float = SYNK_SOK_S) -> float:
@@ -285,66 +314,101 @@ def _start(rad_fo: dict | None, rad_dtl: dict | None, d: dict, forsk: float) -> 
     return None
 
 
-def matt(t: np.ndarray, P: np.ndarray, t_start: float, hand: str) -> dict:
-    """Måtten ur 3D-lederna på träffens tid (träffen = 0). En vänsterspelare speglas,
-    så att vridningen bort från målet är positiv för båda. METOD MK6"""
+def matt(t: np.ndarray, P: np.ndarray, t_start: float, hand: str) -> dict | str:
+    """Måtten ur 3D-lederna på träffens tid (träffen = 0), eller skälet till att de
+    saknas. Adressens fönster och träffen ska ligga inom slagets tidsaxel (annars
+    hålls ett ändvärde fast). En vänsterspelare speglas, så att vridningen bort från
+    målet är positiv för båda. METOD MK6"""
+    adress = (t_start + F.ADRESS[0], t_start + F.ADRESS[1])
+    if not (len(t) and t[0] <= adress[0] and t[-1] >= 0.0):
+        return "adressen eller träffen ligger utanför slagets tid"
     if hand == "vanster":
         P = P.copy()
         P[..., 0] *= -1
-    adress = (t_start + F.ADRESS[0], t_start + F.ADRESS[1])
     m = M3.svingmatt(P, t, t_start, 0.0, adress, topp="hander", utjamna=HALVBREDD_VINKEL)
     return {namn: m[k] for namn, k in MATT.items() if np.isfinite(m[k])}
 
 
 # --- hela passet -------------------------------------------------------------------
 
+def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[dict, list[dict]]:
+    """En uppställning (en DTL-serie mot en FO-serie): kalibreringen i två varv med
+    synken, spärren och måtten per slag. Svarar (info, slagens rader). METOD MK3, MK4"""
+    sd, sf = grupp[0]["dtl"].serie, grupp[0]["fo"].serie
+    info = {"serie": {"dtl": sd, "fo": sf}, "slag": len(grupp),
+            "f_kalla": {"dtl": grupp[0]["fKB"], "fo": grupp[0]["fKA"]}}
+    fel = [x for x in (fo.serier[sf].lodlinje_fel, dtl.serier[sd].lodlinje_fel) if x]
+    if fel:
+        info["lodlinje_fel"] = fel
+    uppA, uppB = _upp_i_kamera(fo.serier[sf].lodlinje), _upp_i_kamera(dtl.serier[sd].lodlinje)
+    forsk = [0.0] * len(grupp)
+    try:
+        for varv in range(KALIB_VARV):
+            R, t, upp, _ = kalibrera(grupp, forsk, uppA, uppB)
+            sok = SYNK_SOK_S if varv == 0 else SYNK_SOK2_S
+            forsk = [synka(*kameror(d, R, t, upp), d, f, sok) for d, f in zip(grupp, forsk)]
+        R, t, upp, k = kalibrera(grupp, forsk, uppA, uppB)
+    except TreDFel as e:
+        info["hoppat"] = str(e)
+        return info, []
+    info.update(k)
+    if k["sampson_px"] > SAMPSON_MAX_PX:
+        info["hoppat"] = "kalibreringen: Sampson-felet är över spärren"
+        return info, []
+    ut = []
+    for d, f in zip(grupp, forsk):
+        r = {"dtl": d["dtl"].id, "fo": d["fo"].id, "serie": {"dtl": sd, "fo": sf}, "synk_ms": round(f * 1000, 1)}
+        t_start = _start(rad.get(("fo", d["fo"].id)), rad.get(("dtl", d["dtl"].id)), d, f)
+        if t_start is None:
+            r["fel"] = "faserna saknas i båda vyerna"
+            ut.append(r)
+            continue
+        tg, P, rep = triangulera(*kameror(d, R, t, upp), d, f)
+        r["aterprojektion_px"] = round(rep, 1) if math.isfinite(rep) else None
+        m = matt(tg, P, t_start, dtl.spelhand)
+        r["matt" if isinstance(m, dict) else "fel"] = m
+        ut.append(r)
+    return info, ut
+
+
 def analysera(dtl: Paket, fo: Paket, rader: list[dict]) -> dict:
-    """3D för passet: parningen, kalibreringen, måtten per slag och passets trend.
-    `rader` är 2D-analysens slag (analys.mat_paket) för båda paketen. METOD MK1–MK7"""
+    """3D för passet: parningen, en kalibrering per uppställning (serie mot serie),
+    måtten per slag och passets trend. `rader` är 2D-analysens slag
+    (analys.mat_paket) för båda paketen. METOD MK1–MK7"""
     par, parning = para_slag(dtl, fo)
     rad = {(r["vy"], r["id"]): r for r in rader}
-    slagen = []
+    grupper: dict[tuple[int, int], list[dict]] = {}
     for sd, sf in par:
         if sd.dom not in MATS or sf.dom not in MATS or sd.detection_wrong or sf.detection_wrong \
                 or sd.lederna is None or sf.lederna is None:
             continue
         tA, uvA, kA = spar(fo, sf)
         tB, uvB, kB = spar(dtl, sd)
-        if len(tA) < 10 or len(tB) < 10 or len(_rutnat(tA, tB)) < 10:
+        if min(len(tA), len(tB), len(_rutnat(tA, tB))) < MIN_RUTOR:
             continue
-        slagen.append({"dtl": sd, "fo": sf, "tA": tA, "uvA": uvA, "kA": kA, "tB": tB, "uvB": uvB, "kB": kB,
-                       "traffA": traff_i_serien(fo, sf), "traffB": traff_i_serien(dtl, sd)})
-    if not slagen:
+        (KA, fKA), (KB, fKB) = K_for(fo, sf), K_for(dtl, sd)
+        grupper.setdefault((sd.serie, sf.serie), []).append(
+            {"dtl": sd, "fo": sf, "tA": tA, "uvA": uvA, "kA": kA, "tB": tB, "uvB": uvB, "kB": kB, "KA": KA, "KB": KB,
+             "fKA": fKA, "fKB": fKB, "traffA": traff_i_serien(fo, sf), "traffB": traff_i_serien(dtl, sd)})
+    if not grupper:
         raise TreDFel("parningen: inga slag som båda telefonerna filmat och som går att mäta")
-    KA, KB = K_ur_bilden(slagen[0]["fo"].lederna), K_ur_bilden(slagen[0]["dtl"].lederna)
-    sf0, sd0 = slagen[0]["fo"], slagen[0]["dtl"]
-    uppA = _upp_i_kamera(fo.serier[sf0.serie].lodlinje)
-    uppB = _upp_i_kamera(dtl.serier[sd0.serie].lodlinje)
-    forsk = [0.0] * len(slagen)
-    for varv in range(KALIB_VARV):
-        kamA, kamB, kalib = kalibrera(slagen, forsk, KA, KB, uppA, uppB)
-        sok = SYNK_SOK_S if varv == 0 else SYNK_SOK2_S
-        forsk = [synka(kamA, kamB, d, f, sok) for d, f in zip(slagen, forsk)]
-    kamA, kamB, kalib = kalibrera(slagen, forsk, KA, KB, uppA, uppB)
-
-    ut_slag = []
-    for d, f in zip(slagen, forsk):
-        r = {"dtl": d["dtl"].id, "fo": d["fo"].id, "serie": {"dtl": d["dtl"].serie, "fo": d["fo"].serie},
-             "synk_ms": round(f * 1000, 1)}
-        t_start = _start(rad.get(("fo", d["fo"].id)), rad.get(("dtl", d["dtl"].id)), d, f)
-        if t_start is None:
-            r["fel"] = "faserna saknas i båda vyerna"
-            ut_slag.append(r)
-            continue
-        t, P, rep = triangulera(kamA, kamB, d, f)
-        r["aterprojektion_px"] = round(rep, 1) if math.isfinite(rep) else None
-        r["matt"] = matt(t, P, t_start, dtl.spelhand)
-        ut_slag.append(r)
+    kalib, ut_slag, osaker = [], [], []
+    for nyckel in sorted(grupper):
+        info, ut = _uppstallning(dtl, fo, grupper[nyckel], rad)
+        kalib.append(info)
+        ut_slag += ut
+        namn = f"serie {nyckel[0]} (DTL) mot {nyckel[1]} (FO)"
+        if "hoppat" not in info and not info["vinkel_ok"]:
+            osaker.append(f"{namn}: vinkeln mellan kamerorna utanför {VINKEL_OK[0]:.0f}–{VINKEL_OK[1]:.0f}°")
+        if info.get("lodlinje_fel"):
+            osaker.append(f"{namn}: lodlinjen i manifestet användes inte")
+    if not ut_slag:
+        raise TreDFel("kalibreringen: ingen serie gick att kalibrera under spärren")
     matta = [r["matt"] for r in ut_slag if "matt" in r]
     sammanf = S.sammanfatta(matta)
     n = {m: sum(1 for x in matta if m in x) for m in MATT}
     return {"lage": LAGE, "min_slag": MIN_SLAG, "matt": list(MATT), "parning": parning, "kalibrering": kalib,
-            "slag": ut_slag, "n": n,
+            "osaker": osaker, "slag": ut_slag, "n": n,
             "session": {m: v for m, v in sammanf.items() if v["n"] >= MIN_SLAG}}
 
 

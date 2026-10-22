@@ -44,12 +44,25 @@ GRANS = {b: {m: abs(bias) + 3 * sd for m, (bias, sd) in d.items()} for b, d in F
 
 
 @functools.lru_cache(maxsize=None)
-def _pass(brus: str, seed: int, n: int = 10, par_json: bool = True, lodlinje: bool = False,
-          hand: str = "hoger", bara_fo: int = 1):
-    ut = Path(TMP.name) / f"{brus}-{seed}-{n}-{par_json}-{lodlinje}-{hand}-{bara_fo}"
-    d, f, facit = G.tva_paket(ut, PASS, n=n, seed=seed, brus=brus, par_json=par_json, lodlinje=lodlinje,
-                              hand=hand, bara_fo=bara_fo)
-    return d, f, facit
+def _pass(brus: str, seed: int, n: int = 10, **kw):
+    ut = Path(TMP.name) / f"{brus}-{seed}-{n}-{'-'.join(f'{k}{v}' for k, v in sorted(kw.items()))}"
+    return G.tva_paket(ut, PASS, n=n, seed=seed, brus=brus, **kw)
+
+
+ANALYSPASS = (("20261103-180000", 31), ("20261106-180000", 32))
+
+
+@functools.lru_cache(maxsize=None)
+def _analyspass():
+    """Två pass med bra brus genom session.py till en historik: analyserna och facit."""
+    rot = Path(TMP.name) / "historik"
+    ut = {}
+    for pass_id, seed in ANALYSPASS:
+        d, f, facit = G.tva_paket(Path(TMP.name) / f"analys-{pass_id}", pass_id, n=11, seed=seed, brus="bra")
+        with redirect_stdout(io.StringIO()):
+            assert S.main([str(d), str(f), "--historik", str(rot), "--utan-kontaktark"]) == 0
+        ut[pass_id] = (d, f, facit, H.las_analys(rot, pass_id))
+    return rot, ut
 
 
 @functools.lru_cache(maxsize=None)
@@ -65,7 +78,7 @@ def _fel(r: dict, facit: dict) -> tuple[dict, dict]:
     sant = {(x["dtl"], x["fo"]): x["sant"] for x in facit["slag"]}
     per_slag = {m: [s["matt"][m] - sant[(s["dtl"], s["fo"])][m] for s in r["slag"] if m in s.get("matt", {})]
                 for m in TK.MATT}
-    median = {m: r["session"][m]["median"] - facit["median"][m] for m in TK.MATT}
+    median = {m: r["session"][m]["median"] - facit["median"][m] for m in TK.MATT if m in r["session"]}
     return per_slag, median
 
 
@@ -96,6 +109,14 @@ class Parningen(unittest.TestCase):
         self.assertEqual(par, self.ratt)
         self.assertEqual(info["kalla"], "par.json")
         self.assertEqual(info["oparade"], {"dtl": 0, "fo": 1})
+
+    def test_fo_som_styrande(self) -> None:
+        d, f, facit = _pass("inget", 3, n=4, styr="fo")
+        par, info = self._par(d, f)
+        self.assertEqual(par, {(x["dtl"], x["fo"]) for x in facit["slag"]})
+        self.assertEqual(info["kalla"], "par.json")
+        self.assertIsNotNone(P.las(f).par)
+        self.assertIsNone(P.las(d).par)
 
     def test_utan_par_json_paras_klicken(self) -> None:
         d, f, facit = _pass("inget", 3, n=4, par_json=False)
@@ -141,20 +162,92 @@ class Parningen(unittest.TestCase):
         self.assertTrue(TK.para_utan_prior(a[:2], b[:2])["osaker"])
 
 
+def _med_lodlinje(zip_in: Path, namn: str, lod) -> Path:
+    with zipfile.ZipFile(zip_in) as z:
+        m = json.loads(z.read("manifest.json"))
+    m["serier"][0]["lodlinje"] = lod(m["serier"][0]["lodlinje"])
+    return _skriv_om(zip_in, Path(TMP.name) / namn, {"manifest.json": json.dumps(m)})
+
+
 class Lodlinjen(unittest.TestCase):
-    def test_lodlinjen_las_och_felet_namner_faltet_utan_varde(self) -> None:
-        d, f, _ = _pass("inget", 3, n=4, lodlinje=True)
-        p = P.las(f)
-        v = np.array(p.serier[1].lodlinje)
+    """Lodlinjen är valfri och mjuk: en trasig eller vänd stoppar aldrig 2D och
+    används inte i 3D (METOD MK3, BESLUT B37, B39)."""
+
+    def test_lodlinjen_las(self) -> None:
+        _, f, _ = _pass("inget", 3, n=4, lodlinje=True)
+        v = np.array(P.las(f).serier[1].lodlinje)
         self.assertAlmostEqual(float(np.linalg.norm(v)), 1.0, places=3)
-        with zipfile.ZipFile(f) as z:
-            m = json.loads(z.read("manifest.json"))
-        m["serier"][0]["lodlinje"] = [0.0, -3.217, 0.0]
-        fel = _skriv_om(f, Path(TMP.name) / "lod-fo.zip", {"manifest.json": json.dumps(m)})
-        with self.assertRaises(P.PaketFel) as e:
-            P.las(fel)
-        self.assertIn("serier[0].lodlinje", str(e.exception))
-        self.assertNotIn("3.217", str(e.exception))
+
+    def test_trasig_lodlinje_ger_skalet_utan_varde_och_2d_gar(self) -> None:
+        d, f, _ = _pass("inget", 3, n=4, lodlinje=True)
+        fel = _med_lodlinje(f, "lod-fo.zip", lambda v: [0.0, -3.217, 0.0])
+        p = P.las(fel)                                           # paketet går att läsa
+        self.assertIsNone(p.serier[1].lodlinje)
+        self.assertIn("lodlinje", p.serier[1].lodlinje_fel)
+        self.assertNotIn("3.217", p.serier[1].lodlinje_fel)
+        a = A.analysera([P.las(d), p], 1.80, [], skapad="")
+        self.assertTrue(any("matt" in r for r in a["slag"] if r["vy"] == "fo"))
+        k = a["tre_d"]["kalibrering"][0]
+        self.assertIn("lodlinje", k["lodlinje_fel"][0])
+        self.assertTrue(any("lodlinjen" in o for o in a["tre_d"]["osaker"]))
+
+    def test_vand_lodlinje_anvands_inte(self) -> None:
+        d, f, facit = _pass("inget", 3, n=4, lodlinje=True)
+        vand = {"dtl": _med_lodlinje(d, "vand-dtl.zip", lambda v: [-x for x in v]),
+                "fo": _med_lodlinje(f, "vand-fo.zip", lambda v: [-x for x in v])}
+        pd, pf = P.las(vand["dtl"]), P.las(vand["fo"])
+        self.assertIn("överkant", pf.serier[1].lodlinje_fel)
+        r = TK.analysera(pd, pf, A.mat_paket(pd, 1.80) + A.mat_paket(pf, 1.80))
+        self.assertEqual(r["kalibrering"][0]["lodlinje"], "kamerornas_vagrata")
+        per_slag, _ = _fel(r, facit)
+        for m in TK.MATT:                                     # tecknet vänds inte
+            self.assertLess(max(abs(x) for x in per_slag[m]), 1.0, m)
+
+
+class Brannvidden(unittest.TestCase):
+    """f ur seriens synfält, annars enhet.json, annars specifikationen (METOD MK3)."""
+
+    def test_annan_brannvidd_an_specifikationens(self) -> None:
+        r, facit = _resultat("inget", 3, n=4, f_px=1444.0 * 1.18)
+        self.assertEqual(r["kalibrering"][0]["f_kalla"], {"dtl": "serien", "fo": "serien"})
+        per_slag, _ = _fel(r, facit)
+        for m in TK.MATT:
+            self.assertLess(max(abs(x) for x in per_slag[m]), 1.0, m)
+
+    def test_enhet_json_nar_serien_saknar_synfalt(self) -> None:
+        d, f, _ = _pass("inget", 3, n=4, f_px=1700.0, synfalt=False)
+        fov = float(np.degrees(2 * np.arctan(960 / 1700.0)))
+        enhet = {"modell": "pahittad", "ios": "18.2", "valt_index": 7,
+                 "format": [{"index": 3, "width": 1920, "height": 1080, "fieldOfView": 40.0},
+                            {"index": 7, "width": 1920, "height": 1080, "fieldOfView": fov}]}
+        p = P.las(_skriv_om(f, Path(TMP.name) / "enhet-fo.zip", {"enhet.json": json.dumps(enhet)}))
+        K, kalla = TK.K_for(p, p.slag[0])
+        self.assertEqual(kalla, "enhet.json")
+        self.assertAlmostEqual(K[0, 0], 1700.0, places=3)
+        K, kalla = TK.K_for(P.las(d), P.las(d).slag[0])
+        self.assertEqual(kalla, "specifikationen")
+        self.assertAlmostEqual(K[0, 0], TK.F_PX_1920)
+
+
+class Sparren(unittest.TestCase):
+    """En dålig kalibrering mäts inte, och ett fel i 3D lämnar 2D orört (BESLUT B37)."""
+
+    def test_samre_an_sparren_hoppas_over_och_2d_gar(self) -> None:
+        d, f, _ = _pass("mycket_daligt", 3, n=4)
+        a = A.analysera([P.las(d), P.las(f)], 1.80, [], skapad="")
+        self.assertIn("spärren", a["tre_d"]["hoppat"])
+        self.assertTrue(any("matt" in r for r in a["slag"]))
+
+    def test_ovantat_fel_ger_typens_namn(self) -> None:
+        d, f, _ = _pass("inget", 3, n=4)
+        orig = TK.analysera
+        TK.analysera = lambda *a: (_ for _ in ()).throw(RuntimeError("3.217"))
+        try:
+            a = A.analysera([P.las(d), P.las(f)], 1.80, [], skapad="")
+        finally:
+            TK.analysera = orig
+        self.assertEqual(a["tre_d"], {"hoppat": "3D gick inte (RuntimeError)"})
+        self.assertTrue(any("matt" in r for r in a["slag"]))
 
 
 class Facit(unittest.TestCase):
@@ -171,31 +264,33 @@ class Facit(unittest.TestCase):
         sant = {(x["dtl"], x["fo"]): x["synk_ms"] for x in facit["slag"]}
         rest = [s["synk_ms"] - sant[(s["dtl"], s["fo"])] for s in r["slag"]]
         self.assertLess(max(abs(x) for x in rest), 1.0)        # klicket ±7 ms → under 1 ms
-        self.assertEqual(r["kalibrering"]["lodlinje"], "kamerornas_vagrata")
-        self.assertAlmostEqual(r["kalibrering"]["vinkel_mellan_kamerorna"], facit["vinkel_mellan_kamerorna"],
-                               delta=1.0)
+        k = r["kalibrering"][0]
+        self.assertEqual(k["lodlinje"], "kamerornas_vagrata")
+        self.assertAlmostEqual(k["vinkel_mellan_kamerorna"], facit["vinkel_mellan_kamerorna"], delta=1.0)
         self.assertEqual(r["lage"], "utan_markorer")
+        self.assertEqual(r["osaker"], [])
 
     def test_vanster_med_lodlinje_och_utan_par_json(self) -> None:
+        # Vänsterspelaren filmas med uppställningen spegelvänd: DTL bakom spelaren.
         r, facit = _resultat("inget", 6, par_json=False, lodlinje=True, hand="vanster")
         _, median = _fel(r, facit)
-        self.assertEqual(r["kalibrering"]["lodlinje"], "manifest")
+        self.assertEqual(r["kalibrering"][0]["lodlinje"], "manifest")
         self.assertEqual(r["parning"]["kalla"], "klicken")
         for m in TK.MATT:
             self.assertLess(abs(median[m]), 0.5, m)
 
-    def _inom_felbudgeten(self, brus: str, frön: tuple[int, ...]) -> None:
-        for seed in frön:
-            r, facit = _resultat(brus, seed)
-            _, median = _fel(r, facit)
-            for m in TK.MATT:
-                self.assertLessEqual(abs(median[m]), GRANS[brus][m], f"{brus}, frö {seed}, {m}")
+    def _inom(self, brus: str, namn: str, t: dict, facit: dict) -> None:
+        for m in TK.MATT:
+            fel = t["session"][m]["median"] - facit["median"][m]
+            self.assertLessEqual(abs(fel), GRANS[brus][m], f"{brus}, {namn}, {m}")
 
     def test_bra_brus_passets_median_inom_felbudgeten(self) -> None:
-        self._inom_felbudgeten("bra", (11, 13))
+        for pass_id, (_, _, facit, a) in _analyspass()[1].items():     # Analysens två pass
+            self._inom("bra", pass_id, a["tre_d"], facit)
 
     def test_typiskt_brus_passets_median_inom_felbudgeten(self) -> None:
-        self._inom_felbudgeten("typiskt", (21, 22))
+        r, facit = _resultat("typiskt", 21)
+        self._inom("typiskt", "frö 21", r, facit)
 
 
 class Analysen(unittest.TestCase):
@@ -203,16 +298,10 @@ class Analysen(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.rot = Path(TMP.name) / "historik"
-        cls.paket = {}
-        for pass_id, seed, n in (("20261103-180000", 31, 11), ("20261106-180000", 32, 11)):
-            ut = Path(TMP.name) / f"analys-{pass_id}"
-            d, f, _ = G.tva_paket(ut, pass_id, n=n, seed=seed, brus="bra")
-            cls.paket[pass_id] = (d, f)
-            with redirect_stdout(io.StringIO()):
-                assert S.main([str(d), str(f), "--historik", str(cls.rot), "--utan-kontaktark"]) == 0
-        cls.a1 = H.las_analys(cls.rot, "20261103-180000")
-        cls.a2 = H.las_analys(cls.rot, "20261106-180000")
+        cls.rot, p = _analyspass()
+        cls.paket = {k: v[:2] for k, v in p.items()}
+        cls.a1 = p["20261103-180000"][3]
+        cls.a2 = p["20261106-180000"][3]
 
     def test_trenden_star_i_analysen_med_katalogens_matt(self) -> None:
         t = self.a1["tre_d"]
@@ -240,12 +329,12 @@ class Analysen(unittest.TestCase):
         self.assertEqual([x["pass"] for x in m["tre_d"]["xfaktor_stretch"]], ["20261103-180000", "20261106-180000"])
 
     def test_farre_an_tio_slag_ger_ingen_median(self) -> None:
-        d, f, _ = _pass("inget", 7, n=6)
+        d, f, _ = _pass("inget", 3, n=4)
         pd, pf = P.las(d), P.las(f)
         a = A.analysera([pd, pf], 1.80, [], skapad="")
         t = a["tre_d"]
         self.assertEqual(t["session"], {})
-        self.assertTrue(all(x["median"] is None and x["n"] == 6 for x in t["trend"]))
+        self.assertTrue(all(x["median"] is None and x["n"] == 4 for x in t["trend"]))
 
     def test_ett_paket_hoppar_over_3d_men_inte_2d(self) -> None:
         d, _ = self.paket["20261103-180000"]

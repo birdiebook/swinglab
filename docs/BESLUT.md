@@ -587,7 +587,9 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   passets median över minst 10 slag (B14) och bedöms aldrig grönt, gult eller rött;
   de blir aldrig en sak i `att_jobba_pa.json`. En skillnad mot förra passet är tydlig
   först över ett golv per mått (METOD MK7). Går 3D inte (ett paket, för få slag i båda,
-  kalibreringen) står skälet i `tre_d.hoppat`, och 2D-analysen går som förut.
+  kalibreringen) står skälet i `tre_d.hoppat`, och 2D-analysen går som förut. Allt
+  3D-arbete, även katalogen, jämförelsen och trenden, ligger bakom ett enda skydd
+  (`analys.tre_d`): ett oväntat fel blir `hoppat` med typens namn, aldrig ett värde.
 - **Varför egen katalog:** `katalog.json` ligger ordagrant i Swift-fixturerna
   (`Fixturer.swift`, B12) och läses av appen, som kontrollerar varje mått mot sina vyer;
   ett nytt mått där kräver nya fixturer och en ny vy i SwingLabKit. Samma skäl som
@@ -600,24 +602,33 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   `katalog.json` och fixturerna.
 - **Omprövas:** när vyn i appen byggs, eller när markörerna ger mått per sving.
 
-## B38 — Självkalibrering ur lederna, per pass, med brännvidden ur specifikationen
+## B38 — Självkalibrering ur lederna per uppställning, brännvidden ur seriens synfält, och en spärr
 *2026-10-22 · prövas · METOD MK3, MK4 · S6_FELBUDGET §6.5*
 
 - **Valt:** kamerorna kalibreras ur passets egna leder (åttapunktsmetoden och
-  Sampson-felet), alla slag ihop eftersom stativen står still, med f ur
+  Sampson-felet), en gång per uppställning: en DTL-serie mot en FO-serie, eftersom
+  stativen kan flyttas mellan serierna. Varje slag har sin egen K, med brännvidden ur
+  seriens synfält i manifestet (`format.synfalt`), annars `enhet.json`, annars
   specifikationen. Synken finjusteras på återprojektionen och kalibreringen görs om
-  med den (två varv).
+  med den (två varv). En uppställning vars Sampson-fel är över spärren (8 px) mäts
+  inte, och vinkeln mellan kamerorna utanför 60–120° märks `osaker`.
 - **Varför:** paketen bär inga mattpunkter och ingen ChArUco-mätning än, och
   självkalibreringen kräver ingenting av Johannes. Utan brus är kedjan exakt (under
-  0,5° på passets median).
+  0,5° på passets median). Brännvidden går inte att skatta ur Sampson-felet: fel
+  brännvidd syns inte där men ger 4–9° på passets median vid −15 till +20 % (granskningen),
+  och telefonen skriver redan synfältet. Spärren hindrar att en dålig kalibrering blir
+  en trend.
 - **Bortvalt:** mattan (6–10 klickade punkter per pass): bäst i felbudgeten (0,2°),
   men kräver punkterna i paketet och ett verktyg att klicka dem. En kalibrering per
-  slag: sämre underlag och olika kameror inom samma pass.
+  slag: sämre underlag. Hela passet som en uppställning (första versionen av S6a):
+  fel när stativen flyttats mellan serierna. Brännvidden ur specifikationen alltid.
 - **Kostnad (uppmätt på facit):** med typiskt brus är kalibreringens vridningsfel i
   snitt 5°, upp till 14°, eftersom posemodellens fasta avvikelse per led böjer
   geometrin. Det höjer bröstets passmedian-SD från 6,4° (sanna kameror) till 9,6°.
-- **Omprövas:** när S3 mätt den fasta avvikelsen. Är den stor: mattan, eller en
-  utjämning där varje leds fasta avvikelse skattas med kamerorna.
+  Spärren släpper igenom "typiskt" brus (4,7 px) men stoppar "dåligt" (9,2 px).
+- **Omprövas:** när S3 mätt den fasta avvikelsen och riktiga pass visat Sampson-felet.
+  Är avvikelsen stor: mattan, eller en utjämning där varje leds fasta avvikelse
+  skattas med kamerorna.
 
 ## B39 — Lodlinjen: valfritt fält i manifestet, annars kamerornas vågräta
 *2026-10-22 · prövas · METOD MK3 · följdjobb för appen*
@@ -625,7 +636,10 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **Valt:** `serier[].lodlinje` i `manifest.json` (docs/FORMAT.md): uppåt (−gravitationen,
   i g) i kamerans ram i den upprätta bilden, valfritt. PC:n använder det när någon vy
   bär det. Utan det tas uppåt vinkelrätt mot båda bildernas x-axel, vilket antar att
-  ingen telefon lutar åt sidan.
+  ingen telefon lutar åt sidan. Fältet är **mjukt**: fel form eller längd, eller uppåt
+  som inte pekar mot bildens överkant, gör att det inte används (skälet i
+  `tre_d.kalibrering[]` och `tre_d.osaker`), men paketet och 2D går som förut (B37).
+  En vänd vektor vänder annars måtten tyst (höfterna vid träffen −36° mot +36°).
 - **Varför:** felbudgeten visar att 0,5–3° fel i lodlinjen inte syns (vridningen mäts
   mot adressen), så antagandet räcker tills appen skriver fältet.
 - **Följdjobb (appen, inte S6a):** spara `CMDeviceMotion.gravity` vid seriens start,

@@ -27,6 +27,7 @@ SLAG_ID = re.compile(r"^s\d{2,4}$")
 AVSTAND_M = (0.5, 20.0)                    # METOD MT1: rimligt avstånd telefon–boll
 KANT = 1e-6                                # METOD MS13: tolerans för utsnittets kant och fönstrets gränser
 LODLINJE_G = (0.8, 1.2)                    # METOD MK3: lodlinjens längd i g (accelerometern i vila), BESLUT B39
+SYNFALT_DEG = (10.0, 170.0)                # METOD MK3: ett vågrätt synfält utanför det är fel
 PAR_FORMAT = "swinglab-par/1"
 
 
@@ -67,6 +68,12 @@ class Serie:
     # Uppåt (−gravitationen) i kamerans ram i den upprätta bilden: x höger, y ned,
     # z framåt ur linsen. Valfri, nytt i S6a; appen skriver den inte än. METOD MK3
     lodlinje: tuple[float, float, float] | None = None
+    # Lodlinjen fanns men gick inte att använda: skälet, utan värden. Stoppar aldrig
+    # paketet (BESLUT B37, B39). METOD MK3
+    lodlinje_fel: str | None = None
+    # Seriens kameraformat ur manifestet (`format`: lagrad bredd och höjd, liggande, och
+    # vågrätt synfält i grader), när det finns och går att läsa. METOD MK3
+    synfalt: tuple[int, int, float] | None = None
 
 
 @dataclass
@@ -84,6 +91,8 @@ class Paket:
     # om den fanns men inte gick att läsa, skälet (utan värden). METOD MK1
     par: dict | None = None
     par_fel: str | None = None
+    # enhet.json: det valda formatets (bredd, höjd, synfält), när det går att läsa. METOD MK3
+    enhet_synfalt: tuple[int, int, float] | None = None
 
 
 def _tal(v) -> bool:
@@ -128,7 +137,6 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
             if s.get("klubba") is not None and not isinstance(s["klubba"], str):
                 fel.append(f"{F}: serier[{i}].klubba ska vara text")
             fel += _kontrollera_redigering(s, f"{F}: serier[{i}]")
-            fel += _kontrollera_lodlinje(s, f"{F}: serier[{i}]")
     slag = m.get("slag")
     if not isinstance(slag, list) or not slag:
         fel.append(f"{F}: slag saknas eller är tom")
@@ -195,16 +203,36 @@ def _kontrollera_redigering(s: dict, p: str) -> list[str]:
     return fel
 
 
-def _kontrollera_lodlinje(s: dict, p: str) -> list[str]:
-    """Seriens `lodlinje` (valfri, S6a): tre tal, längd 0,8–1,2 g. METOD MK3"""
+def lodlinjen(s: dict, nr: int) -> tuple[tuple[float, float, float] | None, str | None]:
+    """Seriens `lodlinje` (valfri, S6a): tre tal, längd 0,8–1,2 g, och uppåt mot
+    bildens överkant (y < 0 i kamerans ram, y nedåt). Annars None och skälet utan
+    värden: en lodlinje åt fel håll vänder måtten, en trasig stoppar inte 2D.
+    METOD MK3, BESLUT B39"""
     v = s.get("lodlinje")
+    p = f"serie {nr}: lodlinje"
     if v is None:
-        return []
+        return None, None
     if not (isinstance(v, list) and len(v) == 3 and all(_tal(x) for x in v)):
-        return [f"{p}.lodlinje ska vara tre tal"]
+        return None, f"{p} ska vara tre tal"
     if not LODLINJE_G[0] <= math.sqrt(sum(x * x for x in v)) <= LODLINJE_G[1]:
-        return [f"{p}.lodlinje ska ha längden {LODLINJE_G[0]}–{LODLINJE_G[1]} (g)"]
-    return []
+        return None, f"{p} ska ha längden {LODLINJE_G[0]}–{LODLINJE_G[1]} (g)"
+    if not v[1] < 0:
+        return None, f"{p} pekar inte mot bildens överkant"
+    return (float(v[0]), float(v[1]), float(v[2])), None
+
+
+def _synfalt(f) -> tuple[int, int, float] | None:
+    """Ett kameraformat {bredd, hojd, synfalt} (manifestets) eller {width, height,
+    fieldOfView} (enhet.json:s CameraFormat) → (bredd, höjd, synfält), eller None. METOD MK3"""
+    if not isinstance(f, dict):
+        return None
+    b, h = f.get("bredd", f.get("width")), f.get("hojd", f.get("height"))
+    v = f.get("synfalt", f.get("fieldOfView"))
+    if any(isinstance(x, bool) or not isinstance(x, int) or x <= 0 for x in (b, h)):
+        return None
+    if not (_tal(v) and SYNFALT_DEG[0] <= v <= SYNFALT_DEG[1]):
+        return None
+    return b, h, float(v)
 
 
 def kontrollera_par(d) -> list[str]:
@@ -351,11 +379,11 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         serier = {}
         for s in m["serier"]:
             f, u = s.get("fonster"), s.get("utsnitt")
-            lod = s.get("lodlinje")
+            lod, lod_fel = lodlinjen(s, s["nr"])
             serier[s["nr"]] = Serie(nr=s["nr"], klubba=s.get("klubba"),
                                     fonster=(float(f["fran_s"]), float(f["till_s"])) if f is not None else None,
                                     utsnitt=tuple(float(u[k]) for k in ("x", "y", "b", "h")) if u is not None else None,
-                                    lodlinje=tuple(float(x) for x in lod) if lod is not None else None)
+                                    lodlinje=lod, lodlinje_fel=lod_fel, synfalt=_synfalt(s.get("format")))
         ordning = sorted(range(len(m["slag"])), key=lambda i: (m["slag"][i]["serie"], m["slag"][i]["klick_s"]))
         plats = {i: k for k, i in enumerate(ordning)}
         p = Paket(fil=namn, manifest=m, pass_id=m["pass"], vy=m["vy"], spelhand=m["spelhand"],
@@ -370,6 +398,16 @@ def las(sokvag, med_leder: bool = True) -> Paket:
                                klipp_langd_s=float(s["klipp_langd_s"]) if s.get("klipp") and s.get("klipp_langd_s")
                                is not None else None,
                                detection_wrong=s.get("detection_wrong") is True))
+        if "enhet.json" in i_zip:
+            # Valfri: det valda formatets synfält, när serien inte bär sitt. METOD MK3
+            try:
+                e = json.loads(las_ur_zip(z, namn, "enhet.json").decode("utf-8"))
+                val = e.get("valt_index") if isinstance(e, dict) else None
+                fmt = [x for x in (e.get("format") or []) if isinstance(x, dict) and x.get("index") == val] \
+                    if isinstance(e, dict) and isinstance(e.get("format"), list) else []
+                p.enhet_synfalt = _synfalt(fmt[0]) if fmt else None
+            except (PaketFel, json.JSONDecodeError, UnicodeDecodeError):
+                p.enhet_synfalt = None
         if "par.json" in i_zip:
             # Valfri: ett fel här stoppar inte 2D-analysen, bara parningen ur filen. METOD MK1
             try:

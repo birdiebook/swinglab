@@ -43,12 +43,22 @@ def linjevinkel(L: np.ndarray, R: np.ndarray, t: np.ndarray, adress: tuple, upp=
     return -np.degrees(np.angle(np.exp(1j * (vin - ref))))
 
 
-def fyll_luckor(t: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """Linjär interpolation över NaN (en led som saknas i en vy ger ingen 3D-punkt)."""
+MAX_LUCKA_S = 0.10   # METOD MK6: längre lucka i en vinkelkurva fylls inte (som METOD M3)
+
+
+def fyll_luckor(t: np.ndarray, y: np.ndarray, max_lucka: float = MAX_LUCKA_S) -> np.ndarray:
+    """Linjär interpolation över NaN (en led som saknas i en vy ger ingen 3D-punkt),
+    bara mellan två värden högst `max_lucka` s isär och aldrig utanför de första och
+    sista värdena: en längre lucka förblir NaN. METOD MK6"""
     ok = np.isfinite(y)
     if ok.sum() < 2 or ok.all():
         return y
-    return np.interp(t, t[ok], y[ok])
+    tk = t[ok]
+    ut = np.interp(t, tk, y[ok])
+    j = np.clip(np.searchsorted(tk, t), 1, len(tk) - 1)
+    lucka = (tk[j] - tk[j - 1]) > max_lucka
+    utanfor = (t < tk[0]) | (t > tk[-1])
+    return np.where(ok, y, np.where(lucka | utanfor, np.nan, ut))
 
 
 def vridningar(P: np.ndarray, t: np.ndarray, adress: tuple):
@@ -58,8 +68,10 @@ def vridningar(P: np.ndarray, t: np.ndarray, adress: tuple):
 
 
 def _vid(t, y, tid):
+    """Värdet vid `tid`, linjärt mellan de närmaste; NaN utanför kurvans värden (np.interp
+    skulle hålla ändvärdet fast). METOD MK6"""
     ok = np.isfinite(y)
-    if ok.sum() < 2 or not np.isfinite(tid):
+    if ok.sum() < 2 or not np.isfinite(tid) or not t[ok][0] <= tid <= t[ok][-1]:
         return float("nan")
     return float(np.interp(tid, t[ok], y[ok]))
 

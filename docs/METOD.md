@@ -1259,26 +1259,47 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 
 ## MK3 — Kalibreringen: självkalibrering ur lederna
 
-- **Inre parametrar:** brännvidden ur specifikationen, **f = 1444 px** för 1920 px
-  långsida (26 mm ekvivalent, S6_FELBUDGET §3), skalad med bildens långsida, och
-  huvudpunkten i bildens mitt. **tillverkare, ej läst i original.** ChArUco väntar;
-  felbudgeten ger under 1° för f ±5 % och c ±20 px (§6.2).
-- **Yttre:** kamerorna står still under passet, så alla slags leder kalibrerar
-  ihop. Båda vyerna jämnas (MK5) på en tidsaxel i steg om **1/60 s**, punktpar
-  med konfidens över **0,5** i båda vyerna, högst **5 000** par (slumpade med frö
-  0). Viktad normaliserad åttapunktsmetod med robusta varv och förfining på
-  Sampson-felet (Hartley 1997, `tre_d/kalibrering.py`). **standard** (metoden),
-  **antagande** (talen). Skalan är okänd: vinklar behöver ingen.
+- **Inre parametrar, per slag ur dess egen bild:** brännvidden ur seriens
+  kameraformat i manifestet (`serier[].format.synfalt`, `videoFieldOfView`:
+  vågrätt över den liggande bildens långsida, som är den upprätta bildens
+  långsida), f = (långsida / 2) / tan(synfält / 2); annars det valda formatet i
+  `enhet.json` (`valt_index`, `fieldOfView`); annars specifikationen, **f = 1444 px**
+  för 1920 px långsida (26 mm ekvivalent, S6_FELBUDGET §3). Huvudpunkten i bildens
+  mitt. Ett synfält utanför **10–170°** räknas som saknat. Källan står i
+  `f_kalla`. **tillverkare** (Apples `videoFieldOfView`), **antagande** (att
+  stabiliseringen är av, vilket appen sätter, och att distorsionen är rättad).
+  Varför: med fel brännvidd blir passets median fel utan att Sampson-felet syns
+  (granskningen, utan brus: ±5 % ger 1–2,6°, −15 till +20 % ger 4–9°). ChArUco
+  väntar.
+- **Yttre, per uppställning:** en DTL-serie mot en FO-serie är en uppställning
+  (stativen kan flyttas mellan serierna), och dess slag kalibrerar ihop. Båda
+  vyerna jämnas (MK5) på en tidsaxel i steg om **1/60 s**, punktpar med konfidens
+  över **0,5** i båda vyerna, normerade med varje slags K, högst **5 000** par
+  (slumpade med frö 0). Viktad normaliserad åttapunktsmetod med robusta varv och
+  förfining på Sampson-felet (Hartley 1997, `tre_d/kalibrering.py`).
+  **standard** (metoden), **antagande** (talen). Skalan är okänd: vinklar behöver
+  ingen.
+- **Spärren:** Sampson-felets median, i px på en 1920 px långsida, över **8 px**
+  ger ingen mätning för uppställningen (`hoppat` i `kalibrering[]`); hoppas alla
+  över blir `tre_d.hoppat`. Uppmätt på facit (10 slag): bra brus 2,9 px, typiskt
+  4,7, dåligt 9,2, mycket dåligt 14,1. Spärren ligger mellan typiskt och dåligt,
+  där passets median enligt felbudgeten blir 18–21° fel (§6.7). **antagande.**
 - **Lodlinjen:** ur manifestet (`serier[].lodlinje`, uppåt i kamerans ram, g) när
   någon vy bär den: FO:s direkt, DTL:s vriden till FO, båda = summan. Fältet
-  godtas med längden **0,8–1,2 g** (telefonen i vila på stativet). Utan fältet:
-  **kamerornas vågräta**, uppåt vinkelrätt mot båda bildernas x-axel. Det antar
-  att ingen telefon lutar åt sidan (felet blir ungefär lutningen); felbudgeten
-  ger 0,5–3° fel i lodlinjen under slumpfelet, eftersom vridningen mäts mot
-  adressen (§6.5). **antagande.** Står kamerorna närmare än cirka 12° samma
-  riktning går lodlinjen inte att få ur bilderna, och 3D hoppas över.
-- **Vinkeln mellan kamerorna** (blickriktningarna i markplanet) skrivs ut och
-  märks utanför **60–120°**, där felbudgeten växer snabbt (§6.4).
+  används bara med längden **0,8–1,2 g** (telefonen i vila på stativet) och med
+  uppåt mot bildens överkant (y < 0 i kamerans ram): en vänd vektor vänder
+  måtten (granskningen, utan brus: höfterna vid träffen −36° mot +36°). Ett fält
+  som inte går att använda stoppar aldrig paketet: skälet (utan värden) står i
+  `kalibrering[].lodlinje_fel` och i `tre_d.osaker`, och uppställningen tar
+  kamerornas vågräta (BESLUT B39). Utan fältet: **kamerornas vågräta**, uppåt
+  vinkelrätt mot båda bildernas x-axel. Det antar att ingen telefon lutar åt sidan
+  (felet blir ungefär lutningen); felbudgeten ger 0,5–3° fel i lodlinjen under
+  slumpfelet, eftersom vridningen mäts mot adressen (§6.5). **antagande.** Står
+  kamerorna närmare än cirka 12° samma riktning går lodlinjen inte att få ur
+  bilderna, och uppställningen hoppas över.
+- **Vinkeln mellan kamerorna** (blickriktningarna i markplanet) skrivs ut, och
+  utanför **60–120°**, där felbudgeten växer snabbt (§6.4), står uppställningen i
+  `tre_d.osaker`.
 - **Uppmätt på facit** (typiskt brus, 12 pass): kalibreringens vridningsfel är i
   snitt 5°, upp till 14°, oberoende av antalet par (1 500–20 000). Det kommer av
   posemodellens fasta avvikelse per led och vy, som är densamma hela passet och
@@ -1310,6 +1331,8 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - DTL:s tider flyttas med synken (MK4). Lederna trianguleras med konfidensviktad DLT
   i normaliserade koordinater (Hartley & Zisserman). **standard.**
 - Återprojektionens median (px) skrivs per slag som en kvalitetssignal.
+- Ett slag med färre än **10** rutor i någon vy, eller på den gemensamma
+  tidsaxeln, mäts inte. **antagande** (minst ett par utjämningsfönster).
 
 ## MK6 — Måtten i 3D
 
@@ -1325,6 +1348,12 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   M4). **Toppen** är där handledernas mitt står högst i 3D mellan starten och
   träffen. **Träffen** är t = 0 (klicket, MK2). Vinkelkurvorna jämnas ±30 ms före
   måtten (S6_FELBUDGET §6.6).
+- **Inom tidsaxeln:** adressens fönster och träffen ska ligga inom slagets
+  gemensamma tidsaxel, annars mäts inte slaget (`fel`). Ett värde vid en tid
+  utanför vinkelkurvans värden är saknat (inte kurvans ändvärde, som
+  `np.interp` annars håller fast). En lucka i en vinkelkurva fylls linjärt bara
+  upp till **0,10 s** (samma gräns som M3); en längre förblir saknad.
+  **antagande.**
 - **Vänsterspelaren** speglas i 3D (x → −x), så att vridningen bort från målet är
   positiv för båda. Provat: en speglad påhittad sving ger samma tal inom 0,5°.
 - Märkta `lage: "utan_markorer"` (BESLUT B14).
@@ -1338,7 +1367,7 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   är större än både förra passets spridning (M26) och ett **golv** per mått: √2 ×
   passmedianens SD för kedjan med typiskt brus (24 påhittade pass, S6_FELBUDGET
   §6.7): bäckenet **15,7°**, bröstet **13,6°**, X-factor **19,2°**, stretchen
-  **7,9°**, höfterna vid träffen **8,3°**. Kamerornas läge, kalibreringen och
+  **8,1°**, höfterna vid träffen **8,3°**. Kamerornas läge, kalibreringen och
   posemodellens fasta avvikelse byts mellan pass, så två pass skiljer sig redan av
   det. **antagande** tills S3 mätt bruset; med "bra" brus blir golvet ungefär hälften.
 - Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en sak i
@@ -1352,8 +1381,10 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   (3 m, 1,0 m, 90° ±5°), bildtider med 36 % tappade rutor, 2D-brus och skymning
   (§3), en fast avvikelse per led och vy för hela passet, klickets fel ±7 ms på
   DTL och bollen i (0, −0,6, 0). Följarens (FO:s) fil börjar **12,345 s** före den
-  styrandes. Paketen bär `par.json` och, valfritt, lodlinjen med ±1° fel.
-  **antagande** (påhittat).
+  styrandes. Paketen bär `par.json` (i DTL:s paket, eller FO:s med `styr="fo"`),
+  seriens synfält ur kamerornas sanna brännvidd (valfri, `f_px`, standard 1444 px)
+  och, valfritt, lodlinjen med ±1° fel. En vänsterspelare filmas med
+  uppställningen spegelvänd: DTL bakom spelaren. **antagande** (påhittat).
 - Facit är samma mått (MK6) på de sanna lederna, med samma adress och topp.
 - **Gränsen** i testerna (`tools/tests/test_tva_kameror.py`): passets median minus
   de sannas median ligger inom |bias| + 3 SD av felbudgetens passmedian (§6.7,

@@ -154,17 +154,18 @@ När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
   `median: null` har passet färre än `min_slag` (10) slag i båda vyerna: säg det, och
   skriv inget tal. Står `tre_d.hoppat`: skriv skälet i en rad.
 - **Bara som trend.** Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en
-  sak i `att_jobba_pa.json` (kontrollen känner inte dem). Det får stödja en vald sak
-  i rapporten ("höfterna öppna vid träff 31° (trend, utan markörer)"), aldrig styra
-  valet ensamt.
+  sak i `att_jobba_pa.json` (kontrollen känner inte dem). Trenden **påverkar aldrig
+  valet** (BESLUT B14, B37): den står i rapporten som en egen rad, märkt "trend, utan
+  markörer" ("stretch 9°, ingen tydlig ändring").
 - **Tydlig** förändring bara när `mot_forra.tydlig` är sann: skillnaden är då större
   än både förra passets spridning och golvet för två pass (MK7). Annars: "ingen
   tydlig ändring".
 - **Stretchen före X-factor**, och X-factor aldrig mot en gradgräns eller mot
   Sportsbox (definitionen flyttar den cirka 19°). Höfternas `spann` (35–45°) är ett
   riktmärke, inte en bedömning.
-- Är `tre_d.kalibrering.vinkel_ok` falsk: säg att kamerorna stod utanför 60–120°
-  och att talen därför är osäkrare.
+- Står något i `tre_d.osaker` (kamerorna utanför 60–120°, lodlinjen i manifestet
+  användes inte): säg det i en rad, och att talen därför är osäkrare. En uppställning
+  med `hoppat` i `tre_d.kalibrering[]` är inte mätt: säg vilken serie och skälet.
 
 ## Det Claude inte får göra
 

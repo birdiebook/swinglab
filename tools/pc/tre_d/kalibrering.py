@@ -302,9 +302,18 @@ def relativ_ur_leder(KA, uvA, kA, KB, uvB, kB, min_konf: float = 0.5, max_par: i
         a, b, w = a[val], b[val], w[val]
     x1 = np.column_stack([a, np.ones(len(a))]) @ np.linalg.inv(KA).T
     x2 = np.column_stack([b, np.ones(len(b))]) @ np.linalg.inv(KB).T
-    R, t = relativ_orientering(x1, x2, w, f_px=KA[0, 0])
-    sampson = float(np.median(np.abs(_sampson(_skev(t) @ R, x1, x2)))) * KA[0, 0]
-    return R, t, sampson
+    R, t, samp = relativ_ur_normerade(x1, x2, w, KA[0, 0])
+    return R, t, samp * KA[0, 0]
+
+
+def relativ_ur_normerade(x1, x2, w, f_px: float):
+    """Som relativ_ur_leder, men på punktpar som redan är normerade med var sin
+    kameras K (när K skiljer mellan slagen). Svarar R, t och Sampson-felets median i
+    normerade enheter."""
+    if len(x1) < 8:
+        raise ValueError("för få punktpar för självkalibreringen")
+    R, t = relativ_orientering(x1, x2, w, f_px=f_px)
+    return R, t, float(np.median(np.abs(_sampson(_skev(t) @ R, x1, x2))))
 
 
 def upp_ur_vagrata(R: np.ndarray) -> np.ndarray:

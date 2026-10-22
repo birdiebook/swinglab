@@ -211,9 +211,13 @@ def main(argv=None) -> int:
     else:
         med = [x["matt"] for x in t["trend"] if x["median"] is not None]
         print(f"  3D utan markörer: {t['parning']['par']} slag parade ({t['parning']['kalla']}), "
-              f"lodlinjen ur {t['kalibrering']['lodlinje']}, "
-              f"{t['kalibrering']['vinkel_mellan_kamerorna']}° mellan kamerorna, "
               + (f"trend för {len(med)} mått" if med else f"ingen trend (färre än {t['min_slag']} slag)"))
+        for k in t["kalibrering"]:
+            print(f"    serie {k['serie']['dtl']} (DTL) mot {k['serie']['fo']} (FO): "
+                  + (f"hoppad ({k['hoppat']})" if "hoppat" in k else
+                     f"lodlinjen ur {k['lodlinje']}, {k['vinkel_mellan_kamerorna']}° mellan kamerorna"))
+        for o in t["osaker"]:
+            print(f"    osäker: {o}")
     print(f"Skrev {ut / 'analys.json'}")
     return 0
 

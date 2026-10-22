@@ -174,12 +174,19 @@ per serie och valfria; saknas de gäller hela filen och hela bilden:
 | `fonster.fran_s`, `fonster.till_s` | tal, s i seriens fil, `0 <= fran_s < till_s`. Varje slags `klick_s` ligger i fönstret (telefonen räknar bara de klicken). |
 | `utsnitt.x`, `y`, `b`, `h` | tal, normaliserade i den **upprätta** bilden med origo uppe till vänster (som lederna), inom 0–1, `b` och `h` positiva |
 
+**Seriens kameraformat** (`serier[].format`, telefonen skriver det: `index`, `bredd`,
+`hojd`, `synfalt`, `binnat`, S2_SPEC §8.3). PC:n läser `synfalt` (vågrätt synfält i
+grader över den liggande bildens långsida) för brännvidden i 3D, och annars det valda
+formatet i `enhet.json`; ett synfält utanför 10–170° räknas som saknat (METOD MK3).
+
 **Lodlinjen** (S6a, BESLUT B39, METOD MK3), per serie och valfri:
 `"lodlinje": [x, y, z]`, uppåt (−gravitationen) i g i kamerans ram i den **upprätta**
 bilden: x åt höger, y nedåt, z framåt ur linsen. Längden ska vara 0,8–1,2 (telefonen i
 vila på stativet); PC:n normerar den. En telefon som står rak och vågrät ger ungefär
 `[0, -1, 0]`. **Appen skriver den inte än** (följdjobb, B39): utan den tar PC:n uppåt ur
-kamerornas vågräta.
+kamerornas vågräta. Fältet är **mjukt**: fel längd, fel form eller uppåt som inte pekar
+mot bildens överkant (y ≥ 0) stoppar aldrig paketet; PC:n använder det då inte och
+skriver skälet utan värden i `tre_d.kalibrering[].lodlinje_fel`.
 
 Lederna i `slag/s01.json` står alltid i **hela** den upprätta bildens pixlar, även
 med utsnitt: telefonen för Visions punkter ur rutan tillbaka. PC:n kan låta
@@ -187,8 +194,8 @@ MediaPipe se samma ruta (`paket.utsnitt_px`) och föra punkterna tillbaka med
 `paket.fran_utsnittet`. Klippen är passthrough och inte beskurna; de är kapade vid
 fönstret.
 
-Övriga fält (`telefon`, `enhet.json`, `ljusprov.json`, `vision`)
-läses inte än. `par.json` ligger i paketet när passets mapp har den (S2g) och läses
+Övriga fält (`telefon`, `ljusprov.json`, `vision`) läses inte än; `enhet.json` läses
+bara för brännvidden i 3D (ovan). `par.json` ligger i paketet när passets mapp har den (S2g) och läses
 för 3D (S6a, METOD MK1); en `par.json` som inte går att läsa stoppar inte paketet. Sökvägarna får inte börja med `/` eller innehålla `..`.
 `enhet.json` är `{"modell", "ios", "format": [CameraFormat …], "valt_index"}` (alla format
 bakkameran rapporterar), `ljusprov.json` passets `LightCheck` som i `pass.json`; ett tal
@@ -287,7 +294,8 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `min_slag` | 10: passets median kräver så många slag (MK7) |
 | `matt` | måttens namn: `backen_vrid_topp`, `brost_vrid_topp`, `xfaktor_topp`, `xfaktor_stretch`, `hofter_oppna_traff` (grader, MK6) |
 | `parning` | `kalla` (`par.json` eller `klicken`), `serier[]` (`dtl`, `fo`, `kalla`, `par`), `par`, `oparade` per vy, och `par_json_fel` när par.json inte gick att läsa (MK1) |
-| `kalibrering` | `lodlinje` (`manifest` eller `kamerornas_vagrata`), `sampson_px`, `vinkel_mellan_kamerorna` (grader) och `vinkel_ok` (60–120°) (MK3) |
+| `kalibrering[]` | en per uppställning (DTL-serie mot FO-serie): `serie` (`dtl`, `fo`), `slag`, `f_kalla` per vy (`serien`, `enhet.json` eller `specifikationen`), `lodlinje_fel` när fältet inte gick att använda, och antingen `hoppat` (skälet: kalibreringen gick inte eller Sampson-felet är över spärren) eller `lodlinje` (`manifest` eller `kamerornas_vagrata`), `sampson_px` (på 1920 px långsida), `vinkel_mellan_kamerorna` (grader) och `vinkel_ok` (60–120°) (MK3) |
+| `osaker` | skälen till att talen är osäkrare: vinkeln utanför 60–120°, lodlinjen i manifestet användes inte (MK3) |
 | `slag[]` | per par: `dtl` och `fo` (slagens id), `serie` per vy, `synk_ms` (DTL:s klocka före FO:s efter klicket, MK4), `aterprojektion_px`, och `matt` eller `fel` |
 | `n` | antal slag med måttet |
 | `session` | M25:s sammanfattning per mått, bara mått med minst `min_slag` slag |

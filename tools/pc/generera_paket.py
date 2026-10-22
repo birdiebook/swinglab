@@ -157,10 +157,14 @@ def _joint_series(t_rel: np.ndarray, klick_s: float, obs: np.ndarray, konf: np.n
 
 def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "typiskt", hand: str = "hoger",
               par_json: bool = True, lodlinje: bool = False, langd_m: float = 1.80, synkfel_ms: float = 7.0,
-              bara_fo: int = 1, klubba: str = "j7") -> tuple[Path, Path, dict]:
-    """Två paket från samma pass (DTL styrande, FO följare) och facit:
+              bara_fo: int = 1, klubba: str = "j7", f_px: float | None = None, synfalt: bool = True,
+              styr: str = "dtl") -> tuple[Path, Path, dict]:
+    """Två paket från samma pass och facit:
     (dtl.zip, fo.zip, {"slag": [{"dtl", "fo", "sant"}], "median": {mått: median av de sanna}}).
-    `bara_fo` slag filmas bara av FO (de ska inte paras). METOD MK1–MK7"""
+    `bara_fo` slag filmas bara av FO (de ska inte paras). `f_px` är kamerornas sanna
+    brännvidd (standard 1444 px), och `synfalt` skriver den som seriens synfält i
+    manifestet. `styr` är telefonen som skriver par.json. En vänsterspelare filmas med
+    uppställningen spegelvänd: DTL bakom spelaren (x > 0). METOD MK1–MK8"""
     from dataclasses import replace
 
     from . import tva_kameror as TK
@@ -173,12 +177,14 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
     ut_mapp = Path(ut_mapp)
     ut_mapp.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
-    u = replace(FB.Uppstallning(), brus=brus, kalib="perfekt")
+    u = replace(FB.Uppstallning(), brus=brus, kalib="perfekt", f_px=f_px or KM.F_PX,
+                vinkel=90.0 if hand == "hoger" else -90.0)
     pas = FB.nytt_pass(u, rng)
     kam = {"fo": pas["A"], "dtl": pas["B"]}
     fast = {"fo": pas["fastA"], "dtl": pas["fastB"]}
     avst = {v: float(np.linalg.norm(k.centrum - np.array(BOLLEN))) for v, k in kam.items()}
-    filstart = {"dtl": 0.0, "fo": FOLJ_FORSKJUTNING_S}
+    folj = "fo" if styr == "dtl" else "dtl"
+    filstart = {styr: 0.0, folj: FOLJ_FORSKJUTNING_S}
     filer = {"dtl": {}, "fo": {}}
     slag = {"dtl": [], "fo": []}
     facit = []
@@ -210,13 +216,17 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
             # synk_ms: hur mycket DTL:s klocka går före FO:s efter klicket (det synken ska hitta)
             facit.append({"dtl": ids["dtl"], "fo": ids["fo"], "sant": {k: m[v] for k, v in TK.MATT.items()},
                           "synk_ms": -synk["dtl"] * 1000})
-    roll = {"dtl": "styrande", "fo": "foljare"}
+    roll = {styr: "styrande", folj: "foljare"}
     ut = {}
     for vy in ("dtl", "fo"):
         serie = {"nr": 1, "kalla": "inspelning", "klubba": klubba}
         if lodlinje:
             upp = KAL.slumprotation(FB.Uppstallning().grav_deg, rng) @ (kam[vy].R @ np.array([0.0, 0.0, 1.0]))
             serie["lodlinje"] = [round(float(x), 4) for x in upp]
+        if synfalt:
+            fov = float(np.degrees(2 * np.arctan(KM.HOJD / 2 / u.f_px)))
+            serie["format"] = {"index": 0, "bredd": KM.HOJD, "hojd": KM.BREDD, "synfalt": round(fov, 3),
+                               "binnat": False}
         manifest = {
             "format": FORMAT, "skapad": f"{pass_id[:4]}-{pass_id[4:6]}-{pass_id[6:8]}T20:00:00+01:00",
             "app": {"version": "0.0.0", "bygge": "pahittat"}, "pass": pass_id,
@@ -229,16 +239,16 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
             z.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=1))
             for namn, text in filer[vy].items():
                 z.writestr(namn, text)
-            if vy == "dtl" and par_json:
-                dd, df = round(avst["dtl"], 2), round(avst["fo"], 2)
+            if vy == styr and par_json:
+                dd, df = round(avst[styr], 2), round(avst[folj], 2)
                 forsk = FOLJ_FORSKJUTNING_S + (df - dd) / LJUDETS_FART
                 z.writestr("par.json", json.dumps({
-                    "format": "swinglab-par/1", "pass": pass_id, "modell": "pahittad", "vy": "dtl",
-                    "serier": [{"serie": 1, "styr_avstand_m": dd, "styr_klick": n,
-                                "foljare": {"modell": "pahittad", "vy": "fo", "avstand_m": df, "pass": pass_id,
-                                            "serie": 1, "hz": 240, "klick": n + bara_fo},
+                    "format": "swinglab-par/1", "pass": pass_id, "modell": "pahittad", "vy": styr,
+                    "serier": [{"serie": 1, "styr_avstand_m": dd, "styr_klick": len(slag[styr]),
+                                "foljare": {"modell": "pahittad", "vy": folj, "avstand_m": df, "pass": pass_id,
+                                            "serie": 1, "hz": 240, "klick": len(slag[folj])},
                                 "forskjutning_s": round(forsk, 4), "traff_forskjutning_s": FOLJ_FORSKJUTNING_S,
-                                "antal_par": n, "oparade_styr": 0, "oparade_folj": bara_fo, "median_rest_s": 0.001,
+                                "antal_par": n, "median_rest_s": 0.001,
                                 "osaker": False}]}, indent=1))
         ut[vy] = fil
     median = {k: float(np.median([f["sant"][k] for f in facit])) for k in TK.MATT}

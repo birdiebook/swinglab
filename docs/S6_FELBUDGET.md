@@ -468,7 +468,8 @@ utjämningen är ±40 ms (§6.6). Bröstet blir sämre med självkalibrering än
 kameror (9,6 mot 6,4° med typiskt brus): kalibreringens vridningsfel är i snitt 5°,
 upp till 14° (12 pass), och det kommer av posemodellens fasta avvikelse, inte av
 antalet punktpar (BESLUT B38). Synkens rest är 1,5 ms RMS med bra brus och 2,4 ms med
-typiskt. Testerna (`tools/tests/test_tva_kameror.py`) kör fem av passen.
+typiskt. Testerna (`tools/tests/test_tva_kameror.py`) kör tre brusiga pass (två med bra
+brus och 11 slag, ett med typiskt) mot gränsen.
 
 Medianen av 10 slag tar bort det slumpmässiga, men inte den fasta avvikelsen,
 som är densamma hela passet. Med bra brus blir passets SD 4–7°, och
