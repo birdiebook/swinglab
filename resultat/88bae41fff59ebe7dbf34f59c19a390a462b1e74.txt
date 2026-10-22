@@ -1,0 +1,23 @@
+88bae41fff59ebe7dbf34f59c19a390a462b1e74 s4-vyn 2026-10-22T12:31:15Z run 39778854882
+== swift-release
+RÖTT: 79 test, 3 fel, 3 s i testerna, bygget 22 s
+  fel: VisningTests.testGranskningensSlag
+  fel: VisningTests.testPasset
+  fel: VisningTests.testTalen
+Långsammast (av 79):
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  VisningTests.testPasset
+      0.1 s  VisningTests.testGranskningensSlag
+      0.1 s  VardenaTests.testExponeringenLamnarAldrigFormatet
+      0.1 s  VisningTests.testAxeln
+      0.1 s  FormatTests.testFelenNamnerFaltet
+      0.1 s  VisningTests.testPassenIRad
+      0.1 s  TvaTelefonerTests.testPriorUtanforFonstretParadeInget
+      0.1 s  LederTests.testStillaHanderArInteEttSlag
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  VisningTests.testUtveckling
+

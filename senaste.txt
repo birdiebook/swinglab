@@ -1,20 +1,23 @@
-d65dc2dfa8a99ad1bed949b950336a8f20b54c3d s2cd 2026-10-22T12:27:56Z run 39778392361
+88bae41fff59ebe7dbf34f59c19a390a462b1e74 s4-vyn 2026-10-22T12:31:15Z run 39778854882
 == swift-release
-GRÖNT: 81 test, 0 fel, 4 s i testerna, bygget 23 s
-Långsammast (av 81):
-      1.6 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
+RÖTT: 79 test, 3 fel, 3 s i testerna, bygget 22 s
+  fel: VisningTests.testGranskningensSlag
+  fel: VisningTests.testPasset
+  fel: VisningTests.testTalen
+Långsammast (av 79):
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.1 s  FormatTests.testLagKonfidensArSaknad
-      0.1 s  TvaTelefonerTests.testKlockanInomOsakerheten
-      0.1 s  TvaTelefonerTests.testFormelnOchOgiltigaProv
+      0.1 s  VisningTests.testPasset
+      0.1 s  VisningTests.testGranskningensSlag
+      0.1 s  VardenaTests.testExponeringenLamnarAldrigFormatet
+      0.1 s  VisningTests.testAxeln
+      0.1 s  FormatTests.testFelenNamnerFaltet
+      0.1 s  VisningTests.testPassenIRad
+      0.1 s  TvaTelefonerTests.testPriorUtanforFonstretParadeInget
+      0.1 s  LederTests.testStillaHanderArInteEttSlag
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
-      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
-      0.0 s  MattTests.testVansterspelarenRaknasSomHoger
-      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
-      0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
-      0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
+      0.0 s  VisningTests.testUtveckling
 
