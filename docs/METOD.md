@@ -644,8 +644,12 @@ värden i `CaptureTests`.
   Visions fel stoppar analysen synligt utan att någon dom sparas, och, med
   påhittade leder i Visions ställe (`PoseSource`, `DemoLeder`), domen, lederna
   på disk, klippen, passet och återupptagningen. Passthrough-klippet [0,5; 2,0]
-  s gav klicket 0,44 ms före det väntade, på den vita rutan (**mätt**,
-  påhittad film). **Visions leder själva provas bara på telefonen** (T2, och
+  s gav klicket 0,44 ms före det väntade, på den vita rutan, och längden 1,5000
+  s, men filen bär 260 rutor till 1,617 s: rutorna efter redigeringens slut
+  följer med (**mätt**, påhittad film). Den som läser klippet utan att avkoda
+  (`MediaReader.frameTimes`, PC:n i S2f/S3) ska därför bara räkna rutorna inom
+  klippets längd. `AVAssetReader.timeRange` är halvöppet: rutan exakt på
+  fönstrets slut kommer inte med (**mätt**, 240 av 241). **Visions leder själva provas bara på telefonen** (T2, och
   oktobers 41 slag i S2h).
 
 ---
