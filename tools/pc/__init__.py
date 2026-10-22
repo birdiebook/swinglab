@@ -9,4 +9,6 @@ svingar och Pythons tal som en Swift-källfil, och Swift-testerna jämför.
     session.py   sessionens sammanfattning och jämförelsen mot förra passet
     katalog.py   katalogen (katalog.json) och bedömningen
     generera.py  påhittade svingar med kända tal
+    klick.py     klicket i ljudet och parningen mellan två telefoner (S2, Golf SG:s klick() och para())
+    klickljud.py påhittade ljudsignaler med klick på kända prov, och fixturen för Swift
 """

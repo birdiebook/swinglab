@@ -2,7 +2,8 @@
 
     python tools/kolla_metod.py
 
-Varje `METOD Mn` i koden måste ha en rubrik `## Mn` i docs/METOD.md, och
+Varje `METOD Mn` (mätningen) och `METOD MSn` (inspelningen, S2) i koden måste ha
+en rubrik `## Mn` eller `## MSn` i docs/METOD.md, och
 varje `B<n>` som koden nämner (`// BESLUT B3`) en rubrik i docs/BESLUT.md.
 Körs i GitHub Actions.
 """
@@ -21,13 +22,13 @@ def rubriker(fil: str, prefix: str) -> set[str]:
 
 
 def main() -> int:
-    metod = rubriker("docs/METOD.md", "M")
+    metod = rubriker("docs/METOD.md", "MS?")
     beslut = rubriker("docs/BESLUT.md", "B")
     fel = []
     for fil in sorted([*ROT.glob("SwingLabKit/**/*.swift"), *ROT.glob("App/**/*.swift"), *ROT.glob("tools/**/*.py")]):
         text = fil.read_text(encoding="utf-8")
         for n, rad in enumerate(text.splitlines(), 1):
-            for ref in re.findall(r"METOD (M\d+)", rad):
+            for ref in re.findall(r"METOD (MS?\d+)", rad):
                 if ref not in metod:
                     fel.append(f"{fil.relative_to(ROT)}:{n}: {ref} saknas i docs/METOD.md")
             for ref in re.findall(r"BESLUT (B\d+)", rad):
