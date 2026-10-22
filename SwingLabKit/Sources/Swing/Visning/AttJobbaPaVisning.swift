@@ -125,7 +125,7 @@ public struct AttJobbaPaVisning: Sendable {
 }
 
 /// Idag (skissens skärm 1): dagen, senaste passet som rader med ett kompakt spann,
-/// och den första saken att jobba på.
+/// och sakerna att jobba på (1–3, ur den senaste `att_jobba_pa.json`) med tanken.
 public struct Idagvisning: Sendable {
     public struct Rad: Sendable {
         public let id: String
@@ -144,6 +144,7 @@ public struct Idagvisning: Sendable {
         }
     }
 
+    /// En sak att jobba på: måttets namn, tanken och kedjan.
     public struct Forsta: Sendable {
         public let namn: String
         public let tanke: String
@@ -156,7 +157,12 @@ public struct Idagvisning: Sendable {
     /// "Sat, Jan 9 · 7i · 34", med hårt mellanslag före punkterna (Texter.skilje)
     public let senaste: String?
     public let rader: [Rad]
-    public let forsta: Forsta?
+    /// Sakerna i svingens ordning (1–3); tom utan `att_jobba_pa.json`.
+    public let fokus: [Forsta]
+    /// "week 5": den första sakens vecka i blocket; nil utan fokus.
+    public let vecka: String?
+    /// Den första saken.
+    public var forsta: Forsta? { fokus.first }
 
     public init(idag: Date, katalog: Katalog, pass: [Pass], attJobbaPa: AttJobbaPa?) {
         dag = Tal.dag(idag)
@@ -172,12 +178,12 @@ public struct Idagvisning: Sendable {
             senaste = nil
             rader = []
         }
-        if let a = attJobbaPa, let s = AttJobbaPaVisning(a, katalog: katalog).saker.first {
+        let saker = attJobbaPa.map { AttJobbaPaVisning($0, katalog: katalog).saker } ?? []
+        fokus = saker.map { s in
             // Kedjan på en rad: saken och följdfelen ett led bort, högst två.
             let nara = s.foljd.filter { $0.vag.count == 1 }.prefix(2).map { $0.vag[0] }
-            forsta = Forsta(namn: s.namn, tanke: s.tanke, kedja: [s.namn] + nara)
-        } else {
-            forsta = nil
+            return Forsta(namn: s.namn, tanke: s.tanke, kedja: [s.namn] + nara)
         }
+        vecka = attJobbaPa?.saker.min { $0.ordning < $1.ordning }.map { Texter.vecka($0.block.vecka) }
     }
 }

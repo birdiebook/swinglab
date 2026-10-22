@@ -415,13 +415,53 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(v.forsta?.namn, "Sway")
         XCTAssertEqual(v.forsta?.tanke, "\u{201C}Leave the stick standing.\u{201D}")
         XCTAssertEqual(v.forsta?.kedja, ["Sway", "Side bend", "Hip shift"])
+        // Alla saker med tanken (S4c), och veckan för den första.
+        XCTAssertEqual(v.fokus.map(\.namn), ["Sway", "Trail elbow"])
+        XCTAssertEqual(v.fokus[1].tanke, "\u{201C}A towel under the trail arm stays in place to the top.\u{201D}")
+        XCTAssertEqual(v.fokus[1].kedja.count, 1, "flying elbow saknar följdfel")
+        XCTAssertEqual(v.vecka, "week 5")
+        // Accenten bara på det som övas (BESLUT B31).
+        XCTAssertTrue(v.rader.contains { $0.id == "sway_topp" && $0.ovas })
+        XCTAssertTrue(v.rader.filter(\.ovas).allSatisfy { Demo.attJobbaPa.ovas.contains($0.id) })
+        XCTAssertTrue(v.rader.contains { !$0.ovas }, "det som inte övas är gråskala")
+        // Utan fil och utan pass: dagen och inget mer.
+        let tom = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: [], attJobbaPa: nil)
+        XCTAssertNil(tom.senaste)
+        XCTAssertTrue(tom.rader.isEmpty && tom.fokus.isEmpty)
+        XCTAssertNil(tom.vecka)
+    }
+
+    /// Utveckling i appen (S4c): passets spridning per pass, perioden inom en månad, antalet
+    /// pass som inte är med, och det som övas bär accenten. METOD MS16
+    func testUtvecklingMedSpridningOchEjMatta() throws {
+        let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block,
+                                   ovas: Demo.attJobbaPa.ovas, ejMatta: 2)
+        XCTAssertEqual(v.ejMatta, "2 not measured")
+        let sway = try XCTUnwrap(v.matt.first { $0.id == "sway_topp" })
+        XCTAssertTrue(sway.ovas)
+        XCTAssertTrue(v.matt.filter(\.ovas).allSatisfy { Demo.attJobbaPa.ovas.contains($0.id) })
+        XCTAssertFalse(try XCTUnwrap(v.matt.first { $0.id == "backens_resa_framat" }).ovas, "ett följdfel övas inte")
+        for (p, pass) in zip(sway.punkter, Demo.pass) {
+            let s = try XCTUnwrap(pass.sammanfattning("backen_sway_topp", "fo"))
+            XCTAssertEqual(p.q1, s.q1)
+            XCTAssertEqual(p.q3, s.q3)
+            XCTAssertLessThanOrEqual(p.q1!, p.pass)
+            XCTAssertGreaterThanOrEqual(p.q3!, p.pass)
+            XCTAssertGreaterThanOrEqual(p.q1!, sway.axel.lo, "spridningen ryms i axeln")
+            XCTAssertLessThanOrEqual(p.q3!, sway.axel.hi)
+        }
+        let jan = Array(Demo.pass.suffix(3))
+        let u = Utvecklingsvisning(katalog: try katalog(), pass: jan)
+        XCTAssertEqual(u.period, "7i\u{00A0}· Jan\u{00A0}· 3")
+        XCTAssertTrue(Utvecklingsvisning(katalog: try katalog(), pass: []).matt.isEmpty)
     }
 
     // MARK: Utveckling
 
     func testUtveckling() throws {
         let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block)
-        XCTAssertEqual(v.period, "Oct–Jan · 16")
+        XCTAssertEqual(v.period, "7i\u{00A0}· Oct–Jan\u{00A0}· 16")
+        XCTAssertNil(v.ejMatta)
         let sway = try XCTUnwrap(v.matt.first { $0.id == "sway_topp" })
         XCTAssertEqual(sway.punkter.count, 16)
         XCTAssertEqual(sway.rubrik, "FO · top")
@@ -500,5 +540,29 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(y.namn, "Sway")
         XCTAssertEqual(y.tidText(2.2), "2.20 s")
         XCTAssertEqual(y.faser.topp, 2.2, accuracy: 0.01)
+    }
+
+    // MARK: Filerna från PC:n på telefonen (S4c)
+
+    /// Filernas namn i appens mapp, den senaste sist, och blockens första dagar ur alla
+    /// filer (Utvecklings B1, B2). METOD MS16
+    func testFokusFilernaPaTelefonen() throws {
+        XCTAssertEqual(AttJobbaPa.filnamn(pass: "20270109-180000"), "att_jobba_pa-20270109-180000.json")
+        XCTAssertNil(AttJobbaPa.filnamn(pass: "../../x-180000"))
+        XCTAssertNil(AttJobbaPa.filnamn(pass: "2027010-1800000"))
+        XCTAssertEqual(AttJobbaPa.filer(["att_jobba_pa-20270109-180000.json", "x.json", "att_jobba_pa-20261110-180000.json",
+                                         "att_jobba_pa-.json", "att_jobba_pa-20261110-180000.json.part",
+                                         "pass-unreadable-1.json"]),
+                       ["att_jobba_pa-20261110-180000.json", "att_jobba_pa-20270109-180000.json"])
+        let ny = Demo.attJobbaPa
+        let gammal = try AttJobbaPa.las(json: Demo.attJobbaPaJSON
+            .replacingOccurrences(of: "\"pass\": \"20270109-180000\"", with: "\"pass\": \"20261110-180000\"")
+            .replacingOccurrences(of: "\"start\": \"2026-12-12\"", with: "\"start\": \"2026-11-05\""))
+        XCTAssertEqual(gammal.pass, "20261110-180000")
+        XCTAssertEqual(AttJobbaPa.block([gammal, ny, ny]), [Tal.dag(2026, 11, 5, timme: 0), Tal.dag(2026, 12, 12, timme: 0)])
+        XCTAssertEqual(AttJobbaPa.block([]), [])
+        // Blocken på Utvecklings axel: mellan passen före och efter blockens första dag.
+        let u = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: AttJobbaPa.block([gammal, ny]))
+        XCTAssertEqual(try XCTUnwrap(u.matt.first { $0.id == "sway_topp" }).block.map(\.text), ["B1", "B2"])
     }
 }

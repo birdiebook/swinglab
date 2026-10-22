@@ -269,15 +269,17 @@ final class SwingLabProvGranskning: XCTestCase {
         store.save(p)
         XCTAssertEqual(try XCTUnwrap(store.load(klar.id)).countedSwings.count, 4, "ångrat")
 
-        // 5. Längden: 1,90 m mäter om (utanför huvudtråden), sparar och skalar måtten i cm.
-        store.setHeight(1.90)
+        // 5. Passets längd: 1,90 m mäter om passet (utanför huvudtråden), sparar och skalar
+        // måtten i cm; Jag rörs inte (METOD MS16).
+        store.setPassHeight(1.90, passID: klar.id)
         let lang = await PassMeasures.load(try XCTUnwrap(store.load(klar.id)), store: store).pass
         XCTAssertEqual(store.load(klar.id), lang, "de nya måtten är sparade")
         XCTAssertEqual(lang.measuredHeight?.heightM, 1.90)
         XCTAssertEqual(lang.measuredHeight?.assumed, false)
         let nya = lang.shots.map { $0.measure?.values["backen_sway_topp"] ?? .nan }
         XCTAssertEqual(nya[0] / varden[0], 1.90 / 1.80, accuracy: 1e-6)
-        XCTAssertEqual(Store(root: rot, exportFolder: rot.appending(path: "Export")).settings.heightM, 1.90, "sparad")
+        XCTAssertEqual(Store(root: rot, exportFolder: rot.appending(path: "Export")).load(klar.id)?.heightM, 1.90, "sparad")
+        XCTAssertNil(store.settings.heightM, "Jag rörs inte av passets längd")
     }
 
     // MARK: Hjälp

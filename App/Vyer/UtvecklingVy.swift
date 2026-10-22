@@ -1,15 +1,16 @@
 import SwiftUI
 import Swing
 
-/// Utveckling (skissens skärm 7): perioden, måtten att välja bland, och det valda
-/// måttet över passen mot gränsen eller den egna baslinjen, med serie 1 under.
+/// Utveckling (skissens skärm 7, fliken Progress i S4c): perioden, måtten att välja bland,
+/// och det valda måttet över passen (median, spridning och serie 1) mot gränsen eller den
+/// egna baslinjen. Först valt är det som övas (BESLUT B31), annars det första. METOD MS16
 struct UtvecklingVy: View {
     let visning: Utvecklingsvisning
     @State private var valt: String
 
     init(visning: Utvecklingsvisning, valt: String? = nil) {
         self.visning = visning
-        _valt = State(initialValue: valt ?? visning.matt.first?.id ?? "")
+        _valt = State(initialValue: valt ?? visning.matt.first(where: \.ovas)?.id ?? visning.matt.first?.id ?? "")
     }
 
     private var rubrik: some View {
@@ -34,7 +35,11 @@ struct UtvecklingVy: View {
                 }
             }
             .padding(.top, 8)
-            .padding(.bottom, 18)
+            .padding(.bottom, visning.ejMatta == nil ? 18 : 6)
+            if let e = visning.ejMatta {
+                Under(text: e)
+                    .padding(.bottom, 14)
+            }
 
             Flode {
                 ForEach(visning.matt, id: \.id) { m in
@@ -137,6 +142,14 @@ struct Diagram: View {
             for m in u.manader {
                 let ankare: UnitPoint = m.index == 0 ? .bottomLeading : .bottom
                 c.etikett(m.text, CGPoint(x: m.index == 0 ? x(0) - 4 : x(m.index), y: s.height - 2), ankare: ankare)
+            }
+            // Passets spridning (kvartilerna) som en smal stapel bakom passets prick.
+            for (i, p) in u.punkter.enumerated() {
+                if let a = p.q1, let b = p.q3, b > a {
+                    let y0 = y(b), y1 = y(a)
+                    c.fill(Path(roundedRect: CGRect(x: x(i) - 2, y: y0, width: 4, height: max(1, y1 - y0)), cornerRadius: 1),
+                           with: .color(Theme.line))
+                }
             }
             for (i, p) in u.punkter.enumerated() {
                 if let s1 = p.serie1 {

@@ -62,7 +62,7 @@ final class Analysis {
             pass.syncShots()
             // Ett pass från före S4b: slagen med leder får sina mått först (METOD MS14).
             let id = pass.id
-            pass.measureShots(height: store.settings.heightM) { s in s.joints.flatMap { store.joints($0, in: id) } }
+            pass.measureShots { s in s.joints.flatMap { store.joints($0, in: id) } }
             try persist(pass, store)
             while let next = ShotPlan.next(pass), !Task.isCancelled {
                 step = next
@@ -134,7 +134,7 @@ final class Analysis {
                 pass.shots[i].orientationSuspect = series.orientationSuspect
                 // Måtten ur samma avrundade leder som filen och paketet (METOD MS12, MS14).
                 pass.shots[i].measure = ShotMeasuring.measure(series.rounded(), shot: pass.shots[i], setup: pass.setup,
-                                                              height: store.settings.heightM)
+                                                              height: pass.heightM)
             }
         case .clip:
             // Klippet inom seriens fönster ur redigeraren (METOD MS13).

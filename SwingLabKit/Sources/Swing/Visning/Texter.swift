@@ -120,6 +120,9 @@ public enum Texter {
     /// Filtret Alla/FO/DTL.
     public static let alla = "All"
 
+    /// "2 not measured": pass med samma klubba som inte är med i Utveckling (METOD MS16).
+    public static func ejMatta(_ n: Int) -> String { "\(n) not measured" }
+
     // MARK: Att jobba på
 
     /// "week 5"

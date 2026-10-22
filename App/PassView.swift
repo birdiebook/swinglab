@@ -100,14 +100,15 @@ struct PassShotsView: View {
             let r = await PassMeasures.load(p, store: store)
             guard r.pass.id == pass?.id else { return }
             pass = r.pass
-            visning = Self.visning(r.pass, earlier: r.earlier)
+            visning = Self.visning(r.pass, earlier: r.earlier, ovas: FokusFiler.ovas(root: store.root))
             unmeasured = r.unmeasured
         }
     }
 
-    static func visning(_ p: PassState, earlier: [PassState]) -> Passvisning? {
+    /// `ovas` = felen i Att jobba på: deras kort bär accenten (BESLUT B31).
+    static func visning(_ p: PassState, earlier: [PassState], ovas: Set<String> = []) -> Passvisning? {
         guard let k = AppKatalog.katalog, p.shots.contains(where: { $0.measure != nil }) else { return nil }
-        return Passvisning(katalog: k, pass: earlier.map(\.visningsPass) + [p.visningsPass])
+        return Passvisning(katalog: k, pass: earlier.map(\.visningsPass) + [p.visningsPass], ovas: ovas)
     }
 
     private func analyze() {
@@ -136,9 +137,10 @@ struct PassShotsView: View {
         show(p)
     }
 
+    /// Passets egen längd: bara det här passet mäts om; Jag och andra pass rörs inte (METOD MS16).
     private func setHeight(_ h: Double) {
         guard !analysis.running else { return }
-        store.setHeight(h)
+        store.setPassHeight(h, passID: passID)
         reload()
     }
 
@@ -155,18 +157,17 @@ struct PassShotsView: View {
 }
 
 /// Passets mått med de tidigare passen (METOD MS14): passet och dess kandidater (samma
-/// klubba och vy, före) mäts med längden som gäller utanför huvudtråden, de som ändrades
-/// sparas, och de tidigare passen med samma längd blir baslinjen och "vs"; de som ändå
-/// saknar mått räknas.
+/// klubba och vy, före) mäts med sin egen längd utanför huvudtråden (METOD MS16), de som
+/// ändrades sparas, och de tidigare passen med samma längd som passet blir baslinjen och
+/// "vs"; de med en annan längd eller utan mått räknas.
 @MainActor
 enum PassMeasures {
     static func load(_ p: PassState, store: Store) async -> (pass: PassState, earlier: [PassState], unmeasured: Int) {
         let kandidater = PassHistory.candidates(p, among: store.allPasses())
-        let height = store.settings.heightM
         let root = store.root
         let fore = [p] + kandidater
         let efter = await Task.detached(priority: .userInitiated) {
-            Store.measuring(fore, height: height, root: root)
+            Store.measuring(fore, root: root)
         }.value
         // Bara ett pass som inte ändrats under tiden skrivs över med sina nya mått.
         for (a, b) in zip(fore, efter) where a != b && store.load(a.id) == a { store.save(b) }

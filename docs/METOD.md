@@ -947,12 +947,12 @@ värden i `CaptureTests`.
   standarden för spelhanden. Samma väg som PC:ns `paket.till_sving` (MT1), så att
   telefonen och PC:n ger samma tal på samma slag (BESLUT B12); provat mot filformatet
   (`MatningTests`). **räkning.**
-- **Längden** (skalan, M2) är Johannes egen (`AppSettings.heightM`, valbar 140–210 cm
-  i passet). Saknas den mäts med **1,80 m** och skalan märks antagen ("assumed") i
-  passet, i stället för att stoppa som PC:n gör (MT1): måtten i cm skalar med längden
-  (±5 cm i längd ≈ ±3 % i varje cm-mått), vinklarna och tempot inte. **antagande**
-  (en genomsnittlig vuxen man; ingen källa). En ny längd mäter om passets slag när
-  passet öppnas.
+- **Längden** (skalan, M2) är Johannes egen, passets (`PassState.heightM`, sedan S4c:
+  tagen från Jag när passet skapas, valbar 140–210 cm i Jag och i passet, MS16). Saknas
+  den mäts med **1,80 m** och skalan märks antagen ("assumed") i passet, i stället för
+  att stoppa som PC:n gör (MT1): måtten i cm skalar med längden (±5 cm i längd ≈ ±3 % i
+  varje cm-mått), vinklarna och tempot inte. **antagande** (en genomsnittlig vuxen man;
+  ingen källa). En ny längd i passet mäter om det passets slag när det öppnas.
 - **Vilka slag som räknas** i passets mått: domen sving eller osäker (MT1), mätt, och
   inte märkt "Detection wrong" (BESLUT B35). Ett slag som inte går att mäta (händerna
   syns inte före träffen, eller skalans segment syns inte i adressen) räknas inte och
@@ -964,7 +964,7 @@ värden i `CaptureTests`.
   och utan förra passets streck, så att ett pass med ett slag inte står tomt efter
   Analyze. Sessionens sammanfattning och bedömningen ändras inte. **antagande.**
 - **Samma längd i jämförelsen.** När passet öppnas mäts det och de tidigare passen
-  (samma klubba och vy) om med längden som gäller nu, utanför huvudtråden, och de som
+  (samma klubba och vy) med var sin egen längd (MS16), utanför huvudtråden, och de som
   ändrades sparas. Baslinjen och "vs" tar bara pass mätta med **samma längd** som
   passet, så att ett mått i cm aldrig jämförs mellan två skalor. Ett tidigare pass som
   ändå saknar mått (inga leder) eller har en annan längd faller inte bort tyst: passet
@@ -1013,6 +1013,39 @@ värden i `CaptureTests`.
 - **Måtten under videon** är slagets (inte passets median) vid den valda positionen,
   ur katalogens `positioner` och `matt` i slagets vy (M29), med katalogens gräns
   eller den egna baslinjen ur de tidigare passen (MS14).
+
+## MS16 — Flikarna: vilka pass och vilken längd (S4c)
+
+- **Passets längd.** Jag (`AppSettings.heightM`) är standarden för **nya** pass: den
+  skrivs in i passet när det skapas (`PassState.heightM`), och passet mäts med sin egen
+  längd. En ny längd i Jag rör inga gamla pass; en ny längd i passet mäter om bara det
+  passet. Ett pass från före S4c tar längden som slagen mättes med (då Jags), så att dess
+  tal står kvar; antagen eller omätt blir antagen. **antagande** (Johannes beslut i
+  uppdraget: "passet behåller sin").
+- **Idag** visar det **senaste passet med slag som räknas** (MS14), mot de tidigare med
+  samma klubba, vy och längd (baslinjen och "vs" som i passet). Ett pass som inte är
+  analyserat än syns inte på Idag men i Sessions. **räkning.**
+- **Utveckling** tar passen med **samma klubba och samma längd som det senaste** (samma
+  regel som baslinjen i MS14), äldst först; varje mått tar själv passen med sin vy (ett
+  FO-mått har bara FO-passens svingar). Ett pass med samma klubba som inte kom med (inga
+  mått, eller en annan längd) räknas: "2 not measured". Ett pass med en annan klubba hör
+  inte hit och räknas inte (research 1 del 4: klubban ändrar svingen). Per pass visas
+  medianen (M25) med **spridningen** som en stapel från första till tredje kvartilen,
+  serie 1:s median (MT2) och gränsen eller den egna baslinjen (M27). Ett pass med färre än
+  tre svingar i ett mått ger ingen punkt (M25). **antagande** (klubban), **räkning**.
+- **Att jobba på** är den senaste hämtade filen i `AttJobbaPa/` (passets id är tiden, så
+  det högsta namnet vinner; samma regel som S2f:s "Import focus"). En fil som inte går att
+  läsa hoppas över. **Blocken** i Utveckling (B1, B2 …) är `block.start` för den första
+  saken i **alla** hämtade filer, utan dubbletter (MT10); ett block som började före det
+  första passet ritas inte. **räkning.**
+- **Accenten** (BESLUT B31) är felen i den senaste filen (`saker[].fel`): deras rad på
+  Idag, kort i Passet, linje i Utveckling och rad under granskningens video. Utan fil
+  syns ingen accent. Utveckling väljer först det som övas.
+- **Vad som provas var.** Linux (`FlikarTests`, `VisningTests`): passets längd och den
+  gamla filen, Jags klubbor och spelhand, vilka pass Idag och Utveckling tar, spridningen,
+  filerna och blocken. Simulatorn (`SwingLabProvFlikar`): åtta påhittade pass i appens
+  Store mäts med appens egen väg, två påhittade filer, flikarna ritas med talen, accenten
+  bara på det som övas, och en ny längd i Jag rör inga gamla pass.
 
 ---
 

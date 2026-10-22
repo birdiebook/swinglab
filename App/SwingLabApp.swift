@@ -8,7 +8,7 @@ struct SwingLabApp: App {
 
     var body: some Scene {
         WindowGroup {
-            StartView()
+            Flikar()
                 .environment(store)
                 .preferredColorScheme(.dark)
         }

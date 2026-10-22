@@ -1,12 +1,15 @@
 import SwiftUI
 import Swing
 
-/// Idag (skissens skärm 1): dagen, Starta pass, senaste passet som rader med ett
-/// kompakt spann, och den första saken att jobba på. Inte inkopplad: startvyn
-/// ersätts av den här när S2:s data finns.
+/// Idag (skissens skärm 1, fliken Today i S4c): dagen, Starta pass, senaste passet som
+/// rader med ett kompakt spann (det som övas i accenten, BESLUT B31), och sakerna att
+/// jobba på med tanken. Datan kommer som värden (Idagvisning ur passen på telefonen),
+/// så att provet kan rita skärmen.
 struct IdagVy: View {
     let visning: Idagvisning
     var startaPass: () -> Void = {}
+    /// Hämta ur Bilder (S2d); nil = raden visas inte.
+    var importera: (() -> Void)? = nil
     var oppnaPasset: () -> Void = {}
     var oppnaJobba: () -> Void = {}
 
@@ -28,6 +31,37 @@ struct IdagVy: View {
                 .foregroundStyle(Theme.tertiary)
         }
         .fixedSize()
+    }
+
+    /// En sak: måttets namn, tanken och kedjan (saken i accenten).
+    private func sak(_ f: Idagvisning.Forsta) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(f.namn)
+                .typsnitt(22, .semibold)
+                .foregroundStyle(Theme.text)
+            Text(f.tanke)
+                .typsnitt(20, .medium)
+                .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
+            if f.kedja.count > 1 {
+                Radbrytning(mellan: 8) {
+                    ForEach(Array(f.kedja.enumerated()), id: \.offset) { i, namn in
+                        if i > 0 {
+                            Image(systemName: "arrow.right")
+                                .typsnitt(10, .semibold)
+                                .foregroundStyle(Theme.tertiary)
+                        }
+                        Text(namn)
+                            .typsnitt(13)
+                            .foregroundStyle(i == 0 ? Theme.acc : Theme.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.top, 14)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var rubrik: some View {
@@ -56,7 +90,12 @@ struct IdagVy: View {
 
             Button("Start session", action: startaPass)
                 .buttonStyle(PrimaryButtonStyle())
-                .padding(.bottom, 22)
+                .padding(.bottom, importera == nil ? 22 : 8)
+            if let importera {
+                Button("Import from Photos", action: importera)
+                    .buttonStyle(RowButtonStyle())
+                    .padding(.bottom, 14)
+            }
 
             if let senaste = visning.senaste {
                 Button(action: oppnaPasset) {
@@ -91,32 +130,13 @@ struct IdagVy: View {
                 .buttonStyle(.plain)
             }
 
-            if let f = visning.forsta {
+            if !visning.fokus.isEmpty {
                 Button(action: oppnaJobba) {
-                    Sektion(etikett: String(localized: "Focus")) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(f.namn)
-                                .typsnitt(22, .semibold)
-                                .foregroundStyle(Theme.text)
-                            Text(f.tanke)
-                                .typsnitt(20, .medium)
-                                .foregroundStyle(Theme.text)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, 6)
-                            Radbrytning(mellan: 8) {
-                                ForEach(Array(f.kedja.enumerated()), id: \.offset) { i, namn in
-                                    if i > 0 {
-                                        Image(systemName: "arrow.right")
-                                            .typsnitt(10, .semibold)
-                                            .foregroundStyle(Theme.tertiary)
-                                    }
-                                    Text(namn)
-                                        .typsnitt(13)
-                                        .foregroundStyle(i == 0 ? Theme.acc : Theme.secondary)
-                                        .lineLimit(1)
-                                }
+                    Sektion(etikett: String(localized: "Focus"), hoger: visning.vecka) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            ForEach(Array(visning.fokus.enumerated()), id: \.offset) { _, f in
+                                sak(f)
                             }
-                            .padding(.top, 14)
                         }
                     }
                 }

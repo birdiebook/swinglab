@@ -17,6 +17,8 @@ struct PassFlowView: View {
 
     @Environment(Store.self) private var store
     @State private var setup = PassSetup()
+    /// Uppställningen har fått Jags spelhand och klubba (S4c).
+    @State private var setupReady = false
     @State private var pass: PassState?
     /// Efter Continue: passet med slagen.
     @State private var shots = false
@@ -39,7 +41,8 @@ struct PassFlowView: View {
         } else {
             NavigationStack {
                 SetupView(setup: $setup, titel: mode == .record ? "New session" : "Import from Photos",
-                          primary: mode == .record ? "Camera" : "Choose clips", roles: mode == .record) {
+                          primary: mode == .record ? "Camera" : "Choose clips", roles: mode == .record,
+                          clubs: store.settings.bag) {
                     var s = setup
                     if mode == .photos { s.role = .solo }       // två telefoner bara i kameran (S2g)
                     pass = store.newPass(setup: s)
@@ -48,6 +51,13 @@ struct PassFlowView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Close", action: onClose) }
                 }
+            }
+            // Jags spelhand och klubborna; klubban från förra passet (S4c).
+            .onAppear {
+                guard !setupReady else { return }
+                setupReady = true
+                let senaste = store.index.passes.max { $0.created < $1.created }.flatMap { store.load($0.id) }
+                setup = store.settings.newSetup(lastClub: senaste?.setup.club)
             }
         }
     }
@@ -71,6 +81,8 @@ struct SetupView: View {
     let primary: LocalizedStringKey
     /// Rollen med två telefoner (S2g): ensam, styr eller följ. Bara i kameran.
     var roles = false
+    /// Klubborna i Jag (S4c); passets klubba står alltid med.
+    var clubs: [String] = PassSetup.clubs
     let onConfirm: () -> Void
 
     var body: some View {
@@ -98,7 +110,9 @@ struct SetupView: View {
                 }
                 .pickerStyle(.segmented)
                 Picker("Club", selection: $setup.club) {
-                    ForEach(PassSetup.clubs, id: \.self) { Text(verbatim: PassSetup.clubLabel($0)).tag($0) }
+                    ForEach(PassSetup.clubs.filter { clubs.contains($0) || $0 == setup.club }, id: \.self) {
+                        Text(verbatim: PassSetup.clubLabel($0)).tag($0)
+                    }
                 }
                 Stepper(value: $setup.distance, in: PassSetup.distanceRange, step: PassSetup.distanceStep) {
                     HStack {

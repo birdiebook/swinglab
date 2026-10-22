@@ -67,8 +67,8 @@ Måtten: Sway, Hip shift, Thrust, Chest bend, Side bend, Sway gap. Klubborna skr
 
 ## Öppna val
 
-1. **Flödet:** tre flikar med passet som eget flöde, eller en fjärde flik för
-   passen.
+1. **Flödet:** besvarat i S4c (BESLUT B36): tre flikar med passet som eget flöde;
+   passen nås från Me → Sessions.
 2. **Passets ordning:** genom svingen (som nu) eller med det som ska övas
    först.
 3. **Under passet:** bara antalet slag (som nu) eller också uppläsning efter

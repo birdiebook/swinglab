@@ -28,6 +28,8 @@ struct ShotReviewView: View {
     @State private var playing = false
     @State private var observer: Any?
     @State private var baseline: [String: [Double]] = [:]
+    /// Felen i Att jobba på (BESLUT B31).
+    @State private var ovas: Set<String> = []
     @State private var seeking = false
     @State private var pendingFrame: Int?
 
@@ -40,7 +42,8 @@ struct ShotReviewView: View {
                     ReviewContent(surface: CroppedPlayerSurface(player: player, crop: review.crop), review: review,
                                   number: ShotRecord.number(shot.id) ?? 0, frame: frame, overlayOn: overlayOn,
                                   playing: playing, position: position, positions: review.positions(shot.measure),
-                                  rows: ReviewRows.rows(pass: pass, shot: shot, position: position, baseline: baseline),
+                                  rows: ReviewRows.rows(pass: pass, shot: shot, position: position, baseline: baseline,
+                                                        ovas: ovas),
                                   detectionWrong: shot.detectionWrong == true, impact: shot.impact - shot.click.time,
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong)
@@ -69,6 +72,7 @@ struct ShotReviewView: View {
               let rel = s.joints, let series = store.joints(rel, in: passID),
               let serie = p.series.first(where: { $0.nr == s.series }) else { return }
         pass = p
+        ovas = FokusFiler.ovas(root: store.root)
         let r = ShotReview(series: series, crop: serie.activeCrop)
         review = r
         // Baslinjen ur de tidigare passen med samma längd, mätta utanför huvudtråden (METOD MS14).
@@ -181,11 +185,14 @@ struct ShotReviewView: View {
     }
 }
 
-/// Måtten under videon: slagets vid positionen, i slagets vy (METOD M29, MS15).
+/// Måtten under videon: slagets vid positionen, i slagets vy (METOD M29, MS15). `ovas` =
+/// felen i Att jobba på: deras rader bär accenten (BESLUT B31).
 enum ReviewRows {
-    static func rows(pass: PassState, shot: ShotRecord, position: String, baseline: [String: [Double]]) -> [Positionsrad] {
+    static func rows(pass: PassState, shot: ShotRecord, position: String, baseline: [String: [Double]],
+                     ovas: Set<String> = []) -> [Positionsrad] {
         guard let k = AppKatalog.katalog, let m = shot.measure else { return [] }
-        return Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values, baslinje: baseline)
+        return Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values, baslinje: baseline,
+                                   ovas: ovas)
     }
 }
 

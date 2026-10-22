@@ -82,7 +82,7 @@ final class SwingLabProvVyer: XCTestCase {
 
     /// ImageRenderer: innehållet i full längd, mörkt läge, @3x, och prövat mot formspråket.
     /// `accent`: om bilden ska bära accenten (det du övar på, BESLUT B31); nil = prövas inte.
-    private func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large,
+    func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large,
                          accent: Bool? = true) throws {
         let innehall = vy
             .environment(\.dynamicTypeSize, textstorlek)
@@ -107,7 +107,7 @@ final class SwingLabProvVyer: XCTestCase {
     /// Gråskala och den enda accenten (B13 regel 6, B31), botten svart, och något ljust ritat.
     /// En punkt räknas som accent när den ligger på linjen mellan grått och isblått
     /// (#6FD3F7: blått över grönt över rött); allt annat färgat är ett fel.
-    private func provaFormspraket(_ bild: UIImage, namn: String, accent: Bool?) throws {
+    func provaFormspraket(_ bild: UIImage, namn: String, accent: Bool?) throws {
         let cg = try XCTUnwrap(bild.cgImage)
         let w = cg.width, h = cg.height
         var px = [UInt8](repeating: 0, count: w * h * 4)

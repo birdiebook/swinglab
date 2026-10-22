@@ -545,3 +545,27 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   på telefonen.
 - **Omprövas:** efter telefonprovet av S4b.
 
+## B36 — Flikarna med riktig data: Today, Progress och Me
+*2026-10-22 · prövas · PLAN.md S4 (S4c)*
+
+- **Valt:** appen öppnar i tre flikar som skissen (design/README.md, öppet val 1: tre
+  flikar, passet som eget flöde). **Today:** dagen, Start session, Import from Photos,
+  det senaste passet med måtten i korthet (ett tryck öppnar passet) och Focus: de 1–3
+  sakerna ur den senaste `att_jobba_pa.json` med tanken och kedjan (ett tryck öppnar Att
+  jobba på). **Progress:** ett mått i taget över passen med samma klubba och längd
+  (median, spridning, serie 1, gränsen eller baslinjen, blocken), det som övas först.
+  **Me:** längden, spelhanden och klubborna, som är standarden för nya pass, och Sessions
+  med passen, "Import from Photos" och "Import focus" (startvyns form). Accenten (B31)
+  följer den senaste filen. Reglerna för vilka pass som visas: METOD MS16.
+- **Passet behåller sin längd:** längden flyttar till Me och skrivs in i varje nytt pass;
+  passets rad ändrar bara passet (METOD MS16). Förut ändrade passets rad Johannes längd
+  och mätte om alla pass.
+- **Läser filen där S2f sparar den** (`AttJobbaPa/att_jobba_pa-<pass>.json`) med
+  `App/Fokus.swift`, utan `Store.focus`, så att S4c och S2f landar oberoende; när båda
+  finns kan flikarna läsa `Store.focus` i stället.
+- **Bortvalt:** en fjärde flik för passen (skissens öppna val 1), Utveckling över alla
+  klubbor (en driver och ett 7-järn är inte samma sving), och att mäta om tidigare pass
+  med en annan längd för jämförelsen (då visar passet andra tal än sina egna).
+- **Kostnad:** Sessions är startvyn i ett blad: "New session" står där och på Today.
+  Utveckling visar bara den senaste klubban.
+- **Omprövas:** efter telefonprovet av S4c.

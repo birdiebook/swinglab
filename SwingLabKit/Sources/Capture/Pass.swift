@@ -264,10 +264,14 @@ public struct PassState: Codable, Equatable, Sendable {
     /// Det högsta slagnumret som getts ("s07" → 7). Går aldrig bakåt, så att ett id
     /// aldrig ges två gånger (`syncShots`). METOD MS12
     public var lastShotNumber: Int
+    /// Längden som passets slag mäts med, m (skalan, METOD M2); nil = standarden, märkt
+    /// antagen. Tas från Jag när passet skapas och ändras bara i passet: en ny längd i Jag
+    /// rör inga gamla pass (S4c). METOD MS16
+    public var heightM: Double?
 
     public init(id: String, created: Date, setup: PassSetup, series: [SeriesRecord] = [],
                 lightCheck: LightCheck? = nil, status: PassStatus = .recorded, shots: [ShotRecord] = [],
-                vision: VisionStats? = nil, lastShotNumber: Int = 0) {
+                vision: VisionStats? = nil, lastShotNumber: Int = 0, heightM: Double? = nil) {
         format = Self.formatName
         self.id = id
         self.created = created
@@ -278,6 +282,7 @@ public struct PassState: Codable, Equatable, Sendable {
         self.shots = shots
         self.vision = vision
         self.lastShotNumber = lastShotNumber
+        self.heightM = heightM
     }
 
     /// Ett pass från S2c/S2d saknar `shots` och `vision`: det läses ändå, med inga slag.
@@ -295,6 +300,10 @@ public struct PassState: Codable, Equatable, Sendable {
         vision = try c.decodeIfPresent(VisionStats.self, forKey: .vision)
         lastShotNumber = try c.decodeIfPresent(Int.self, forKey: .lastShotNumber)
             ?? (shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
+        // Ett pass från före S4c saknar längden: den som slagen mättes med (då Jags), så att
+        // passet behåller sina tal; antagen eller omätt blir nil. METOD MS16
+        heightM = try c.decodeIfPresent(Double.self, forKey: .heightM)
+            ?? shots.compactMap(\.measure).first.flatMap { $0.heightAssumed ? nil : $0.heightM }
     }
 
     /// Nästa seriens nummer (1, 2, …).
@@ -406,17 +415,54 @@ public enum PassStorage {
     }
 }
 
-/// Appens inställningar (`installningar.json`).
+/// Appens inställningar (`installningar.json`): Jag (S4c) är standarden för nya pass.
 public struct AppSettings: Codable, Equatable, Sendable {
     /// BESLUT B26: behåll hela serierna (standard) eller bara klippen efter export.
     public var keepOriginals: Bool
-    /// Spelarens längd, m: skalan för måtten i cm (METOD M2). nil = inte angiven; då
-    /// mäts med `ShotMeasuring.assumedHeightM` och skalan märks antagen (METOD MS14).
-    /// Saknas i en installningar.json från före S4b.
+    /// Spelarens längd i Jag, m: skalan för måtten i cm (METOD M2) i **nya** pass; ett pass
+    /// behåller sin (`PassState.heightM`, METOD MS16). nil = inte angiven; då mäts med
+    /// `ShotMeasuring.assumedHeightM` och skalan märks antagen (METOD MS14). Saknas i en
+    /// installningar.json från före S4b.
     public var heightM: Double?
+    /// Spelhanden i Jag, standarden i uppställningen; nil = höger. Saknas före S4c.
+    public var hand: Hand?
+    /// Klubborna i Jag (manifestets id, `PassSetup.clubs`), de som uppställningen visar;
+    /// nil = alla. Saknas före S4c.
+    public var clubs: [String]?
 
-    public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil) {
+    public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil, hand: Hand? = nil,
+                clubs: [String]? = nil) {
         self.keepOriginals = keepOriginals
         self.heightM = heightM
+        self.hand = hand
+        self.clubs = clubs
+    }
+
+    /// Klubborna i uppställningen, i `PassSetup.clubs` ordning; aldrig tom (alla när inga är valda).
+    public var bag: [String] {
+        let valda = Set(clubs ?? PassSetup.clubs)
+        let ut = PassSetup.clubs.filter { valda.contains($0) }
+        return ut.isEmpty ? PassSetup.clubs : ut
+    }
+
+    /// Klubban läggs till i eller tas bort ur Jag; den sista tas aldrig bort.
+    public mutating func toggleClub(_ id: String) {
+        guard PassSetup.clubs.contains(id) else { return }
+        var b = bag
+        if let i = b.firstIndex(of: id) {
+            guard b.count > 1 else { return }
+            b.remove(at: i)
+        } else {
+            b.append(id)
+        }
+        clubs = PassSetup.clubs.filter { b.contains($0) }
+    }
+
+    /// Uppställningen för ett nytt pass: spelhanden ur Jag och klubban från förra passet
+    /// (`lastClub`) om den finns bland klubborna, annars 7i, annars den första (S4c).
+    public func newSetup(lastClub: String? = nil) -> PassSetup {
+        let b = bag
+        let club = lastClub.flatMap { b.contains($0) ? $0 : nil } ?? (b.contains("j7") ? "j7" : b[0])
+        return PassSetup(club: club, hand: hand ?? .hoger)
     }
 }

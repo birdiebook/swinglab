@@ -161,6 +161,18 @@ och menyn "Detection wrong" (BESLUT B35). Simulatorprovet: `Prov/SwingLabProvGra
 (bilderna `granskning-markor`, `passet-matt`, `granskning-video`, `granskning-video-p7`,
 `granskning-utan-leder`, `granskning-detection-wrong`, `passet-detection-wrong`).
 
+**S4c — flikarna med riktig data (BESLUT B36, METOD MS16).** Byggt (grenen `s4c`): appen
+öppnar i Today, Progress och Me (`App/Vyer/Flikar.swift`). Today: senaste passet med
+måtten i korthet, Focus med de 1–3 sakerna ur den senaste `att_jobba_pa.json` (läst där
+S2f sparar den, `App/Fokus.swift`), Start session och Import from Photos. Progress: ett
+mått i taget över passen med samma klubba och längd (median, spridning, serie 1, gränsen
+eller baslinjen, blocken). Me (`JagVy`): längden, spelhanden och klubborna som standard
+för nya pass (passet behåller sin längd, `PassState.heightM`), och Sessions (startvyn med
+passen och Import focus). Accenten på det som övas i Today, Passet, Progress och
+granskningens rader. Simulatorprovet: `Prov/SwingLabProvFlikar.swift` (bilderna
+`flik-idag`, `flik-idag-utan-fokus`, `flik-utveckling`, `flik-utveckling-resa`,
+`flik-jobba`, `flik-passet`, `flik-jag`).
+
 ## S5 — PC-länken och Claude
 
 - `tools/pc/session.py <paket>` läser paketet, kör det tunga (MediaPipe,

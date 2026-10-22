@@ -101,6 +101,12 @@ extension PassState {
         return m.heightAssumed != (height == nil) || m.heightM != (height ?? ShotMeasuring.assumedHeightM)
     }
 
+    /// Mäter (om) slagen som behöver det med passets egen längd (`heightM`, METOD MS16).
+    @discardableResult
+    public mutating func measureShots(joints: (ShotRecord) -> JointSeries?) -> Bool {
+        measureShots(height: heightM, joints: joints)
+    }
+
     /// Mäter (om) slagen som behöver det; `joints` läser ett slags leder. Svarar om något
     /// ändrades (då ska passet sparas). Ett pass från före S4b får sina mått här. METOD MS14
     @discardableResult
@@ -168,6 +174,25 @@ public enum PassHistory {
     /// Kandidaterna som inte kom med i `earlier`: utan mätta slag, eller med en annan längd.
     public static func unmeasured(_ nu: PassState, among alla: [PassState]) -> Int {
         candidates(nu, among: alla).count - earlier(nu, among: alla).count
+    }
+
+    /// Det senaste passet med slag som räknas (Idag, Utveckling): det sist skapade. METOD MS16
+    public static func latest(_ alla: [PassState]) -> PassState? {
+        alla.filter { !$0.countedSwings.isEmpty }.max { ($0.created, $0.id) < ($1.created, $1.id) }
+    }
+
+    /// Passen i Utveckling (METOD MS16): samma regel som baslinjen (MS14) räknad från det
+    /// senaste passet. Samma klubba, slag som räknas och samma längd, äldst först; vyn väljer
+    /// varje mått själv (ett FO-mått har bara FO-passens svingar). `unmeasured` = pass med
+    /// samma klubba som inte kom med (inga mått, eller en annan längd). Ett pass med en annan
+    /// klubba hör inte hit och räknas inte.
+    public static func progress(_ alla: [PassState]) -> (passes: [PassState], unmeasured: Int) {
+        guard let nu = latest(alla) else { return ([], 0) }
+        let h = nu.measuredHeight?.heightM
+        let klubba = alla.filter { $0.setup.club == nu.setup.club }
+        let med = klubba.filter { p in !p.countedSwings.isEmpty && p.measuredHeight?.heightM == h }
+            .sorted { ($0.created, $0.id) < ($1.created, $1.id) }
+        return (med, klubba.count - med.count)
     }
 
     /// Måttens värden i de tidigare passen (alla slag som räknas), för den egna baslinjen.

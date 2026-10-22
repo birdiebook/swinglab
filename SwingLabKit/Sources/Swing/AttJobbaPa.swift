@@ -214,6 +214,48 @@ public struct AttJobbaPa: Decodable, Sendable {
         try las(Data(json.utf8))
     }
 
+    // MARK: Filerna på telefonen (S4c)
+
+    /// Mappen i appens Application Support/SwingLab där "Import focus" sparar filerna, en
+    /// per pass: `AttJobbaPa/att_jobba_pa-<pass>.json` (S2f, BESLUT B28). METOD MS16
+    public static let mapp = "AttJobbaPa"
+
+    /// Filens namn för ett pass-id `yyyyMMdd-HHmmss`, eller nil när id:t inte är ett sådant.
+    public static func filnamn(pass: String) -> String? {
+        let c = Array(pass)
+        guard c.count == 15, c[8] == "-",
+              c.enumerated().allSatisfy({ $0.offset == 8 || ($0.element.isASCII && $0.element.isNumber) }) else {
+            return nil
+        }
+        return "att_jobba_pa-\(pass).json"
+    }
+
+    /// Namnen på filerna bland mappens namn, äldst först: passets id är tiden, så det sista
+    /// är det senaste. Annat i mappen hoppas över. METOD MS16
+    public static func filer(_ namn: [String]) -> [String] {
+        namn.filter { n in
+            n.hasPrefix("att_jobba_pa-") && n.hasSuffix(".json") && filnamn(pass: String(n.dropFirst(13).dropLast(5))) == n
+        }.sorted()
+    }
+
+    /// Blockens första dagar (Utvecklings B1, B2 …) ur alla hämtade filer: `block.start` för
+    /// den första saken i varje fil, utan dubbletter, äldst först. METOD MS16, MT10
+    public static func block(_ filer: [AttJobbaPa]) -> [Date] {
+        var dagar = Set<Date>()
+        for a in filer {
+            guard let s = a.saker.min(by: { $0.ordning < $1.ordning }), let d = dag(s.block.start) else { continue }
+            dagar.insert(d)
+        }
+        return dagar.sorted()
+    }
+
+    /// "2026-12-12" som dagens början i svensk tid, eller nil.
+    static func dag(_ text: String) -> Date? {
+        let d = text.split(separator: "-").compactMap { Int($0) }
+        guard d.count == 3 else { return nil }
+        return Tal.kalender.date(from: DateComponents(year: d[0], month: d[1], day: d[2], hour: 0))
+    }
+
     static func plats(_ vag: [CodingKey]) -> String {
         var s = ""
         for k in vag {

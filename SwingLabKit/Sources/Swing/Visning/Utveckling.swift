@@ -8,6 +8,9 @@ public struct Utveckling: Sendable {
         public let pass: Double
         /// Serie 1:s median, nil när passet saknar serie 1.
         public let serie1: Double?
+        /// Passets spridning, kvartilerna (METOD M25); nil under tre svingar.
+        public var q1: Double? = nil
+        public var q3: Double? = nil
     }
 
     public enum Band: Equatable, Sendable {
@@ -49,8 +52,8 @@ public struct Utveckling: Sendable {
         markning = Markning.fran(fel)
         enhet = e.enhet
         punkter = pass.compactMap { p -> Passpunkt? in
-            guard let m = p.median(fel.matt, grupp) else { return nil }
-            return Passpunkt(datum: p.datum, pass: m, serie1: p.serie1Median(fel.matt, grupp))
+            guard let s = p.sammanfattning(fel.matt, grupp) else { return nil }
+            return Passpunkt(datum: p.datum, pass: s.median, serie1: p.serie1Median(fel.matt, grupp), q1: s.q1, q3: s.q3)
         }
         varde = Mattkort.text(punkter.last?.pass, e)
         if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
@@ -66,7 +69,8 @@ public struct Utveckling: Sendable {
         } else {
             band = nil
         }
-        var varden = punkter.map(\.pass) + punkter.compactMap(\.serie1)
+        var varden = punkter.map(\.pass) + punkter.compactMap(\.serie1) + punkter.compactMap(\.q1)
+            + punkter.compactMap(\.q3)
         // Bandet syns när det ligger nära; ett långt bort drar inte ut axeln mer än en tredjedel.
         let lo0 = varden.min() ?? 0, hi0 = varden.max() ?? 1
         let ra = Swift.max(hi0 - lo0, 1e-9)
@@ -98,16 +102,23 @@ public struct Utveckling: Sendable {
 
 /// Skärmen Utveckling: perioden, måtten att välja bland och det valda måttet.
 public struct Utvecklingsvisning: Sendable {
-    /// "Oct–Jan · 16"
+    /// "7i · Oct–Jan · 16": klubban, månaderna och antalet pass ("Jan" när det är en månad).
     public let period: String
+    /// "2 not measured": pass med samma klubba som inte är med (METOD MS16); nil när alla är med.
+    public let ejMatta: String?
     public let matt: [Utveckling]
 
-    public init(katalog: Katalog, pass: [Pass], block: [Date] = [], ovas: Set<String> = []) {
+    /// `pass` äldst först, med samma klubba; `ejMatta` = passen med samma klubba som inte
+    /// kom med (inga mått eller en annan längd, METOD MS16).
+    public init(katalog: Katalog, pass: [Pass], block: [Date] = [], ovas: Set<String> = [], ejMatta: Int = 0) {
         if let a = pass.first, let b = pass.last {
-            period = "\(Tal.manad(a.datum))–\(Tal.manad(b.datum)) · \(pass.count)"
+            let ma = Tal.manad(a.datum), mb = Tal.manad(b.datum)
+            let manader = ma == mb && b.datum.timeIntervalSince(a.datum) < 60 * 86_400 ? ma : "\(ma)–\(mb)"
+            period = [b.klubba, manader, "\(pass.count)"].joined(separator: Texter.skilje)
         } else {
             period = ""
         }
+        self.ejMatta = ejMatta > 0 ? Texter.ejMatta(ejMatta) : nil
         matt = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
             var u = Utveckling(f, pass: pass, block: block)
             u.ovas = ovas.contains(f.id)

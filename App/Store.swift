@@ -94,7 +94,8 @@ final class Store {
     /// Ett nytt pass med id ur tiden (yyyyMMdd-HHmmss, lokal tid) och sina mappar.
     func newPass(setup: PassSetup, at date: Date = Date()) -> PassState {
         let id = PassID.unique(PassID.make(date), taken: Set(index.passes.map(\.id)))
-        let pass = PassState(id: id, created: date, setup: setup)
+        // Längden ur Jag följer med passet och ändras sedan bara där. METOD MS16
+        let pass = PassState(id: id, created: date, setup: setup, heightM: settings.heightM)
         let folder = passFolder(id)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         Self.createOutsideBackup(folder.appending(path: "Video", directoryHint: .isDirectory))
@@ -190,6 +191,7 @@ final class Store {
         ny.setup.role = pass.setup.role
         // Ljusprovet gjordes på följaren före första starten: det följer med.
         ny.lightCheck = ny.lightCheck ?? pass.lightCheck
+        ny.heightM = ny.heightM ?? pass.heightM
         let folder = passFolder(id)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         Self.createOutsideBackup(folder.appending(path: "Video", directoryHint: .isDirectory))
@@ -255,9 +257,26 @@ final class Store {
 
     // MARK: Måtten (S4b)
 
-    /// Johannes längd (skalan, METOD M2, MS14); nil = standarden, märkt antagen.
+    /// Johannes längd i Jag (skalan, METOD M2, MS14): standarden för nya pass; gamla pass
+    /// behåller sin (METOD MS16). nil = standarden, märkt antagen.
     func setHeight(_ h: Double?) {
         settings.heightM = h
+        saveSettings()
+    }
+
+    /// Spelhanden i Jag: standarden i uppställningen (S4c).
+    func setHand(_ h: Hand) {
+        settings.hand = h
+        saveSettings()
+    }
+
+    /// En klubba in i eller ut ur Jag: klubborna som uppställningen visar (S4c).
+    func toggleClub(_ id: String) {
+        settings.toggleClub(id)
+        saveSettings()
+    }
+
+    private func saveSettings() {
         do {
             try PassCoding.encoder().encode(settings).write(to: settingsFile, options: .atomic)
         } catch {
@@ -265,12 +284,22 @@ final class Store {
         }
     }
 
+    /// Passets egen längd (raden i passet): passet sparas och mäts om med den när det
+    /// öppnas; Jag och andra pass rörs inte. Svarar passet. METOD MS16
+    @discardableResult
+    func setPassHeight(_ h: Double?, passID: String) -> PassState? {
+        guard var p = load(passID) else { return nil }
+        p.heightM = h
+        save(p)
+        return p
+    }
+
     /// Passet med slagens mått: slagen med leder men utan mått (ett pass från före S4b),
-    /// eller mätta med en annan längd, mäts nu och passet sparas. METOD MS14
+    /// eller mätta med en annan längd än passets, mäts nu och passet sparas. METOD MS14, MS16
     func measured(_ pass: PassState) -> PassState {
         var p = pass
         let id = pass.id
-        if p.measureShots(height: settings.heightM, joints: { s in s.joints.flatMap { self.joints($0, in: id) } }) {
+        if p.measureShots(joints: { s in s.joints.flatMap { self.joints($0, in: id) } }) {
             save(p)
         }
         return p
@@ -290,15 +319,15 @@ final class Store {
         return ut
     }
 
-    /// Slagens mått med längden `height`, utan Store och utan huvudtråden: lederna läses
+    /// Slagens mått med varje pass egen längd, utan Store och utan huvudtråden: lederna läses
     /// direkt ur passets mapp under `root`. Svarar passen; de som ändrades har nya mått och
-    /// ska sparas av den som anropar (på huvudtråden). METOD MS14
-    static func measuring(_ passes: [PassState], height: Double?, root: URL) -> [PassState] {
+    /// ska sparas av den som anropar (på huvudtråden). METOD MS14, MS16
+    static func measuring(_ passes: [PassState], root: URL) -> [PassState] {
         passes.map { pass in
             var p = pass
             let mapp = root.appending(path: "Pass", directoryHint: .isDirectory)
                 .appending(path: pass.id, directoryHint: .isDirectory)
-            p.measureShots(height: height) { s in
+            p.measureShots { s in
                 guard let rel = s.joints, let data = try? Data(contentsOf: mapp.appending(path: rel)) else { return nil }
                 return try? JSONDecoder().decode(JointSeries.self, from: data)
             }
@@ -355,11 +384,7 @@ final class Store {
 
     func setKeepOriginals(_ keep: Bool) {
         settings.keepOriginals = keep
-        do {
-            try PassCoding.encoder().encode(settings).write(to: settingsFile, options: .atomic)
-        } catch {
-            problem = String(localized: "installningar.json could not be saved.")
-        }
+        saveSettings()
     }
 
     /// Tar bort passets original (Video/) när "Spara bara klippen" är valt och passet
