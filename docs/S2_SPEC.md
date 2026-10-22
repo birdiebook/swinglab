@@ -1427,6 +1427,13 @@ med testerna i §11.2 och används från `Export.swift`; manifestet (§8.3), `en
 `ljusprov.json`, med och utan klipp, `ActivitySheet`, `fileImporter` (§8.5).
 Simulatorprovets steg 8.
 
+**Fönstret och utsnittet (S2i):** `pass.json` bär dem per serie som
+`edit.fonster` och `edit.utsnitt` (`SeriesRecord.edit`). I manifestet plattas de ut
+till `serier[].fonster` och `serier[].utsnitt` enligt `docs/FORMAT.md` "Paketet"
+(`TimeWindow` och `CropRect` kodas redan med manifestets nycklar `fran_s`, `till_s`,
+`x`, `y`, `b`, `h`), och klampade som de läses (`activeWindow`, `activeCrop`). En serie
+utan redigering får inga fält. METOD MS13
+
 **Klart när:** T4, och ett paket med klipp från S2e ligger på PC:n och läses
 med Pythons `zipfile` (manifestet, ett slag, ett klipp som spelar).
 

@@ -76,7 +76,7 @@ på telefonen, och paketet ligger på PC:n.
 Efter en import eller inspelning: videon med två handtag för start och slut
 (originalfilen ändras aldrig, bara passets tidsfönster) och en ruta för
 utsnittet som dras och nyps runt spelaren. Utsnittet gäller alla slag i
-klippet: Vision letar bara inom rutan (`regionOfInterest`), så att spelaren blir
+klippet: Vision ser bara rutan (appen skär ut den, BESLUT B34), så att spelaren blir
 större i bilden, och granskningen visar videon med samma utsnitt. Därefter
 Analyze. B13: bara handtagen, rutan och tiden, ingen förklarande text.
 

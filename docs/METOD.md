@@ -702,25 +702,28 @@ värden i `CaptureTests`.
   origo uppe till vänster (samma rum som lederna i pixlar, MS7). Saknas
   redigeringen gäller hela filen och hela bilden. **räkning.**
 - **Fönstret.** Ett klick blir ett slag bara inom fönstret, gränserna
-  inräknade (`countedClicks`). Vision-passen (MS5, MS12) och klippet kapas vid
+  inräknade (`countedClicks`). Fönstret och utsnittet klampas när de läses ur
+  `pass.json` (`activeWindow`, `activeCrop`), så att en fil som skrivits för hand
+  inte kan lägga dem utanför filen eller bilden. Vision-passen (MS5, MS12) och klippet kapas vid
   fönstret som vid filens ändar: det som trimmats bort finns inte för
   analysen. Fönstret är minst **1,0 s** (handtagen går inte förbi varandra;
   kortare än en baksving gör ingen nytta). **antagande.**
 - **Utsnittet** är minst **0,2** av bildens sida åt båda hållen (216 × 384 px i
   1080 × 1920), med fria proportioner, och ligger alltid inom bilden. Under
   det har Vision för lite att se. **antagande.**
-- **Vision bara i rutan.** Rutan blir `regionOfInterest` på
-  `VNDetectHumanBodyPoseRequest`: "normalized to the dimensions of the processed
-  image. Its origin is specified relative to the image's lower-left corner"
-  (Apple, `VNImageBasedRequest.regionOfInterest`, **tillverkare, läst i Apples
-  dokumentation 2026-10-22**), alltså `(x, 1 − y − h, b, h)`. Att "the processed
-  image" är den orienterade (efter EXIF, som lederna antas vara, MS7) och att
-  kroppens punkter då är normaliserade **i rutan** med origo nere till vänster
-  står inte uttryckligen för kroppens leder; att Visions resultat är relativa
-  rutan är vedertaget (Apples egna `VNImagePointForNormalizedPointUsingRegionOfInterest`
-  finns för det). **antagande, prövas på telefonen** (S2i:s "Klart när": lederna
-  ska ligga på spelaren inuti rutan). En punkt (u, v) i rutan blir
-  `x = (x₀ + u·b)·B`, `y = (y₀ + (1 − v)·h)·H` i hela bildens pixlar.
+- **Vision ser bara rutan.** Appen skär ut rutan ur varje ruta före Vision
+  (`VisionPoseSource.cutOut`): bufferten görs upprätt med EXIF-orienteringen
+  (`CIImage.oriented`), skärs till rutan på hela pixlar (avrundad utåt,
+  `CropRect.pixels`; Core Image räknar y nerifrån, `pixelsFromBottom`) och flyttas
+  till origo, och Vision får den bilden med orienteringen `.up`. Visions punkter är
+  normaliserade mot bilden den fick med origo nere till vänster (WWDC20 session
+  10653: "relative to the pixel dimensions of your image", **tillverkare**), så en
+  punkt (u, v) blir `x = (x₀ + u·b)·B`, `y = (y₀ + (1 − v)·h)·H` i hela bildens
+  pixlar, med (x₀, y₀, b, h) den utskurna rutan som andelar (`snapped`). **räkning.**
+  `regionOfInterest` används **inte**: Apple säger att rutan är "normalized to the
+  dimensions of the processed image" med origo nere till vänster, men inte om
+  kroppens punkter då är relativa rutan eller hela bilden (läst 2026-10-22). Utan
+  utsnitt är vägen S2e:s: bufferten med orienteringen, punkterna i hela bilden (MS7).
 - **Måtten påverkas inte av utsnittet.** Lederna sparas i **hela den upprätta
   bildens pixlar** (`JointSeries.width/height` är bildens, inte rutans), så
   cm per px (M2, ur kroppens längd i px) och varje mått i px räknas som utan
@@ -754,8 +757,9 @@ värden i `CaptureTests`.
   leder utanför rutan, bufferten, klicken utanför fönstret, analysens fönster,
   att slagen görs om, pass.json och manifestets fält. Simulatorn
   (`SwingLabProvRedigering`): markören, att redigeringen sparas och överlever en
-  omstart, klicket utanför fönstret, att appens Vision-körning ger rätt
-  `regionOfInterest`, påhittade leder genom rutan och tillbaka, miniatyren i
+  omstart, klicket utanför fönstret, att appens Vision-körning ger Vision den
+  utskurna rutan (en markör i filen hamnar rätt i den, med y vänt rätt, och utan
+  utsnitt går bufferten som förut), påhittade leder genom rutan och tillbaka, miniatyren i
   rutan och bilderna av redigeraren. **Visions leder i rutan provas bara på
   telefonen.**
 

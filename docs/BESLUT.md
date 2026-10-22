@@ -449,21 +449,23 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   Pythons). `notering` och `om` i katalogen och kedjorna är dokumentation.
 - **Omprövas:** när ett andra språk ska in.
 
-## B34 — Trimma och utsnitt: icke-destruktivt, Vision med `regionOfInterest`
+## B34 — Trimma och utsnitt: icke-destruktivt, Vision på den utskurna rutan
 *2026-10-22 · prövas · PLAN.md S2i · Johannes efter första telefonprovet*
 
 - **Valt:** redigeraren efter importen eller inspelningen (och från passet för en
   serie) sparar per serie ett tidsfönster och ett utsnitt i `pass.json`; originalet
-  rörs aldrig. Klick utanför fönstret blir inga slag. Vision letar bara i rutan
-  (`regionOfInterest`), och lederna förs tillbaka till hela bildens pixlar, så att
-  måtten inte ändras (METOD MS13). Paketet bär fönstret och utsnittet per serie.
-- **Bortvalt:** att skriva en trimmad och beskuren kopia av filen (kodar om
-  slowmotion-originalet, dubblar lagringen och tappar rutornas egna tider);
-  att skära ur pixelbufferten själv före Vision (samma resultat i teorin, men mer
-  kod per ruta och en egen kopia av varje buffert); ett utsnitt per slag (Johannes
+  rörs aldrig. Klick utanför fönstret blir inga slag. Appen skär ut rutan ur varje
+  ruta (upprätt, Core Image) och ger Vision bara den, och lederna förs tillbaka till
+  hela bildens pixlar, så att måtten inte ändras (METOD MS13). Paketet bär fönstret
+  och utsnittet per serie.
+- **Bortvalt:** `regionOfInterest` på frågan. Apples dokumentation avgör inte om
+  kroppens punkter då är relativa rutan eller hela bilden, och felet hade bara synts
+  på telefonen; med den utskurna bilden är punkterna normaliserade mot bilden Vision
+  fick, vilket är dokumenterat (WWDC20 10653) och prövat i simulatorn med en markör.
+  Att skriva en trimmad och beskuren kopia av filen (kodar om slowmotion-originalet,
+  dubblar lagringen och tappar rutornas egna tider). Ett utsnitt per slag (Johannes
   ställer sig på samma plats i en serie).
-- **Kostnad:** att Visions punkter är relativa rutan i den orienterade bilden är ett
-  antagande (MS13) som bara telefonen kan pröva. Fel där syns som linjer bredvid
-  spelaren i miniatyren; rättningen är en rad (`CropRect.fromVision`).
+- **Kostnad:** en `CIImage` per ruta med utsnitt (ingen kopia av bufferten förrän
+  Vision renderar den); tiden per ruta mäts på telefonen (`msPerFrame`, MS12).
 - **Omprövas:** efter telefonprovet av S2i, och i S3 om MediaPipe på samma ruta
   skiljer mer än utan ruta.

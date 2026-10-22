@@ -9,9 +9,9 @@
 //             står kvar efter en omstart (en ny Store på samma mapp);
 //   fönstret  klicket vid 1,0 s ligger utanför och blir inget slag; analysens Vision-pass och
 //             klippet stannar inom fönstret;
-//   utsnittet varje Vision-fråga bär utsnittet, appens Vision-körning ger Vision rutan som
-//             regionOfInterest (origo nere till vänster), och påhittade leder som Vision hade
-//             gett dem i rutan förs tillbaka till hela bildens pixlar: spelaren väljs, grannen
+//   utsnittet varje Vision-fråga bär utsnittet, appens Vision-körning skär ut rutan ur
+//             varje ruta (markören hamnar rätt i den utskurna bilden, redigering-utskuren.png),
+//             och påhittade leder som Vision hade gett dem i den utskurna bilden förs tillbaka till hela bildens pixlar: spelaren väljs, grannen
 //             utanför rutan försvinner, och inga leder sparas utanför rutan;
 //   vyerna    redigeraren före och efter (redigerare-hel.png, redigerare.png), slagen med
 //             serierna och miniatyren i utsnittet (redigering-slag.png, redigering-traff.png);
@@ -22,15 +22,17 @@
 import XCTest
 import AVFoundation
 import CoreGraphics
+import CoreImage
 import SwiftUI
+import UIKit
 import Vision
 import Swing
 import Capture
 import SwingDemo
 @testable import SwingLab
 
-/// Påhittade leder som Vision hade gett dem när den bara letade i utsnittet: DemoLeders
-/// pixlar → normaliserade i rutan med origo nere till vänster → appens egen väg tillbaka
+/// Påhittade leder som Vision hade gett dem när den bara fick den utskurna rutan: DemoLeders
+/// pixlar → normaliserade i den utskurna bilden med origo nere till vänster → appens egen väg tillbaka
 /// (`PoseFrame.fromVision(…, crop:)`, samma som `VisionPoseSource.frame`). Frågorna sparas.
 final class UtsnittKalla: PoseSource, @unchecked Sendable {
     let inner: DemoPoseSource
@@ -43,7 +45,9 @@ final class UtsnittKalla: PoseSource, @unchecked Sendable {
     func scan(_ r: PoseScanRequest, progress: @escaping @Sendable (Double) -> Void) async throws -> PoseScan {
         lock.withLock { fragor.append(r) }
         var scan = try await inner.scan(r, progress: progress)
-        guard let crop = r.crop else { return scan }
+        guard let ruta = r.crop else { return scan }
+        // Som appen: rutan på hela pixlar (VisionPoseSource.cutOut), punkterna normaliserade i den.
+        let crop = ruta.snapped(width: r.uprightWidth, height: r.uprightHeight)
         let w = Double(r.uprightWidth), h = Double(r.uprightHeight)
         scan.frames = scan.frames.map { f in
             ScannedFrame(pts: f.pts, candidates: f.candidates.map { k in
@@ -159,8 +163,9 @@ final class SwingLabProvRedigering: XCTestCase {
             XCTAssertLessThanOrEqual(r.to, fonster.end + 1e-9)
         }
         let leder = try XCTUnwrap(omstart.joints(try XCTUnwrap(s1.joints), in: pass.id))
-        let px = (x0: Self.utsnitt.x * 270, x1: Self.utsnitt.maxX * 270, y0: Self.utsnitt.y * 480,
-                  y1: Self.utsnitt.maxY * 480)
+        // Rutan som skars ut, på hela pixlar (avrundad utåt).
+        let skuren = Self.utsnitt.snapped(width: 270, height: 480)
+        let px = (x0: skuren.x * 270, x1: skuren.maxX * 270, y0: skuren.y * 480, y1: skuren.maxY * 480)
         var utanfor = 0, saknadeHander = 0
         for f in leder.frames {
             for j in f.joints.compactMap({ $0 }) where j.x < px.x0 - 0.1 || j.x > px.x1 + 0.1 || j.y < px.y0 - 0.1
@@ -180,30 +185,50 @@ final class SwingLabProvRedigering: XCTestCase {
         XCTAssertEqual(s1.clickInClip ?? .nan, klick[1] - fonster.start, accuracy: 0.002)
         XCTAssertEqual(klar.status, .analyzed)
 
-        // 6. Appens Vision-körning ger Vision rutan som regionOfInterest.
-        let roi = RoiLogg()
+        // 6. Appens Vision-körning skär ut rutan ur varje ruta: bilden Vision får är den
+        // upprätta rutan med origo i (0, 0), och markören ligger där den ska i den. Utsnittet
+        // (0,5; 0; 0,5; 0,5) tar markören uppe till höger, så att ett fel i vridningen eller i
+        // Core Images y (nerifrån) flyttar den ut ur bilden eller till fel höjd.
+        let logg = BildLogg()
         let vision = VisionPoseSource(makeDetect: { () -> VisionPoseSource.Detect in
-            { _, _, region in
-                roi.add(region)
+            { input in
+                logg.add(input)
                 return []
             }
         })
-        let fraga = PoseScanRequest(file: film, from: 1.2, to: 1.4, stride: 1, exif: 6, uprightWidth: 270,
-                                    uprightHeight: 480, crop: Self.utsnitt)
-        _ = try await vision.scan(fraga) { _ in }
-        let vr = Self.utsnitt.visionRegion
-        let region = try XCTUnwrap(roi.regions.first)
-        print("PROV: redigeraren regionOfInterest \(region) för utsnittet \(Self.utsnitt)")
-        XCTAssertFalse(roi.regions.isEmpty)
-        XCTAssertTrue(roi.regions.allSatisfy { $0 == region })
-        XCTAssertEqual(Double(region.minX), vr.x, accuracy: 1e-9)
-        XCTAssertEqual(Double(region.minY), vr.y, accuracy: 1e-9)
-        XCTAssertEqual(Double(region.width), vr.width, accuracy: 1e-9)
-        XCTAssertEqual(Double(region.height), vr.height, accuracy: 1e-9)
-        XCTAssertEqual(Double(region.minY), 0.1, accuracy: 1e-9, "origo nere till vänster: 1 − (0,2 + 0,7)")
-        _ = try await vision.scan(PoseScanRequest(file: film, from: 1.2, to: 1.3, stride: 1, exif: 6, uprightWidth: 270,
+        let markorRuta = CropRect(x: 0.5, y: 0, width: 0.5, height: 0.5)
+        _ = try await vision.scan(PoseScanRequest(file: film, from: 0.4, to: 0.6, stride: 1, exif: 6, uprightWidth: 270,
+                                                  uprightHeight: 480, crop: markorRuta)) { _ in }
+        let utskurna = logg.images
+        XCTAssertFalse(utskurna.isEmpty, "rutorna nådde Vision som utskurna bilder")
+        XCTAssertEqual(logg.buffers, 0, "med utsnitt aldrig hela bufferten")
+        let ci = try XCTUnwrap(utskurna.first)
+        XCTAssertEqual(ci.extent.origin, .zero, "bilden börjar i origo")
+        XCTAssertEqual(ci.extent.width, 135)
+        XCTAssertEqual(ci.extent.height, 240)
+        let cg = try XCTUnwrap(CIContext().createCGImage(ci, from: ci.extent))
+        let iRutan = markorRuta.local(x: ratt.midX, y: ratt.midY)
+        let paMarkoren = try ljus(cg, x: iRutan.x, y: iRutan.y)
+        let speglad = try ljus(cg, x: iRutan.x, y: 1 - iRutan.y)
+        let under = try ljus(cg, x: iRutan.x, y: 0.85)
+        print("PROV: redigeraren utskurna rutan \(cg.width)×\(cg.height) från origo \(ci.extent.origin), markören vid "
+              + "(\(f3(iRutan.x)), \(f3(iRutan.y))) ljus \(f3(paMarkoren)), y speglat \(f3(speglad)), nedanför \(f3(under))")
+        XCTAssertGreaterThan(paMarkoren, 0.85, "markören i den utskurna bilden där rutan säger")
+        XCTAssertLessThan(speglad, 0.6, "Core Images y är vänt rätt")
+        XCTAssertLessThan(under, 0.6)
+        try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
+        try XCTUnwrap(UIImage(cgImage: cg).pngData()).write(to: URL(fileURLWithPath: "\(Self.ut)/redigering-utskuren.png"))
+        // Rutan som punkterna förs tillbaka genom är den utskurna på hela pixlar.
+        let buffert = try await forstaBufferten(film, t: 0.5)
+        let px = VisionPoseSource.cutOut(try XCTUnwrap(buffert), orientation: .right, crop: Self.utsnitt)
+        XCTAssertEqual(px.image.extent.width, 212)
+        XCTAssertEqual(px.image.extent.height, 336)
+        XCTAssertEqual(px.crop, Self.utsnitt.snapped(width: 270, height: 480))
+        // Utan utsnitt: rutan som den är, med orienteringen (vägen från S2e).
+        _ = try await vision.scan(PoseScanRequest(file: film, from: 0.4, to: 0.5, stride: 1, exif: 6, uprightWidth: 270,
                                                   uprightHeight: 480)) { _ in }
-        XCTAssertEqual(roi.regions.last, CGRect(x: 0, y: 0, width: 1, height: 1), "utan utsnitt: hela bilden")
+        XCTAssertGreaterThan(logg.buffers, 0, "utan utsnitt går bufferten till Vision")
+        XCTAssertEqual(logg.images.count, utskurna.count)
 
         // 7. Miniatyren visar utsnittet, med linjerna i rutans koordinater.
         let miniatyr = try await ShotImages.impactFrame(pass: klar, shot: s1, store: omstart)
@@ -235,11 +260,40 @@ final class SwingLabProvRedigering: XCTestCase {
 
     // MARK: Hjälp
 
-    final class RoiLogg: @unchecked Sendable {
+    /// Bilderna som nådde Vision-anropet: utskurna bilder och hela buffertar.
+    final class BildLogg: @unchecked Sendable {
         private let lock = NSLock()
-        private var r: [CGRect] = []
-        var regions: [CGRect] { lock.withLock { r } }
-        func add(_ x: CGRect) { lock.withLock { r.append(x) } }
+        private var bilder: [CIImage] = []
+        private var antal = 0
+        var images: [CIImage] { lock.withLock { bilder } }
+        var buffers: Int { lock.withLock { antal } }
+        func add(_ input: VisionPoseSource.Input) {
+            lock.withLock {
+                switch input {
+                case .image(let i): bilder.append(i)
+                case .buffer: antal += 1
+                }
+            }
+        }
+    }
+
+    /// Den lagrade bufferten för rutan närmast t (BGRA), som Vision-körningen läser den.
+    private func forstaBufferten(_ url: URL, t: Double) async throws -> CVPixelBuffer? {
+        let asset = AVURLAsset(url: url)
+        let spar = try await asset.loadTracks(withMediaType: .video)
+        let track = try XCTUnwrap(spar.first)
+        let reader = try AVAssetReader(asset: asset)
+        reader.timeRange = CMTimeRange(start: CMTime(seconds: t, preferredTimescale: 48_000),
+                                       duration: CMTime(seconds: 0.1, preferredTimescale: 48_000))
+        let out = AVAssetReaderTrackOutput(track: track, outputSettings: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+        ])
+        reader.add(out)
+        XCTAssertTrue(reader.startReading())
+        while let sb = out.copyNextSampleBuffer() {
+            if let pb = CMSampleBufferGetImageBuffer(sb) { return pb }
+        }
+        return nil
     }
 
     private func f3(_ x: Double) -> String { String(format: "%.3f", x) }

@@ -150,8 +150,8 @@ final class SwingLabProvSlag: XCTestCase {
         // (a) Läsningen kring anropet.
         let logg = RutLogg()
         let utanVision = VisionPoseSource(makeDetect: { () -> VisionPoseSource.Detect in
-            { sb, o, _ in
-                logg.add(sb, o)
+            { input in
+                if case .buffer(let sb, let o) = input { logg.add(sb, o) }
                 return []
             }
         })

@@ -107,16 +107,19 @@ final class RedigeringTests: XCTestCase {
 
     // MARK: Vision i rutan
 
-    /// regionOfInterest har origo nere till vänster; rutan uppe till vänster.
-    func testVisionsRegionArRutanMedYVant() {
-        let r = CropRect(x: 0.1, y: 0.2, width: 0.5, height: 0.6)
-        let v = r.visionRegion
-        XCTAssertEqual(v.x, 0.1, accuracy: 1e-12)
-        XCTAssertEqual(v.y, 0.2, accuracy: 1e-12)          // 1 − (0,2 + 0,6)
-        XCTAssertEqual(v.width, 0.5, accuracy: 1e-12)
-        XCTAssertEqual(v.height, 0.6, accuracy: 1e-12)
-        let o = CropRect(x: 0, y: 0, width: 1, height: 0.3).visionRegion
-        XCTAssertEqual(o.y, 0.7, accuracy: 1e-12, "överst i bilden är högst upp i Visions rum")
+    /// Rutan som appen skär ut: på hela pixlar, och i Core Images pixlar med y nerifrån.
+    func testUtskurnaRutanPaHelaPixlarOchNerifran() {
+        let r = CropRect(x: 0.01, y: 0.2, width: 0.78, height: 0.7)
+        let p = r.pixels(width: 270, height: 480)
+        XCTAssertEqual([p.x, p.y, p.width, p.height], [2, 96, 212, 336])
+        let ci = r.pixelsFromBottom(width: 270, height: 480)
+        XCTAssertEqual([ci.x, ci.y, ci.width, ci.height], [2, 48, 212, 336], "480 − 96 − 336 = 48")
+        let s = r.snapped(width: 270, height: 480)
+        assertRect(s, 2.0 / 270, 96.0 / 480, 212.0 / 270, 336.0 / 480, accuracy: 1e-12)
+        // Överst i bilden är högst upp nerifrån räknat.
+        let o = CropRect(x: 0, y: 0, width: 1, height: 0.3).pixelsFromBottom(width: 1080, height: 1920)
+        XCTAssertEqual([o.y, o.height], [1344, 576])
+        XCTAssertEqual(CropRect.full.snapped(width: 0, height: 0), .full)
     }
 
     /// Visions punkter i rutan (origo nere till vänster) → hela bildens punkt (origo uppe
@@ -277,6 +280,21 @@ final class RedigeringTests: XCTestCase {
         XCTAssertNil(p.series[0].activeCrop)
         // Utan redigering: alla klick och hela filen.
         XCTAssertEqual(SlagTests.pass(klick: [[1.0]], langd: 9).series[0].activeWindow, .full(9))
+    }
+
+    /// Ett pass.json med en redigering utanför filen eller bilden klampas när den läses.
+    func testRedigeringenKlampasNarDenLases() {
+        var p = SlagTests.pass(klick: [[1.0, 8.5]], langd: 9)
+        p.series[0].edit = SeriesEdit(window: TimeWindow(start: -4, end: 30),
+                                      crop: CropRect(x: 0.9, y: -0.2, width: 0.05, height: 3))
+        XCTAssertEqual(p.series[0].activeWindow, TimeWindow(start: 0, end: 9))
+        XCTAssertEqual(p.series[0].countedClicks.count, 2)
+        let c = p.series[0].activeCrop
+        XCTAssertEqual(c, CropRect(x: 0.8, y: 0, width: CropRect.minSide, height: 1))
+        p.series[0].edit = SeriesEdit(window: TimeWindow(start: 0, end: 9), crop: CropRect(x: 0, y: 0, width: 4, height: 4))
+        XCTAssertNil(p.series[0].activeCrop, "klampad till hela bilden: inget utsnitt")
+        let f = ShotPlan.window(-2.5...1.5, click: 8.5, series: p.series[0])
+        XCTAssertEqual(f, 6.0...9.0)
     }
 
     /// Vision-passen och klippet stannar inom fönstret och får utsnittet.

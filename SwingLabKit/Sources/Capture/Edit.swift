@@ -4,10 +4,11 @@ import Foundation
 // "Man ska också kunna klippa ner videon om den man valt är längre än svingen, även
 // ändra framing." Originalfilen ändras aldrig. Passet sparar per serie (en inspelning
 // eller ett importerat klipp) ett tidsfönster i filen och ett utsnitt i den upprätta
-// bilden. Klick utanför fönstret blir inga slag, Vision letar bara inom utsnittet
-// (`regionOfInterest`), och lederna förs tillbaka till hela bildens pixlar så att
+// bilden. Klick utanför fönstret blir inga slag, Vision ser bara utsnittet (bilden skärs
+// ut före Vision), och lederna förs tillbaka till hela bildens pixlar så att
 // måtten inte ändras. Allt här är värden och prövas på Linux; App/ClipEditor.swift
-// ritar redigeraren och App/PoseRunner.swift ger Vision rutan. METOD MS13, BESLUT B34
+// ritar redigeraren och App/PoseRunner.swift skär ut rutan ur varje ruta och ger Vision
+// den utskurna bilden. METOD MS13, BESLUT B34
 
 /// Tidsfönstret i seriens fil, s (filens egen tidslinje, samma som klicken). Ett klick
 /// räknas som ett slag bara inom fönstret, gränserna inräknade. METOD MS13
@@ -196,16 +197,25 @@ public struct CropRect: Codable, Equatable, Sendable {
 
     // MARK: Vision
 
-    /// Visions `regionOfInterest`: normaliserad i den bearbetade (orienterade) bilden med
-    /// origo nere till vänster (Apple, VNImageBasedRequest.regionOfInterest). Samma rektangel
-    /// med y vänt. METOD MS13
-    public var visionRegion: (x: Double, y: Double, width: Double, height: Double) {
-        (x, 1 - maxY, width, height)
+    /// Rutan på hela pixlar i en bild w × h (`pixels`), åter som andelar: det Vision får
+    /// när appen skär ut rutan, och det dess punkter förs tillbaka genom. METOD MS13
+    public func snapped(width w: Int, height h: Int) -> CropRect {
+        guard w > 0, h > 0 else { return self }
+        let p = pixels(width: w, height: h)
+        return CropRect(x: Double(p.x) / Double(w), y: Double(p.y) / Double(h),
+                        width: Double(p.width) / Double(w), height: Double(p.height) / Double(h))
     }
 
-    /// Visions punkt i rutan → normaliserad punkt i hela den upprätta bilden, origo uppe
-    /// till vänster. Visions punkter är normaliserade i `regionOfInterest` med origo nere
-    /// till vänster (som Apples `VNImagePointForNormalizedPointUsingRegionOfInterest`).
+    /// Rutan i pixlar med origo nere till vänster (Core Image), i en bild w × h: samma
+    /// pixlar som `pixels`, med y räknat nerifrån. METOD MS13
+    public func pixelsFromBottom(width w: Int, height h: Int) -> (x: Int, y: Int, width: Int, height: Int) {
+        let p = pixels(width: w, height: h)
+        return (p.x, h - p.y - p.height, p.width, p.height)
+    }
+
+    /// Visions punkt i den utskurna bilden → normaliserad punkt i hela den upprätta bilden,
+    /// origo uppe till vänster. Vision får bara rutan som bild, och dess punkter är
+    /// normaliserade mot den bild den fick, origo nere till vänster (WWDC20 10653).
     /// METOD MS13
     public func fromVision(x u: Double, y v: Double) -> (x: Double, y: Double) {
         (x + u * width, y + (1 - v) * height)
@@ -242,17 +252,21 @@ public struct SeriesEdit: Codable, Equatable, Sendable {
 
 extension SeriesRecord {
     /// Fönstret som gäller: redigeringens, annars hela filen. METOD MS13
-    public var activeWindow: TimeWindow { edit?.window ?? .full(duration) }
+    /// Klampad när den läses: ett pass.json som skrivits för hand eller av en äldre
+    /// version ger ändå ett fönster inom filen.
+    public var activeWindow: TimeWindow { edit.map { $0.window.clamped(duration: duration) } ?? .full(duration) }
 
-    /// Utsnittet som gäller, eller nil för hela bilden. METOD MS13
+    /// Utsnittet som gäller, klampat inom bilden när det läses, eller nil för hela bilden.
+    /// METOD MS13
     public var activeCrop: CropRect? {
-        guard let c = edit?.crop, !c.isFull else { return nil }
+        guard let c = edit?.crop.clamped(), !c.isFull else { return nil }
         return c
     }
 
     /// Klicken som blir slag: de inom fönstret. METOD MS13
     public var countedClicks: [Click] {
-        guard let w = edit?.window else { return clicks }
+        guard edit != nil else { return clicks }
+        let w = activeWindow
         return clicks.filter { w.contains($0.time) }
     }
 }
@@ -337,9 +351,9 @@ extension Orientation {
 // MARK: - Lederna ur utsnittet
 
 extension PoseFrame {
-    /// En persons leder ur Vision när Vision bara letade i utsnittet: punkterna är
-    /// normaliserade i rutan (origo nere till vänster) och förs till pixlar i hela den
-    /// upprätta bilden, så att cm per px och måtten är desamma som utan utsnitt. En punkt
+    /// En persons leder ur Vision när Vision bara fick utsnittet (den utskurna bilden):
+    /// punkterna är normaliserade i den (origo nere till vänster) och förs genom `crop`, den
+    /// utskurna rutan på hela pixlar (`snapped`), till pixlar i hela den upprätta bilden, så att cm per px och måtten är desamma som utan utsnitt. En punkt
     /// som hamnar utanför rutan (Vision kan gissa en led utanför det den såg) sparas som
     /// saknad: analysen ger bara leder inom rutan. Konfidens 0 är ogiltig (Apple). METOD MS7,
     /// MS8, MS13

@@ -390,8 +390,9 @@ public enum ShotPlan {
     /// trimmats bort finns inte för analysen eller klippet. nil när inget är kvar. METOD MS13
     public static func window(_ w: ClosedRange<Double>, click: Double, series s: SeriesRecord) -> ClosedRange<Double>? {
         guard let f = window(w, click: click, duration: s.duration) else { return nil }
-        guard let e = s.edit else { return f }
-        let a = max(f.lowerBound, e.window.start), b = min(f.upperBound, e.window.end)
+        guard s.edit != nil else { return f }
+        let e = s.activeWindow
+        let a = max(f.lowerBound, e.start), b = min(f.upperBound, e.end)
         return a < b ? a...b : nil
     }
 

@@ -26,6 +26,10 @@ struct ClipEditorView: View {
     @State private var playing = false
     @State private var observer: Any?
     @State private var problem: String?
+    /// En seek pågår; nästa mål väntar tills den är klar (videon hinner annars inte med
+    /// fingret, och seekarna köas på varandra).
+    @State private var seeking = false
+    @State private var pendingSeek: (t: Double, exact: Bool)?
 
     var body: some View {
         Group {
@@ -33,8 +37,9 @@ struct ClipEditorView: View {
                 EditorContent(surface: PlayerSurface(player: player), uprightWidth: series.uprightWidth,
                               uprightHeight: series.uprightHeight, duration: series.duration, clicks: series.clicks,
                               window: window, crop: $crop, current: current, playing: playing, problem: problem,
-                              onStart: { setStart($0) }, onEnd: { setEnd($0) }, onScrub: { seek($0) },
-                              onPlay: togglePlay, onStep: step, onClose: close, onDone: done)
+                              onStart: { setStart($0) }, onEnd: { setEnd($0) }, onScrub: { pause(); seek($0, exact: false) },
+                              onRelease: { seek(current, exact: true) }, onPlay: togglePlay, onStep: step,
+                              onClose: close, onDone: done)
             } else {
                 Theme.ground
             }
@@ -63,7 +68,7 @@ struct ClipEditorView: View {
         // Spelhuvudet följer videon; uppspelningen stannar vid fönstrets slut.
         observer = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 60), queue: .main) { t in
             MainActor.assumeIsolated {
-                guard t.isValid else { return }
+                guard t.isValid, !seeking else { return }
                 current = t.seconds
                 if playing, current >= window.end {
                     player.pause()
@@ -74,25 +79,42 @@ struct ClipEditorView: View {
         seek(window.start)
     }
 
-    private func seek(_ t: Double) {
+    /// Till tiden t: med tolerans medan ett finger drar (närmaste nyckelbild räcker för att
+    /// följa), exakt när det släpps. Bara en seek åt gången; under tiden sparas det senaste
+    /// målet och tas när den förra är klar.
+    private func seek(_ t: Double, exact: Bool = true) {
         let d = series?.duration ?? 0
         let t = min(max(0, t), max(0, d))
         current = t
-        player.seek(to: CMTime(seconds: t, preferredTimescale: 48_000), toleranceBefore: .zero, toleranceAfter: .zero)
+        if seeking {
+            pendingSeek = (t, exact)
+            return
+        }
+        seeking = true
+        let tol = exact ? CMTime.zero : CMTime(seconds: 0.1, preferredTimescale: 600)
+        player.seek(to: CMTime(seconds: t, preferredTimescale: 48_000), toleranceBefore: tol, toleranceAfter: tol) { _ in
+            Task { @MainActor in
+                seeking = false
+                if let p = pendingSeek {
+                    pendingSeek = nil
+                    seek(p.t, exact: p.exact)
+                }
+            }
+        }
     }
 
     private func setStart(_ t: Double) {
         guard let s = series else { return }
         window = window.withStart(t, duration: s.duration)
         pause()
-        seek(window.start)
+        seek(window.start, exact: false)
     }
 
     private func setEnd(_ t: Double) {
         guard let s = series else { return }
         window = window.withEnd(t, duration: s.duration)
         pause()
-        seek(window.end)
+        seek(window.end, exact: false)
     }
 
     private func pause() {
@@ -114,6 +136,10 @@ struct ClipEditorView: View {
     /// En ruta bakåt eller framåt.
     private func step(_ n: Int) {
         pause()
+        // En väntande seek från ett drag får inte flytta bilden efter steget.
+        pendingSeek = nil
+        player.currentItem?.cancelPendingSeeks()
+        seeking = false
         player.currentItem?.step(byCount: n)
     }
 
@@ -149,6 +175,8 @@ struct EditorContent<Surface: View>: View {
     var onStart: (Double) -> Void = { _ in }
     var onEnd: (Double) -> Void = { _ in }
     var onScrub: (Double) -> Void = { _ in }
+    /// Ett drag på tidslinjen släpptes: exakt seek dit.
+    var onRelease: () -> Void = {}
     var onPlay: () -> Void = {}
     var onStep: (Int) -> Void = { _ in }
     var onClose: () -> Void = {}
@@ -174,15 +202,15 @@ struct EditorContent<Surface: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             TrimBar(timeline: TrimTimeline(window: window, duration: duration, current: current, clicks: clicks),
-                    duration: duration, onStart: onStart, onEnd: onEnd, onScrub: onScrub)
+                    duration: duration, onStart: onStart, onEnd: onEnd, onScrub: onScrub, onRelease: onRelease)
                 .frame(height: 44)
             HStack {
-                Text(verbatim: Taltext.decimal(window.start, digits: 2))
+                Text(Self.seconds(window.start))
                 Spacer()
-                Text(String(localized: "\(Taltext.decimal(current, digits: 2)) s"))
+                Text(Self.seconds(current))
                     .foregroundStyle(Theme.text)
                 Spacer()
-                Text(verbatim: Taltext.decimal(window.end, digits: 2))
+                Text(Self.seconds(window.end))
             }
             .typsnitt(13, siffror: true)
             .foregroundStyle(Theme.secondary)
@@ -202,6 +230,11 @@ struct EditorContent<Surface: View>: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
+    }
+
+    /// "2.00 s": samma enhet på alla tre talen.
+    static func seconds(_ t: Double) -> String {
+        String(localized: "\(Taltext.decimal(t, digits: 2)) s")
     }
 
     private func symbol(_ name: String, _ label: LocalizedStringKey, _ action: @escaping () -> Void) -> some View {
@@ -231,6 +264,8 @@ struct CropOverlay: View {
 
     @State private var drag: (mode: Mode, start: CropRect)?
     @State private var pinch: CropRect?
+    /// Ett nyp har börjat under draget: draget skriver inte rutan förrän fingrarna släppt.
+    @State private var dragBlocked = false
 
     /// Ett tryck så nära ett hörn tar hörnet, punkter.
     static let cornerReach: CGFloat = 32
@@ -265,6 +300,8 @@ struct CropOverlay: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { v in
+                        // Nypet och draget skriver aldrig rutan samtidigt.
+                        guard pinch == nil, !dragBlocked else { return }
                         if drag == nil {
                             guard let m = mode(at: v.startLocation, size: size) else { return }
                             drag = (m, crop)
@@ -279,19 +316,35 @@ struct CropOverlay: View {
                             crop = d.start.dragging(k, to: p.x + dx, p.y + dy)
                         }
                     }
-                    .onEnded { _ in drag = nil }
+                    .onEnded { _ in
+                        drag = nil
+                        dragBlocked = false
+                    }
             )
             .simultaneousGesture(
                 MagnifyGesture()
                     .onChanged { v in
-                        if pinch == nil { pinch = crop }
+                        if pinch == nil {
+                            pinch = crop
+                            if drag != nil { dragBlocked = true }
+                            drag = nil
+                        }
                         crop = (pinch ?? crop).scaled(by: Double(v.magnification))
                     }
                     .onEnded { _ in pinch = nil }
             )
-            .onTapGesture(count: 2) { crop = .full }
+            .simultaneousGesture(TapGesture(count: 2).onEnded { crop = .full })
             .accessibilityElement()
             .accessibilityLabel(Text("Crop"))
+            .accessibilityValue(Text(verbatim: Taltext.percent(crop.width * crop.height)))
+            // VoiceOver: svep upp och ned skalar rutan kring mitten.
+            .accessibilityAdjustableAction { riktning in
+                switch riktning {
+                case .increment: crop = crop.scaled(by: 1.1)
+                case .decrement: crop = crop.scaled(by: 1 / 1.1)
+                @unknown default: break
+                }
+            }
         }
     }
 
@@ -323,6 +376,14 @@ struct TrimBar: View {
     var onStart: (Double) -> Void
     var onEnd: (Double) -> Void
     var onScrub: (Double) -> Void
+    var onRelease: () -> Void = {}
+
+    /// Handtaget som dras och dess tid när draget började: handtaget flyttas med fingrets
+    /// förflyttning, inte till fingret.
+    @State private var grepp: (start: Bool, base: Double)?
+
+    /// Ett steg med VoiceOver, s.
+    static let accessibilityStep = 0.1
 
     var body: some View {
         GeometryReader { geo in
@@ -351,29 +412,48 @@ struct TrimBar: View {
                     c.stroke(spel, with: .color(Theme.secondary), lineWidth: 1)
                 }
                 .contentShape(.rect)
-                .gesture(DragGesture(minimumDistance: 0).onChanged { v in
-                    onScrub(TrimTimeline.time(at: Double(v.location.x / w), duration: duration))
-                })
-                handle(at: x(timeline.start), height: h, label: "Start", onStart, width: w)
-                handle(at: x(timeline.end), height: h, label: "End", onEnd, width: w)
+                .gesture(DragGesture(minimumDistance: 0)
+                    .onChanged { v in onScrub(TrimTimeline.time(at: Double(v.location.x / w), duration: duration)) }
+                    .onEnded { _ in onRelease() })
+                .accessibilityHidden(true)
+                handle(at: x(timeline.start), start: true, height: h, label: "Start", onStart, width: w)
+                handle(at: x(timeline.end), start: false, height: h, label: "End", onEnd, width: w)
             }
-            .coordinateSpace(.named("trim"))
         }
     }
 
     /// Ett handtag: en smal vit stapel med en bred yta att ta i.
-    private func handle(at px: CGFloat, height: CGFloat, label: LocalizedStringKey, _ set: @escaping (Double) -> Void,
-                        width: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 2)
+    private func handle(at px: CGFloat, start: Bool, height: CGFloat, label: LocalizedStringKey,
+                        _ set: @escaping (Double) -> Void, width: CGFloat) -> some View {
+        let varde = TrimTimeline.time(at: Double(px / max(1, width)), duration: duration)
+        return RoundedRectangle(cornerRadius: 2)
             .fill(Theme.text)
             .frame(width: 4, height: height * 0.7)
             .frame(width: 44, height: height)
             .contentShape(.rect)
             .offset(x: px - 22)
-            .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("trim")).onChanged { v in
-                set(TrimTimeline.time(at: Double(v.location.x / width), duration: duration))
-            })
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { v in
+                    if grepp?.start != start { grepp = (start, varde) }
+                    let base = grepp?.base ?? varde
+                    set(base + Double(v.translation.width / max(1, width)) * duration)
+                }
+                .onEnded { _ in
+                    grepp = nil
+                    onRelease()
+                })
+            .accessibilityElement()
             .accessibilityLabel(Text(label))
+            .accessibilityValue(Text(EditorContent<EmptyView>.seconds(varde)))
+            // VoiceOver: svep upp och ned flyttar handtaget en tiondels sekund.
+            .accessibilityAdjustableAction { riktning in
+                switch riktning {
+                case .increment: set(varde + Self.accessibilityStep)
+                case .decrement: set(varde - Self.accessibilityStep)
+                @unknown default: break
+                }
+                onRelease()
+            }
     }
 }
 

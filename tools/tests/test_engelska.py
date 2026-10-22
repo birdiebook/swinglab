@@ -92,7 +92,7 @@ INTE_TEXT = {
     "SwingLab", "Export", "Pass", "Video", "Klipp", "Leder", "swinglab.kamera", "arrow.right", "chevron.left",
     "square.and.arrow.up", "\\(…)", "\\(…) m", "\\(…) · ", "\\(…) · \\(…)", "\\(…): \\(…)",
     "\\(…), \\(…) cm", "pencil", "crop", "play.fill", "pause.fill", "backward.frame.fill",
-    "forward.frame.fill", "trim", "\\(…)–\\(…) s", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
+    "forward.frame.fill", "\\(…)–\\(…) s", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
 }
 
 
