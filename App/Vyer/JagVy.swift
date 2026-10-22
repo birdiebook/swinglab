@@ -81,7 +81,6 @@ struct JagVy: View {
                 }
             }
             .padding(.bottom, 14)
-            .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
 
             Button(action: onSessions) {
                 rad("Sessions") {
