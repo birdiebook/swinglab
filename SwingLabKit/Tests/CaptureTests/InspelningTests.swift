@@ -121,17 +121,17 @@ final class InspelningTests: XCTestCase {
     }
 
     static func skurtider(sekunder: Double, tapp: Double, skur: Double, skala: Double?, skak: Double = 0,
-                          fro: UInt64) -> [Double] {
+                          fro: UInt64, rate: Double = 240) -> [Double] {
         var r = Slump(s: fro)
         let n = Int(sekunder * 240)
-        let fas = r.u() / 240
+        let fas = r.u() / rate
         let b = 1 / skur
         let a = tapp * b / (1 - tapp)
         var kvar = r.u() > tapp
         var ut: [Double] = []
         for k in 0..<n {
             if kvar {
-                var t = Double(k) / 240 + fas
+                var t = Double(k) / rate + fas
                 t += skak * (2 * r.u() - 1)
                 if let skala { t = (t * skala).rounded() / skala }
                 ut.append(t)
@@ -157,6 +157,89 @@ final class InspelningTests: XCTestCase {
                 XCTAssertEqual(f.missingFraction, tapp, accuracy: sek < 1 ? 0.25 : 0.1)
             }
         }
+    }
+
+    /// Johannes första import (2026-10-22) visade 239 på ett 240-original. Rutnätsregeln
+    /// svarade den uppmätta klockan avrundad, och en klocka som går 0,25 % långsamt
+    /// (239,4) avrundas till 239. Nu: den kända frekvensen inom ±1 % när rutorna passar
+    /// den, och den uppmätta klockan bredvid. Drift (239,4, 238,5, 241,5), skakning
+    /// (likformig ±0,5 ms, och ±0,8 ms utan grov tidsskala), tidsskalorna 600 och 90 000,
+    /// 3 s och 9 s, 36 % tappade i skurar: 240 i alla. METOD MS3
+    func testKlockanSomGarFelGerAnda240() {
+        let skalor: [Double?] = [nil, 600, 90_000]
+        for rate in [240, 239.4, 238.5, 241.5] {
+            for skala in skalor {
+                for skak in skala == 600 ? [0, 0.0005] : [0, 0.0005, 0.0008] {
+                    for sek in [3.0, 9.0] {
+                        for fro in UInt64(1)...20 {
+                            let t = Self.skurtider(sekunder: sek, tapp: 0.36, skur: 1.5, skala: skala, skak: skak,
+                                                   fro: fro, rate: rate)
+                            let f = FrameTiming.analyze(t)
+                            let fall = "klocka \(rate), skala \(skala ?? 0), skak \(skak), \(sek) s, frö \(fro)"
+                            XCTAssertEqual(f.gridRate, 240, fall)
+                            XCTAssertEqual(f.missingFraction, 0.36, accuracy: 0.1, fall)
+                            if skak == 0 { XCTAssertEqual(f.measuredRate ?? 0, rate, accuracy: 0.05, fall) }
+                        }
+                    }
+                }
+            }
+        }
+        // Som Johannes klipp: 9 s med en tredjedel borta, klockan 239,4 i tidsskalan 600.
+        let t = Self.skurtider(sekunder: 9, tapp: 0.36, skur: 1.5, skala: 600, fro: 3, rate: 239.4)
+        let f = FrameTiming.analyze(t)
+        XCTAssertEqual(t.count, 1356)
+        XCTAssertEqual(f.gridRate, 240)
+        XCTAssertEqual(f.measuredRate ?? 0, 239.4, accuracy: 0.01)
+        XCTAssertEqual(Receipt.rateText(f), "240 (239.4)")
+        XCTAssertEqual(f.missingFraction, 0.37, accuracy: 0.01)
+        // Den gamla regeln (de korta stegen, förfinade, avrundade) gav 239 på samma tider.
+        let steg = zip(t.dropFirst(), t).map { $0 - $1 }.filter { $0 > 0 }.sorted()
+        let p = FrameTiming.percentile(steg, FrameTiming.gridPercentile)
+        let korta = steg.filter { $0 <= FrameTiming.shortStepFactor * p }
+        let gammal = FrameTiming.refine(Double(korta.count) / korta.reduce(0, +), steps: steg, span: t.last! - t.first!)
+        XCTAssertEqual(gammal.rounded(), 239)
+    }
+
+    /// Andra kända frekvenser och klockor nära dem (29,97, 119,88) ger den kända; en film
+    /// i en frekvens utanför listan behåller sitt rutnät, och en multipel tas inte (40 är
+    /// inte 120 med två tredjedelar tappade). METOD MS3
+    func testKandaFrekvenserOchAndra() {
+        let fall: [(Double, Double)] = [(30, 30), (29.97, 30), (60, 60), (120, 120), (119.88, 120), (25, 25),
+                                        (24, 24), (200, 200), (90, 90), (40, 40), (300, 300)]
+        for (klocka, grid) in fall {
+            for skala in [nil, 600] as [Double?] {
+                for fro in UInt64(1)...10 {
+                    let t = Self.skurtider(sekunder: 3, tapp: 0.36, skur: 1.5, skala: skala, fro: fro, rate: klocka)
+                    let f = FrameTiming.analyze(t)
+                    XCTAssertEqual(f.gridRate, grid, "klocka \(klocka), skala \(skala ?? 0), frö \(fro)")
+                    XCTAssertEqual(f.measuredRate ?? 0, klocka, accuracy: 0.02, "klocka \(klocka), skala \(skala ?? 0)")
+                }
+            }
+        }
+        // Exakt på rutnätet: ingen parentes i kvittot.
+        let jamn = FrameTiming.analyze((0..<480).map { Double($0) / 240 })
+        XCTAssertEqual(Receipt.rateText(jamn), "240")
+    }
+
+    /// Kvittots "Dropped" efter källan: en egen inspelning varnar från 1 %, ett importerat
+    /// Kamera-original (30–40 % är det normala) först över 45 %. METOD MS11
+    func testTappadeRutorEfterKallan() {
+        var s = SeriesRecord.make(nr: 1, source: .photos, club: "j7", file: "Video/01.mov",
+                                  start: Date(), startHost: nil, facts: facts())
+        s.timing.missingFraction = 0.36
+        XCTAssertEqual(Receipt.rows(s)[1], ReceiptRow("Dropped", "36%", .good))
+        s.timing.missingFraction = 0.50
+        XCTAssertEqual(Receipt.rows(s)[1].light, .marginal)
+        s.timing.missingFraction = 0.60
+        XCTAssertEqual(Receipt.rows(s)[1].light, .tooDark)
+        s.source = .recording
+        s.timing.missingFraction = 0.36
+        XCTAssertEqual(Receipt.rows(s)[1].light, .tooDark)
+        s.timing.missingFraction = 0.005
+        XCTAssertEqual(Receipt.rows(s)[1].light, .good)
+        XCTAssertEqual(Flicker.grade(importMissing: 0.45), .good)
+        XCTAssertEqual(Flicker.grade(importMissing: 0.55), .marginal)
+        XCTAssertEqual(Flicker.grade(importMissing: .nan), .tooDark)
     }
 
     func testTomStromGerInget() {

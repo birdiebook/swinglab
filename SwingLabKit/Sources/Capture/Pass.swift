@@ -243,10 +243,13 @@ public struct PassState: Codable, Equatable, Sendable {
     public var shots: [ShotRecord]
     /// Vad Vision kostade i passet (S2_SPEC §6.4). METOD MS12
     public var vision: VisionStats?
+    /// Det högsta slagnumret som getts ("s07" → 7). Går aldrig bakåt, så att ett id
+    /// aldrig ges två gånger (`syncShots`). METOD MS12
+    public var lastShotNumber: Int
 
     public init(id: String, created: Date, setup: PassSetup, series: [SeriesRecord] = [],
                 lightCheck: LightCheck? = nil, status: PassStatus = .recorded, shots: [ShotRecord] = [],
-                vision: VisionStats? = nil) {
+                vision: VisionStats? = nil, lastShotNumber: Int = 0) {
         format = Self.formatName
         self.id = id
         self.created = created
@@ -256,9 +259,11 @@ public struct PassState: Codable, Equatable, Sendable {
         self.status = status
         self.shots = shots
         self.vision = vision
+        self.lastShotNumber = lastShotNumber
     }
 
     /// Ett pass från S2c/S2d saknar `shots` och `vision`: det läses ändå, med inga slag.
+    /// Saknas räknaren är den det högsta numret bland slagen.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         format = try c.decode(String.self, forKey: .format)
@@ -270,6 +275,8 @@ public struct PassState: Codable, Equatable, Sendable {
         status = try c.decode(PassStatus.self, forKey: .status)
         shots = try c.decodeIfPresent([ShotRecord].self, forKey: .shots) ?? []
         vision = try c.decodeIfPresent(VisionStats.self, forKey: .vision)
+        lastShotNumber = try c.decodeIfPresent(Int.self, forKey: .lastShotNumber)
+            ?? (shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
     }
 
     /// Nästa seriens nummer (1, 2, …).

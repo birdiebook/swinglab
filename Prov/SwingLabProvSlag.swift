@@ -9,7 +9,9 @@
 //           JointSeries med alla leder saknade, och Visions eget fel stoppar analysen synligt;
 //   kedjan  appens hela analys (Analysis) på ett pass ur filmen, med PÅHITTADE leder i
 //           Visions ställe (PoseSource, DemoLeder): domen, lederna på disk, klippen,
-//           passet, återupptagningen efter ett avbrott och Johannes ändrade dom.
+//           passet, återupptagningen efter ett avbrott och Johannes ändrade dom;
+//   vägen   importen → kvittot med Continue → passet med Analyze → analysen, med listan
+//           som fylls under analysen (bilderna import.png, import-pass.png, import-analys.png).
 // Vision går inte att starta i simulatorn (kod 9, även på CPU); steg 7 prövar därför
 // läsningen kring anropet, att Visions fel syns och att inget sväljs. VISIONS LEDER
 // SJÄLVA PROVAS BARA PÅ TELEFONEN (T2, METOD MS12). Bilden av listan ritas till /tmp/swinglab_prov/slag.png.
@@ -327,5 +329,120 @@ final class SwingLabProvSlag: XCTestCase {
         tr.scale = 1
         let tpng = try XCTUnwrap(tr.uiImage?.pngData())
         try tpng.write(to: URL(fileURLWithPath: Self.ut + "/traff.png"))
+
+        // 5. Utan originalet läses rutan ur klippet, vid träffen räknad från klicket som
+        // mättes i klippet (inte den begärda starten). METOD MS12
+        let s1nu = p.shots[0]
+        let iKlippet = try XCTUnwrap(ShotImages.clipTime(s1nu))
+        let klickIKlippet = try XCTUnwrap(s1nu.clickInClip)
+        XCTAssertEqual(iKlippet, klickIKlippet + (s1nu.impact - s1nu.click.time), accuracy: 1e-12)
+        try FileManager.default.removeItem(at: store.url(fil, in: p.id))
+        let urKlippet = try await ShotImages.impactFrame(pass: p, shot: s1nu, store: store)
+        XCTAssertEqual(urKlippet?.width, 270, "rutan ur klippet")
+    }
+
+    // MARK: Vägen från importen till analysen
+
+    /// Spionen läser passet som analysen har publicerat vid varje Vision-anrop: listan
+    /// ska fyllas under analysen, inte bara efteråt.
+    final class Spion: PoseSource, @unchecked Sendable {
+        let inner: DemoPoseSource
+        let titta: @Sendable () async -> Int
+        private let lock = NSLock()
+        private var sedda: [Int] = []
+        var sett: [Int] { lock.withLock { sedda } }
+
+        init(_ inner: DemoPoseSource, titta: @escaping @Sendable () async -> Int) {
+            self.inner = inner
+            self.titta = titta
+        }
+
+        func scan(_ r: PoseScanRequest, progress: @escaping @Sendable (Double) -> Void) async throws -> PoseScan {
+            let n = await titta()
+            lock.withLock { sedda.append(n) }
+            return try await inner.scan(r, progress: progress)
+        }
+    }
+
+    /// Johannes första TestFlight-bygge stannade efter importens kvitto: inget steg efter.
+    /// Här går appens väg: ett påhittat slowmotion-original hämtas in som importen gör
+    /// (filen in i passet, rutnätets kontroll, serien), kvittot visar 240 och 33 % tappade
+    /// utan varning (normalt för ett original, METOD MS11) och Continue; passet står i
+    /// startvyns lista och visar Analyze; analysen med påhittade leder fyller listan
+    /// slag för slag och slutar med domarna, lederna, klippet och Visions konfidens.
+    func testImportenTillPassetOchAnalysen() async throws {
+        let rot = try tmp("import-\(UUID().uuidString)")
+        let store = Store(root: rot, exportFolder: rot.appending(path: "Export"))
+        let pass = store.newPass(setup: PassSetup(view: .fo, club: "j7", distance: 3, hand: .hoger),
+                                 at: Date(timeIntervalSince1970: 1_792_848_612))
+        let original = try tmp("import-original-\(UUID().uuidString).mov")
+        try await SyntheticMovie.write(to: original, sound: .aac)
+
+        // 1. Importen och kvittot.
+        let importer = PhotoImport()
+        let efter = await importer.importFile(original, pass: pass, store: store)
+        let serie = try XCTUnwrap(efter.series.first, "klippet blev en serie")
+        XCTAssertEqual(serie.source, .photos)
+        XCTAssertEqual(serie.file, "Video/01.mov")
+        XCTAssertEqual(serie.clicks.count, 2)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: original.path), "filen flyttades in i passet")
+        let rader = Receipt.rows(serie)
+        print("PROV: importens kvitto " + rader.map { "\($0.label) \($0.value) \($0.light)" }.joined(separator: " · "))
+        XCTAssertEqual(rader[0], ReceiptRow("fps", "240", .good))
+        XCTAssertEqual(rader[1], ReceiptRow("Dropped", "33%", .good), "en tredjedel tappade är normalt i ett original")
+        XCTAssertEqual(importer.outcomes.count, 1)
+        try rita(ImportReceipts(outcomes: importer.outcomes, canContinue: !efter.series.isEmpty), "import")
+
+        // 2. Continue: passet står i startvyns lista och visar Analyze.
+        XCTAssertEqual(store.index.passes.first?.id, pass.id)
+        XCTAssertEqual(store.index.passes.first?.clicks, 2)
+        let oppnat = try XCTUnwrap(store.load(pass.id))
+        XCTAssertTrue(oppnat.shots.isEmpty && oppnat.clickCount == 2, "Analyze visas: klick men inga slag ännu")
+        try rita(ShotsContent(pass: oppnat, images: [:], overlays: [:], analysis: AnalysisState(), editable: false),
+                 "import-pass")
+
+        // 3. Analyze med påhittade leder; listan fylls under analysen.
+        let klick = serie.clicks.map(\.time)
+        let analys = Analysis()
+        let spion = Spion(DemoPoseSource(swingClicks: [klick[0]], allClicks: klick)) {
+            await MainActor.run { analys.pass?.shots.filter { $0.verdict != nil }.count ?? -1 }
+        }
+        let svar = await analys.run(passID: pass.id, store: store, source: spion)
+        let klar = try XCTUnwrap(svar)
+        print("PROV: vägen import → analys: domar under analysen \(spion.sett), steg \(analys.stepsRun)")
+        XCTAssertNil(analys.problem)
+        XCTAssertEqual(spion.sett, [0, 1, 2], "passet publicerat efter varje steg: domarna syns medan lederna räknas")
+        XCTAssertEqual(analys.pass, store.load(pass.id))
+        XCTAssertEqual(klar.shots.map(\.verdict), [.swing, .notSwing])
+        XCTAssertEqual(klar.shots[0].joints, "Leder/s01.json")
+        XCTAssertEqual(klar.shots[0].clip, "Klipp/s01.mov")
+        XCTAssertEqual(klar.lastShotNumber, 2)
+        XCTAssertEqual(klar.status, .analyzed)
+        let v = try XCTUnwrap(ShotRow.visionDetail(klar))
+        XCTAssertEqual([v.candidates, v.median, v.max, v.person], ["2.0", "0.90", "0.90", "100%"])
+
+        var bilder: [String: CGImage] = [:]
+        var linjer: [String: ImpactOverlay] = [:]
+        for s in klar.shots {
+            bilder[s.id] = try await ShotImages.impactFrame(pass: klar, shot: s, store: store)
+            linjer[s.id] = ShotImages.overlay(shot: s, pass: klar, store: store)
+        }
+        try rita(ShotsContent(pass: klar, images: bilder, overlays: linjer, analysis: AnalysisState(), editable: false),
+                 "import-analys")
+    }
+
+    /// En vy i telefonens bredd, mörk, till /tmp/swinglab_prov/<namn>.png.
+    private func rita<V: View>(_ innehall: V, _ namn: String) throws {
+        let vy = innehall
+            .padding(.horizontal, 20)
+            .frame(width: 390)
+            .padding(.vertical, 20)
+            .background(Theme.ground)
+            .environment(\.colorScheme, .dark)
+        let r = ImageRenderer(content: vy)
+        r.scale = 2
+        let png = try XCTUnwrap(r.uiImage?.pngData(), "\(namn).png ritades inte")
+        try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
+        try png.write(to: URL(fileURLWithPath: "\(Self.ut)/\(namn).png"))
     }
 }

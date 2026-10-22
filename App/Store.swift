@@ -79,15 +79,26 @@ final class Store {
     }
 
     func save(_ pass: PassState) {
-        guard PassID.isValid(pass.id) else { return }
         do {
-            try FileManager.default.createDirectory(at: passFolder(pass.id), withIntermediateDirectories: true)
-            try PassCoding.encoder().encode(pass).write(to: passFile(pass.id), options: .atomic)
-            index.upsert(pass.entry)
-            try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
+            try write(pass)
         } catch {
             problem = String(localized: "pass.json could not be saved.")
         }
+    }
+
+    enum StoreError: LocalizedError {
+        case invalidID
+        var errorDescription: String? { String(localized: "pass.json could not be saved.") }
+    }
+
+    /// Som `save`, men felet kastas: analysen stannar hellre än fortsätter på ett pass
+    /// som inte står på disken (BESLUT B25).
+    func write(_ pass: PassState) throws {
+        guard PassID.isValid(pass.id) else { throw StoreError.invalidID }
+        try FileManager.default.createDirectory(at: passFolder(pass.id), withIntermediateDirectories: true)
+        try PassCoding.encoder().encode(pass).write(to: passFile(pass.id), options: .atomic)
+        index.upsert(pass.entry)
+        try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
     }
 
     // MARK: Lederna (S2e)

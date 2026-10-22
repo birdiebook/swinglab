@@ -70,9 +70,11 @@ public struct ShotRecord: Codable, Equatable, Sendable {
     public var wantsDetail: Bool { verdict == .swing || verdict == .uncertain }
 }
 
-/// Vad Vision kostade (S2_SPEC §6.4): rutorna som avkodades och analyserades, och tiden.
-/// `msPerFrame` är Visions egen tid per analyserad ruta; `wallMsPerFrame` räknar med
-/// avkodningen av rutorna som hoppades över i det glesa passet. METOD MS12
+/// Vad Vision kostade och såg (S2_SPEC §6.4): rutorna som avkodades och analyserades,
+/// tiden, och vad observationerna bar. `msPerFrame` är Visions egen tid per analyserad
+/// ruta; `wallMsPerFrame` räknar med avkodningen av rutorna som hoppades över i det glesa
+/// passet. Kandidaterna per ruta, observationernas konfidens (median och max) och andelen
+/// rutor med en vald person gör gränsen 0,6 (MS8) prövbar på telefonen. METOD MS8, MS12
 public struct VisionStats: Codable, Equatable, Sendable {
     public var revision: Int
     public var sparseStride: Int
@@ -83,6 +85,15 @@ public struct VisionStats: Codable, Equatable, Sendable {
     public var wallSeconds: Double
     public var msPerFrame: Double?
     public var wallMsPerFrame: Double?
+    /// Alla observationer (kandidater) Vision gav, i alla analyserade rutor.
+    public var candidates: Int
+    /// Rutorna där en person valdes (en säker observation, MS8).
+    public var pickedFrames: Int
+    /// Observationernas konfidens i hundradelar: plats i = antal med konfidensen i/100
+    /// avrundad (101 platser). Ger medianen utan att varje tal sparas.
+    public var confidenceCounts: [Int]
+    /// Den högsta konfidensen bland observationerna.
+    public var confidenceMax: Double?
 
     public init(revision: Int = 1, sparseStride: Int = SwingCheck.sparseStride, denseStride: Int = ShotPlan.denseStride) {
         self.revision = revision
@@ -92,15 +103,70 @@ public struct VisionStats: Codable, Equatable, Sendable {
         analyzedFrames = 0
         visionSeconds = 0
         wallSeconds = 0
+        candidates = 0
+        pickedFrames = 0
+        confidenceCounts = Array(repeating: 0, count: 101)
     }
 
-    public mutating func add(_ scan: PoseScan) {
+    /// Ett pass.json från före konfidensen saknar fälten: de börjar på noll.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        revision = try c.decode(Int.self, forKey: .revision)
+        sparseStride = try c.decode(Int.self, forKey: .sparseStride)
+        denseStride = try c.decode(Int.self, forKey: .denseStride)
+        decodedFrames = try c.decode(Int.self, forKey: .decodedFrames)
+        analyzedFrames = try c.decode(Int.self, forKey: .analyzedFrames)
+        visionSeconds = try c.decode(Double.self, forKey: .visionSeconds)
+        wallSeconds = try c.decode(Double.self, forKey: .wallSeconds)
+        msPerFrame = try c.decodeIfPresent(Double.self, forKey: .msPerFrame)
+        wallMsPerFrame = try c.decodeIfPresent(Double.self, forKey: .wallMsPerFrame)
+        candidates = try c.decodeIfPresent(Int.self, forKey: .candidates) ?? 0
+        pickedFrames = try c.decodeIfPresent(Int.self, forKey: .pickedFrames) ?? 0
+        let counts = try c.decodeIfPresent([Int].self, forKey: .confidenceCounts) ?? []
+        confidenceCounts = counts.count == 101 ? counts : Array(repeating: 0, count: 101)
+        confidenceMax = try c.decodeIfPresent(Double.self, forKey: .confidenceMax)
+    }
+
+    /// Ett Vision-pass, och hur många av dess rutor som fick en vald person.
+    public mutating func add(_ scan: PoseScan, picked: Int = 0) {
         decodedFrames += scan.decodedFrames
         analyzedFrames += scan.frames.count
         visionSeconds += scan.visionSeconds
         wallSeconds += scan.wallSeconds
+        pickedFrames += picked
+        if confidenceCounts.count != 101 { confidenceCounts = Array(repeating: 0, count: 101) }
+        for f in scan.frames {
+            for k in f.candidates where k.confidence.isFinite {
+                candidates += 1
+                let c = min(1, max(0, k.confidence))
+                confidenceCounts[Int((c * 100).rounded())] += 1
+                confidenceMax = max(confidenceMax ?? c, c)
+            }
+        }
         msPerFrame = analyzedFrames > 0 ? visionSeconds / Double(analyzedFrames) * 1000 : nil
         wallMsPerFrame = analyzedFrames > 0 ? wallSeconds / Double(analyzedFrames) * 1000 : nil
+    }
+
+    /// Kandidater per analyserad ruta.
+    public var candidatesPerFrame: Double? {
+        analyzedFrames > 0 ? Double(candidates) / Double(analyzedFrames) : nil
+    }
+
+    /// Andelen analyserade rutor med en vald person.
+    public var pickedFraction: Double? {
+        analyzedFrames > 0 ? Double(pickedFrames) / Double(analyzedFrames) : nil
+    }
+
+    /// Observationernas mediankonfidens, på en hundradel (nedre medianen vid jämnt antal).
+    public var confidenceMedian: Double? {
+        guard candidates > 0 else { return nil }
+        let halva = (candidates + 1) / 2
+        var sum = 0
+        for (i, n) in confidenceCounts.enumerated() {
+            sum += n
+            if sum >= halva { return Double(i) / 100 }
+        }
+        return nil
     }
 }
 
@@ -250,9 +316,11 @@ public enum ShotPlan {
     public static let sameClick = 0.001
 
     /// Slagen ur seriernas klick. Ett slag som redan finns (samma serie, samma klick)
-    /// behåller sitt id och allt som är gjort; ett klick utan slag får nästa lediga id;
-    /// ett slag vars klick inte längre finns tas bort. Ordningen är serie och tid.
-    public static func sync(_ pass: PassState) -> [ShotRecord] {
+    /// behåller sitt id och allt som är gjort; ett klick utan slag får nästa nummer efter
+    /// passets räknare (`lastShotNumber`, som aldrig går bakåt), så att ett borttaget slags
+    /// id aldrig ges igen; ett slag vars klick inte längre finns tas bort. Ordningen är
+    /// serie och tid. Används via `PassState.syncShots()`, som flyttar räknaren. METOD MS12
+    static func sync(_ pass: PassState) -> [ShotRecord] {
         var kvar: [ShotRecord] = []
         var nya: [(series: Int, click: Click)] = []
         for s in pass.series.sorted(by: { $0.nr < $1.nr }) {
@@ -264,7 +332,7 @@ public enum ShotPlan {
                 }
             }
         }
-        var n = pass.shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0
+        var n = max(pass.lastShotNumber, pass.shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
         for (serie, c) in nya {
             n += 1
             kvar.append(ShotRecord(id: ShotRecord.id(n), series: serie, click: c,
@@ -420,6 +488,15 @@ public struct ShotRow: Equatable, Sendable, Identifiable {
         }
     }
 
+    /// Vad Vision såg, som text för raden under ms/frame: kandidater per ruta ("1.4"),
+    /// observationernas konfidens median och max ("0.82", "0.97") och andelen rutor med en
+    /// vald person ("96%"). nil före första Vision-passet. METOD MS8, MS12
+    public static func visionDetail(_ pass: PassState) -> (candidates: String, median: String, max: String, person: String)? {
+        guard let v = pass.vision, let k = v.candidatesPerFrame, let andel = v.pickedFraction else { return nil }
+        return (Taltext.decimal(k, digits: 1), v.confidenceMedian.map { Taltext.decimal($0, digits: 2) } ?? "–",
+                v.confidenceMax.map { Taltext.decimal($0, digits: 2) } ?? "–", Taltext.percent(andel))
+    }
+
     /// Slagen per dom, och Visions tid per ruta med en decimal ("18.4"), för raden under rubriken.
     public static func counts(_ pass: PassState) -> (swing: Int, notSwing: Int, uncertain: Int, open: Int, msPerFrame: String?) {
         let n = { (v: SwingVerdict?) in pass.shots.filter { $0.verdict == v }.count }
@@ -429,6 +506,13 @@ public struct ShotRow: Equatable, Sendable, Identifiable {
 }
 
 extension PassState {
+    /// Slagen ur seriernas klick (`ShotPlan.sync`), och räknaren flyttad till det högsta
+    /// numret som getts. METOD MS12
+    public mutating func syncShots() {
+        shots = ShotPlan.sync(self)
+        lastShotNumber = max(lastShotNumber, shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
+    }
+
     /// Passet märks "orienteringen misstänkt" när fler än hälften av slagen med leder är
     /// det (S2_SPEC §6.2). METOD MS7
     public var orientationSuspect: Bool {

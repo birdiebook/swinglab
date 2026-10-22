@@ -7,6 +7,8 @@ import Capture
 struct RecordView: View {
     @Binding var pass: PassState
     var onClose: () -> Void
+    /// Vidare till passet med slagen och Analyze (S2e).
+    var onContinue: () -> Void = {}
 
     @Environment(Store.self) private var store
     @State private var camera = Camera()
@@ -15,6 +17,8 @@ struct RecordView: View {
     @State private var working = false
     /// Serien som spelas in: numret och filen i passet.
     @State private var current: (nr: Int, file: String)?
+    /// Continue i kvittot: passet öppnas när kvittot har stängts.
+    @State private var continueAfterReceipt = false
 
     var body: some View {
         ZStack {
@@ -57,21 +61,34 @@ struct RecordView: View {
             camera.finished = nil
             Task { await analyze(f) }
         }
-        .sheet(isPresented: Binding(get: { receipt != nil }, set: { if !$0 { receipt = nil } })) {
+        .sheet(isPresented: Binding(get: { receipt != nil }, set: { if !$0 { receipt = nil } }),
+               onDismiss: {
+                   guard continueAfterReceipt else { return }
+                   continueAfterReceipt = false
+                   finish()
+               }) {
             if let receipt {
-                ReceiptSheet(series: receipt) { self.receipt = nil }
-                    .presentationDetents([.medium])
+                ReceiptSheet(series: receipt, onNext: { self.receipt = nil }, onContinue: {
+                    continueAfterReceipt = true
+                    self.receipt = nil
+                })
+                .presentationDetents([.medium])
             }
         }
     }
 
     private var topBar: some View {
         HStack {
-            Button("Close") {
-                camera.stop()
-                onClose()
+            // Med en serie i passet leder knappen vidare till slagen, annars stänger den.
+            Button(pass.series.isEmpty ? LocalizedStringKey("Close") : LocalizedStringKey("Continue")) {
+                if pass.series.isEmpty {
+                    camera.stop()
+                    onClose()
+                } else {
+                    finish()
+                }
             }
-            .disabled(camera.phase == .recording || camera.phase == .probing)
+            .disabled(camera.phase == .recording || camera.phase == .probing || working)
             .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(Theme.text)
             .padding(.horizontal, 16)
@@ -145,6 +162,12 @@ struct RecordView: View {
         .padding(.bottom, 24)
     }
 
+    /// Vidare till passet: kameran stannar och slagen öppnas.
+    private func finish() {
+        camera.stop()
+        onContinue()
+    }
+
     private func toggle() {
         if camera.phase == .recording {
             camera.stopSeries()
@@ -213,15 +236,18 @@ struct RecordView: View {
     }
 }
 
-/// Kvittot efter en serie (S2_SPEC §12 S2c). METOD MS11
+/// Kvittot efter en serie (S2_SPEC §12 S2c): nästa serie, eller Continue till passet
+/// med slagen och Analyze (S2e). METOD MS11
 struct ReceiptSheet: View {
     let series: SeriesRecord
-    var onDone: () -> Void
+    var onNext: () -> Void
+    var onContinue: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             ReceiptCard(title: String(localized: "Set \(series.nr)"), rows: Receipt.rows(series))
-            Button("Done", action: onDone).buttonStyle(PrimaryButtonStyle())
+            Button("Continue", action: onContinue).buttonStyle(PrimaryButtonStyle())
+            Button("Next set", action: onNext).buttonStyle(RowButtonStyle())
         }
         .padding(20)
         .frame(maxHeight: .infinity, alignment: .top)

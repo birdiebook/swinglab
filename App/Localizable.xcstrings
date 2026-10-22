@@ -34,6 +34,17 @@
         }
       }
     },
+    "%@ per frame · confidence %@ median, %@ max · person %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per frame · confidence %@ median, %@ max · person %@"
+          }
+        }
+      }
+    },
     "%@ s": {
       "extractionState": "manual",
       "localizations": {
@@ -155,6 +166,17 @@
         }
       }
     },
+    "Continue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        }
+      }
+    },
     "DTL": {
       "extractionState": "manual",
       "localizations": {
@@ -173,17 +195,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Distance"
-          }
-        }
-      }
-    },
-    "Done": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Done"
           }
         }
       }
@@ -393,6 +404,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "New session"
+          }
+        }
+      }
+    },
+    "Next set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next set"
           }
         }
       }

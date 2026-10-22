@@ -27,13 +27,33 @@ public enum Receipt {
         return t.gridRate >= wantedRate - FormatChoice.rateSlack ? .good : .marginal
     }
 
+    /// Frekvensen som tal: rutnätet, och den uppmätta klockan inom parentes när den
+    /// skiljer minst 0,05 ("240 (239.4)"). METOD MS3, MS11
+    public static func rateText(_ t: FrameTiming) -> String {
+        let grid = Taltext.integer(t.gridRate)
+        guard let m = t.measuredRate, m.isFinite, abs(m - t.gridRate) >= measuredShown else { return grid }
+        return "\(grid) (\(Taltext.decimal(m, digits: 1)))"
+    }
+
+    /// Den uppmätta klockan visas när den skiljer så mycket från rutnätet, bilder/s. METOD MS11
+    public static let measuredShown = 0.05
+
+    /// Tappade rutor efter källan: en egen inspelning ska inte tappa (MS3), Kamera-appens
+    /// slowmotion-original tappar 30–40 % (oktobers klipp: 36 %) och varnas först över det
+    /// normala. METOD MS11
+    public static func missingLight(_ s: SeriesRecord) -> ExposurePlan.Light {
+        switch s.source {
+        case .recording: return Flicker.grade(missing: s.timing.missingFraction)
+        case .photos: return Flicker.grade(importMissing: s.timing.missingFraction)
+        }
+    }
+
     /// Kvittot efter en serie: frekvensen, tappade rutor, antal rutor, klicken,
     /// filens storlek per minut, längden och trycket. METOD MS11
     public static func rows(_ s: SeriesRecord, wantedRate: Double = 240) -> [ReceiptRow] {
         var r = [
-            ReceiptRow(Texter.kvittoBilder, Taltext.integer(s.timing.gridRate), rateLight(s.timing, wantedRate: wantedRate)),
-            ReceiptRow(Texter.kvittoTappade, Taltext.percent(s.timing.missingFraction),
-                       Flicker.grade(missing: s.timing.missingFraction)),
+            ReceiptRow(Texter.kvittoBilder, rateText(s.timing), rateLight(s.timing, wantedRate: wantedRate)),
+            ReceiptRow(Texter.kvittoTappade, Taltext.percent(s.timing.missingFraction), missingLight(s)),
             ReceiptRow(Texter.kvittoRutor, Taltext.integer(Double(s.timing.count))),
             ReceiptRow(Texter.kvittoKlick, Taltext.integer(Double(s.clicks.count)), s.clicks.isEmpty ? .marginal : .good),
             ReceiptRow(Texter.kvittoMBmin, Taltext.integer(s.megabytesPerMinute)),

@@ -38,6 +38,11 @@ public enum Flicker {
     /// Tappade rutor: under 1 % grönt, 1–5 % gult, över 5 % rött. METOD MS3
     public static let missingGood = 0.01
     public static let missingMarginal = 0.05
+    /// Tappade rutor i ett importerat slowmotion-original (Kamera-appen): upp till 45 %
+    /// vitt, 45–55 % gult, över 55 % rött. Oktobers klipp och Johannes första import
+    /// tappade 36 %. METOD MS11
+    public static let importMissingGood = 0.45
+    public static let importMissingMarginal = 0.55
     /// Ljusheten 0,20–0,60 grönt, utanför gult. METOD MS3
     public static let lumaGood = 0.20...0.60
 
@@ -49,6 +54,12 @@ public enum Flicker {
     public static func grade(missing: Double) -> ExposurePlan.Light {
         guard missing.isFinite else { return .tooDark }
         return missing < missingGood ? .good : missing <= missingMarginal ? .marginal : .tooDark
+    }
+
+    /// Tappade rutor i en import (Kamera-appens original). METOD MS11
+    public static func grade(importMissing missing: Double) -> ExposurePlan.Light {
+        guard missing.isFinite else { return .tooDark }
+        return missing <= importMissingGood ? .good : missing <= importMissingMarginal ? .marginal : .tooDark
     }
 
     public static func grade(luma: Double) -> ExposurePlan.Light {
