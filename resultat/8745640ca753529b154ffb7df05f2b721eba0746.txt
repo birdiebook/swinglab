@@ -1,0 +1,5 @@
+8745640ca753529b154ffb7df05f2b721eba0746 main 2026-10-22T10:09:04Z run 39760828523
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+error: chdir error: No such file or directory (2): /__w/swinglab/swinglab/SwingLabKit
+
