@@ -1,20 +1,20 @@
-e90020546292ab0209d069b841c3fe3b20fb799a s1b 2026-10-22T21:29:07Z run 39857434910
+016822703a756da868a496697314dbdb2e4e12d2 s2f 2026-10-22T21:31:06Z run 39857694910
 == swift-release
-GRÖNT: 154 test, 0 fel, 6 s i testerna, bygget 39 s
-Långsammast (av 154):
+GRÖNT: 162 test, 0 fel, 5 s i testerna, bygget 43 s
+Långsammast (av 162):
       1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  VisningTests.testIngaSvenskaTeckenIVisningen
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  MattTests.testVansterspelarenRaknasSomHoger
       0.1 s  SessionTests.testSammanfattningenSomPython
-      0.1 s  SessionTests.testJamforelsenSomPython
-      0.1 s  RedigeringTests.testRedigeringenIPassJsonOchEttGammaltPass
-      0.1 s  VisningTests.testAttJobbaPa
-      0.1 s  TvaTelefonerTests.testEttParArOsakert
-      0.1 s  RedigeringTests.testLinjernaIRutansKoordinater
-      0.1 s  RedigeringTests.testKlickUtanforFonstretBlirInteSlag
+      0.1 s  VisningTests.testGranskningensSlag
+      0.1 s  FormatTests.testLagKonfidensArSaknad
+      0.1 s  RedigeringTests.testUtskurnaRutanPaHelaPixlarOchNerifran
+      0.1 s  PaketTests.testDenSenasteVinner
+      0.1 s  InspelningTests.testLagringen
+      0.1 s  FormatTests.testFeletVisarAldrigVardet
 
