@@ -1,0 +1,85 @@
+import Foundation
+
+/// Talen och datumen som vyn visar (BESLUT B13, design/README.md regel 4 och 7):
+/// decimalkomma, typografiskt minus och tecken på förändringar. Räknas för hand,
+/// inte med NumberFormatter, så att telefonens språk inte spelar in och Linux
+/// ger samma text som telefonen.
+public enum Tal {
+    /// U+2212, samma bredd som plus i tabellsiffror.
+    public static let minus = "\u{2212}"
+
+    /// |v| med `decimaler` decimaler och decimalkomma, utan tecken.
+    static func belopp(_ v: Double, _ decimaler: Int) -> String {
+        let s = String(format: "%.\(Swift.max(0, decimaler))f", abs(v))
+        return s.replacingOccurrences(of: ".", with: ",")
+    }
+
+    /// Avrundat till noll? Då visas inget minus ("−0,0").
+    static func noll(_ v: Double, _ decimaler: Int) -> Bool {
+        abs(v) < 0.5 * pow(10, -Double(Swift.max(0, decimaler)))
+    }
+
+    /// Ett värde: "−2,4", "11,3". Saknas värdet: "—".
+    public static func tal(_ v: Double?, decimaler: Int) -> String {
+        guard let v, v.isFinite else { return "—" }
+        return (v < 0 && !noll(v, decimaler) ? minus : "") + belopp(v, decimaler)
+    }
+
+    /// En förändring eller ett mått med riktning: "+1,2", "−2,4", "±0,0".
+    public static func tecken(_ v: Double?, decimaler: Int) -> String {
+        guard let v, v.isFinite else { return "—" }
+        if noll(v, decimaler) { return "±" + belopp(0, decimaler) }
+        return (v > 0 ? "+" : minus) + belopp(v, decimaler)
+    }
+
+    /// En gräns på en axel: heltal utan decimaler (som skissen), annars `decimaler`.
+    public static func axel(_ v: Double, decimaler: Int) -> String {
+        let heltal = abs(v - v.rounded()) < 1e-9
+        return tal(v, decimaler: heltal ? 0 : decimaler)
+    }
+
+    /// Enheten efter ett tal i löptext: grader sitter ihop, kvoten ": 1" utelämnas.
+    public static func medEnhet(_ tal: String, _ enhet: String) -> String {
+        switch enhet {
+        case "": return tal
+        case "°": return tal + "°"
+        case ": 1": return tal
+        default: return tal + " " + enhet
+        }
+    }
+
+    // MARK: datumen
+
+    public static let manader = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
+    public static let veckodagar = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"]
+
+    /// Svensk tid, oavsett telefonens zon, så att ett pass har samma datum överallt.
+    public static let kalender: Calendar = {
+        var k = Calendar(identifier: .gregorian)
+        k.timeZone = TimeZone(identifier: "Europe/Stockholm") ?? TimeZone(secondsFromGMT: 3600)!
+        k.firstWeekday = 2
+        return k
+    }()
+
+    /// "6 jan"
+    public static func datum(_ d: Date) -> String {
+        let c = kalender.dateComponents([.day, .month], from: d)
+        return "\(c.day ?? 0) \(manader[((c.month ?? 1) - 1) % 12])"
+    }
+
+    /// "fre 9 jan"
+    public static func dag(_ d: Date) -> String {
+        let v = kalender.component(.weekday, from: d)
+        return "\(veckodagar[(v - 1) % 7]) \(datum(d))"
+    }
+
+    /// "jan"
+    public static func manad(_ d: Date) -> String {
+        manader[(kalender.component(.month, from: d) - 1) % 12]
+    }
+
+    /// Ett datum i svensk tid, för demodatan och testerna.
+    public static func dag(_ ar: Int, _ manad: Int, _ dag: Int, timme: Int = 12) -> Date {
+        kalender.date(from: DateComponents(year: ar, month: manad, day: dag, hour: timme))!
+    }
+}
