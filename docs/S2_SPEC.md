@@ -1393,9 +1393,13 @@ dataregeln). Bandet i PLAN.md: S2 ✓.
 
 ## 13. Det Johannes behöver bestämma
 
-1. **Den andra telefonen:** modell och iOS-version. Specen kräver iOS 18.2
-   (F5) och 1080p i 240 bilder/s. Johannes nuvarande är en iPhone 17 (Golf SG,
-   2026-10-10).
+1. **Telefonerna:** *besvarat 2026-10-22: iPhone 17 och iPhone 13.* Båda
+   filmar 1080p i 240 bilder/s och kör iOS 18.2 eller senare. Appen ska fungera
+   på olika modeller: formatet väljs ur det telefonen själv rapporterar (F3),
+   aldrig ur en modellista. iPhone 17 är huvudtelefonen (passet, Vision,
+   paketet); iPhone 13 är den andra. Ljusprovet (F4) körs på båda, eftersom
+   13:ans sensor och `maxISO` i 240-formatet kan kräva mer ljus; den telefon
+   som har minst marginal får den bäst belysta vyn.
 2. **Ljuset:** inomhus krävs troligen flimmerfria lampor (§2.3, cirka 700–1 400
    lux på golfaren vid ISO 1000–2000). Köp är Johannes beslut; Ljusprovet (T1)
    visar först hur långt det är kvar.
