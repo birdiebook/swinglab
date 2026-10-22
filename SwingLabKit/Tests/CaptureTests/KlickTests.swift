@@ -28,6 +28,11 @@ final class KlickTests: XCTestCase {
         let prior: Double?
         let forskjutning: Double
         let par: [[Double]]
+        let antal: Int
+        let nast_bast: Double?
+        let nast_antal: Int
+        let osaker: Bool
+        let prior_fonster: Double?
     }
 
     struct Fil: Decodable {
@@ -81,6 +86,10 @@ final class KlickTests: XCTestCase {
         let lang = Self.fil.klick.first { $0.namn == "lang" }!
         XCTAssertEqual(ClickDetector.segments(count: Int(lang.langd_s * lang.sr)).count, 3)
         XCTAssertEqual(lang.hela.map { $0[0] }, lang.bitar.map { $0[0] })      // klicken i överlappen en gång
+        let grans = Self.fil.klick.first { $0.namn == "bitgrans" }!
+        XCTAssertEqual(grans.hela.count, 4)
+        XCTAssertEqual(grans.hela.map { $0[0] }, grans.bitar.map { $0[0] })    // klicken vid bitgränserna
+        XCTAssertEqual(ClickDetector.edge(), 1056)
         XCTAssertTrue(Self.fil.klick.contains { $0.namn == "bara_brus" && $0.hela.isEmpty })
         XCTAssertTrue(Self.fil.klick.contains { $0.sr == 44100 })
     }
@@ -98,6 +107,17 @@ final class KlickTests: XCTestCase {
         let k = ClickDetector.detect(Self.signal(r))
         XCTAssertEqual(k.count, 1)
         XCTAssertEqual(k[0].time, 1.4, accuracy: 0.002)
+    }
+
+    func testKantregelnKastarDetKapadeKlicket() {
+        // Utan regeln hittas klicket 13 prov in i bit 2 med kapad energi, på fel prov.
+        let r = Self.fil.klick.first { $0.namn == "bitgrans" }!
+        let x = Self.signal(r)
+        let bit = Array(x[1_392_000..<2_832_000])
+        let kapat = ClickDetector.detect(bit)
+        XCTAssertNotEqual(kapat.first.map { 1_392_000 + Self.prov($0, 48000) }, Int(r.hela[0][0]))
+        let med = ClickDetector.detect(bit, innerStart: true, innerEnd: true)
+        XCTAssertEqual(med.count, kapat.count - 2)      // klicket vid början och det i bitens sista prov
     }
 
     func testKortSignalGerInget() {
@@ -125,8 +145,14 @@ final class KlickTests: XCTestCase {
 
     func testParningenSomPython() {
         for p in Self.fil.para {
-            let r = ClickPairing.pair(p.a, p.b, prior: p.prior)
+            let r = ClickPairing.pair(p.a, p.b, prior: p.prior,
+                                      priorWindow: p.prior_fonster ?? ClickPairing.defaultPriorWindow)
             XCTAssertEqual(r.offset, p.forskjutning, accuracy: 1e-9, p.namn)
+            XCTAssertEqual(r.count, p.antal, p.namn)
+            XCTAssertEqual(r.secondBestCount, p.nast_antal, p.namn)
+            XCTAssertEqual(r.uncertain, p.osaker, p.namn)
+            XCTAssertEqual(r.secondBestOffset == nil, p.nast_bast == nil, p.namn)
+            if let x = r.secondBestOffset, let y = p.nast_bast { XCTAssertEqual(x, y, accuracy: 1e-9, p.namn) }
             XCTAssertEqual(r.pairs.map { [$0.a, $0.b] }, p.par.map { [Int($0[0]), Int($0[1])] }, p.namn)
             for (x, y) in zip(r.pairs, p.par) {
                 XCTAssertEqual(x.residual, y[2], accuracy: 1e-9, p.namn)

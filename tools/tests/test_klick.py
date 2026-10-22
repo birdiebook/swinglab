@@ -77,13 +77,26 @@ class Klicket(unittest.TestCase):
         self.assertEqual(KL.bitar(30 * 48000), [(0, 1440000)])
 
     def test_bitar_ger_samma_ansats_som_hela_signalen(self) -> None:
-        """Klicken i överlappen (29,5 s och 58,6 s) hittas en gång, på samma prov.
-        Styrkan skiljer: medianen är bitens (S2_SPEC §4.2)."""
-        r = next(r for r in G.RECEPT if r["namn"] == "lang")
-        f = G.facit_klick(r)
-        self.assertEqual([p for p, _ in f["bitar"]], [p for p, _ in f["hela"]])
-        for (_, a), (_, b) in zip(f["bitar"], f["hela"]):
-            self.assertLess(abs(a / b - 1), 0.01)
+        """Klicken i överlappen (29,5 s och 58,6 s) och vid bitgränserna (13 prov in,
+        bitens sista prov) hittas en gång, på samma prov. Styrkan skiljer: medianen är
+        bitens (S2_SPEC §4.2)."""
+        for namn in ("lang", "bitgrans"):
+            r = next(r for r in G.RECEPT if r["namn"] == namn)
+            f = G.facit_klick(r)
+            self.assertEqual(len(f["hela"]), len(r["klick"]), namn)
+            self.assertEqual([p for p, _ in f["bitar"]], [p for p, _ in f["hela"]], namn)
+            for (_, a), (_, b) in zip(f["bitar"], f["hela"]):
+                self.assertLess(abs(a / b - 1), 0.01, namn)
+
+    def test_utan_kantregeln_blir_det_fel(self) -> None:
+        """Kvittot på att receptet prövar regeln: utan den kapas klicket 13 prov in."""
+        r = next(r for r in G.RECEPT if r["namn"] == "bitgrans")
+        x = G.signal(r)
+        a = 29 * 48000
+        kapat = KL._klick_prov(x[a:a + 30 * 48000], 48000)[0]
+        hel = KL._klick_prov(x[:30 * 48000], 48000)[0]
+        self.assertLess(kapat[1], KL.kant())
+        self.assertNotEqual(a + kapat[0], hel[0])
 
     def test_sla_ihop_tar_det_starkaste(self) -> None:
         kl = KL.sla_ihop([(0.0, [(1.0, 50.0), (29.5, 40.0)]), (29.0, [(0.5001, 45.0), (5.0, 30.0)])])
@@ -102,8 +115,27 @@ class Parningen(unittest.TestCase):
                 self.assertNotIn(4, [x[0] for x in r["par"]])           # det b missade
 
     def test_utan_traff_svaras_prior(self) -> None:
-        self.assertEqual(KL.para([1.0], [5.0], prior=1.0), {"forskjutning": 1.0, "par": []})
-        self.assertEqual(KL.para([], [5.0]), {"forskjutning": 0.0, "par": []})
+        tom = {"par": [], "antal": 0, "nast_bast": None, "nast_antal": 0, "osaker": True}
+        self.assertEqual(KL.para([1.0], [5.0], prior=1.0), {"forskjutning": 1.0, **tom})
+        self.assertEqual(KL.para([], [5.0]), {"forskjutning": 0.0, **tom})
+        self.assertEqual(KL.para(G._A, G._A, prior=0.0, prior_fonster=0.0), {"forskjutning": 0.0, **tom})
+
+    def test_saker_och_osaker(self) -> None:
+        for p in G.PARA[:3]:
+            r = G.facit_para(p)
+            self.assertFalse(r["osaker"], p["namn"])
+            self.assertEqual(r["antal"], 6)
+            self.assertLess(r["nast_antal"], 3)
+        # Exemplet ur granskningen: ett par, två lika bra förskjutningar.
+        r = KL.para([1.0, 11.53], [3.07])
+        self.assertTrue(r["osaker"])
+        self.assertEqual(r["antal"], 1)
+        self.assertEqual(r["nast_antal"], 1)
+        self.assertAlmostEqual(r["forskjutning"], -8.46, places=9)      # lägsta d vid lika
+        self.assertAlmostEqual(r["nast_bast"], 2.07, delta=0.035)   # det sanna, i sökningens steg
+        # Två par räcker inte utan prior, men med.
+        self.assertTrue(KL.para([1.0, 4.0], [3.0, 6.0])["osaker"])
+        self.assertFalse(KL.para([1.0, 4.0], [3.0, 6.0], prior=2.0)["osaker"])
 
     def test_ljudets_vag(self) -> None:
         self.assertAlmostEqual(KL.ljudets_vag(3.0) * 1000, 8.746, places=3)
@@ -152,6 +184,7 @@ class Fixturen(unittest.TestCase):
             self.assertEqual((a["a"], a["b"], a["prior"]), (b["a"], b["b"], b["prior"]))
             self.assertTrue(math.isclose(a["forskjutning"], b["forskjutning"], abs_tol=TOL))
             self.assertEqual([x[:2] for x in a["par"]], [x[:2] for x in b["par"]])
+            self.assertEqual((a["antal"], a["nast_antal"], a["osaker"]), (b["antal"], b["nast_antal"], b["osaker"]))
 
 
 if __name__ == "__main__":

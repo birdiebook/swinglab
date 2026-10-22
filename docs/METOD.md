@@ -381,9 +381,16 @@ värden i `CaptureTests`.
   före klicket, lika i båda språken och för båda telefonerna.
 - **Bitar om 30 s med 1 s överlapp**, medianen per bit, och klick närmare än
   0,5 s över bitarnas gräns blir det starkaste. **antagande** (minnet på
-  telefonen). PC:n delar in likadant (`klick_i_bitar`). Provat på påhittat ljud:
-  klicken i överlappen hittas en gång på samma prov som utan bitar; styrkan
-  skiljer under 1 %.
+  telefonen). PC:n delar in likadant (`klick_i_bitar`), och appen klipper ljudet
+  vid samma prov (S2c).
+- **Bitgränsen:** vid en inre gräns är bitens energi kapad (fönstret och
+  `hp[0] = 0`), så ett klick där hittas på fel prov (i receptet `bitgrans` 31 prov för tidigt). En bit
+  kastar därför klick vars topp ligger närmare än **0,02 s + fönstret** (1 056
+  prov vid 48 kHz) från en inre bitgräns; grannbiten, som överlappar 1 s, ser
+  klicket helt. Signalens egen början och slut är ingen inre gräns. Provat på
+  påhittat ljud (recepten `lang` och `bitgrans`): klick i överlappen, 13 prov in
+  i en bit och i en bits sista prov hittas en gång, på samma prov som utan bitar;
+  styrkan skiljer under 1 %. Utan regeln hittas klicket 13 prov in på fel prov.
 - **Paritet:** Swift hittar samma ansats på provet och styrkan inom 1e-6
   relativt som Python på 8 påhittade signaler (`KlickFixturer.swift`), och Python
   ger Golf SG:s tal exakt (`tools/tests/test_klick.py`, lokalt där Golf SG finns).
@@ -397,7 +404,8 @@ värden i `CaptureTests`.
   M1); farten mellan rutorna i H per sekund, med tiden i stegets mitt.
 - **Slag** om (a) högsta farten i **[−0,10; +0,05] s** är minst **2,0 H/s** och
   (b) händerna står över axlarnas mitt någon gång i **[−1,6; −0,15] s**. **Inte
-  slag** om (a) eller (b) brister. **Osäkert** om färre än **60 %** av rutorna har
+  slag** om (a) eller (b) brister (provat: 2,1 H/s genom träffen ger slag,
+  1,9 H/s inte). **Osäkert** om färre än **60 %** av rutorna har
   alla 13 leder säkra (MS8) eller kroppens längd saknas.
 - Bekräftade och osäkra slag får Vision på varje ruta i **[−2,5; +1,5] s**
   (samma fönster som Golf SG:s MediaPipe).
@@ -427,9 +435,10 @@ värden i `CaptureTests`.
 
 - En led räknas som säker vid **c ≥ 0,1**, en observation vid **≥ 0,6**, som
   Apples exempel (WWDC20 session 10653). **tillverkare, ej läst i original.**
-  Gäller telefonens svingdom (MS5). Mätningen läser samma leder med gränsen 0,3
-  (M1).
-- **Flera personer:** i första rutan räknas de som är minst **hälften** så höga
+  Ledgränsen gäller telefonens svingdom (MS5), observationsgränsen personvalet
+  nedan. Mätningen läser samma leder med gränsen 0,3 (M1). Kalibreras i S2e.
+- **Flera personer:** bara säkra observationer (≥ 0,6) räknas; finns ingen
+  saknar rutan leder. I första rutan räknas de som är minst **hälften** så höga
   (H) som den högsta, och den vars höfters mitt ligger närmast bildens mitt i x
   väljs; sedan den vars höfters mitt ligger närmast föregående ruta. Grannen
   längre bort är mindre i bild. **antagande.**
@@ -453,6 +462,13 @@ värden i `CaptureTests`.
   av de parade resterna. **mätt** i Golf SG (klicken mot bandets stötar, oktobers
   mätning). Python (`tools/pc/klick.py para`) ger Golf SG:s förskjutning inom 1e-9.
 - Sökfönstret: **prior ± 0,25 s** med ping, **± 0,5 s** när pingen efter stopp
-  saknas, **± 10 s** utan. Golf SG sökte ± 3 s. **antagande.**
+  saknas, **± 10 s** utan. Golf SG sökte ± 3 s. **antagande.** Ett tomt fönster
+  (`priorWindow ≤ 0`) söker inget: svaret är prior, inga par och osäker.
+- **Osäker parning:** med ett par blir resten 0 vad förskjutningen än är, och
+  utan prior väljs lägsta d vid lika antal (påhittat exempel: sann 2,07 s, svar
+  −8,46 s). Resultatet bär därför antalet par i sökningen och marginalen, det
+  bästa d minst **2 · 30 ms** från det valda och hur många det parar. Parningen
+  är **osäker** med färre än **3** par utan prior (**1** med), eller när det näst
+  bästa parar lika många. **antagande.** Python och Swift ger samma dom.
 - **Avvikelser:** stegen räknas `lo + i·steg` (numpys `arange` gör nästan det),
-  och parar inget svaras prior (eller 0) i stället för sökningens början.
+  och parar inget svaras prior (eller 0), osäker, i stället för sökningens början.

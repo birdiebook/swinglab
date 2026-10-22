@@ -30,7 +30,7 @@ final class LederTests: XCTestCase {
 
     /// Händerna i en påhittad sving: adress, upp till toppen över huvudet vid −0,5 s,
     /// ned, och 3 kroppslängder per sekund genom träffen.
-    static func hander(_ t: Double, stilla: Bool) -> (x: Double, y: Double) {
+    static func hander(_ t: Double, stilla: Bool, fart: Double = 3) -> (x: Double, y: Double) {
         if stilla { return (540, 1000) }
         func lerp(_ a: (Double, Double), _ b: (Double, Double), _ u: Double) -> (x: Double, y: Double) {
             (a.0 + (b.0 - a.0) * u, a.1 + (b.1 - a.1) * u)
@@ -39,15 +39,15 @@ final class LederTests: XCTestCase {
         case ..<(-1.2): return (540, 1000)
         case ..<(-0.5): return lerp((540, 1000), (700, 450), (t + 1.2) / 0.7)
         case ..<(-0.15): return lerp((700, 450), (540 - 0.45 * H, 1000), (t + 0.5) / 0.35)
-        default: return (540 + 3 * H * t, 1000)
+        default: return (540 + fart * H * t, 1000)
         }
     }
 
     /// Den glesa serien: var 8:e ruta vid 240 bilder/s i [−1,6, +0,1] s.
-    static func serie(stilla: Bool = false, utan: (Int) -> Set<Int> = { _ in [] }) -> JointSeries {
+    static func serie(stilla: Bool = false, fart: Double = 3, utan: (Int) -> Set<Int> = { _ in [] }) -> JointSeries {
         let frames = (0...51).map { k -> PoseFrame in
             let t = -1.6 + Double(k) / 30
-            return PoseFrame(t: t, pts: 10 + t, joints: figur(hander: hander(t, stilla: stilla), utan: utan(k)),
+            return PoseFrame(t: t, pts: 10 + t, joints: figur(hander: hander(t, stilla: stilla, fart: fart), utan: utan(k)),
                              confidence: 0.9)
         }
         return JointSeries(width: bredd, height: hojd, frames: frames)
@@ -60,6 +60,13 @@ final class LederTests: XCTestCase {
 
     func testEnSvingArEttSlag() {
         XCTAssertEqual(SwingCheck.verdict(Self.serie()), .swing)
+    }
+
+    func testFartgransenTvaKroppslangderPerSekund() {
+        // Händerna genom träffen i 2,1 H/s räcker, 1,9 H/s inte (METOD MS5).
+        XCTAssertEqual(SwingCheck.verdict(Self.serie(fart: 2.1)), .swing)
+        XCTAssertEqual(SwingCheck.verdict(Self.serie(fart: 1.9)), .notSwing)
+        XCTAssertEqual(SwingCheck.minSpeed, 2.0)
     }
 
     func testStillaHanderArInteEttSlag() {
@@ -122,6 +129,11 @@ final class LederTests: XCTestCase {
         XCTAssertEqual(PosePicker.pick([johannes, annan], previousHipMid: (920, 1050), width: 1080), 1)
         XCTAssertEqual(PosePicker.pick([johannes, annan], previousHipMid: (560, 1050), width: 1080), 0)
         XCTAssertNil(PosePicker.pick([utanHoft], previousHipMid: nil, width: 1080))
+        // En osäker observation (confidence < 0,6, METOD MS8) väljs inte, ens mitt i bild.
+        var osaker = johannes
+        osaker.confidence = 0.59
+        XCTAssertEqual(PosePicker.pick([osaker, annan], previousHipMid: nil, width: 1080), 1)
+        XCTAssertNil(PosePicker.pick([osaker], previousHipMid: (560, 1050), width: 1080))
         XCTAssertNil(PosePicker.pick([], previousHipMid: nil, width: 1080))
     }
 

@@ -343,6 +343,67 @@ enum KlickFixturer {
      309.22618937317037
     ]
    ]
+  },
+  {
+   "namn": "bitgrans",
+   "sr": 48000,
+   "langd_s": 61.0,
+   "fro": 17,
+   "brus": 0.001,
+   "klick": [
+    {
+     "prov": 1392013,
+     "amp": 0.5
+    },
+    {
+     "prov": 1439999,
+     "amp": 0.4
+    },
+    {
+     "prov": 2784013,
+     "amp": 0.3
+    },
+    {
+     "prov": 2831999,
+     "amp": 0.5
+    }
+   ],
+   "hela": [
+    [
+     1391969,
+     386.5114043124958
+    ],
+    [
+     1439955,
+     309.0947713028962
+    ],
+    [
+     2783969,
+     231.89374300332472
+    ],
+    [
+     2831955,
+     386.48229968276337
+    ]
+   ],
+   "bitar": [
+    [
+     1391969,
+     386.5100567031205
+    ],
+    [
+     1439955,
+     309.02773113033413
+    ],
+    [
+     2783969,
+     231.84344711355124
+    ],
+    [
+     2831955,
+     386.46745895808186
+    ]
+   ]
   }
  ],
  "para": [
@@ -400,7 +461,11 @@ enum KlickFixturer {
      6,
      -0.0005999999999986017
     ]
-   ]
+   ],
+   "antal": 6,
+   "nast_bast": -7.785,
+   "nast_antal": 2,
+   "osaker": false
   },
   {
    "namn": "med_prior",
@@ -456,7 +521,11 @@ enum KlickFixturer {
      6,
      -0.0005999999999986017
     ]
-   ]
+   ],
+   "antal": 6,
+   "nast_bast": null,
+   "nast_antal": 0,
+   "osaker": false
   },
   {
    "namn": "negativ",
@@ -511,7 +580,11 @@ enum KlickFixturer {
      6,
      -0.000600000000000378
     ]
-   ]
+   ],
+   "antal": 6,
+   "nast_bast": -9.44,
+   "nast_antal": 2,
+   "osaker": false
   },
   {
    "namn": "fel_prior",
@@ -535,7 +608,63 @@ enum KlickFixturer {
    ],
    "prior": 1.0,
    "forskjutning": 1.0,
-   "par": []
+   "par": [],
+   "antal": 0,
+   "nast_bast": null,
+   "nast_antal": 0,
+   "osaker": true
+  },
+  {
+   "namn": "ett_par",
+   "a": [
+    1.0,
+    11.53
+   ],
+   "b": [
+    3.07
+   ],
+   "prior": null,
+   "forskjutning": -8.459999999999999,
+   "par": [
+    [
+     1,
+     0,
+     4.440892098500626e-16
+    ]
+   ],
+   "antal": 1,
+   "nast_bast": 2.040000000000001,
+   "nast_antal": 1,
+   "osaker": true
+  },
+  {
+   "namn": "tomt_fonster",
+   "a": [
+    1.0,
+    3.2,
+    5.9,
+    8.4,
+    11.0,
+    13.3,
+    16.05
+   ],
+   "b": [
+    3.3482,
+    5.5449,
+    8.2505,
+    9.9,
+    10.7462,
+    15.6439,
+    18.3974
+   ],
+   "prior": 2.347,
+   "prior_fonster": 0.0,
+   "forskjutning": 2.347,
+   "par": [],
+   "antal": 0,
+   "nast_bast": null,
+   "nast_antal": 0,
+   "osaker": true
   }
  ]
 }
