@@ -8,6 +8,10 @@ import Swing
 struct SpannVy: View {
     let spann: Spann
     var kompakt = false
+    /// Det du övar på: markören och kvartilerna i accenten (BESLUT B31).
+    var accent = false
+
+    private var markor: Color { accent ? Theme.acc : Theme.text }
 
     var body: some View {
         Canvas { c, s in
@@ -28,7 +32,7 @@ struct SpannVy: View {
             }
             if !kompakt {
                 if let sp = spann.spridning {
-                    c.linje(CGPoint(x: x(sp.lo), y: y), CGPoint(x: x(sp.hi), y: y), Theme.text, 1.5)
+                    c.linje(CGPoint(x: x(sp.lo), y: y), CGPoint(x: x(sp.hi), y: y), markor, 1.5)
                 }
                 if let f = spann.forra {
                     c.linje(CGPoint(x: x(f), y: y - 7), CGPoint(x: x(f), y: y + 7), Theme.tertiary, 1.5)
@@ -59,7 +63,7 @@ struct SpannVy: View {
                     if ledigt(r) { c.etikett(sist.text, CGPoint(x: px, y: y + 14), ankare: .topTrailing) }
                 }
             }
-            c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, Theme.text)
+            c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, markor)
         }
         .frame(height: kompakt ? 14 : 40)
         .accessibilityElement()
@@ -109,7 +113,7 @@ struct MattkortVy: View {
         Sektion {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center) {
-                    Etikett(text: kort.rubrik)
+                    Etikett(text: kort.rubrik, farg: kort.ovas ? Theme.acc : Theme.tertiary)
                     Spacer(minLength: 8)
                     if let m = kort.markning { MarkningVy(markning: m) }
                 }
@@ -127,7 +131,7 @@ struct MattkortVy: View {
                         Spacer(minLength: 0)
                         if let g = kort.geometri { GeometriVy(geometri: g) }
                     }
-                    SpannVy(spann: spann)
+                    SpannVy(spann: spann, accent: kort.ovas)
                         .padding(.top, 12)
                 } else {
                     StortTal(varde: kort.varde, enhet: kort.enhet, avstangt: true)

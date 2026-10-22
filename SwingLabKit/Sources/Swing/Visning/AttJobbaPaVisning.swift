@@ -135,6 +135,8 @@ public struct Idagvisning: Sendable {
         /// Enheten efter talet, utan kvoten ": 1".
         public let enhet: String
         public let spann: Spann
+        /// Måttet övas just nu (BESLUT B31).
+        public let ovas: Bool
 
         /// "Sway −2,4 cm, mål från 0 cm"
         public var upplasning: String {
@@ -161,10 +163,11 @@ public struct Idagvisning: Sendable {
         dag = Tal.dag(idag)
         if let nu = pass.last {
             senaste = "\(Tal.dag(nu.datum)) · \(nu.klubba) · \(nu.slag)"
-            let p = Passvisning(katalog: katalog, pass: pass)
+            let p = Passvisning(katalog: katalog, pass: pass, ovas: attJobbaPa?.ovas ?? [])
             rader = p.kort.compactMap { k -> Rad? in
                 guard let s = k.spann else { return nil }
-                return Rad(id: k.id, namn: k.namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s)
+                return Rad(id: k.id, namn: k.namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s,
+                           ovas: k.ovas)
             }
         } else {
             senaste = nil

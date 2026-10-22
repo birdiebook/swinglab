@@ -34,6 +34,8 @@ public struct Utveckling: Sendable {
     /// Blockens gränser: mellan passet före och passet `index`, och "B2".
     public let block: [(index: Int, text: String)]
     public var harSerie1: Bool { punkter.contains { $0.serie1 != nil } }
+    /// Måttet övas just nu: linjen bär accenten (BESLUT B31).
+    public var ovas = false
 
     /// `block` = blockens första dagar, äldst först.
     public init(_ fel: Katalog.Fel, pass: [Pass], block: [Date] = []) {
@@ -100,13 +102,16 @@ public struct Utvecklingsvisning: Sendable {
     public let period: String
     public let matt: [Utveckling]
 
-    public init(katalog: Katalog, pass: [Pass], block: [Date] = []) {
+    public init(katalog: Katalog, pass: [Pass], block: [Date] = [], ovas: Set<String> = []) {
         if let a = pass.first, let b = pass.last {
             period = "\(Tal.manad(a.datum))–\(Tal.manad(b.datum)) · \(pass.count)"
         } else {
             period = ""
         }
-        matt = katalog.fel.filter { $0.aktiv }.map { Utveckling($0, pass: pass, block: block) }
-            .filter { !$0.punkter.isEmpty }
+        matt = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
+            var u = Utveckling(f, pass: pass, block: block)
+            u.ovas = ovas.contains(f.id)
+            return u
+        }.filter { !$0.punkter.isEmpty }
     }
 }

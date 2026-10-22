@@ -52,6 +52,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public let skillnad: String?
     public let spann: Spann?
     public let geometri: Geometri?
+    /// Måttet övas just nu (Att jobba på): kortet bär accenten (BESLUT B31).
+    public var ovas = false
 
     public init(id: String, matt: String, namn: String, rubrik: String, vy: Vy?, markning: Markning?,
                 varde: String, enhet: String, skillnad: String?, spann: Spann?, geometri: Geometri?) {
@@ -124,9 +126,14 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     }
 
     /// Passets kort i katalogens ordning, de avstängda sist.
-    public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass]) -> [Mattkort] {
+    /// `ovas` = felen i Att jobba på (BESLUT B31).
+    public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass], ovas: Set<String> = []) -> [Mattkort] {
         let fel = katalog.fel.filter { $0.aktiv } + katalog.fel.filter { !$0.aktiv }
-        return fel.map { kort($0, nu: nu, tidigare: tidigare) }
+        return fel.map { f -> Mattkort in
+            var k = kort(f, nu: nu, tidigare: tidigare)
+            k.ovas = ovas.contains(f.id)
+            return k
+        }
     }
 }
 
@@ -138,11 +145,11 @@ public struct Passvisning: Sendable {
     public let undertitel: String
     public let kort: [Mattkort]
 
-    public init(katalog: Katalog, pass: [Pass]) {
+    public init(katalog: Katalog, pass: [Pass], ovas: Set<String> = []) {
         let nu = pass.last!
         titel = Tal.dag(nu.datum)
         undertitel = "\(nu.klubba) · \(nu.slag)"
-        kort = Mattkort.passet(katalog, nu: nu, tidigare: Array(pass.dropLast()))
+        kort = Mattkort.passet(katalog, nu: nu, tidigare: Array(pass.dropLast()), ovas: ovas)
     }
 
     public enum Filter: String, CaseIterable, Sendable {

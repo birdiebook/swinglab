@@ -128,6 +128,8 @@ public struct Granskningsvisning: Sendable {
     /// "6 jan"
     public let forraDatum: String?
     public let slag: [Slag]
+    /// Måttet på ytan övas just nu: den uppmätta linjen bär accenten (BESLUT B31).
+    public var ovas = false
 
     /// `matt` = måttet för slagknapparna (backen_sway_topp eller backen_thrust_traff).
     public init(yta: Matyta, forra: Matyta?, forraDatum: Date?, pass: Pass, matt: String) {

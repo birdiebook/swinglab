@@ -31,7 +31,7 @@ final class SwingLabProvVyer: XCTestCase {
     }
 
     func testPasset() throws {
-        let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
+        let v = Passvisning(katalog: try katalog(), pass: Demo.pass, ovas: Demo.attJobbaPa.ovas)
         try rendera(PassetVy(visning: v), namn: "passet")
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl")
         // Största textstorleken (Dynamisk text): inget klipps, raderna bryts.
@@ -52,29 +52,35 @@ final class SwingLabProvVyer: XCTestCase {
     }
 
     func testUtveckling() throws {
-        let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block)
+        let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block, ovas: Demo.attJobbaPa.ovas)
         try rendera(UtvecklingVy(visning: v), namn: "utveckling")
-        try rendera(UtvecklingVy(visning: v, valt: "backens_resa_framat"), namn: "utveckling-resa")
-        try rendera(UtvecklingVy(visning: v, valt: "tempo"), namn: "utveckling-tempo")
+        try rendera(UtvecklingVy(visning: v, valt: "backens_resa_framat"), namn: "utveckling-resa", accent: false)
+        try rendera(UtvecklingVy(visning: v, valt: "tempo"), namn: "utveckling-tempo", accent: false)
     }
 
     func testGranskning() throws {
         func visning(_ vy: Vy) throws -> Granskningsvisning {
             let s = Demo.sving(vy), f = Demo.sving(vy, forra: true)
-            return Granskningsvisning(yta: Matyta(sving: s, resultat: try Matt.mat(s)),
-                                      forra: Matyta(sving: f, resultat: try Matt.mat(f)),
-                                      forraDatum: Demo.datum[Demo.datum.count - 2], pass: Demo.pass.last!,
-                                      matt: Granskningsvisning.matt(vy))
+            var g = Granskningsvisning(yta: Matyta(sving: s, resultat: try Matt.mat(s)),
+                                       forra: Matyta(sving: f, resultat: try Matt.mat(f)),
+                                       forraDatum: Demo.datum[Demo.datum.count - 2], pass: Demo.pass.last!,
+                                       matt: Granskningsvisning.matt(vy))
+            // Swayen övas (FO), thrusten inte (DTL): bara FO:s uppmätta linje bär accenten.
+            g.ovas = Demo.attJobbaPa.saker.contains { $0.matt == Granskningsvisning.matt(vy) }
+            return g
         }
         let fo = try visning(.fo), dtl = try visning(.dtl)
-        try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .fo, fas: .topp), namn: "granskning-fo")
-        try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .dtl, fas: .traff, visaForra: true), namn: "granskning-dtl")
+        try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .fo, fas: .topp), namn: "granskning-fo", accent: true)
+        try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .dtl, fas: .traff, visaForra: true), namn: "granskning-dtl",
+                    accent: false)
     }
 
     // MARK: - Hjälp
 
     /// ImageRenderer: innehållet i full längd, mörkt läge, @3x, och prövat mot formspråket.
-    private func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large) throws {
+    /// `accent`: om bilden ska bära accenten (det du övar på, BESLUT B31); nil = prövas inte.
+    private func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large,
+                         accent: Bool? = true) throws {
         let innehall = vy
             .environment(\.dynamicTypeSize, textstorlek)
             .padding(.vertical, 16)
@@ -92,11 +98,13 @@ final class SwingLabProvVyer: XCTestCase {
         try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
         try png.write(to: URL(fileURLWithPath: "\(Self.ut)/\(namn).png"))
         print("PROV: skrev \(namn).png (\(Int(bild.size.width * bild.scale))×\(Int(bild.size.height * bild.scale)) px)")
-        try provaFormspraket(bild, namn: namn)
+        try provaFormspraket(bild, namn: namn, accent: accent)
     }
 
-    /// Bara gråskala (ingen accentfärg, B13 regel 6), botten svart, och något ljust ritat.
-    private func provaFormspraket(_ bild: UIImage, namn: String) throws {
+    /// Gråskala och den enda accenten (B13 regel 6, B31), botten svart, och något ljust ritat.
+    /// En punkt räknas som accent när den ligger på linjen mellan grått och isblått
+    /// (#6FD3F7: blått över grönt över rött); allt annat färgat är ett fel.
+    private func provaFormspraket(_ bild: UIImage, namn: String, accent: Bool?) throws {
         let cg = try XCTUnwrap(bild.cgImage)
         let w = cg.width, h = cg.height
         var px = [UInt8](repeating: 0, count: w * h * 4)
@@ -108,20 +116,29 @@ final class SwingLabProvVyer: XCTestCase {
             return true
         }
         XCTAssertTrue(ritat, namn)
-        var farg = 0, ljust = 0
+        var farg = 0, isbla = 0, ljust = 0
         var y = 0
         while y < h {
             var x = 0
             while x < w {
                 let i = (y * w + x) * 4
                 let r = Int(px[i]), g = Int(px[i + 1]), b = Int(px[i + 2])
-                if max(abs(r - g), abs(g - b), abs(r - b)) > 6 { farg += 1 }
-                if r > 200 { ljust += 1 }
+                if max(abs(r - g), abs(g - b), abs(r - b)) > 6 {
+                    if b > r + 6 && g > r && b + 8 >= g { isbla += 1 } else { farg += 1 }
+                }
+                if r > 200 && g > 200 { ljust += 1 }
                 x += 3
             }
             y += 3
         }
-        XCTAssertEqual(farg, 0, "\(namn): \(farg) färgade punkter (B13: svart, vitt och gråskala)")
+        XCTAssertEqual(farg, 0, "\(namn): \(farg) färgade punkter (B13: gråskala och en accent)")
+        if let accent {
+            if accent {
+                XCTAssertGreaterThan(isbla, 0, "\(namn): accenten saknas för det du övar på (B31)")
+            } else {
+                XCTAssertEqual(isbla, 0, "\(namn): accenten där inget övas (B31)")
+            }
+        }
         XCTAssertGreaterThan(ljust, 0, "\(namn): inget vitt ritat")
         XCTAssertLessThan(Int(px[0]) + Int(px[1]) + Int(px[2]), 15, "\(namn): botten är inte svart")
     }

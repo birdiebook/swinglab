@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Formspråket (BESLUT B13, design/README.md): svart, vitt och gråskala, ingen
-/// accentfärg, inga skuggor eller gradienter, hörn på 2–4 punkter.
+/// Formspråket (BESLUT B13, design/README.md): svart, vitt och gråskala med en enda
+/// accent för det du övar på (BESLUT B31), inga skuggor eller gradienter, hörn på 2–4 punkter.
 enum Theme {
     static let ground = Color(hex: 0x000000)
     static let surface = Color(hex: 0x0D0D0D)
@@ -12,6 +12,9 @@ enum Theme {
     static let tertiary = Color(hex: 0x6B6B6B)
     static let secondary = Color(hex: 0xA3A3A3)
     static let text = Color(hex: 0xFFFFFF)
+    /// Accenten, isblå: bara det du övar på (måtten i Att jobba på), som tunna linjer,
+    /// markören och en etikett; aldrig ytor, knappar eller bakgrunder (design/README.md regel 10).
+    static let acc = Color(hex: 0x6FD3F7)
     /// Bara varningar i uppställningen.
     static let flag = Color(hex: 0xB98A4A)
 

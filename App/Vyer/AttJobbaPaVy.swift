@@ -60,7 +60,7 @@ struct SakVy: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Etikett(text: antal > 1 ? "\(sak.ordning) · \(sak.rubrik)" : sak.rubrik)
+                Etikett(text: antal > 1 ? "\(sak.ordning) · \(sak.rubrik)" : sak.rubrik, farg: Theme.acc)
                 Spacer()
                 if let m = sak.markning { MarkningVy(markning: m) }
             }
@@ -73,7 +73,7 @@ struct SakVy: View {
             StortTal(varde: sak.nu, enhet: sak.enhet)
                 .padding(.top, 10)
             if let mal = sak.mal {
-                SpannVy(spann: mal)
+                SpannVy(spann: mal, accent: true)
                     .padding(.top, 12)
             }
             Color.clear.frame(height: 14)

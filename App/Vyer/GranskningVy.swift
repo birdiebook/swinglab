@@ -58,7 +58,7 @@ struct GranskningVy: View {
             .padding(.bottom, 8)
 
             ZStack(alignment: .topLeading) {
-                Matytan(yta: g.yta, forra: visaForra ? g.forra : nil, t: nu)
+                Matytan(yta: g.yta, forra: visaForra ? g.forra : nil, t: nu, accent: g.ovas)
                     .aspectRatio(350.0 / 400.0, contentMode: .fit)
                 VStack(alignment: .leading, spacing: 2) {
                     Etikett(text: "\(g.yta.namn) · ", farg: Theme.secondary, efter: g.yta.tidText(nu))
@@ -185,12 +185,15 @@ struct Matytan: View {
     let yta: Matyta
     let forra: Matyta?
     let t: Double
+    /// Måttet övas: den uppmätta linjen i accenten (BESLUT B31).
+    var accent = false
 
     /// Ytan visar 60 cm i bredd.
     static let bredCm = 60.0
 
     var body: some View {
         Canvas { c, s in
+            let uppmatt = accent ? Theme.acc : Theme.text
             let k = s.width / CGFloat(Self.bredCm)
             let o = CGPoint(x: s.width * (yta.vy == .fo ? 0.5 : 0.3), y: s.height * (yta.vy == .fo ? 0.62 : 0.85))
             func p(_ q: Punkt) -> CGPoint { CGPoint(x: o.x + CGFloat(q.x) * k, y: o.y - CGFloat(q.y) * k) }
@@ -217,16 +220,16 @@ struct Matytan: View {
             let m = p(l.backen)
             switch yta.vy {
             case .fo:
-                c.linje(p(l.hoftB), p(l.hoftF), Theme.text, 1.6)
-                c.prick(p(l.hoftB), 3, Theme.text)
-                c.prick(p(l.hoftF), 3, Theme.text)
+                c.linje(p(l.hoftB), p(l.hoftF), uppmatt, 1.6)
+                c.prick(p(l.hoftB), 3, uppmatt)
+                c.prick(p(l.hoftF), 3, uppmatt)
             case .dtl:
                 if let a = yta.lage(.adress) {
                     let bal = Punkt(a.axlar.x - a.backen.x, a.axlar.y - a.backen.y)
                     c.linje(m, p(Punkt(l.backen.x + bal.x, l.backen.y + bal.y)), Theme.tertiary, 1, streckad: [3, 3])
                 }
-                c.linje(m, p(l.axlar), Theme.text, 1.6)
-                c.prick(p(l.axlar), 3, Theme.text)
+                c.linje(m, p(l.axlar), uppmatt, 1.6)
+                c.prick(p(l.axlar), 3, uppmatt)
             }
             // Avståndet från adressen: ett mått med ändstreck under bäckenet.
             let my = m.y + 22
