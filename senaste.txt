@@ -1,20 +1,20 @@
-5829b3c16a73ab6804dfe34b951a91851baf440b s4b 2026-10-22T21:08:46Z run 39854625735
+1e8aa19307e0d0ded9694778b93c628712546ea0 s2g 2026-10-22T21:12:47Z run 39855182455
 == swift-release
-GRÖNT: 164 test, 0 fel, 7 s i testerna, bygget 39 s
-Långsammast (av 164):
-      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+GRÖNT: 165 test, 0 fel, 6 s i testerna, bygget 43 s
+Långsammast (av 165):
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  MatningTests.testSammaSomFilformatet
-      0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
-      0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
-      0.2 s  MattTests.testPositionernaIOrdning
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  VisningTests.testIngaSvenskaTeckenIVisningen
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  MatningTests.testMattenArS1s
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  InspelningTests.testSegmenterarenKlipperVidSammaProvSomSegments
       0.1 s  VisningTests.testGranskningensSlag
       0.1 s  VisningTests.testAttJobbaPa
-      0.1 s  MatningTests.testGamlaFilerGarAttLasa
+      0.1 s  LinkTests.testUtanKlockaSoksTioSekunder
+      0.1 s  KlickTests.testEnImpulsGerAnsatsen47ProvFore
+      0.1 s  TvaTelefonerTests.testFormelnOchOgiltigaProv
+      0.1 s  MattTests.testIngenPassageOverEnLucka
 
