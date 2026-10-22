@@ -206,7 +206,7 @@ struct ReviewContent<Surface: View>: View {
     var onDetectionWrong: (Bool) -> Void = { _ in }
 
     /// Videons höjd i punkter; bredden följer utsnittets proportioner.
-    static let stageHeight: CGFloat = 440
+    static var stageHeight: CGFloat { 440 }
 
     private var meny: some View {
         Image(systemName: "ellipsis")

@@ -134,6 +134,20 @@ S2e.
 **Klart när:** Johannes har läst ett pass på telefonen på rangen, och i
 granskningen hoppat mellan positionerna med rätt mått under videon.
 
+**S4b — granskningen med riktig video och passets mått (Johannes 2026-10-22, efter
+telefonprovet med S2e+S2i: "Tryckte analys. Oklart vad som hände nu.").** Byggt
+(grenen `s4b`): analysens leder görs om till S1:s sving och mäts på telefonen
+(`Capture/Matning.swift`, METOD MS14), med Johannes längd eller 1,80 m märkt
+"assumed"; passet visar efter Analyze S4:s `PassetVy` med riktig data överst
+(katalogen, egen baslinje och "vs" ur tidigare pass med samma klubba och vy) och
+slagen under; ett tryck på ett slag öppnar granskningen (`App/Vyer/GranskningVideo.swift`,
+`Capture/Granskning.swift`, METOD MS15): videon med utsnittet, spela i 1/8 fart och
+stega ruta för ruta, de 13 lederna och linjerna (osäker led ihålig och streckad), en
+växel som döljer dem, P1–P10 och slagets mått vid positionen (`Swing/Visning/Positionsmatt.swift`),
+och menyn "Detection wrong" (BESLUT B35). Simulatorprovet: `Prov/SwingLabProvGranskning.swift`
+(bilderna `granskning-markor`, `passet-matt`, `granskning-video`, `granskning-video-p7`,
+`granskning-utan-leder`, `granskning-detection-wrong`, `passet-detection-wrong`).
+
 ## S5 — PC-länken och Claude
 
 - `tools/pc/session.py <paket>` läser paketet, kör det tunga (MediaPipe,
