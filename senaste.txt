@@ -1,20 +1,20 @@
-63b8601e6f37edd5fb5c6f2c9f42412885e88921 main 2026-10-22T21:05:49Z run 39854213012
+5829b3c16a73ab6804dfe34b951a91851baf440b s4b 2026-10-22T21:08:46Z run 39854625735
 == swift-release
-GRÖNT: 153 test, 0 fel, 6 s i testerna, bygget 41 s
-Långsammast (av 153):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+GRÖNT: 164 test, 0 fel, 7 s i testerna, bygget 39 s
+Långsammast (av 164):
+      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.0 s  KlickTests.testSammaKlickSomPythonIBitar
       0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MatningTests.testSammaSomFilformatet
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
+      0.2 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.2 s  MattTests.testPositionernaIOrdning
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  MattTests.testLuckanIArmenKringGransen
-      0.1 s  MattTests.testLangLuckaTarBortMattenIFasen
-      0.1 s  VisningTests.testUpplasningen
-      0.1 s  SessionTests.testJamforelsenSomPython
-      0.1 s  VisningTests.testS5sExempelGarAttLasa
-      0.1 s  VardenaTests.testLjusprovetsDom
-      0.1 s  SlagTests.testRaknarenGarAldrigBakat
-      0.1 s  KlickTests.testEnImpulsGerAnsatsen47ProvFore
+      0.1 s  MatningTests.testMattenArS1s
+      0.1 s  VisningTests.testGranskningensSlag
+      0.1 s  VisningTests.testAttJobbaPa
+      0.1 s  MatningTests.testGamlaFilerGarAttLasa
 
