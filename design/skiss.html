@@ -160,23 +160,32 @@ svg { display: block; }
 
 /* Granskning */
 .stage { position: relative; background: var(--cam); border-radius: 4px; border: 1px solid var(--hair); overflow: hidden; }
-.stage svg { width: 100%; height: auto; aspect-ratio: 350 / 400; max-width: 100%; }
-.readout { position: absolute; left: 14px; top: 12px; display: grid; gap: 2px; pointer-events: none; }
-.readout .k { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--secondary); }
-.readout .v { font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.readout .v small { font-size: 13px; color: var(--secondary); }
-.timeline { margin-top: 14px; position: relative; }
+.stage svg { width: 100%; height: auto; aspect-ratio: 350 / 360; max-width: 100%; }
+.vtime { position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--secondary); font-variant-numeric: tabular-nums; pointer-events: none; }
+.vctrl { display: grid; grid-template-columns: 34px 34px 34px minmax(0, 1fr); align-items: center; gap: 2px; margin-top: 8px; }
+.vctrl .iconbtn { width: 34px; height: 34px; color: var(--text); }
+.timeline { position: relative; margin-left: 8px; }
 .timeline svg { width: 100%; height: auto; max-width: 100%; }
 .scrub { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; margin: 0; }
-.phases { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 10px; border-bottom: 1px solid var(--hair); }
-.phases button { min-height: 40px; font-size: 13.5px; font-weight: 500; color: var(--tertiary); text-align: center; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.phases button[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
+.pos { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 8px; border-bottom: 1px solid var(--hair); }
+.pos button { min-height: 44px; display: grid; align-content: center; justify-items: center; gap: 1px; color: var(--tertiary); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.pos button b { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pos button span { font-size: 10px; font-weight: 500; }
+.pos button[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
+.ptable { margin-top: 4px; }
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) 84px 70px; gap: 10px; align-items: center; min-height: 38px; border-bottom: 1px solid var(--hair); font-size: 14px; }
+.prow .n { display: grid; gap: 2px; min-width: 0; color: var(--secondary); padding-block: 7px; }
+.prow .n > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prow .marks { display: flex; gap: 8px; }
+.prow .n.foc { color: var(--acc); }
+.prow .v { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+.prow .v small { color: var(--tertiary); font-weight: 400; margin-left: 2px; }
+.prow .v.off { color: var(--tertiary); }
+.prow > svg { width: 84px; height: 14px; }
 .prevbtn { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tertiary); min-height: 32px; font-variant-numeric: tabular-nums; }
 .prevbtn i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid currentColor; }
 .prevbtn[aria-pressed="true"] { color: var(--text); }
-.slag { flex: none; min-width: 52px; min-height: 52px; padding: 0 8px; border-radius: 4px; border: 1px solid var(--line); display: grid; justify-items: center; align-content: center; gap: 2px; font-variant-numeric: tabular-nums; }
-.slag b { font-size: 11px; font-weight: 600; color: var(--tertiary); }
-.slag span { font-size: 14px; font-weight: 500; }
+.slag { flex: none; min-width: 48px; min-height: 40px; padding: 0 8px; border-radius: 4px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .slag[aria-pressed="true"] { border-color: var(--mark); }
 
 /* Passet */
@@ -250,6 +259,11 @@ svg { display: block; }
   <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M6 11v8.5h12V11"/></symbol>
   <symbol id="m-b10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6" style="fill:none;stroke:currentColor;stroke-width:1.4;stroke-dasharray:2.2 1.8"/></symbol>
   <symbol id="m-egen" viewBox="0 0 12 12"><rect x="1.2" y="3.5" width="9.6" height="5" rx="1" style="fill:none;stroke:currentColor;stroke-width:1.4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" style="fill:currentColor;stroke:none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 6v12M15.5 6v12" style="stroke-width:2.6"/></symbol>
+  <symbol id="i-fback" viewBox="0 0 24 24"><path d="M7 6v12"/><path d="M18 6.5v11L10 12z" style="fill:currentColor;stroke:none"/></symbol>
+  <symbol id="i-ffwd" viewBox="0 0 24 24"><path d="M17 6v12"/><path d="M6 6.5v11L14 12z" style="fill:currentColor;stroke:none"/></symbol>
+  <symbol id="m-kam" viewBox="0 0 12 12"><rect x="1" y="3.5" width="4" height="5" rx=".8" style="fill:none;stroke:currentColor;stroke-width:1.3"/><rect x="7" y="3.5" width="4" height="5" rx=".8" style="fill:none;stroke:currentColor;stroke-width:1.3"/></symbol>
   <symbol id="m-av" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6" style="fill:none;stroke:currentColor;stroke-width:1.4"/><path d="M2.8 9.2L9.2 2.8" style="stroke:currentColor;stroke-width:1.4"/></symbol>
 </svg>
 
@@ -342,20 +356,21 @@ svg { display: block; }
           <div style="justify-self:center" class="seg" role="group" aria-label="Vy"><button type="button" data-view="dtl" aria-pressed="false">DTL</button><button type="button" data-view="fo" aria-pressed="true">FO</button></div>
           <span class="end"><button type="button" class="textbtn" data-go="passet">Passet</button></span></div>
         <div class="stage">
-          <svg id="stage" viewBox="0 0 350 400" aria-label="Uppmätta linjer"></svg>
-          <div class="readout" id="readout"></div>
+          <svg id="stage" viewBox="0 0 350 360" aria-label="Videon med de uppmätta linjerna"></svg>
+          <span class="vtime" id="vtime"></span>
         </div>
-        <div class="timeline">
-          <svg id="tl" viewBox="0 0 350 70" aria-hidden="true"></svg>
-          <input class="scrub" id="scrub" type="range" min="0" max="2700" step="10" value="1450" aria-label="Tid i svingen">
+        <div class="vctrl">
+          <button type="button" class="iconbtn" id="fback" aria-label="En bild bakåt"><svg class="ic"><use href="#i-fback"/></svg></button>
+          <button type="button" class="iconbtn" id="play" aria-label="Spela"><svg class="ic"><use href="#i-play"/></svg></button>
+          <button type="button" class="iconbtn" id="ffwd" aria-label="En bild framåt"><svg class="ic"><use href="#i-ffwd"/></svg></button>
+          <div class="timeline">
+            <svg id="tl" viewBox="0 0 262 26" aria-hidden="true"></svg>
+            <input class="scrub" id="scrub" type="range" min="0" max="2700" step="1" value="1450" aria-label="Tid i svingen">
+          </div>
         </div>
-        <div class="phases" role="group" aria-label="Faser">
-          <button type="button" data-t="600">Adress</button>
-          <button type="button" data-t="1450" aria-pressed="true">Topp</button>
-          <button type="button" data-t="1730">Träff</button>
-          <button type="button" data-t="2400">Finish</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px">
+        <div class="pos" id="pos" role="group" aria-label="Positioner"></div>
+        <div class="ptable" id="ptable"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px">
           <span class="lbl">Slag</span>
           <button type="button" class="prevbtn" id="ghost" aria-pressed="false"><i></i>6 jan</button>
         </div>
@@ -454,50 +469,31 @@ const T = (x, y, txt, o = {}) => `<text x="${x}" y="${y}" text-anchor="${o.a || 
 const LN = (x1, y1, x2, y2, c = 'var(--line)', w = 1, dash = '') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${c};stroke-width:${w};${dash ? 'stroke-dasharray:' + dash : ''}"/>`;
 const DOT = (x, y, r, c, hollow) => `<circle cx="${x}" cy="${y}" r="${r}" style="${hollow ? `fill:var(--ground);stroke:${c};stroke-width:1.5` : `fill:${c}`}"/>`;
 
-/* ================= Påhittade mätpunkter =================
-   Bara punkterna som måtten bygger på: bäckenets två ändar och axlarnas mitt, per vy och fas.
-   FO: målet till höger i bilden. DTL: bollen till höger. Bildpunkter, 2,2 px per cm. */
-const KP = {
+/* ================= Påhittade leder =================
+   Används bara för att räkna fram de uppmätta linjerna i Granskningen. Ingen figur ritas.
+   FO: målet till höger i bilden. DTL: bollen till höger. */
+const POSES = {
   fo: {
-    address: { hipT: [89, 140], hipL: [113, 140], sh: [97, 81] },
-    p3: { hipT: [88, 140], hipL: [111, 141], sh: [97, 83] },
-    top: { hipT: [90, 140], hipL: [112, 142], sh: [95, 83] },
-    p6: { hipT: [96, 140], hipL: [119, 140], sh: [98, 83] },
-    impact: { hipT: [101, 138], hipL: [123, 138], sh: [97, 84] },
-    finish: { hipT: [110, 138], hipL: [127, 138], sh: [117, 80] },
+    address: { head:[97,45], shT:[80,84], shL:[114,78], elT:[90,116], elL:[110,114], hands:[103,146], hipT:[89,140], hipL:[113,140], knT:[80,187], knL:[121,187], anT:[74,233], anL:[128,233], toeT:[62,238], toeL:[140,238], club:[88,1] },
+    p3:      { head:[95,46], shT:[85,80], shL:[110,86], elT:[74,104], elL:[94,112], hands:[78,120], hipT:[88,140], hipL:[111,141], knT:[79,187], knL:[116,189], anT:[74,233], anL:[128,233], toeT:[62,238], toeL:[140,238], club:[265,.92] },
+    top:     { head:[95,48], shT:[84,78], shL:[106,88], elT:[64,66], elL:[88,64], hands:[72,42], hipT:[89,140], hipL:[112,142], knT:[80,187], knL:[113,191], anT:[74,233], anL:[128,234], toeT:[62,238], toeL:[140,238], club:[355,.7] },
+    p6:      { head:[95,51], shT:[84,86], shL:[112,80], elT:[86,112], elL:[102,102], hands:[93,120], hipT:[96,140], hipL:[119,140], knT:[87,187], knL:[124,187], anT:[74,233], anL:[128,233], toeT:[62,238], toeL:[140,238], club:[195,.9] },
+    impact:  { head:[94,53], shT:[82,90], shL:[113,78], elT:[95,124], elL:[111,118], hands:[110,150], hipT:[101,138], hipL:[123,138], knT:[90,187], knL:[126,187], anT:[80,228], anL:[129,233], toeT:[70,239], toeL:[141,238], club:[97,1] },
+    finish:  { head:[118,46], shT:[110,80], shL:[124,80], elT:[124,60], elL:[134,64], hands:[136,40], hipT:[110,138], hipL:[127,138], knT:[106,184], knL:[128,187], anT:[94,226], anL:[130,233], toeT:[90,239], toeL:[142,238], club:[-200,.62] },
   },
   dtl: {
-    address: { hipT: [84, 140], hipL: [91, 137], sh: [121, 84.5] },
-    p3: { hipT: [84, 140], hipL: [93, 138], sh: [117.5, 85] },
-    top: { hipT: [82, 140], hipL: [95, 138], sh: [116.5, 85.5] },
-    p6: { hipT: [84, 140], hipL: [93, 138], sh: [120, 88] },
-    impact: { hipT: [83, 138], hipL: [92, 136], sh: [121.5, 88] },
-    finish: { hipT: [94, 134], hipL: [101, 134], sh: [102, 79] },
+    address: { head:[137,57], shT:[118,86], shL:[124,83], elT:[124,118], elL:[129,116], hands:[131,150], hipT:[84,140], hipL:[91,137], knT:[104,188], knL:[109,186], anT:[93,234], anL:[98,232], toeT:[113,239], toeL:[118,237], club:[63,1.06] },
+    p3:      { head:[135,58], shT:[110,82], shL:[125,88], elT:[103,108], elL:[113,112], hands:[105,121], hipT:[84,140], hipL:[93,138], knT:[104,188], knL:[107,186], anT:[93,234], anL:[98,232], toeT:[113,239], toeL:[118,237], club:[262,.8] },
+    top:     { head:[133,60], shT:[107,80], shL:[126,91], elT:[96,66], elL:[115,72], hands:[103,42], hipT:[82,140], hipL:[95,138], knT:[104,188], knL:[106,187], anT:[93,234], anL:[98,232], toeT:[113,239], toeL:[118,237], club:[340,.45] },
+    p6:      { head:[133,62], shT:[112,90], shL:[128,86], elT:[108,114], elL:[119,108], hands:[113,124], hipT:[84,140], hipL:[93,138], knT:[106,188], knL:[110,186], anT:[93,234], anL:[98,232], toeT:[113,239], toeL:[118,237], club:[210,.62] },
+    impact:  { head:[133,62], shT:[116,90], shL:[127,86], elT:[124,120], elL:[129,118], hands:[131,150], hipT:[83,138], hipL:[92,136], knT:[106,188], knL:[110,186], anT:[97,229], anL:[98,232], toeT:[114,239], toeL:[118,237], club:[64,1.06] },
+    finish:  { head:[110,50], shT:[98,80], shL:[106,78], elT:[88,58], elL:[98,56], hands:[94,40], hipT:[94,134], hipL:[101,134], knT:[111,184], knL:[103,186], anT:[104,226], anL:[98,232], toeT:[114,239], toeL:[118,237], club:[-200,.75] },
   },
 };
 const KEYS = [['address', 0], ['address', 600], ['p3', 1100], ['top', 1450], ['p6', 1640], ['impact', 1730], ['finish', 2250], ['finish', 2700]];
-const T_TOP = 1450, T_IMPACT = 1730, PXCM = 2.2;
+const T_TOP = 1450, T_IMPACT = 1730;
 const smooth = x => x * x * (3 - 2 * x);
 const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-function kpAt(view, ms) {
-  ms = Math.max(0, Math.min(2700, ms));
-  let i = 0; while (i < KEYS.length - 2 && ms >= KEYS[i + 1][1]) i++;
-  const [ka, ta] = KEYS[i], [kb, tb] = KEYS[i + 1], a = KP[view][ka], b = KP[view][kb];
-  const u = tb > ta ? smooth((ms - ta) / (tb - ta)) : 0, p = {};
-  for (const k in a) p[k] = [a[k][0] + (b[k][0] - a[k][0]) * u, a[k][1] + (b[k][1] - a[k][1]) * u];
-  return p;
-}
-const bump = (ms, c, w) => Math.exp(-(((ms - c) / w) ** 2));
-function withShot(view, p, ms, shot) {
-  const q = JSON.parse(JSON.stringify(p));
-  const dx = view === 'fo'
-    ? shot.sway * PXCM * (ms < T_TOP ? smooth(Math.min(1, Math.max(0, (ms - 600) / 850))) : bump(ms, T_TOP, 260))
-    : shot.thrust * PXCM * bump(ms, T_IMPACT, 220);
-  q.hipT[0] += dx; q.hipL[0] += dx;
-  if (view === 'dtl') { const up = shot.bend * -1.2 * bump(ms, T_IMPACT, 260); q.sh[1] -= up; q.sh[0] -= up * .6; }
-  return q;
-}
-const hipC = p => mid(p.hipT, p.hipL);
 
 /* ================= Data (påhittade) ================= */
 const DATES = ['20 okt', '24 okt', '28 okt', '1 nov', '5 nov', '9 nov', '14 nov', '19 nov', '24 nov', '29 nov', '6 dec', '12 dec', '19 dec', '2 jan', '6 jan', '9 jan'];
@@ -695,75 +691,172 @@ anims.push({ screen: 'insp', fn: now => {
 $('#tts').addEventListener('click', e => { rec.tts = !rec.tts; e.currentTarget.setAttribute('aria-pressed', String(rec.tts)); });
 renderCount();
 
-/* ================= 4 Granskning ================= */
+/* ================= 4 Granskning =================
+   Videon (en neutral yta), de uppmätta linjerna för vald position, positionerna P1–P10
+   och måtten för positionen. P2, P6 och P8 kräver klubban (S7) och visas inte. */
+const POS = [
+  { id: 'P1', name: 'Adress', t: 600 }, { id: 'P3', t: 1100 }, { id: 'P4', name: 'Topp', t: 1450 }, { id: 'P5', t: 1560 },
+  { id: 'P7', name: 'Träff', t: 1730 }, { id: 'P9', t: 1950 }, { id: 'P10', name: 'Finish', t: 2400 },
+];
+// Måtten per position (påhittade). view: FO, DTL eller 2 (två kameror). fam knyter till måttet i Passet.
+const PM = [
+  { p: 'P1', id: 'bend1', name: 'Böjning', view: 'DTL', unit: '°', d: 0, v: 38, min: 25, max: 50, base: [36, 41], status: 'egen', draw: 'spine' },
+  { p: 'P1', id: 'knee', name: 'Knävinkel bak', view: 'DTL', unit: '°', d: 0, v: 152, min: 130, max: 180, base: [148, 156], status: 'egen', draw: 'knee' },
+  { p: 'P1', id: 'stance', name: 'Stansbredd', view: 'FO', unit: 'cm', d: 0, v: 46, min: 30, max: 60, base: [44, 48], status: 'egen', draw: 'stance' },
+  { p: 'P1', id: 'shline', name: 'Axellinje', view: 'FO', unit: '°', d: 0, v: 8, min: 0, max: 20, base: [6, 10], status: 'egen', draw: 'shline' },
+  { p: 'P1', id: 'hipline', name: 'Höftlinje', view: 'FO', unit: '°', d: 0, v: 1, min: -5, max: 10, base: [0, 3], status: 'egen', draw: 'hipline' },
+  { p: 'P3', id: 'sway3', fam: 'sway', name: 'Sway', view: 'FO', unit: 'cm', d: 1, v: -1.6, k: .65, min: -12, max: 6, span: [0, 6], status: 'b10', signed: 1, draw: 'sway' },
+  { p: 'P3', id: 'lead3', name: 'Vänsterarm', view: 'FO', unit: '°', d: 0, v: 172, min: 140, max: 185, base: [168, 178], status: 'egen', draw: 'lead' },
+  { p: 'P4', id: 'sway4', fam: 'sway', name: 'Sway', view: 'FO', unit: 'cm', d: 1, v: -2.4, k: 1, min: -12, max: 6, span: [0, 6], status: 'b10', signed: 1, draw: 'sway' },
+  { p: 'P4', id: 'side', name: 'Sidböjning', view: 'FO', unit: '°', d: 0, v: 34, min: 15, max: 50, base: [31, 36], status: 'egen', draw: 'torso' },
+  { p: 'P4', id: 'lead4', name: 'Vänsterarm', view: 'FO', unit: '°', d: 0, v: 168, min: 140, max: 185, base: [165, 175], status: 'egen', draw: 'lead' },
+  { p: 'P4', id: 'trail', name: 'Bakre armbåge', view: 'DTL', unit: '°', d: 0, v: 94, min: 60, max: 130, base: [88, 100], status: 'egen', draw: 'trail' },
+  { p: 'P4', id: 'pelv', name: 'Bäckenvridning', view: '2', unit: '°', d: 0, v: 41, min: 20, max: 60, span: [35, 45], status: 'b10' },
+  { p: 'P5', id: 'hand', name: 'Handens bana', view: 'DTL', unit: 'cm', d: 1, v: 3.1, min: -6, max: 10, base: [1, 4], status: 'egen', signed: 1, draw: 'hand' },
+  { p: 'P5', id: 'resa5', fam: 'resa', name: 'Resa framåt', view: 'FO', unit: 'cm', d: 1, v: 6.8, min: 0, max: 16, base: [3.8, 5], status: 'egen', draw: 'resa' },
+  { p: 'P7', id: 'thrust7', fam: 'thrust', name: 'Thrust', view: 'DTL', unit: 'cm', d: 1, v: 2.6, min: -3, max: 6, span: [-3, 0], status: 'b10', signed: 1, draw: 'thrust' },
+  { p: 'P7', id: 'gap', name: 'Sway gap', view: 'FO', unit: 'cm', d: 1, v: -3.2, min: -10, max: 6, base: [-4, -2], status: 'egen', signed: 1, draw: 'gap' },
+  { p: 'P7', id: 'tilt7', name: 'Axellutning', view: 'FO', unit: '°', off: true, status: 'av', draw: 'tilt' },
+  { p: 'P7', id: 'ahead', name: 'Händer före bollen', view: 'FO', unit: 'cm', d: 1, v: 4.1, min: -4, max: 12, base: [2, 5], status: 'egen', signed: 1, draw: 'ahead' },
+  { p: 'P7', id: 'hips7', fam: 'hofter', name: 'Höfter öppna', view: '2', unit: '°', d: 0, v: 36, min: 15, max: 55, span: [35, 45], status: 'b10' },
+  { p: 'P9', id: 'chicken', name: 'Chicken wing', view: 'FO', unit: '°', d: 0, v: 148, min: 120, max: 180, base: [145, 155], status: 'egen', draw: 'lead' },
+  { p: 'P10', id: 'balance', name: 'Huvud–bäcken', view: 'FO', unit: 'cm', d: 1, v: 3.4, min: -6, max: 12, base: [2, 5], status: 'egen', signed: 1, draw: 'balance' },
+];
+const JOINTS = Object.keys(POSES.fo.address).filter(k => k !== 'club');
+function poseAt(view, ms) {
+  ms = Math.max(0, Math.min(2700, ms));
+  let i = 0; while (i < KEYS.length - 2 && ms >= KEYS[i + 1][1]) i++;
+  const [ka, ta] = KEYS[i], [kb, tb] = KEYS[i + 1], a = POSES[view][ka], b = POSES[view][kb];
+  const u = tb > ta ? smooth((ms - ta) / (tb - ta)) : 0, p = {};
+  for (const k of JOINTS) p[k] = [a[k][0] + (b[k][0] - a[k][0]) * u, a[k][1] + (b[k][1] - a[k][1]) * u];
+  return p;
+}
+const PXCM = 2.2, bump = (ms, c, w) => Math.exp(-(((ms - c) / w) ** 2));
+function withShot(view, p, ms, shot) {
+  const dx = view === 'fo'
+    ? shot.sway * PXCM * (ms < T_TOP ? smooth(Math.min(1, Math.max(0, (ms - 600) / 850))) : bump(ms, T_TOP, 260))
+    : shot.thrust * PXCM * bump(ms, T_IMPACT, 220);
+  const q = {}; for (const k of JOINTS) q[k] = [...p[k]];
+  for (const k of ['hipT', 'hipL']) q[k][0] += dx;
+  for (const k of ['knT', 'knL']) q[k][0] += dx * .5;
+  return q;
+}
+const hipC = p => mid(p.hipT, p.hipL), shC = p => mid(p.shT, p.shL);
+
 let seed = 7;
 const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return (u - 3) / Math.sqrt(.5); };
-const SHOTS = Array.from({ length: 34 }, (_, i) => ({ n: i + 1, sway: -2.4 + gauss() * 1.4, thrust: 2.6 + gauss() * 1.1, bend: -2 + gauss() * 1.5 }));
-const MEDIAN = { n: 'M', sway: -2.4, thrust: 2.6, bend: -2 };
-const PREV = { sway: -3.6, thrust: 1.6, bend: -4 };
-const rv = { view: 'fo', ghost: false, t: T_TOP, shot: MEDIAN };
-// Mätvärdet i varje ögonblick: bäckenets mitt mot adressen, i cm.
-const live = (view, ms, shot) => (hipC(withShot(view, kpAt(view, ms), ms, shot))[0] - hipC(KP[view].address)[0]) / PXCM;
-function renderStage() {
-  const v = rv.view, ms = rv.t, p = withShot(v, kpAt(v, ms), ms, rv.shot);
-  const S = 2.6, ox = 175 - (v === 'fo' ? 101 : 100) * S, oy = 400 - 236 * S;
-  const X = x => ox + x * S, Y = y => oy + y * S;
-  let s = `<rect width="350" height="400" style="fill:var(--cam)"/>`;
-  // rutnät, 10 cm
-  for (let gx = X(hipC(KP[v].address)[0]) % (10 * PXCM * S); gx < 350; gx += 10 * PXCM * S) s += LN(gx, 0, gx, 400, 'var(--hair)', 1);
-  for (let gy = 0; gy < 400; gy += 10 * PXCM * S) s += LN(0, gy, 350, gy, 'var(--hair)', 1);
-  const ref = X(hipC(KP[v].address)[0]);
-  s += LN(ref, 40, ref, 400, 'var(--secondary)', 1, '4 4');
-  if (rv.ghost) { const g = hipC(withShot(v, kpAt(v, ms), ms, PREV)); s += DOT(X(g[0]), Y(g[1]), 5, 'var(--secondary)', true); }
-  const c = hipC(p), mid_ = v === 'fo' ? 'sway' : 'thrust', mc = isF(mid_) ? 'var(--acc)' : 'var(--mark)';
-  if (v === 'fo') {
-    s += LN(X(p.hipT[0]), Y(p.hipT[1]), X(p.hipL[0]), Y(p.hipL[1]), mc, 1.6);
-    s += DOT(X(p.hipT[0]), Y(p.hipT[1]), 3, mc) + DOT(X(p.hipL[0]), Y(p.hipL[1]), 3, mc);
-  } else {
-    const a = KP.dtl.address, ah = hipC(a), ext = 1.6;
-    const along = (h, sh) => [h[0] + (sh[0] - h[0]) * ext, h[1] + (sh[1] - h[1]) * ext];
-    const aEnd = along([c[0], c[1]], [c[0] + a.sh[0] - ah[0], c[1] + a.sh[1] - ah[1]]), pEnd = along(c, p.sh);
-    s += LN(X(c[0]), Y(c[1]), X(aEnd[0]), Y(aEnd[1]), 'var(--tertiary)', 1, '3 3');
-    s += LN(X(c[0]), Y(c[1]), X(pEnd[0]), Y(pEnd[1]), 'var(--mark)', 1.6);
+const SHOTS = Array.from({ length: 34 }, (_, i) => ({ n: i + 1, sway: -2.4 + gauss() * 1.4, thrust: 2.6 + gauss() * 1.1, j: Array.from({ length: 24 }, gauss) }));
+const MEDIAN = { n: 'M', sway: -2.4, thrust: 2.6 };
+const PREV = { sway: -3.6, thrust: 1.6 };
+const rv = { view: 'fo', ghost: false, t: T_TOP, pos: 'P4', shot: MEDIAN, playing: false, last: 0 };
+const FRAME = 1000 / 240;
+function shotVal(m, shot) {
+  if (m.off) return null;
+  if (m.fam === 'sway') return shot.sway * m.k;
+  if (m.fam === 'thrust') return shot.thrust;
+  if (shot.n === 'M') return m.v;
+  const i = PM.indexOf(m), w = (m.max - m.min) * .04;
+  return m.v + shot.j[i % 24] * w;
+}
+const inView = m => m.view === '2' || m.view.toLowerCase() === rv.view;
+
+// Ritar de uppmätta linjerna för ett mått. Bara linjer och punkter, ingen figur.
+function drawMeasure(m, p, v, X, Y, c) {
+  const L2 = (a, b, col = c, w = 1.4, dash = '') => LN(X(a[0]), Y(a[1]), X(b[0]), Y(b[1]), col, w, dash);
+  const P = (a, r = 2.6, col = c) => DOT(X(a[0]), Y(a[1]), r, col);
+  const poly = pts => `<polyline points="${pts.map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" style="fill:none;stroke:${c};stroke-width:1.4;stroke-linejoin:round"/>` + pts.map(q => P(q)).join('');
+  const ref = 'var(--secondary)';
+  const dimX = (x1, x2, y) => L2([x1, y], [x2, y], c, 1) + L2([x1, y - 2], [x1, y + 2], c, 1) + L2([x2, y - 2], [x2, y + 2], c, 1);
+  const a = POSES[v].address;
+  switch (m.draw) {
+    case 'spine': { const h = hipC(p), s = shC(p); return L2(h, [h[0], h[1] - 70], ref, 1, '3 3') + L2(h, [h[0] + (s[0] - h[0]) * 1.4, h[1] + (s[1] - h[1]) * 1.4]) + P(h, 3.2); }
+    case 'knee': return poly([p.hipT, p.knT, p.anT]);
+    case 'stance': return P(p.anT) + P(p.anL) + dimX(p.anT[0], p.anL[0], p.anT[1] + 9);
+    case 'shline': return L2([p.shT[0] - 12, p.shT[1]], [p.shL[0] + 12, p.shT[1]], ref, 1, '3 3') + L2(p.shT, p.shL) + P(p.shT) + P(p.shL);
+    case 'hipline': return L2([p.hipT[0] - 12, p.hipT[1]], [p.hipL[0] + 12, p.hipT[1]], ref, 1, '3 3') + L2(p.hipT, p.hipL) + P(p.hipT) + P(p.hipL);
+    case 'sway': case 'thrust': { const r = hipC(a)[0], h = hipC(p); return L2([r, 95], [r, 245], ref, 1, '4 4') + (v === 'fo' ? L2(p.hipT, p.hipL) : '') + P(h, 3.4) + dimX(r, h[0], h[1] + 12); }
+    case 'resa': { const r = hipC(POSES.fo.top)[0], h = hipC(p); return L2([r, 95], [r, 245], ref, 1, '4 4') + P(h, 3.4) + dimX(r, h[0], h[1] + 12); }
+    case 'lead': return poly([p.shL, p.elL, p.hands]);
+    case 'trail': return poly([p.shT, p.elT, p.hands]);
+    case 'torso': { const h = hipC(p), s = shC(p); return L2(h, [h[0], h[1] - 75], ref, 1, '3 3') + L2(h, s) + P(h) + P(s); }
+    case 'hand': { const pts = []; for (let t = T_TOP; t <= rv.t; t += 20) pts.push(poseAt(v, t).hands); return (pts.length > 1 ? `<polyline points="${pts.map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" style="fill:none;stroke:${c};stroke-width:1.2;stroke-dasharray:2 3"/>` : '') + P(p.hands, 3.2); }
+    case 'gap': { const h = hipC(p), s = shC(p); return L2([h[0], h[1] - 4], [h[0], h[1] + 18], c, 1) + L2([s[0], s[1] - 8], [s[0], s[1] + 14], c, 1) + P(h) + P(s) + dimX(s[0], h[0], h[1] + 14); }
+    case 'tilt': return L2(p.shT, p.shL, 'var(--tertiary)', 1, '3 3');
+    case 'ahead': { const ball = [104, 238]; return P(ball, 3, 'var(--secondary)') + P(p.hands) + dimX(ball[0], p.hands[0], p.hands[1] + 14); }
+    case 'balance': { const h = hipC(p); return L2(h, [h[0], p.head[1] - 6], ref, 1, '3 3') + P(h) + P(p.head, 3.4) + dimX(h[0], p.head[0], p.head[1] - 10); }
   }
-  s += LN(ref, Y(c[1]) + 22, X(c[0]), Y(c[1]) + 22, mc, 1) + LN(ref, Y(c[1]) + 17, ref, Y(c[1]) + 27, mc, 1) + LN(X(c[0]), Y(c[1]) + 17, X(c[0]), Y(c[1]) + 27, mc, 1);
-  s += DOT(X(c[0]), Y(c[1]), 4.5, mc);
+  return '';
+}
+function renderStage() {
+  const v = rv.view, ms = rv.t, p = withShot(v, poseAt(v, ms), ms, rv.shot);
+  const S = 1.42, ox = 175 - 104 * S, oy = 356 - 246 * S;
+  const X = x => +(ox + x * S).toFixed(1), Y = y => +(oy + y * S).toFixed(1);
+  const frame = Math.round(ms / FRAME);
+  // Videoytan: mörk, svagt brusig, med lite rörelseoskärpa. Ingen person ritas.
+  const move = Math.sin(ms / 2700 * Math.PI * 2) * 18;
+  let s = `<defs><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="${frame % 9}"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".07"/></feComponentTransfer></filter>` +
+    `<filter id="mblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22 3"/></filter></defs>`;
+  s += `<rect width="350" height="360" style="fill:var(--cam)"/><rect y="290" width="350" height="70" style="fill:var(--surface)"/>`;
+  s += `<g filter="url(#mblur)" style="opacity:.55"><rect x="${120 + move}" y="120" width="110" height="26" rx="13" style="fill:var(--raised)"/><rect x="${140 - move * .6}" y="200" width="70" height="20" rx="10" style="fill:var(--raised)"/></g>`;
+  s += `<rect width="350" height="360" filter="url(#grain)" style="fill:#fff"/>`;
+  if (rv.ghost) { const g = hipC(withShot(v, poseAt(v, ms), ms, PREV)); s += DOT(X(g[0]), Y(g[1]), 5, 'var(--secondary)', true); }
+  for (const m of PM.filter(m => m.p === rv.pos && inView(m) && m.draw)) s += drawMeasure(m, p, v, X, Y, isF(m.fam || m.id) ? 'var(--acc)' : 'var(--mark)');
   $('#stage').innerHTML = s;
-  const val = live(v, ms, rv.shot);
-  $('#readout').innerHTML = `<span class="k${isF(mid_) ? ' foc' : ''}">${v === 'fo' ? 'Sway' : 'Thrust'} · ${(ms / 1000).toFixed(2).replace('.', ',')} s</span><span class="v">${fmtS(val)}<small> cm</small></span>`;
+  $('#vtime').textContent = `${dec(ms / 1000, 3)} s · ${frame}`;
   renderTimeline();
-  const near = [600, 1450, 1730, 2400].reduce((a, b) => Math.abs(b - ms) < Math.abs(a - ms) ? b : a);
-  for (const b of $$('.phases button')) b.setAttribute('aria-pressed', String(+b.dataset.t === near && Math.abs(near - ms) < 120));
   $('#scrub').value = Math.round(ms);
 }
 function renderTimeline() {
-  // Måttet över hela svingen: en tunn kurva, faserna som streck, läget i vitt.
-  const v = rv.view, x0 = 4, x1 = 346, sx = t => x0 + t / 2700 * (x1 - x0);
-  const vals = []; for (let t = 0; t <= 2700; t += 30) vals.push([t, live(v, t, rv.shot)]);
-  const lo = Math.min(-6, ...vals.map(q => q[1])), hi = Math.max(8, ...vals.map(q => q[1]));
-  const sy = y => 8 + (hi - y) / (hi - lo) * 46;
-  let s = LN(x0, sy(0), x1, sy(0), 'var(--line)', 1);
-  for (const t of [600, 1450, 1730, 2400]) s += LN(sx(t), 4, sx(t), 58, 'var(--hair)', 1);
-  if (rv.ghost) { const g = []; for (let t = 0; t <= 2700; t += 30) g.push(sx(t) + ',' + sy(live(v, t, PREV))); s += `<polyline points="${g.join(' ')}" style="fill:none;stroke:var(--tertiary);stroke-width:1;stroke-dasharray:3 3"/>`; }
-  s += `<polyline points="${vals.map(q => sx(q[0]) + ',' + sy(q[1])).join(' ')}" style="fill:none;stroke:var(--secondary);stroke-width:1.3"/>`;
-  s += LN(sx(rv.t), 0, sx(rv.t), 62, 'var(--mark)', 1.5) + DOT(sx(rv.t), sy(live(v, rv.t, rv.shot)), 3.5, 'var(--mark)');
-  s += T(x0, 69, '0 cm', { s: 9.5 }).replace(`y="69"`, `y="${sy(0) - 3}"`);
+  const x0 = 2, x1 = 260, sx = t => x0 + t / 2700 * (x1 - x0);
+  let s = LN(x0, 13, x1, 13, 'var(--line)', 1.5);
+  for (const q of POS) s += LN(sx(q.t), q.id === rv.pos ? 6 : 9, sx(q.t), q.id === rv.pos ? 20 : 17, q.id === rv.pos ? 'var(--text)' : 'var(--tertiary)', 1.2);
+  s += LN(x0, 13, sx(rv.t), 13, 'var(--secondary)', 1.5) + DOT(sx(rv.t), 13, 4, 'var(--mark)');
   $('#tl').innerHTML = s;
 }
+function renderPos() {
+  $('#pos').innerHTML = POS.map(q => `<button type="button" data-pos="${q.id}" aria-pressed="${q.id === rv.pos}"><b>${q.id}</b><span>${q.name || '&nbsp;'}</span></button>`).join('');
+}
+function renderTable() {
+  const rows = PM.filter(m => m.p === rv.pos && inView(m));
+  $('#ptable').innerHTML = rows.length ? rows.map(m => {
+    const val = shotVal(m, rv.shot), f = isF(m.fam || m.id);
+    const marks = mark(m) + (m.view === '2' ? `<span class="mark" title="Två kameror"><svg><use href="#m-kam"/></svg>2 kameror</span>` : '');
+    return `<div class="prow"><span class="n${f ? ' foc' : ''}"><span>${m.name}</span><span class="marks">${marks}</span></span>` +
+      (m.off ? `<span></span><span class="v off">—</span>` : `${spanBar({ ...m, id: m.fam || m.id, v: val }, 84, true)}<span class="v">${(m.signed ? fmtS : fmt)(val, m.d)}<small>${m.unit}</small></span>`) + `</div>`;
+  }).join('') : `<div class="prow"><span class="n">—</span><span></span><span></span></div>`;
+}
 function renderSlags() {
-  const key = rv.view === 'fo' ? 'sway' : 'thrust';
-  $('#slags').innerHTML = [MEDIAN, ...SHOTS].map(s => `<button type="button" class="slag" data-shot="${s.n}" aria-pressed="${s === rv.shot}"><b>${s.n === 'M' ? 'median' : s.n}</b><span>${fmtS(s[key])}</span></button>`).join('');
+  $('#slags').innerHTML = [MEDIAN, ...SHOTS].map(s => `<button type="button" class="slag" data-shot="${s.n}" aria-pressed="${s === rv.shot}">${s.n === 'M' ? 'median' : s.n}</button>`).join('');
+}
+function nearestPos(ms) { return POS.reduce((a, b) => Math.abs(b.t - ms) < Math.abs(a.t - ms) ? b : a); }
+function setT(ms, follow = true) {
+  rv.t = Math.max(0, Math.min(2700, ms));
+  if (follow) { const q = nearestPos(rv.t); if (Math.abs(q.t - rv.t) < 60 && q.id !== rv.pos) { rv.pos = q.id; renderPos(); renderTable(); } }
+  renderStage();
+}
+function setPlaying(on) {
+  rv.playing = on; rv.last = 0;
+  $('#play').innerHTML = `<svg class="ic"><use href="#i-${on ? 'pause' : 'play'}"/></svg>`;
+  $('#play').setAttribute('aria-label', on ? 'Pausa' : 'Spela');
 }
 $('#s-gransk').addEventListener('click', e => {
   const t = e.target;
-  const vb = t.closest('[data-view]'); if (vb) { rv.view = vb.dataset.view; $$('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b === vb))); renderSlags(); renderStage(); return; }
-  const ph = t.closest('.phases button'); if (ph) { rv.t = +ph.dataset.t; renderStage(); return; }
-  const sh = t.closest('[data-shot]'); if (sh) { rv.shot = sh.dataset.shot === 'M' ? MEDIAN : SHOTS[+sh.dataset.shot - 1]; renderSlags(); renderStage(); }
+  const vb = t.closest('[data-view]'); if (vb) { rv.view = vb.dataset.view; $$('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b === vb))); renderTable(); renderStage(); return; }
+  const pb = t.closest('[data-pos]'); if (pb) { setPlaying(false); rv.pos = pb.dataset.pos; renderPos(); renderTable(); setT(POS.find(q => q.id === rv.pos).t, false); return; }
+  const sh = t.closest('[data-shot]'); if (sh) { rv.shot = sh.dataset.shot === 'M' ? MEDIAN : SHOTS[+sh.dataset.shot - 1]; renderSlags(); renderTable(); renderStage(); }
 });
+$('#play').addEventListener('click', () => { if (!REDUCED) setPlaying(!rv.playing); });
+$('#fback').addEventListener('click', () => { setPlaying(false); setT(rv.t - FRAME); });
+$('#ffwd').addEventListener('click', () => { setPlaying(false); setT(rv.t + FRAME); });
 $('#ghost').addEventListener('click', e => { rv.ghost = !rv.ghost; e.currentTarget.setAttribute('aria-pressed', String(rv.ghost)); renderStage(); });
-$('#scrub').addEventListener('input', e => { rv.t = +e.target.value; renderStage(); });
-renderSlags(); renderStage();
+$('#scrub').addEventListener('input', e => { setPlaying(false); setT(+e.target.value); });
+anims.push({ screen: 'gransk', fn: now => {
+  if (!rv.playing) return;
+  if (rv.last) setT((rv.t + (now - rv.last) * .25) % 2700);
+  rv.last = now;
+} });
+renderPos(); renderTable(); renderSlags(); renderStage();
 
 /* ================= 5 Passet ================= */
 function renderCards(filter = 'alla') {
