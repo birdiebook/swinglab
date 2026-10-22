@@ -135,6 +135,32 @@ class Paketet(unittest.TestCase):
         self.assertIn("klick_i_klipp_s", "; ".join(self.fel(manifest=m)))
 
 
+def _skada(src: Path, dst: Path, fil: str) -> Path:
+    """Kopia (lagrad, okomprimerad) där en byte mitt i `fil` är ändrad: fel CRC."""
+    with zipfile.ZipFile(src) as zi, zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zo:
+        for n in zi.namelist():
+            zo.writestr(n, zi.read(n))
+    with zipfile.ZipFile(dst) as z:
+        info = z.getinfo(fil)
+    b = bytearray(dst.read_bytes())
+    start = info.header_offset + 30 + len(info.filename.encode()) + len(info.extra)
+    b[start + info.file_size // 2] ^= 0x01
+    dst.write_bytes(bytes(b))
+    return dst
+
+
+class SkadadZip(unittest.TestCase):
+    """Granskningen fynd 8: fel CRC blir PaketFel, utan innehållet."""
+
+    def test_skadat_slag_och_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = GP.paket(tmp, PASS, "fo", n=2, inte_sving=0)
+            for fil in ("slag/s02.json", "manifest.json"):
+                with self.assertRaises(P.PaketFel) as e:
+                    P.las(_skada(src, Path(tmp) / "skadad.zip", fil))
+                self.assertEqual(e.exception.fel, [f"skadad.zip: {fil} är skadad i zippen"])
+
+
 class Slagen(unittest.TestCase):
     def test_inte_sving_mats_inte_och_forsta_serien_ar_de_fem_forsta(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -144,11 +170,19 @@ class Slagen(unittest.TestCase):
         self.assertEqual([r for r in rader if "utelamnat" in r][0]["id"], "s08")
         self.assertEqual(sum(1 for r in rader if r.get("forsta_serien")), A.FORSTA_SERIEN_SLAG)
 
-    def test_med_tva_serier_ar_forsta_serien_serie_ett(self) -> None:
+    def test_forsta_serien_ar_de_fem_forsta_i_serie_ett(self) -> None:
+        """Granskningen fynd 11: serie 1 med sju slag ger fem, med tre slag tre. METOD MT2"""
         with tempfile.TemporaryDirectory() as tmp:
-            p = P.las(GP.paket(tmp, PASS, "fo", n=7, inte_sving=0, serier=2))
-        rader = A.mat_paket(p, 1.80)
-        self.assertEqual([r["forsta_serien"] for r in rader], [r["serie"] == 1 for r in rader])
+            src = GP.paket(tmp, PASS, "fo", n=9, inte_sving=0, serier=1)
+            with zipfile.ZipFile(src) as z:
+                m = json.loads(z.read("manifest.json"))
+            m["serier"].append({"nr": 2, "kalla": "inspelning", "klubba": "j7"})
+            for k, sista in ((7, ["s01", "s02", "s03", "s04", "s05"]), (3, ["s01", "s02", "s03"])):
+                for i, s in enumerate(m["slag"]):
+                    s["serie"] = 1 if i < k else 2
+                p = P.las(_skriv_om(src, Path(tmp) / f"serier{k}.zip", manifest=m))
+                rader = A.mat_paket(p, 1.80)
+                self.assertEqual([r["id"] for r in rader if r["forsta_serien"]], sista)
 
     def test_ett_slag_som_inte_gar_att_mata_far_ett_fel_utan_varde(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -184,6 +184,15 @@ def kontrollera_leder(d, fil: str) -> list[str]:
     return fel
 
 
+def las_ur_zip(z: zipfile.ZipFile, paket: str, fil: str) -> bytes:
+    """En fil ur zippen. En skadad fil (fel CRC, trasig post) blir ett PaketFel
+    som nämner filen, aldrig innehållet."""
+    try:
+        return z.read(fil)
+    except (zipfile.BadZipFile, EOFError, OSError, ValueError, NotImplementedError):
+        raise PaketFel([f"{paket}: {fil} är skadad i zippen"]) from None
+
+
 def las(sokvag, med_leder: bool = True) -> Paket:
     """Läser och kontrollerar ett paket. Kastar PaketFel med alla formfel."""
     sokvag = Path(sokvag)
@@ -197,7 +206,7 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         if "manifest.json" not in i_zip:
             raise PaketFel([f"{namn}: manifest.json saknas"])
         try:
-            m = json.loads(z.read("manifest.json").decode("utf-8"))
+            m = json.loads(las_ur_zip(z, namn, "manifest.json").decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             rad = getattr(e, "lineno", None)
             raise PaketFel([f"{namn}: manifest.json är inte giltig JSON" + (f" (rad {rad})" if rad else "")]) from None
@@ -219,7 +228,10 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         if med_leder:
             for s in p.slag:
                 try:
-                    d = json.loads(z.read(s.leder).decode("utf-8"))
+                    d = json.loads(las_ur_zip(z, namn, s.leder).decode("utf-8"))
+                except PaketFel as e:
+                    fel += e.fel
+                    continue
                 except (json.JSONDecodeError, UnicodeDecodeError) as e:
                     rad = getattr(e, "lineno", None)
                     fel.append(f"{namn}: {s.leder} är inte giltig JSON" + (f" (rad {rad})" if rad else ""))

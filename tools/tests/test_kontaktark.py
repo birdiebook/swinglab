@@ -65,6 +65,36 @@ class Delarna(unittest.TestCase):
             self.assertEqual(r, {"hoppat": "paketet har inga klipp till mätta slag"})
 
 
+class SkadatKlipp(unittest.TestCase):
+    """Granskningen fynd 8: ett klipp med fel CRC blir PaketFel, utan innehållet."""
+
+    def test_skadat_klipp(self) -> None:
+        import json
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            src = GP.paket(tmp, "20261103-180000", "fo", n=2, inte_sving=0)
+            dst = Path(tmp) / "med_klipp.zip"
+            with zipfile.ZipFile(src) as zi, zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zo:
+                m = json.loads(zi.read("manifest.json"))
+                for s in m["slag"]:
+                    s.update(klipp=f"klipp/{s['id']}.mov", klick_i_klipp_s=2.5)
+                zo.writestr("manifest.json", json.dumps(m))
+                for n in zi.namelist():
+                    if n != "manifest.json":
+                        zo.writestr(n, zi.read(n))
+                for s in m["slag"]:
+                    zo.writestr(s["klipp"], bytes(range(256)) * 8)
+            p = P.las(dst)
+            with zipfile.ZipFile(dst) as z:
+                info = z.getinfo("klipp/s01.mov")
+            b = bytearray(dst.read_bytes())
+            b[info.header_offset + 30 + len(info.filename) + len(info.extra) + 100] ^= 0x01
+            dst.write_bytes(bytes(b))
+            with self.assertRaises(P.PaketFel) as e:
+                KA.bygg(dst, p, A.mat_paket(p, 1.8), Path(tmp) / "ut", satt="ffmpeg")
+        self.assertEqual(e.exception.fel, ["med_klipp.zip: klipp/s01.mov är skadad i zippen"])
+
+
 @unittest.skipIf(shutil.which("ffmpeg") is None, "ffmpeg saknas")
 class Arket(unittest.TestCase):
     def test_ett_ark_med_en_rad_per_slag_och_fyra_faser(self) -> None:

@@ -505,14 +505,15 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
 - "Klart när" mäts på **första serien**, före uppvärmningen (research 3 (a) 7 och
   §4: retention nästa pass, inte slutet av samma pass). **forskning, ej läst i
   original** (retention), **antagande** (formen).
-- Har passet flera serier är första serien serie 1. Har det en enda serie är den
-  de **5** första mätta slagen (design/README.md öppna val 4: 5 slag före
-  uppvärmningen). **antagande.**
+- Första serien = de **5** första mätta slagen i serie 1 (design/README.md öppna
+  val 4: 5 slag före uppvärmningen). Har serie 1 färre är det alla dess mätta
+  slag. **antagande.**
 - Första seriens median sammanfattas som passet (M25, minst 3 slag).
 
 ## MT3 — "Klart när"-förslaget
 
-- Analysen föreslår villkoret för varje aktivt fel, och Claude skriver av det:
+- Analysen föreslår villkoret för varje aktivt fel, och Claude skriver av det
+  när en övning väljs:
   - **Med gräns** i katalogen: det gröna spannet (`>=` nedre, `<=` övre eller
     `mellan`), märkt **B10** när gränsen inte är kontrollerad.
   - **Med egen baslinje** (M27): gränsen för grönt, baslinjens median ±
@@ -520,6 +521,10 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   - **Utan baslinje** (färre än 8 svingar, M27): **en** robust sd (M26) åt det
     bättre hållet från passets median, märkt **egen**. Kräver `samre`.
     **antagande:** en spridning är den minsta flytt som M26 kallar tydlig.
+- **Gränsen flyttar sig inte** så länge samma övning fortsätter: kontrollen
+  kräver gränsen och märkningen från passet då övningen valdes, och historiken
+  bedömer varje senare pass mot den. En ny övning för samma fel får analysens
+  förslag igen.
 - Talen avrundas till **0,1** (cm, grader) och **0,01** (tempo, stansen,
   sekunder), samma tal som appen visar. **antagande.**
 - Gränserna är slutna.
@@ -527,7 +532,8 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
 ## MT4 — Rörelsen
 
 - Övningens start = första seriens median (MT2) i passet då övningen valdes,
-  annars passets median.
+  annars passets median. Felets start = samma sak i passet då **felet** först
+  valdes (blockets start, MT10).
 - Rörelsen i ett senare pass = första seriens median − starten, åt det håll
   villkoret pekar (för `mellan`: närmare spannets mitt).
 - **Tydlig** när rörelsen är större än startpassets robusta sd (M26).
@@ -535,28 +541,39 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
 
 ## MT5 — Läget för en övning, och treregeln
 
+Läget räknas i den här ordningen; det första som stämmer gäller.
+
+- **Avslutad** när felet inte står i det senaste valet (klart och släppt, eller
+  bortvalt). En avslutad övning väcks aldrig; väljs felet igen börjar ett nytt
+  block.
 - **Klart** när "klart när" hålls på första serien **2** pass i rad
-  (`pass_i_rad`; research 3 §4 förslag 6). **antagande.**
-- **Byt övning** efter **4** pass i rad utan tydlig rörelse (MT4). **antagande:**
-  med cirka två pass i veckan är det två veckor, och ett block på 4–6 veckor
-  (research 3 §4) rymmer en andra övning.
-- **Fysiken:** **42** dagar (sex veckor) från starten utan någon tydlig rörelse →
-  pröva treregeln (research 3 §4 förslag 6). **antagande.**
+  (`pass_i_rad`, alltid 2; research 3 §4 förslag 6). **antagande.**
+- **Fysiken:** **42** dagar (sex veckor) från första gången felet valdes, utan
+  någon tydlig rörelse sedan dess över alla övningar för felet, och treregeln
+  inte prövad än → pröva treregeln (research 3 §4 förslag 6). **antagande.**
+- **Ny** när inget pass har kommit efter valet.
+- **Byt övning** efter **4** pass i rad utan tydlig rörelse sedan övningen
+  valdes (MT4). **antagande:** med cirka två pass i veckan är det två veckor,
+  och ett block på 4–6 veckor (research 3 §4) rymmer en andra övning.
+- Annars **fortsätt**.
 - **Treregeln** (research 3 §5): (1) felet syns i full sving, (2) ett kopplat test
   i `tools/pc/kedjor.json` fallerar, (3) rörelsen går inte heller långsamt utan
-  klubba. Alla tre → "troligen rörlighet" (rörlighetsövning, testa om om 3–4
-  veckor); 1 och 2 men inte 3 → "teknik, men kroppen gör det svårt"; annars
-  teknik. Svaren på 2 och 3 kommer från Johannes. **tränare/antagande, ej läst
-  i original**; stödet för testen är svagt (Gulgin 2014, research 3 §5).
+  klubba. Alla tre → "troligen rörlighet" (rörlighetsövning, testa om efter
+  några veckor); 1 och 2 men inte 3 → "teknik, men kroppen gör det svårt";
+  annars teknik. Svaren på 2 och 3 kommer från Johannes. **tränare/antagande,
+  ej läst i original**; stödet för testen är svagt (Gulgin 2014, research 3 §5).
 
 ## MT6 — Prioriteringen
 
 - **1–3 saker** (research 3 (a) 5: en sak att öva, högst två till att se).
   **tillverkare, ej läst i original** (18Birdies, Sportsbox).
 - **Kedjorna** står i `tools/pc/kedjor.json` med källa och status, ur research 3
-  §1, och läses transitivt (sway → reverse spine → early extension). Ett fel med
-  en flaggad orsak är ett **följdfel**: det mäts men får ingen egen övning så
-  länge orsaken övas. **tränare/antagande, ej läst i original.**
+  §1, och läses transitivt (sway → reverse spine → early extension), så ett
+  följdfel kan ligga flera led efter sin orsak. Ett fel med en flaggad orsak är
+  ett **följdfel**: det mäts men får ingen egen övning, inte heller ensamt.
+  **tränare/antagande, ej läst i original.**
+- Ett **okänt** fel (ingen gräns, ingen baslinje) väljs bara när inget fel är
+  flaggat.
 - **Kandidaternas ordning** i analysen: grundorsaker före följdfel, låg
   prioritet sist (tempot, research 1 §1.9), tidigt i svingen före sent
   (`adress`, `topp`, `nedsving`, `traff`, `efter_traff`, `hela`), rött före gult,
@@ -573,12 +590,38 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
 
 ## MT8 — Texten i `att_jobba_pa.json`
 
-- Appen visar övningen, tanken och "klart när" (design/README.md regel 5). Tanken
-  högst **60** tecken, övningen högst **300**, rörlighetsövningen högst **200**.
-  **antagande** (katalogens längsta övning är under 200).
-- **Inga värdeord** (BESLUT B13 regel 4): bättre, sämre, bra, dålig, bäst,
-  sämst, perfekt, utmärkt, fantastisk, snyggt, fint, tyvärr, grattis, bravo med
-  flera (listan i `att_jobba_pa.py`), och inga utropstecken.
+- Appen visar övningen, tanken och "klart när" (design/README.md regel 5).
+  **Övningen är aldrig fritext:** katalogens ordagrant, eller en av felets
+  övningar ur research 3 §2 i `tools/pc/kedjor.json`.
+- **Fritexten** är tanken (högst **60** tecken) och rörlighetsövningen (högst
+  **200**). Den bär inga siffror (tal står bara i "klart när", där de är
+  analysens), inga utropstecken och inga **värdeord** (BESLUT B13 regel 4),
+  som fälls på ordstam: `bra`, och ord som börjar på bäst, bättr, sämr, fin,
+  duktig, topp, dålig, perfekt, utmärk, fantastisk, snygg, grym, super med
+  flera (listan i `att_jobba_pa.py`). Undantag: finish…, finn…, fing…, final…,
+  och "toppen" efter en preposition eller före "av" (fasen, platsen).
+  **antagande** (gränserna); katalogens längsta tanke är 56 tecken.
+- Formen är stängd: en okänd eller saknad nyckel fälls.
 - **Extern fokus** i tanken: vad klubban, bollen eller ett föremål ska göra
   (research 3 (a) 6, medeleffekt ~0,54, Barzyk & Gruber 2024). **forskning, ej
   läst i original.** Går inte att fälla i kod; skillen håller regeln.
+
+## MT9 — Tempot med två telefoner
+
+- Gruppen `alla` (tempot och varje fel med vy `bada`) tas ur **en** vy: den
+  med flest mätta slag, FO vid lika. Baslinjen för de felen tas ur samma vy.
+  Vyerna läggs aldrig ihop: när båda telefonerna filmar är det samma svingar,
+  och n blir dubbelt. **antagande**; parning slag för slag (`par` i
+  manifestet) väntar.
+
+## MT10 — Stegen och blocket
+
+- **Stegen** inom en övning (research 3 §4 förslag 2): långsamt med föremålet →
+  halv fart → full fart → varierat (`langsamt_med_foremal`, `halv_fart`,
+  `full_fart`, `varierat`). En ny övning börjar på första steget; en övning som
+  fortsätter står kvar eller tar nästa steg, aldrig ett hopp. **forskning, ej
+  läst i original** (ökande variation, Porter & Magill 2010), **antagande**
+  (stegen).
+- **Blocket** (research 3 §4 förslag 1: 4–6 veckor per grundorsak) börjar den
+  dag felet först valdes och fortsätter genom bytta övningar; `vecka` = hela
+  veckor sedan starten + 1. **antagande.**

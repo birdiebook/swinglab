@@ -2,7 +2,7 @@
 (METOD MT4, MT5). Påhittade analyser med bara de fält historiken läser."""
 from __future__ import annotations
 
-import copy
+import datetime as dt
 import json
 import tempfile
 import unittest
@@ -28,12 +28,18 @@ def _analys(pass_id: str, forsta: float, hela: float | None = None) -> dict:
             "bedomning": [{"id": "sway_topp", "visat": hela, "forsta_serien": forsta, "status": "rod"}]}
 
 
-def _doc(pass_id: str, text: str = "Käpp vid höften.", pass_i_rad: int = 2) -> dict:
+def _doc(pass_id: str, text: str = "Käpp vid höften.", grans: float = 0, fysik=None) -> dict:
     d = json.loads(FIXTUR.read_text(encoding="utf-8"))
     d["pass"] = pass_id
     d["saker"][0]["ovning"]["text"] = text
-    d["saker"][0]["klart_nar"]["pass_i_rad"] = pass_i_rad
+    d["saker"][0]["klart_nar"]["grans"] = grans
+    d["saker"][0]["fysik"] = fysik
     return d
+
+
+def _pass(start: str, steg_dagar: int, n: int) -> list[str]:
+    d0 = dt.date(int(start[:4]), int(start[4:6]), int(start[6:8]))
+    return [(d0 + dt.timedelta(days=steg_dagar * i)).strftime("%Y%m%d") + "-180000" for i in range(n)]
 
 
 class Historiken(unittest.TestCase):
@@ -49,6 +55,11 @@ class Historiken(unittest.TestCase):
 
     def ajp(self, pass_id: str, **kw) -> None:
         H._skriv(self.rot / "att_jobba_pa" / f"{pass_id}.json", _doc(pass_id, **kw))
+
+    def tomt_val(self, pass_id: str) -> None:
+        d = _doc(pass_id)
+        d["saker"][0]["fel"] = "flying_elbow"
+        H._skriv(self.rot / "att_jobba_pa" / f"{pass_id}.json", d)
 
     def lage(self, till=None) -> dict:
         return {o["fel"]: o for o in H.ovningar(self.rot, till)}["sway_topp"]
@@ -69,8 +80,8 @@ class Historiken(unittest.TestCase):
 
     def test_spelaren_minns(self) -> None:
         self.assertEqual(H.spelare(self.rot), {})
-        H.spara_spelare(self.rot, 1.82)
-        self.assertEqual(H.spelare(self.rot)["spelarens_langd_m"], 1.82)
+        H.spara_spelare(self.rot, 1.5)
+        self.assertEqual(H.spelare(self.rot)["spelarens_langd_m"], 1.5)
 
     def test_ny_ovning(self) -> None:
         self.pass_("20261103-180000", -6.0)
@@ -88,12 +99,24 @@ class Historiken(unittest.TestCase):
         self.assertEqual((o["lage"], o["uppfyllt_i_rad"]), ("klart", 2))
         self.assertTrue(all(u["tydlig"] for u in o["uppfoljning"]))
 
+    def test_klart_nar_flyttar_sig_inte_nar_ovningen_fortsatter(self) -> None:
+        """Granskningen fynd 3: äldre pass bedöms mot gränsen från valet."""
+        self.pass_("20261103-180000", -6.0)
+        self.ajp("20261103-180000", grans=0)
+        self.pass_("20261106-180000", -1.0)
+        self.ajp("20261106-180000", grans=-2)               # samma övning, flyttad gräns: läses inte
+        self.pass_("20261110-180000", -1.0)
+        o = self.lage()
+        self.assertEqual(o["klart_nar"]["grans"], 0)
+        self.assertEqual([u["uppfyllt"] for u in o["uppfoljning"]], [False, False])
+        self.assertEqual(o["lage"], "fortsatt")
+
     def test_byt_ovning_efter_n_pass_utan_rorelse(self) -> None:
-        self.pass_("20261101-180000", -6.0)
-        self.ajp("20261101-180000")
-        dagar = ["20261103", "20261105", "20261107", "20261109"]
-        for i, d in enumerate(dagar):
-            self.pass_(f"{d}-180000", -6.0 + 0.3 * (i % 2))     # inom spridningen
+        pass_ids = _pass("20261101", 2, 5)
+        self.pass_(pass_ids[0], -6.0)
+        self.ajp(pass_ids[0])
+        for i, p in enumerate(pass_ids[1:]):
+            self.pass_(p, -6.0 + 0.3 * (i % 2))                # inom spridningen
             o = self.lage()
             self.assertEqual(o["lage"], "byt_ovning" if i + 1 >= H.BYT_OVNING_PASS else "fortsatt")
         self.assertEqual(o["pass_utan_rorelse"], H.BYT_OVNING_PASS)
@@ -106,26 +129,56 @@ class Historiken(unittest.TestCase):
         o = self.lage()
         self.assertEqual((o["pass_utan_rorelse"], o["lage"]), (0, "fortsatt"))
 
-    def test_sex_veckor_utan_rorelse_ger_fysiken(self) -> None:
-        self.pass_("20261101-180000", -6.0)
-        self.ajp("20261101-180000")
-        self.pass_("20261201-180000", -6.0)
-        self.pass_("20261215-180000", -5.9)
-        o = self.lage()
-        self.assertGreaterEqual(o["dagar_sedan"], H.FYSIK_DAGAR)
-        self.assertEqual(o["lage"], "fysik")
+    def test_fysiken_nas_aven_nar_ovningen_byts_var_fjarde_pass(self) -> None:
+        """Granskningen fynd 2: dagarna och rörelsen räknas från första gången
+        felet valdes, över alla övningar för det."""
+        pass_ids = _pass("20261101", 3, 16)                    # dag 0, 3, …, 45
+        for i, p in enumerate(pass_ids):
+            self.pass_(p, -6.0)
+            if i % 5 == 0:                                     # ny övning var femte pass
+                self.ajp(p, text=f"Övning {'ABCD'[i // 5]}.")
+        o = self.lage(till=pass_ids[13])                       # dag 39
+        self.assertNotEqual(o["lage"], "fysik")
+        o = self.lage(till=pass_ids[14])                       # dag 42
+        self.assertEqual((o["lage"], o["fel_start"], o["dagar_sedan_felet_valdes"]), ("fysik", pass_ids[0], 42))
+        self.assertEqual(o["forra_ovningar"], ["Övning C.", "Övning B.", "Övning A."][1:])
 
-    def test_bytt_ovning_borjar_om_och_minns_den_forra(self) -> None:
-        self.pass_("20261101-180000", -6.0)
-        self.ajp("20261101-180000", text="Käpp vid höften.")
-        self.pass_("20261103-180000", -6.0)
-        self.ajp("20261103-180000", text="Fötterna ihop, 3/4-svingar.")
-        self.pass_("20261105-180000", -6.0)
+    def test_fysiken_fragas_bara_en_gang(self) -> None:
+        pass_ids = _pass("20261101", 7, 8)
+        for i, p in enumerate(pass_ids):
+            self.pass_(p, -6.0)
+        self.ajp(pass_ids[0])
+        self.ajp(pass_ids[6], fysik={"test": "Bakre höftens inåtrotation", "treregeln": [True, False, False],
+                                     "ovning": None})
+        self.assertEqual(self.lage()["lage"], "byt_ovning")
+
+    def test_en_slappt_ovning_ar_avslutad(self) -> None:
+        """Granskningen fynd 6: en släppt övning väcks inte som byt_ovning eller fysik."""
+        pass_ids = _pass("20261101", 7, 8)
+        for p in pass_ids:
+            self.pass_(p, -6.0)
+        self.ajp(pass_ids[0])
+        self.tomt_val(pass_ids[1])
         o = self.lage()
-        self.assertEqual((o["valt_i_pass"], o["forra_ovningar"], o["pass_sedan"]),
-                         ("20261103-180000", ["Käpp vid höften."], 1))
-        o = self.lage(till="20261101-180000")
-        self.assertEqual((o["ovning"], o["lage"]), ("Käpp vid höften.", "ny"))
+        self.assertEqual((o["lage"], o["aktuell"]), ("avslutad", False))
+
+    def test_ett_fel_som_valjs_igen_borjar_ett_nytt_block(self) -> None:
+        pass_ids = _pass("20261101", 7, 4)
+        for p in pass_ids:
+            self.pass_(p, -6.0)
+        self.ajp(pass_ids[0], text="Övning A.")
+        self.tomt_val(pass_ids[1])
+        self.ajp(pass_ids[2], text="Övning B.")
+        o = self.lage()
+        self.assertEqual((o["fel_start"], o["forra_ovningar"], o["lage"]), (pass_ids[2], ["Övning A."], "fortsatt"))
+
+    def test_fore_tar_bara_valen_fore_passet(self) -> None:
+        self.pass_("20261101-180000", -6.0)
+        self.ajp("20261101-180000", text="Övning A.")
+        self.pass_("20261103-180000", -6.0)
+        self.ajp("20261103-180000", text="Övning B.")
+        o = {x["fel"]: x for x in H.ovningar(self.rot, till="20261103-180000", fore="20261103-180000")}["sway_topp"]
+        self.assertEqual((o["ovning"], o["pass_sedan"]), ("Övning A.", 1))
 
     def test_minnet_har_felens_vag(self) -> None:
         self.pass_("20261103-180000", -6.0)
@@ -134,11 +187,14 @@ class Historiken(unittest.TestCase):
         self.assertEqual([x["varde"] for x in m["fel"]["sway_topp"]], [-6.0, -4.0])
         self.assertEqual(m["pass"][1]["datum"], "2026-11-06")
 
-    def test_spara_kontrollerar_mot_analysen(self) -> None:
+    def test_spara_kraver_analysen(self) -> None:
+        """Granskningen fynd 5: kontrollen mot analysen hoppas aldrig över."""
+        with self.assertRaises(ValueError) as e:
+            H.spara_att_jobba_pa(self.rot, _doc("20261103-180000"))
+        self.assertIn("analys.json saknas", str(e.exception))
         self.pass_("20261103-180000", -6.0)
-        d = copy.deepcopy(_doc("20261103-180000"))
         with self.assertRaises(ValueError):
-            H.spara_att_jobba_pa(self.rot, d)        # den påhittade analysen saknar förslagen
+            H.spara_att_jobba_pa(self.rot, _doc("20261103-180000"))    # den påhittade analysen saknar förslagen
         self.assertFalse((self.rot / "att_jobba_pa").exists())
 
 

@@ -16,12 +16,20 @@
    "ovning": {
     "text": "Käpp i marken utanför bakre höften. Baksving till toppen och stopp: höften roterar, käppen står kvar. Sedan fötterna ihop, 3/4-svingar.",
     "tanke": "Rör inte käppen.",
-    "kalla": "katalog"
+    "kalla": "katalog",
+    "steg": "langsamt_med_foremal"
    },
    "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
-   "foljdfel": ["reverse_spine", "backens_resa_framat", "sway_gap"],
+   "foljdfel": [
+    {"fel": "reverse_spine", "namn": "Reverse spine: överkroppen lutar mot målet i toppen", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
+    {"fel": "early_extension", "namn": "Early extension: bäckenet mot bollen", "vag": ["sway_topp", "reverse_spine", "early_extension"], "nu": 3.3, "enhet": "cm"},
+    {"fel": "backens_resa_framat", "namn": "För liten resa framåt från toppen", "vag": ["sway_topp", "backens_resa_framat"], "nu": 13.8, "enhet": "cm"},
+    {"fel": "tappad_hallning", "namn": "Tappad hållning: bröstet reser sig", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 5.9, "enhet": "°"},
+    {"fel": "sway_gap", "namn": "Sway gap vid träffen", "vag": ["sway_topp", "sway_gap"], "nu": 16.5, "enhet": "cm"}
+   ],
    "typ": "teknik",
-   "fysik": null
+   "fysik": null,
+   "block": {"start": "2026-11-03", "vecka": 1}
   }
  ]
 }

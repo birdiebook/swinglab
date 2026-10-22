@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from .faser import ADRESS, FINISH, TOPP_ADRESS_S
+from .paket import las_ur_zip
 
 BREDD = 180                # METOD MT7: px per ruta i arket
 MAX_RADER = 12             # METOD MT7: högst så många slag per ark (de första i passet)
@@ -108,7 +109,8 @@ def tider(faser: dict) -> dict[str, float]:
 
 
 def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | None = None) -> dict:
-    """Arket för ett paket. Svarar {"fil", "rader", "kolumner"} eller {"hoppat": skäl}."""
+    """Arket för ett paket. Svarar {"fil", "rader", "kolumner"} eller {"hoppat": skäl}.
+    Ett skadat klipp i zippen kastar paket.PaketFel."""
     satt = satt or verktyg()
     if satt is None:
         return {"hoppat": "varken ffmpeg eller OpenCV finns"}
@@ -123,7 +125,7 @@ def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | N
     with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(paket_fil) as z:
         for i, s in enumerate(med_klipp):
             klipp = Path(tmp) / f"{s.id}{Path(s.klipp).suffix}"
-            klipp.write_bytes(z.read(s.klipp))
+            klipp.write_bytes(las_ur_zip(z, paket.fil, s.klipp))
             rutor = s.lederna["frames"]
             sx, sy = BREDD / s.lederna["width"], hojd / s.lederna["height"]
             for k, (fas, t) in enumerate(tider(matta[s.id]["faser"]).items()):

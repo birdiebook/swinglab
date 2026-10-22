@@ -4,6 +4,7 @@ nästa pass → minnet. Fixturen är påhittad."""
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import tempfile
@@ -57,11 +58,13 @@ class Exemplet(unittest.TestCase):
         self.assertEqual(a["format"], "swinglab-analys/1")
         self.assertEqual((a["forra"], a["baslinje"]["pass"]), (None, []))
         self.assertEqual(sum(1 for r in a["slag"] if "matt" in r), 16)
+        self.assertEqual((a["tempo_vy"], a["session"]["alla"]["tempo"]["n"]), ("fo", 8))   # aldrig 16
         # Steg 2: minnet före tolkningen (tomt första gången).
         kod, ut = _kor(H.main, ["--rot", str(self.hist), "minne"])
         self.assertEqual(json.loads(ut)["ovningar"], [])
         # Steg 3–4: Claudes val (fixturen) kontrolleras mot analysen och sparas.
-        self.assertEqual(_kor(AJP.main, [str(FIXTUR), "--analys", str(analys)])[0], 0)
+        kod, ut = _kor(AJP.main, [str(FIXTUR), "--analys", str(analys), "--historik", str(self.hist)])
+        self.assertEqual(kod, 0, ut)
         kod, ut = _kor(H.main, ["--rot", str(self.hist), "spara-att-jobba-pa", str(FIXTUR)])
         self.assertEqual(kod, 0, ut)
         # Nästa pass: längden ur historiken, förra passet och baslinjen ur historiken.
@@ -79,6 +82,37 @@ class Exemplet(unittest.TestCase):
         self.assertEqual((o["fel"], o["valt_i_pass"], o["lage"]), ("sway_topp", P1, "fortsatt"))
         self.assertTrue(o["uppfoljning"][0]["tydlig"])
         self.assertFalse(o["uppfoljning"][0]["uppfyllt"])
+        # Nästa val: samma övning fortsätter, ett steg upp, samma "klart när".
+        d = self.fortsatt(json.loads(FIXTUR.read_text(encoding="utf-8")), b)
+        self.assertEqual(H.kontrollera_att_jobba_pa(self.hist, d), [])
+        d2 = copy.deepcopy(d)
+        d2["saker"][0]["klart_nar"]["grans"] = -2
+        self.assertIn("saker[0].klart_nar: ska vara samma som när övningen valdes",
+                      H.kontrollera_att_jobba_pa(self.hist, d2))
+        d2 = copy.deepcopy(d)
+        d2["saker"][0]["ovning"]["steg"] = "full_fart"
+        self.assertIn("inget hopp", "; ".join(H.kontrollera_att_jobba_pa(self.hist, d2)))
+
+    @staticmethod
+    def fortsatt(d: dict, analys: dict) -> dict:
+        """Förra valet skrivet om för nästa pass med analysens tal, som skillen gör."""
+        bed = {x["id"]: x for x in analys["bedomning"]}
+        d["pass"], d["skapad"] = P2, "2026-11-06T21:00:00+01:00"
+        s = d["saker"][0]
+        s["nu"] = bed[s["fel"]]["visat"]
+        s["ovning"]["steg"] = "halv_fart"
+        for f in s["foljdfel"]:
+            f["nu"] = bed[f["fel"]]["visat"]
+        return d
+
+    def test_ut_far_inte_ligga_i_repot_utom_data(self) -> None:
+        kod, ut = _kor(S.main, [*map(str, self.p1), "--ut", str(S.REPO / "tools" / "analys"), "--langd", "1.8"])
+        self.assertEqual(kod, 1)
+        self.assertIn("--ut: mappen ligger i repot men inte i data/", ut)
+        self.assertFalse((S.REPO / "tools" / "analys").exists())
+        self.assertTrue(S.utanfor_repot(S.REPO / "data" / "historik"))
+        self.assertTrue(S.utanfor_repot(Path(self.tmp.name)))
+        self.assertFalse(S.utanfor_repot(S.REPO / "docs" / ".." / "tools"))
 
     def test_forra_passet_ur_paket_utan_historik(self) -> None:
         with tempfile.TemporaryDirectory() as ut:

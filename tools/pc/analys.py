@@ -21,7 +21,7 @@ from .paket import MATS, Paket, till_sving
 
 FORMAT = "swinglab-analys/1"
 KEDJOR = Path(__file__).resolve().parent / "kedjor.json"
-FORSTA_SERIEN_SLAG = 5     # METOD MT2: utan egen serie är första serien passets fem första slag
+FORSTA_SERIEN_SLAG = 5     # METOD MT2: första serien = de fem första mätta slagen i serie 1
 FLAGGAD = ("gul", "rod")
 
 
@@ -69,14 +69,28 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
             continue
         rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], matt=r["matt"])
         ut.append(rad)
-    matta = [r for r in ut if "matt" in r]
-    if len(serier) > 1:
-        for r in matta:
-            r["forsta_serien"] = r["serie"] == serier[0]
-    else:
-        for k, r in enumerate(matta):
-            r["forsta_serien"] = k < FORSTA_SERIEN_SLAG
+    # Första serien: de fem första mätta slagen i den första serien. METOD MT2
+    forsta = [r for r in ut if "matt" in r and r["serie"] == serier[0]][:FORSTA_SERIEN_SLAG]
+    for r in ut:
+        if "matt" in r:
+            r["forsta_serien"] = any(r is f for f in forsta)
     return ut
+
+
+def tempo_vy(rader: list[dict]) -> str:
+    """Vyn som tempot (och varje fel med vy "bada") tas ur: den med flest mätta
+    slag, FO vid lika. Vyerna läggs aldrig ihop, för då räknas samma sving två
+    gånger när båda telefonerna filmar. METOD MT9"""
+    n = {vy: sum(1 for r in rader if r["vy"] == vy and "matt" in r) for vy in ("dtl", "fo")}
+    return "dtl" if n["dtl"] > n["fo"] else "fo"
+
+
+def sammanfatta_pass(rader: list[dict], vy_alla: str) -> dict[str, dict]:
+    """Som session.sammanfatta_session, men gruppen "alla" är bara `vy_alla`.
+    METOD M25, METOD MT9"""
+    def m(vy):
+        return [r["matt"] for r in rader if r["vy"] == vy and "matt" in r]
+    return {"dtl": S.sammanfatta(m("dtl")), "fo": S.sammanfatta(m("fo")), "alla": S.sammanfatta(m(vy_alla))}
 
 
 def svingar(analys: dict) -> list[dict]:
@@ -200,10 +214,10 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
          "spelhand": paket[0].spelhand, "spelarens_langd_m": langd_m,
          "klubbor": sorted({r["klubba"] for r in slag if r.get("klubba")}),
          "slag": slag}
-    nu = svingar(a)
-    sammanf = S.sammanfatta_session(nu)
-    forsta = S.sammanfatta_session([{"vy": r["vy"], "matt": r["matt"]} for r in slag
-                                    if r.get("forsta_serien")])
+    vy_alla = tempo_vy(slag)
+    sammanf = sammanfatta_pass(slag, vy_alla)
+    forsta = sammanfatta_pass([r for r in slag if r.get("forsta_serien")], vy_alla)
+    a["tempo_vy"] = vy_alla
     a["session"] = sammanf
     a["forsta_serien"] = forsta
     a["baslinje"] = {"pass": list(baslinje_pass),
@@ -215,11 +229,13 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
         a["forra"] = None
 
     bed = []
-    for fel, b in zip(katalog["fel"], KAT.bedom(katalog, nu, tidigare)):
+    for fel in katalog["fel"]:
         g, m = _grupp(fel["vy"]), fel["matt"]
-        bas = [s["matt"][m] for s in tidigare if (fel["vy"] == "bada" or s["vy"] == fel["vy"]) and m in s["matt"]]
+        vy = vy_alla if fel["vy"] == "bada" else fel["vy"]
+        bas = [s["matt"][m] for s in tidigare if s["vy"] == vy and m in s["matt"]]
         sn = sammanf[g].get(m)
         fs = forsta[g].get(m)
+        b = KAT.bedom_varde(fel, sn["median"] if sn else None, bas)
         rad = dict(b)
         rad.update(namn=fel["namn"], vy=fel["vy"], matt=m, fas=fel["fas"], enhet=enhet(m),
                    visat=avrunda(m, b["varde"]), n=sn["n"] if sn else 0,

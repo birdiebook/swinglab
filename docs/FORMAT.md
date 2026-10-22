@@ -162,20 +162,24 @@ slag[3].klick_s ska vara ett tal`), aldrig värdet.
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
 | `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
-| `session` | `sammanfatta_session` (METOD M25) över de mätta slagen: `dtl`, `fo`, `alla` |
-| `forsta_serien` | samma sammanfattning för första serien (METOD MT2) |
+| `tempo_vy` | vyn som gruppen `alla` tas ur (METOD MT9) |
+| `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
+| `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |
 | `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
 | `forra` | `null`, eller `pass` och `jamforelse` (METOD M26) per grupp |
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
 
-## Att jobba på: `att_jobba_pa.json`
+## Att jobba på: `att_jobba_pa.json` — kontraktet med appen
 
 Det Claude valt efter ett pass, tillbaka till telefonen (S2_SPEC §8.5, BESLUT
-B28). Telefonen kräver bara att `format` börjar med `swinglab-att-jobba-pa/`;
-`tools/pc/att_jobba_pa.py` kontrollerar resten, och med `--analys` att varje tal
-är analysens.
+B28). **Den här formen är kontraktet:** appens vy (S4, fliken Att jobba på)
+läser den och visar den som den är, utan att räkna om något. Telefonen kräver
+att `format` börjar med `swinglab-att-jobba-pa/`; PC:n kontrollerar resten med
+`tools/pc/att_jobba_pa.py <fil> --analys <analys.json>` mot passets analys och
+minnet före passet (METOD MT3, MT5, MT6, MT8, MT10). Formen är stängd: en
+okänd eller saknad nyckel fälls.
 
 ```json
 {
@@ -188,44 +192,126 @@ B28). Telefonen kräver bara att `format` börjar med `swinglab-att-jobba-pa/`;
   "namn": "Bäckenet glider bakåt i baksvingen",
   "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
   "nu": -5.7, "spann": [0, null], "markning": "B10",
-  "ovning": {"text": "Käpp i marken …", "tanke": "Rör inte käppen.", "kalla": "katalog"},
+  "ovning": {"text": "Käpp i marken …", "tanke": "Rör inte käppen.", "kalla": "katalog",
+             "steg": "langsamt_med_foremal"},
   "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
-  "foljdfel": ["reverse_spine", "backens_resa_framat", "sway_gap"],
+  "foljdfel": [
+   {"fel": "reverse_spine", "namn": "Reverse spine: överkroppen lutar mot målet i toppen",
+    "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
+   {"fel": "early_extension", "namn": "Early extension: bäckenet mot bollen",
+    "vag": ["sway_topp", "reverse_spine", "early_extension"], "nu": 3.3, "enhet": "cm"}
+  ],
   "typ": "teknik",
-  "fysik": null
+  "fysik": null,
+  "block": {"start": "2026-11-03", "vecka": 1}
  }]
 }
 ```
 
-| Fält | Krav |
-|---|---|
-| `pass` | passet tolkningen bygger på; samma som analysens |
-| `saker` | 1–3, i svingens ordning (METOD MT6) |
-| `fel`, `namn`, `vy`, `matt`, `spann` | katalogens, för ett aktivt fel |
-| `enhet` | måttets (`cm`, `°`, `s` eller tom) |
-| `nu` | analysens `visat` för felet (passets median), eller `null` |
-| `markning` | analysens: `"B10"` (gräns ej läst i original), `"egen"` (egen baslinje) eller `null` |
-| `ovning.text` | högst 300 tecken; ordagrant katalogens när `kalla` är `"katalog"`, annars ur research 3 §2 (`"research3"`) |
-| `ovning.tanke` | högst 60 tecken, extern fokus |
-| `klart_nar` | analysens `villkor` (`>=`, `<=`, `mellan`) och `grans` (tal, eller `[min, max]`), `pa` = `"forsta_serien"`, `pass_i_rad` ≥ 1 |
-| `foljdfel` | fel som mäts men inte övas; varje ett led efter saken i `tools/pc/kedjor.json`, och ingen vald sak |
-| `typ` | `"teknik"`, `"teknik_kroppen_gor_det_svart"` eller `"troligen_rorlighet"`, enligt treregeln (METOD MT5) |
-| `fysik` | `null`, eller `test` (ur `kedjor.json` för felet), `treregeln` (tre true/false från Johannes) och `ovning` (krävs utom för teknik) |
+### Filen
 
-Ingen text bär värdeord eller utropstecken (BESLUT B13, METOD MT8). Rapporten
-till Johannes står i chatten, inte i filen.
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `format` | text | `"swinglab-att-jobba-pa/1"` |
+| `pass` | text | passet tolkningen bygger på (`yyyyMMdd-HHmmss`), samma som analysens |
+| `skapad` | text | tiden i ISO 8601 |
+| `saker` | lista | **1–3** saker, i svingens ordning (tidigt först, METOD MT6); `ordning` 1, 2, 3 |
+
+### En sak
+
+| Fält | Typ | Krav och betydelse | Vyn visar |
+|---|---|---|---|
+| `ordning` | heltal | platsen, 1 först | ordningen |
+| `fel` | text | katalogens id för ett aktivt fel som analysen flaggat (gult eller rött); aldrig ett följdfel. Ett `okand` fel bara när inget är flaggat | — |
+| `namn` | text | katalogens namn för felet | sakens namn |
+| `vy`, `matt` | text | katalogens | i vilken vy måttet hör hemma |
+| `enhet` | text | måttets: `"cm"`, `"°"`, `"s"` eller `""` | enheten |
+| `nu` | tal eller `null` | analysens `visat` för felet: passets median | **Du nu** |
+| `spann` | `[min, max]` eller `null` | katalogens gröna spann (`null` i en ände = öppen); `null` = egen baslinje | **Mål** som spann |
+| `markning` | text eller `null` | `"B10"` (gränsen ej läst i original), `"egen"` (egen baslinje) eller `null` (kontrollerad gräns); analysens, och oförändrad så länge övningen fortsätter | märkningen B10 eller egen |
+| `ovning` | objekt | se Övningen | övningen, stegen och tanken |
+| `klart_nar` | objekt | se Klart när | villkoret i tal |
+| `foljdfel` | lista | se Följdfelen | kedjan |
+| `typ` | text | `"teknik"`, `"teknik_kroppen_gor_det_svart"` eller `"troligen_rorlighet"`, enligt treregeln (METOD MT5) | märkningen rörlighet |
+| `fysik` | objekt eller `null` | se Fysiken | testet och rörlighetsövningen |
+| `block` | objekt | se Blocket | vecka i blocket |
+
+### Övningen (`ovning`)
+
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `text` | text | övningen: katalogens ordagrant (`kalla: "katalog"`), eller en av felets övningar i `tools/pc/kedjor.json` ordagrant (`kalla: "research3"`). Aldrig fritext |
+| `tanke` | text | tanken under svingen, extern fokus, högst 60 tecken, utan siffror, värdeord och utropstecken (METOD MT8) |
+| `kalla` | text | `"katalog"` eller `"research3"` |
+| `steg` | text | var Johannes är: ett av `"langsamt_med_foremal"`, `"halv_fart"`, `"full_fart"`, `"varierat"`, i den ordningen (METOD MT10). En ny övning börjar på första; en som fortsätter står kvar eller tar nästa |
+
+Vyn visar alla fyra stegen och markerar `steg`.
+
+### Klart när (`klart_nar`)
+
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `villkor` | text | `">="`, `"<="` eller `"mellan"` |
+| `grans` | tal, eller `[min, max]` för `mellan` | analysens förslag när övningen väljs; samma som när övningen valdes så länge den fortsätter (METOD MT3) |
+| `pa` | text | `"forsta_serien"`: medianen av de fem första slagen i serie 1 nästa pass, före uppvärmningen (METOD MT2) |
+| `pass_i_rad` | heltal | `2`: villkoret ska hållas två pass i rad |
+
+Vyn skriver det som ett villkor i tal, till exempel "första serien ≥ 0 cm, 2 pass".
+
+### Följdfelen (`foljdfel[]`): kedjan
+
+Fel som mäts men inte övas, eftersom saken är deras grundorsak. Ett följdfel
+kan ligga **flera led** efter saken: kedjorna i `tools/pc/kedjor.json` läses
+transitivt (METOD MT6).
+
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `fel` | text | katalogens id; ingen vald sak |
+| `namn` | text | katalogens namn |
+| `vag` | lista | kedjans väg från saken till följdfelet, saken först (`["sway_topp", "reverse_spine", "early_extension"]`) |
+| `nu` | tal eller `null` | analysens `visat` för följdfelet |
+| `enhet` | text | måttets |
+
+Vyn ritar kedjan grundorsak → följdfel med följdfelens tal.
+
+### Fysiken (`fysik`)
+
+`null` tills treregeln prövats. Annars:
+
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `test` | text | ett test för felet i `kedjor.json` (`fysik`) |
+| `treregeln` | `[bool, bool, bool]` | syns i full sving, testet fallerar, går inte heller långsamt utan klubba (svaren 2 och 3 från Johannes) |
+| `ovning` | text eller `null` | rörlighetsövningen, högst 200 tecken, utan siffror och värdeord; `null` när `typ` är `"teknik"` |
+
+### Blocket (`block`)
+
+| Fält | Typ | Krav och betydelse |
+|---|---|---|
+| `start` | text | dagen (`yyyy-MM-dd`) då felet först valdes; följer felet genom bytta övningar, och börjar om när felet väljs igen efter ett uppehåll |
+| `vecka` | heltal | hela veckor från `start` till passet + 1 (METOD MT10) |
+
+Vyn visar "vecka 3" i blocket (research 3 §4: 4–6 veckor per grundorsak).
+
+Ingen text bär värdeord, siffror i fritext eller utropstecken (BESLUT B13,
+METOD MT8). Rapporten till Johannes står i chatten, inte i filen.
 
 ## Historiken: `data/historik/`
 
 Gitignorerad, bara på PC:n (`tools/pc/historik.py`):
 
 ```
-spelare.json                  {"spelarens_langd_m": 1.80}
+spelare.json                  {"spelarens_langd_m": <m>}
 pass/<pass>/analys.json       session.py
 pass/<pass>/kontaktark-<vy>.png
 att_jobba_pa/<pass>.json      sparad och kontrollerad med historik.py spara-att-jobba-pa
 ```
 
 `historik.py minne` skriver `"format": "swinglab-minne/1"`: passen, varje fels
-väg genom vintern (`varde`, `forsta_serien`, `status` per pass) och varje
-övnings läge (`ny`, `fortsatt`, `byt_ovning`, `fysik`, `klart`; METOD MT4, MT5).
+väg genom vintern (`varde`, `forsta_serien`, `status` per pass) och en rad per
+fel som fått en övning (`ovningar[]`): `ovning`, `valt_i_pass`, `fel_start`,
+`forra_ovningar`, `klart_nar` och `markning` (från valet), `steg`,
+`uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),
+`pass_utan_rorelse`, `dagar_sedan_felet_valdes`, `rorelse_sedan_felet_valdes`,
+`aktuell` och `lage` (`avslutad`, `klart`, `fysik`, `ny`, `byt_ovning`,
+`fortsatt`; METOD MT4, MT5).

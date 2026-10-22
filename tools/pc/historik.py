@@ -99,10 +99,20 @@ def spara_spelare(rot: Path, langd_m: float) -> None:
 
 # --- att jobba på ----------------------------------------------------------------
 
+def kontrollera_att_jobba_pa(rot: Path, d: dict) -> list[str]:
+    """Kontrollen mot passets analys och minnet före passet. Utan analys i
+    historiken vägras filen: kontrollen hoppas aldrig över (BESLUT B2)."""
+    pass_id = d.get("pass") if isinstance(d, dict) else None
+    if not isinstance(pass_id, str) or not AJP.PASS_ID.match(pass_id):
+        return ["pass: ska vara yyyyMMdd-HHmmss"]
+    if not (pass_mapp(rot, pass_id) / "analys.json").is_file():
+        return ["pass: analys.json saknas i historiken; kör session.py för passet först"]
+    return AJP.kontrollera(d, las_analys(rot, pass_id), ovningar(rot, till=pass_id, fore=pass_id))
+
+
 def spara_att_jobba_pa(rot: Path, d: dict) -> Path:
-    """Kontrollerar filen mot passets analys (om den finns) och sparar den."""
-    analys = las_analys(rot, d["pass"]) if (pass_mapp(rot, d.get("pass", "")) / "analys.json").is_file() else None
-    fel = AJP.kontrollera(d, analys=analys)
+    """Kontrollerar filen mot passets analys och minnet, och sparar den."""
+    fel = kontrollera_att_jobba_pa(rot, d)
     if fel:
         raise ValueError("; ".join(fel))
     return _skriv(Path(rot) / "att_jobba_pa" / f"{d['pass']}.json", d)
@@ -131,55 +141,69 @@ def _rorelse(villkor: str, grans, start: float, nu: float) -> float:
     return abs(start - c) - abs(nu - c)
 
 
-def ovningar(rot: Path, till: str | None = None) -> list[dict]:
+def _foljning(analyser: dict, pass_ids: list[str], vy: str, matt: str, kn: dict, start_pass: str):
+    """Startvärdet (första serien i startpasset), startpassets spridning och en
+    rad per senare pass: första serien, om "klart när" hålls och rörelsen sedan
+    starten. METOD MT4"""
+    start_a = analyser.get(start_pass)
+    start = spr = None
+    if start_a:
+        start = _varde(start_a, vy, matt, True)
+        if start is None:
+            start = _varde(start_a, vy, matt, False)
+        hela = start_a["session"]["alla" if vy == "bada" else vy].get(matt)
+        spr = S.robust_sd(hela) if hela else None
+    rader = []
+    for p in pass_ids:
+        if p <= start_pass:
+            continue
+        v = _varde(analyser[p], vy, matt, True)
+        if v is None:
+            rader.append({"pass": p, "forsta_serien": None})
+            continue
+        rad = {"pass": p, "forsta_serien": A.avrunda(matt, v),
+               "uppfyllt": A.uppfyllt(kn["villkor"], kn["grans"], A.avrunda(matt, v))}
+        if start is not None and spr is not None:
+            r = _rorelse(kn["villkor"], kn["grans"], start, v)
+            rad.update(rorelse=A.avrunda(matt, r), tydlig=bool(r > spr))
+        rader.append(rad)
+    return start, spr, rader
+
+
+def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> list[dict]:
     """Varje fel som fått en övning: den senaste övningen, sedan när, och hur
-    första serien rört sig pass för pass. METOD MT4, METOD MT5"""
+    första serien rört sig pass för pass. `fore` tar bara med valen före det
+    passet (kontrollen av ett nytt val). METOD MT4, METOD MT5
+
+    "Klart när" är det som skrevs när övningen valdes och flyttar sig inte så
+    länge övningen fortsätter. Fysiken räknas från första gången felet valdes,
+    över alla övningar för det. Ett fel som inte står i det senaste valet är
+    avslutat."""
     pass_ids = [p for p in lista(rot) if till is None or p <= till]
     analyser = {p: las_analys(rot, p) for p in pass_ids}
-    docs = [d for d in att_jobba_pa(rot) if till is None or d["pass"] <= till]
+    docs = [d for d in att_jobba_pa(rot) if (till is None or d["pass"] <= till) and (fore is None or d["pass"] < fore)]
     senast: dict[str, dict] = {}
+    forra_fel: set[str] = set()
     for d in docs:                                     # äldst först
         for s in d["saker"]:
-            fid, namn = s["fel"], s["ovning"]["text"]
+            fid, text = s["fel"], s["ovning"]["text"]
             g = senast.get(fid)
-            if g is None or g["ovning"] != namn:
-                senast[fid] = {"fel": fid, "vy": s["vy"], "matt": s["matt"], "ovning": namn,
-                               "tanke": s["ovning"]["tanke"], "valt_i_pass": d["pass"],
-                               "forra_ovningar": ([g["ovning"]] + g["forra_ovningar"]) if g else [],
-                               "klart_nar": s["klart_nar"]}
-            else:
-                g["klart_nar"] = s["klart_nar"]
-            senast[fid]["senast_i_pass"] = d["pass"]
-    # Fel som inte längre står i den senaste filen är avslutade eller bytta.
-    aktuella = {s["fel"] for s in docs[-1]["saker"]} if docs else set()
+            if g is None or fid not in forra_fel:      # felet väljs (på nytt): ett nytt block
+                tidigare_ov = ([g["ovning"]] + g["forra_ovningar"]) if g else []
+                g = senast[fid] = {"fel": fid, "vy": s["vy"], "matt": s["matt"], "fel_start": d["pass"],
+                                   "valt_i_pass": d["pass"], "ovning": text, "forra_ovningar": tidigare_ov,
+                                   "klart_nar": s["klart_nar"], "markning": s["markning"]}
+            elif g["ovning"] != text:                  # ny övning för samma fel: ny "klart när"
+                g.update(valt_i_pass=d["pass"], ovning=text, forra_ovningar=[g["ovning"]] + g["forra_ovningar"],
+                         klart_nar=s["klart_nar"], markning=s["markning"])
+            g.update(tanke=s["ovning"]["tanke"], steg=s["ovning"]["steg"], typ=s["typ"], fysik=s["fysik"],
+                     senast_i_pass=d["pass"])
+        forra_fel = {s["fel"] for s in d["saker"]}
     ut = []
     for fid, o in senast.items():
         kn = o["klart_nar"]
-        start_pass = o["valt_i_pass"]
-        start_a = analyser.get(start_pass)
-        start = None
-        spr = None
-        if start_a:
-            start = _varde(start_a, o["vy"], o["matt"], True)
-            if start is None:
-                start = _varde(start_a, o["vy"], o["matt"], False)
-            g = "alla" if o["vy"] == "bada" else o["vy"]
-            hela = start_a["session"][g].get(o["matt"])
-            spr = S.robust_sd(hela) if hela else None
-        upp = []
-        for p in pass_ids:
-            if p <= start_pass:
-                continue
-            v = _varde(analyser[p], o["vy"], o["matt"], True)
-            if v is None:
-                upp.append({"pass": p, "forsta_serien": None})
-                continue
-            rad = {"pass": p, "forsta_serien": A.avrunda(o["matt"], v),
-                   "uppfyllt": A.uppfyllt(kn["villkor"], kn["grans"], A.avrunda(o["matt"], v))}
-            if start is not None and spr is not None:
-                r = _rorelse(kn["villkor"], kn["grans"], start, v)
-                rad.update(rorelse=A.avrunda(o["matt"], r), tydlig=bool(r > spr))
-            upp.append(rad)
+        start, spr, upp = _foljning(analyser, pass_ids, o["vy"], o["matt"], kn, o["valt_i_pass"])
+        _, _, upp_fel = _foljning(analyser, pass_ids, o["vy"], o["matt"], kn, o["fel_start"])
         uppfyllda = 0
         for u in reversed(upp):
             if not u.get("uppfyllt"):
@@ -190,22 +214,25 @@ def ovningar(rot: Path, till: str | None = None) -> list[dict]:
             if u.get("tydlig"):
                 break
             utan += 1
-        nagon = any(u.get("tydlig") for u in upp)
-        dagar = (_datum(pass_ids[-1]) - _datum(start_pass)).days if pass_ids else 0
-        if uppfyllda >= kn.get("pass_i_rad", 1):
+        dagar = (_datum(pass_ids[-1]) - _datum(o["fel_start"])).days if pass_ids else 0
+        rorelse_i_blocket = any(u.get("tydlig") for u in upp_fel)
+        if fid not in forra_fel:
+            lage = "avslutad"
+        elif uppfyllda >= kn.get("pass_i_rad", 1):
             lage = "klart"
+        elif upp_fel and not rorelse_i_blocket and dagar >= FYSIK_DAGAR and o["fysik"] is None:
+            lage = "fysik"
         elif not upp:
             lage = "ny"
-        elif not nagon and dagar >= FYSIK_DAGAR:
-            lage = "fysik"
         elif utan >= BYT_OVNING_PASS:
             lage = "byt_ovning"
         else:
             lage = "fortsatt"
         o.update(start_forsta_serien=A.avrunda(o["matt"], start) if start is not None else None,
                  spridning=A.avrunda(o["matt"], spr) if spr is not None else None,
-                 uppfoljning=upp, pass_sedan=len(upp), dagar_sedan=dagar, uppfyllt_i_rad=uppfyllda,
-                 pass_utan_rorelse=utan, aktuell=fid in aktuella, lage=lage)
+                 uppfoljning=upp, pass_sedan=len(upp), dagar_sedan_felet_valdes=dagar,
+                 rorelse_sedan_felet_valdes=rorelse_i_blocket, uppfyllt_i_rad=uppfyllda,
+                 pass_utan_rorelse=utan, aktuell=fid in forra_fel, lage=lage)
         ut.append(o)
     return ut
 

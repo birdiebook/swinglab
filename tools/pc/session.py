@@ -125,6 +125,16 @@ def _las_paket(filer) -> list:
     return [P.las(f) for f in filer]
 
 
+REPO = Path(__file__).resolve().parents[2]
+
+
+def utanfor_repot(mapp) -> bool:
+    """En mapp för passets data får ligga i repots data/ (gitignorerad) eller
+    utanför repot, aldrig någon annanstans i det (CLAUDE.md, Dataregeln)."""
+    m = Path(mapp).resolve()
+    return not m.is_relative_to(REPO) or m.is_relative_to(REPO / "data")
+
+
 def main(argv=None) -> int:
     from . import analys as A
     from . import historik as H
@@ -140,6 +150,10 @@ def main(argv=None) -> int:
     ap.add_argument("--utan-kontaktark", action="store_true")
     a = ap.parse_args(argv)
     rot = Path(a.historik)
+    for falt, mapp in (("--ut", a.ut), ("--historik", a.historik)):
+        if mapp and not utanfor_repot(mapp):
+            print(f"{falt}: mappen ligger i repot men inte i data/; passets data får inte hamna i git.")
+            return 1
     try:
         paket = _las_paket(a.paket)
         forra_paket = _las_paket(a.forra) if a.forra else None
@@ -173,8 +187,12 @@ def main(argv=None) -> int:
     if a.utan_kontaktark:
         analys["kontaktark"] = {p.vy: {"hoppat": "--utan-kontaktark"} for p in paket}
     else:
-        for fil, p in zip(a.paket, paket):
-            analys["kontaktark"][p.vy] = KA.bygg(Path(fil), p, [r for r in analys["slag"] if r["vy"] == p.vy], ut)
+        try:
+            for fil, p in zip(a.paket, paket):
+                analys["kontaktark"][p.vy] = KA.bygg(Path(fil), p, [r for r in analys["slag"] if r["vy"] == p.vy], ut)
+        except P.PaketFel as e:
+            print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
+            return 1
     A.skriv(analys, ut / "analys.json")
 
     matta = [r for r in analys["slag"] if "matt" in r]

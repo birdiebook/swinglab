@@ -96,6 +96,26 @@ class Kedjorna(unittest.TestCase):
         self.assertIn("Toe touch", ee["fysik"])
 
 
+class TempotMedTvaTelefoner(unittest.TestCase):
+    """Granskningen fynd 9: vyerna läggs aldrig ihop i "alla". METOD MT9"""
+
+    def rader(self, n_dtl: int, n_fo: int) -> list[dict]:
+        r = [{"vy": "dtl", "matt": {"tempo": 2.0 + 0.01 * i}} for i in range(n_dtl)]
+        r += [{"vy": "fo", "matt": {"tempo": 3.0 + 0.01 * i}} for i in range(n_fo)]
+        return r + [{"vy": "fo", "fel": "x"}] * 4
+
+    def test_vyn_med_flest_matta_slag_fo_vid_lika(self) -> None:
+        self.assertEqual(A.tempo_vy(self.rader(6, 5)), "dtl")
+        self.assertEqual(A.tempo_vy(self.rader(5, 5)), "fo")
+        self.assertEqual(A.tempo_vy(self.rader(0, 3)), "fo")
+
+    def test_alla_ar_bara_den_vyn(self) -> None:
+        s = A.sammanfatta_pass(self.rader(6, 5), "dtl")
+        self.assertEqual(s["alla"]["tempo"]["n"], 6)
+        self.assertAlmostEqual(s["alla"]["tempo"]["median"], s["dtl"]["tempo"]["median"])
+        self.assertEqual(s["fo"]["tempo"]["n"], 5)
+
+
 class Renheten(unittest.TestCase):
     def test_nan_blir_null(self) -> None:
         self.assertEqual(json.dumps(A.ren({"a": [math.nan, 1.0], "b": math.inf})), '{"a": [null, 1.0], "b": null}')
