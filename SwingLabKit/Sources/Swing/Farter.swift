@@ -12,6 +12,12 @@ import Foundation
 public enum Farter {
     /// Rutnätet i tiden som farten räknas på. METOD M35
     public static let stegS = 0.001
+    /// Rutor med värde som krävs före och efter τ i fönstret. METOD M35
+    public static let minPerSida = 2
+    /// Så nära toppen får rutnätet inte ha en lucka … METOD M35
+    public static let naraS = 0.020
+    /// … längre än så, annars saknas toppen. METOD M35
+    public static let luckaS = 0.020
     /// Finishen = handens fart under 10 % av genomsvingens toppfart. METOD M36
     public static let genomsvingAndel = 0.10
 
@@ -23,11 +29,12 @@ public enum Farter {
     }
 
     /// Rutorna med värde inom 3σ från τ och deras gaussvikter, i tidsordning, eller
-    /// nil utan en ruta med värde före τ och en efter. METOD M35
+    /// nil utan minst minPerSida rutor med värde före τ och lika många efter. METOD M35
     static func fonster(_ t: [Double], _ ok: [Bool], _ tau: Double) -> (js: [Int], w: [Double])? {
         let grans = Faser.trunkera * Faser.sigmaS
         let js = t.indices.filter { ok[$0] && abs(t[$0] - tau) <= grans }
-        guard let forsta = js.first, let sista = js.last, t[forsta] < tau && tau < t[sista] else { return nil }
+        let fore = js.filter { t[$0] < tau }.count, efter = js.filter { t[$0] > tau }.count
+        guard fore >= minPerSida && efter >= minPerSida else { return nil }
         return (js, js.map { j in
             let d = (t[j] - tau) / Faser.sigmaS
             return exp(-0.5 * (d * d))
@@ -67,6 +74,22 @@ public enum Farter {
         hastighet(t, p, tau).map { $0.hel ? hypot($0.x, $0.y) : .nan }
     }
 
+    /// Greppets fart i px/s: medlet av handledernas hastigheter, var och en anpassad på
+    /// sin egen råa serie (inte greppregelns punkt, som hoppar när en handled försvinner).
+    /// Med `bada` krävs båda (toppfarten); annars gäller den ena där bara den går att
+    /// räkna (finishens tid). METOD M35, METOD M36
+    public static func handensFart(_ t: [Double], fram: [Punkt], bak: [Punkt], _ tau: [Double],
+                                   bada: Bool) -> [Double] {
+        let vf = hastighet(t, fram, tau), vb = hastighet(t, bak, tau)
+        return tau.indices.map { i in
+            let f = vf[i].hel, b = vb[i].hel
+            if f && b { return hypot((vf[i].x + vb[i].x) / 2, (vf[i].y + vb[i].y) / 2) }
+            if f && !bada { return hypot(vf[i].x, vf[i].y) }
+            if b && !bada { return hypot(vb[i].x, vb[i].y) }
+            return .nan
+        }
+    }
+
     /// Vinkelskillnaden i grader, lagd i (−180, 180].
     static func vinkel(_ d: Double) -> Double {
         d - 360.0 * ((d - 180.0) / 360.0).rounded(.up)
@@ -95,15 +118,30 @@ public enum Farter {
             + y2 * (tc - t0) * (tc - t1) / ((t2 - t0) * (t2 - t1))
     }
 
-    /// (största värdet, dess tid) på rutnätet, förfinade med parabeln genom punkten
-    /// och dess två grannar med värde (som toppen, METOD M4). nil utan värden. METOD M35
+    /// (största värdet, dess tid) på rutnätet, förfinade med parabeln genom punkten och
+    /// dess två grannar med värde (som toppen, METOD M4). nil utan värden, när toppen
+    /// ligger i rutnätets ände eller saknar granne med värde på ena sidan, och när en
+    /// lucka i rutnätet längre än luckaS når in inom naraS från toppen. METOD M35
     public static func maxpunkt(_ tau: [Double], _ s: [Double]) -> (varde: Double, tid: Double)? {
         let idx = s.indices.filter { s[$0].isFinite }
         guard !idx.isEmpty else { return nil }
         var j = 0
         for m in 1..<idx.count where s[idx[m]] > s[idx[j]] { j = m }
         let k1 = idx[j]
-        guard j > 0 && j < idx.count - 1 else { return (s[k1], tau[k1]) }
+        guard k1 != 0 && k1 != tau.count - 1 && j > 0 && j < idx.count - 1 else { return nil }
+        // Varje lucka som når in inom naraS från toppen räknas med hela sin längd.
+        var k = 0
+        while k < tau.count {
+            if s[k].isFinite {
+                k += 1
+                continue
+            }
+            var b = k
+            while b + 1 < tau.count && !s[b + 1].isFinite { b += 1 }
+            let nar = tau[k] - tau[k1] <= naraS && tau[k1] - tau[b] <= naraS
+            if nar && Double(b - k + 1) * stegS > luckaS { return nil }
+            k = b + 1
+        }
         let k0 = idx[j - 1], k2 = idx[j + 1]
         let tc = Faser.toppunkt(tau[k0], -s[k0], tau[k1], -s[k1], tau[k2], -s[k2])
         return (parabel(tau[k0], s[k0], tau[k1], s[k1], tau[k2], s[k2], tc), tc)

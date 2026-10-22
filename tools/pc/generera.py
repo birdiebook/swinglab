@@ -326,9 +326,11 @@ def _fart(figur, p: dict, langd_cm: float, a: float, b: float, led=None) -> tupl
     return t, np.hypot(v[:, 0], v[:, 1]), L
 
 
-def facit_s1b(figur, p: dict, langd_cm: float, vy: str) -> dict:
+def facit_s1b(figur, p: dict, langd_cm: float, vy: str, klick: float | None = None) -> dict:
     """Tilläggen mot Sportsbox (METOD M30–M37) på den exakta figuren: lägena på
-    platåerna, farterna på ett rutnät om 10 µs."""
+    platåerna, farterna på ett rutnät om 10 µs. `klick` = mätningens träff när den
+    inte är figurens (handens toppfart nära träffen): bara farterna i nedsvingen
+    räknas då mot den."""
     tt, tk = TIDER["topp"], TIDER["klick"]
     tider = {"adress": 0.0, "topp": tt, "traff": tk, "finish": tk + 1.1}
     L = {fz: figur(np.array([tc]), p, langd_cm)[0] for fz, tc in tider.items()}
@@ -352,10 +354,11 @@ def facit_s1b(figur, p: dict, langd_cm: float, vy: str) -> dict:
         for i, fz in ((1, "topp"), (2, "traff"), (3, "finish")):                         # METOD M34
             f[f"framre_kna_sway_{fz}"] = float(p["kna_sway_f"][i])
             f[f"bakre_kna_sway_{fz}"] = float(p["kna_sway_b"][i])
-        t, s, F = _fart(figur, p, langd_cm, tt, tk)                                       # METOD M35
+        kl = tk if klick is None else klick
+        t, s, F = _fart(figur, p, langd_cm, tt, kl)                                       # METOD M35
         j = int(np.argmax(s))
-        f["handfart_max"] = float(s[j])
-        f["handfart_max_fore_traff_ms"] = (tk - float(t[j])) * 1000.0
+        f["handfart_max"] = float(s[j]) / 100.0                                           # m/s
+        f["handfart_max_fore_traff_ms"] = (kl - float(t[j])) * 1000.0
         d = F[:, 5] - F[:, 1]                                                             # METOD M37
         w = np.gradient(np.unwrap(np.arctan2(d[:, 1], d[:, 0])), t)
         f["framre_arm_vinkelfart_max"] = float(np.degrees(np.abs(w).max()))
@@ -366,17 +369,20 @@ def facit_s1b(figur, p: dict, langd_cm: float, vy: str) -> dict:
 
 def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0.0, langd_m: float = 1.80,
           dolj: tuple = (), saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2,
-          start: float | None = None, konf: dict | None = None, **andra) -> tuple[dict, dict]:
+          start: float | None = None, konf: dict | None = None, klick: float | None = None,
+          **andra) -> tuple[dict, dict]:
     """(svingen som dict i filformatet, facit). `dolj` = [(led i filen, ta, tb)]
     ger låg konfidens och skräpkoordinater i fönstret. `start` flyttar
     baksvingens start (s), `konf` = {led i filen: konfidens} sätter en leds
-    konfidens i alla rutor. `andra` byter parametrar."""
+    konfidens i alla rutor. `klick` flyttar bara mätningens träff (t_klick), inte
+    figurens: handens toppfart hamnar då nära träffen (METOD M35); bara farternas
+    facit räknas mot den. `andra` byter parametrar."""
     global TIDER
     if start is not None:
         gamla = TIDER
         TIDER = dict(TIDER, start=start)
         try:
-            return sving(vy, hand, seed, brus_px, langd_m, dolj, saknas, fran, decimaler, None, konf, **andra)
+            return sving(vy, hand, seed, brus_px, langd_m, dolj, saknas, fran, decimaler, None, konf, klick, **andra)
         finally:
             TIDER = gamla
     p = dict(FO if vy == "fo" else DTL)
@@ -412,7 +418,7 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
             leder.append(led)
         rutor.append({"t": round(float(t[i]), 6), "leder": leder})
     d = {"format": 1, "vy": vy, "hand": hand, ("x_mot_malet" if vy == "fo" else "x_mot_bollen"): int(tecken),
-         "spelarens_langd_m": langd_m, "t_klick": TIDER["klick"], "rutor": rutor}
+         "spelarens_langd_m": langd_m, "t_klick": TIDER["klick"] if klick is None else klick, "rutor": rutor}
     facit = facit_fo(p, langd_cm) if vy == "fo" else facit_dtl(p, langd_cm)
     t_start = facit_start(figur, p, langd_cm)
     facit["tempo"] = (TIDER["topp"] - t_start) / (TIDER["klick"] - TIDER["topp"])
@@ -421,7 +427,7 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     facit["_positioner"] = pos
     if vy == "fo":
         facit.update(facit_vid_positioner(p, langd_cm, pos))
-    facit.update(facit_s1b(figur, p, langd_cm, vy))
+    facit.update(facit_s1b(figur, p, langd_cm, vy, klick))
     return d, facit
 
 
@@ -486,6 +492,12 @@ FIXTURSVINGAR = {
     "fo_lucka_arm": ("fo", "hoger", 19, 0.8, (("handled_v", 1.7525, 1.8425), ("handled_v", 2.2587, 2.3587)), {}),
     # Vänsterspelaren bakifrån med alla positioner (de speglade armarna).
     "dtl_vanster": ("dtl", "vanster", 18, 0.8, (), {}),
+    # Händerna borta 80 ms över toppfarten: ingen toppfart och ingen vinkelfart, men
+    # finishens tid (METOD M35–M37).
+    "fo_lucka_fart": ("fo", "hoger", 20, 0.8, (("handled_v", 2.29, 2.37), ("handled_h", 2.29, 2.37)), {}),
+    # Träffen 15 ms efter handens toppfart (bara mätningens klick flyttas): toppen
+    # förfinas nära träffen, inte i rutnätets ände. METOD M35
+    "fo_nara_traff": ("fo", "hoger", 21, 0.8, (), {"klick": 2.34}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 

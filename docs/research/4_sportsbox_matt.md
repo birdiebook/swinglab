@@ -12,7 +12,7 @@ original**.
 
 **SwingLab-kolumnen:** ✅ finns · 🟡 finns i annan form · ⬜ litet tillägg (S1b) ·
 ❌ kräver S6 (två kameror) eller S7 (klubban) · – medvetet bortvalt.
-S1b är byggt: dess rader står som ✅ med måttets namn och METOD-rad.
+S1b är byggt: dess rader står som ✅ med måttets namn och METOD-rad, utom Pelvis Bend (⬜).
 
 Ett skäl till skillnaderna: Sportsbox mäter i 3D ur en kamera med en egen
 AI-modell. SwingLab mäter varje mått i den vy där det ligger i bildens plan
@@ -41,7 +41,7 @@ Teckenkonventionerna per mått är inte bekräftade, utom Forehead Sway (nedan).
 | Pelvis Sway | glidning bort från/mot målet | ✅ FO (`backen_sway_*`) |
 | Pelvis Lift | bäckenet upp/ned | ✅ (`backen_lyft_*`) |
 | Pelvis Thrust | mot bollen = early extension | ✅ DTL (`backen_thrust_*`) |
-| Pelvis Bend | bäckenets tilt framåt/bakåt | ✅ DTL, egen definition: medlet av bålens och lårets lutning (`backen_bojning_*`, M30) |
+| Pelvis Bend | bäckenets tilt framåt/bakåt | ⬜ inte uppfyllt: lederna har ingen punkt på bäckenet. SwingLab visar en skattad höftfällning (medlet av bålens och lårets lutning, `backen_bojning_*`, M30), som inte är Pelvis Bend och inte visar early extension |
 | Pelvis Side Bend | höftlinjens sidolutning | 🟡 höftlinjen i bild (FO), inte Sportsbox definition |
 
 ## 2. Bröstkorg (Chest), 6 DoF ✔
@@ -129,10 +129,10 @@ vridning, vertikal rörelse och release (Golf.com).
 - **Har nu:** sway, thrust och lyft för bäcken, bröst och huvud; bröstets böjning
   och sidböjning; sway gap; armar och händer; bakre knät; tempo; måtten per
   position.
-- **S1b, små tillägg i 2D (byggt, METOD M30–M37):** bäckenets böjning (egen
-  definition), bröstets lyft, handens lyft, främre knät, knänas sway,
+- **S1b, små tillägg i 2D (byggt, METOD M30–M37):** bröstets lyft, handens lyft, främre knät, knänas sway,
   follow-through-tid, handfart och dess tidpunkt, vänsterarmens fart. Farterna
-  är osäkra tills de provats på telefonen med låst slutartid (B11).
+  är osäkra tills de provats på telefonen med låst slutartid (B11). Pelvis Bend
+  står kvar: en skattad höftfällning (M30) finns, men den är inte bäckenets lutning.
 - **S6, två kameror:** alla turn-mått, X-factor och stretch, vridfarterna, core
   och shoulder gain factor.
 - **S7, klubban:** club-hand gap, skaftets fart, wrist och release factor, den

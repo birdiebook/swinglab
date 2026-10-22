@@ -8,12 +8,16 @@ public enum Markning: String, Sendable {
     case egen
     /// Avstängt mått (katalogens `aktiv: false`).
     case av
+    /// Oprövat på telefonen: farterna kräver skarp bild (katalogens `status: "oprovad"`,
+    /// METOD M35–M37, BESLUT B11).
+    case oprovad
 
     public var etikett: String {
         switch self {
         case .b10: return "B10"
         case .egen: return Texter.markningEgen
         case .av: return Texter.markningAv
+        case .oprovad: return Texter.markningOprovad
         }
     }
 
@@ -23,6 +27,7 @@ public enum Markning: String, Sendable {
         case .b10: return Texter.upplasningB10
         case .egen: return Texter.upplasningEgen
         case .av: return Texter.upplasningAv
+        case .oprovad: return Texter.upplasningOprovad
         }
     }
 
@@ -30,6 +35,11 @@ public enum Markning: String, Sendable {
         if !fel.aktiv { return .av }
         if fel.gront == nil { return .egen }
         return fel.kontrollerad ? nil : .b10
+    }
+
+    /// Ett mått i katalogens `matt`: egen baslinje, eller oprövat. METOD M29, M35–M37
+    public static func fran(_ post: Katalog.Mattpost) -> Markning {
+        post.status == "oprovad" ? .oprovad : .egen
     }
 }
 

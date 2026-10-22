@@ -21,11 +21,13 @@ public struct Katalog: Decodable, Sendable {
         public let positioner: [String]
         /// Katalogens id för felet som måttet hör till (sway hittills → sway_topp), eller nil.
         public let fel: String?
-        /// Fält utöver matt, vy, positioner och fel; kontrollen fäller dem, som Python.
+        /// "oprovad" = oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11), eller nil.
+        public let status: String?
+        /// Fält utöver matt, vy, positioner, fel och status; kontrollen fäller dem, som Python.
         let andraFalt: [String]
 
         enum CodingKeys: String, CodingKey, CaseIterable {
-            case matt, vy, positioner, fel
+            case matt, vy, positioner, fel, status
         }
 
         struct Nyckel: CodingKey {
@@ -41,6 +43,7 @@ public struct Katalog: Decodable, Sendable {
             vy = try c.decode(String.self, forKey: .vy)
             positioner = try c.decode([String].self, forKey: .positioner)
             fel = try c.decodeIfPresent(String.self, forKey: .fel)
+            status = try c.decodeIfPresent(String.self, forKey: .status)
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
             andraFalt = try decoder.container(keyedBy: Nyckel.self).allKeys.map { $0.stringValue }
                 .filter { !kanda.contains($0) }
@@ -154,9 +157,10 @@ public struct Katalog: Decodable, Sendable {
         for e in k.matt {
             let namn = "matt \(e.matt)"
             if !e.andraFalt.isEmpty {
-                fel.append("\(namn): ska ha matt, vy och positioner, och får ha fel")
+                fel.append("\(namn): ska ha matt, vy och positioner, och får ha fel och status")
                 continue
             }
+            if let s = e.status, s != "oprovad" { fel.append("\(namn): status ska vara oprovad") }
             if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
             if let vy = Vy(rawValue: e.vy) {
                 if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }

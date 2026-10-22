@@ -35,11 +35,16 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "backen_sway_p3" }?.fel, "sway_topp")
         XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
         XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
-        // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, tre följer ett fel.
+        // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, två följer ett fel.
         XCTAssertEqual(k.matt.count, 33)
         XCTAssertEqual(k.matt.first { $0.matt == "bakre_kna_sway_topp" }?.fel, "sway_topp")
-        XCTAssertEqual(k.matt.first { $0.matt == "backen_bojning_traff" }?.fel, "early_extension")
+        XCTAssertNil(k.matt.first { $0.matt == "backen_bojning_traff" }?.fel)     // visar inte early extension
         XCTAssertEqual(k.matt.first { $0.matt == "framre_arm_vinkelfart_max" }?.positioner, ["P5"])
+        // Farterna är oprövade på telefonen och märks så (METOD M35–M37, BESLUT B11).
+        XCTAssertEqual(Set(k.matt.filter { $0.status == "oprovad" }.map { $0.matt }),
+                       ["handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"])
+        XCTAssertEqual(k.matt.first { $0.matt == "handfart_max" }.map { Markning.fran($0) }, .oprovad)
+        XCTAssertEqual(k.matt.first { $0.matt == "stans_bredd" }.map { Markning.fran($0) }, .egen)
         for m in k.matt {
             let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
             XCTAssertTrue(Matt.namn(vy).contains(m.matt), m.matt)
@@ -79,6 +84,8 @@ final class KatalogTests: XCTestCase {
         ("\"fel\": \"sway_topp\"}", "\"fel\": \"finns_inte\"}", "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
         ("{\"matt\": \"stans_bredd\", \"vy\": \"fo\",", "{\"matt\": \"stans_bredd\", \"x\": 1, \"vy\": \"fo\",",
          "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
+        ("\"status\": \"oprovad\"}", "\"status\": \"provad\"}",
+         "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
     ]
 
     func testKontrollernaSomPython() throws {

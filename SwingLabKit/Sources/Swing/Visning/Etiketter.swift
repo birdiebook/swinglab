@@ -69,7 +69,7 @@ public enum Etiketter {
             e("bakre_kna_sway_traff", "cm", T.impact, tecken: true, plus: T.target),
             e("bakre_kna_sway_finish", "cm", T.finish, tecken: true, plus: T.target),
             e("genomsving_s", "s", T.impactToFinish),
-            e("handfart_max", "cm/s", T.downswing),
+            e("handfart_max", "m/s", T.downswing),
             e("handfart_max_fore_traff_ms", "ms", T.beforeImpact),
             e("framre_arm_vinkelfart_max", "°/s", T.downswing),
             e("backen_sway_topp", "cm", T.top, tecken: true, plus: T.target),

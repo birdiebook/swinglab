@@ -401,28 +401,33 @@ Mått som går att räkna ur dagens leder i en vy, ur jämförelsen med Sportsbo
 (`docs/research/4_sportsbox_matt.md`, PLAN S1b). **Definitionerna är våra.**
 Sportsbox motsvarighet är 3D ur en egen modell och **ej läst i original**
 (BESLUT B10), så talen jämförs inte med Sportsbox, bara pass mot pass. Alla har
-egen baslinje (M27) och står i katalogens `matt` (BESLUT B32), tre av dem med
-`fel` så att accenten följer felet. Python och Swift ger samma tal (BESLUT B12).
+egen baslinje (M27) och står i katalogens `matt` (BESLUT B32), två av dem med
+`fel` så att accenten följer felet. Farterna (M35–M37) bär `status: "oprovad"`
+i katalogen och märks så i granskningen. Python och Swift ger samma tal (BESLUT B12).
 Uppmätt på påhittade svingar utan brus (frön 0–19 per vy) mot figurens exakta
 tal; med 0,8 px brus står spridningen per rad.
 
-## M30 — Bäckenets böjning (DTL)
+## M30 — Höftfällningen, skattad (DTL)
 
-- `backen_bojning_<fas>`: **medlet av bålens och lårets lutning** mot lodlinjen
-  i bild, grader, **+ framåt mot bollen**. Bålen är höftmitt → axelmitt (M6),
-  låret bakre knä → bakre höft (bakre benet ligger närmast kameran, M11).
-  Adress, topp, träff (P1, P4, P7). Sportsbox: Pelvis Bend.
-- **Varför den definitionen:** bäckenets lutning kräver en punkt på bäckenet
-  utöver höftleden (korsbenet eller höftbenskammen), och den finns inte bland
-  de 13 lederna. Höftlederna ensamma syns som en punkt bakifrån och bär ingen
-  lutning, och bålen ensam är bröstets böjning (M6), som också tar ländryggens
-  böjning. Bäckenet sitter mellan låret och ländryggen, så medlet av de två
-  linjerna (bisektrisen i höftvinkeln) är den enklaste skattningen: höftvinkeln
-  antas delad lika mellan höftleden och ryggen. **antagande.** Står spelaren
-  rak är måttet 0; fäller hon bara i höften med rak rygg blir det halva
-  bålens vinkel. Talet är därför inte bäckenets anatomiska lutning, men dess
-  ändring (adressen mot träffen: bäckenet reser sig = early extension) är
-  jämförbar pass mot pass. Hör till felet `early_extension` vid P7.
+- `backen_bojning_<fas>` (visas som "Hip hinge (est.)"): **medlet av bålens och
+  lårets lutning** mot lodlinjen i bild, grader, **+ framåt mot bollen**. Bålen
+  är höftmitt → axelmitt (M6), låret bakre knä → bakre höft (bakre benet ligger
+  närmast kameran, M11). Adress, topp, träff (P1, P4, P7).
+- **Det är inte Sportsbox Pelvis Bend** (bäckenets lutning). Den kräver en punkt
+  på bäckenet utöver höftleden (korsbenet eller höftbenskammen), och den finns
+  inte bland de 13 lederna: höftlederna syns som en punkt bakifrån och bär ingen
+  lutning, och bålen ensam är bröstets böjning (M6). Medlet av bålens och lårets
+  riktning uppåt är **normalen till höftvinkelns bisektris** (vinkeln mellan
+  bålen och låret nedåt), alltså en skattning som antar höftvinkeln delad lika
+  mellan höftleden och ryggen. **antagande.** Står spelaren rak är måttet 0;
+  fäller hon bara i höften med rak rygg blir det halva bålens vinkel. Visas som
+  ett tal pass mot pass, inte som ett fel.
+- **Visar inte early extension** (granskningen 2026-10-22, påhittade svingar):
+  en bra sving som håller vinkeln gav −3,5° från adressen till träffen, en sving
+  med early extension (bäckenet 6 cm mot bollen, bålen reser sig 8°, bakre knät
+  sträcks 20°) +1,1°, och bara bålen som reser sig −6,5°: bålen och låret drar åt
+  var sitt håll. Därför inget `fel` i katalogen; early extension är bäckenets
+  thrust (M7).
 - Saknas bakre knät saknas måttet; bröstets böjning finns kvar.
 - Uppmätt: inom 0,001°; med 0,8 px brus sd 0,03–0,09°, största 0,26°.
 
@@ -471,34 +476,47 @@ tal; med 0,8 px brus står spridningen per rad.
 ## M35 — Handens fart och när den är störst (FO)
 
 - `handfart_max`: greppets **största fart i nedsvingen** (toppen → träffen),
-  cm/s, i bildens plan. `handfart_max_fore_traff_ms`: hur långt **före
-  träffen** den största farten kommer, ms, + = före. Sportsbox: Max Hand Speed
-  och Hand Speed Max Timing (Johannes lista, **ej bekräftade**). Framifrån,
+  **m/s med en decimal**, i bildens plan. `handfart_max_fore_traff_ms`: hur långt
+  **före träffen** den största farten kommer, ms, + = före. Sportsbox: Max Hand
+  Speed och Hand Speed Max Timing (Johannes lista, **ej bekräftade**). Framifrån,
   där handens båge i nedsvingen ligger närmast bildens plan; djupled (mot
   bollen) syns inte, så farten är en undre gräns för den verkliga.
 - **Utjämningen:** farten räknas på ett **rutnät i tiden, 1 ms**, inte i
   rutorna. I varje punkt τ är hastigheten lutningen i en **viktad linjär
-  anpassning** över tiden till de **råa** lägena (greppregeln, M1) inom
-  **3σ = 22,5 ms** från τ, med samma gaussvikt som M3 (σ = 7,5 ms). Punkten
-  räknas bara när en ruta med värde finns både före och efter τ i fönstret.
+  anpassning** över tiden till de **råa** lägena inom **3σ = 22,5 ms** från τ,
+  med samma gaussvikt som M3 (σ = 7,5 ms). Punkten räknas bara när minst **två**
+  rutor med värde finns före τ och två efter: med en enda ruta på ena sidan
+  styr den lutningen med hela sitt brus (granskningen: ±100 °/s vid en lucka).
   Varför inte en differens av de utjämnade lägena: luckorna gör utjämningens
   vikter osymmetriska, så läget förskjuts upp till 4 ms gånger farten (M3),
-  olika i varje ruta, och en differens förstorar det: upp till 40 % fel (uppmätt).
-  Anpassningen är väntevärdesriktig för en jämn rörelse hur luckorna än ligger
-  (provat inom 10⁻⁹), och rutnätet gör att en lucka vid toppfarten inte tar
-  bort toppen. **antagande** (σ från M3).
+  olika i varje ruta, och en differens förstorar det: upp till 40 % fel
+  (uppmätt). Anpassningen är väntevärdesriktig för en jämn rörelse hur luckorna
+  än ligger (provat inom 10⁻⁹). **antagande** (σ från M3).
+- **Greppet:** medlet av de två handledernas hastigheter, var och en anpassad
+  på sin egen råa serie, och **båda krävs**. Inte greppregelns punkt (M1): den
+  hoppar 1–2 cm när en handled försvinner, och hoppet blir en falsk fart. Saknas
+  den främre handleden kring toppfarten saknas måttet.
 - **Toppen:** största värdet på rutnätet, förfinat med parabeln genom punkten
-  och dess två grannar (tiden som M4, värdet ur samma parabel).
+  och dess två grannar (tiden som M4, värdet ur samma parabel). **Toppen
+  saknas** (gissas aldrig) när den ligger i rutnätets ände (träffen kom innan
+  farten vände, eller farten sjönk redan från toppen: inte "0 ms"), och när en
+  lucka i rutnätet längre än **20 ms** når in inom **20 ms** från toppen: då kan
+  den verkliga toppen ligga i luckan, och talet blev upp till 14 % fel
+  (granskningen). Luckan räknas med hela sin längd. **antagande.** På påhittade
+  svingar med 36 % saknade rutor (som i oktober) saknas toppen i 2 av 20 frön av
+  det skälet (en rå lucka på ≈ 33 ms vid toppen); fixturen `fo_lucka_fart`
+  (händerna borta 80 ms över toppen) ger inget tal, och `fo_nara_traff`
+  (träffen 15 ms efter toppfarten) ger ≈ 17 ms.
 - **Osäkert (BESLUT B11):** farten kräver skarp bild, alltså inspelning i
   appen med låst slutartid; Kamera-appens slowmotion suddar händerna i
-  nedsvingen. **Oprovat på telefonen.** Bruset drar toppen uppåt (största
-  värdet av brusiga punkter).
-- Uppmätt utan brus: −0,6 % i snitt (anpassningen rundar toppen), största
-  9,8 cm/s på ≈ 720; tiden sd 3 ms, största 6,1 ms, eftersom toppen är flack.
-  Med 0,8 px brus: +0,3 %, sd 7 cm/s; tiden sd 7 ms, största 18 ms. Med 2 px:
-  +2 %, tiden sd 10 ms. Den påhittade svingen står still vid träffen (±0,04 s,
-  `generera.py`), så dess toppfart ligger ≈ 175 ms före träffen; i en verklig
-  sving ligger den närmare.
+  nedsvingen. **Oprovat på telefonen**; katalogen märker måtten `oprovad`.
+  Bruset drar toppen uppåt (största värdet av brusiga punkter).
+- Uppmätt utan brus (frön 0–19): −0,6 % i snitt (anpassningen rundar toppen),
+  största 0,06 m/s på ≈ 7,2; tiden sd 3 ms, största 6 ms, eftersom toppen är
+  flack. Med 0,8 px brus: +0,2 %, sd 0,06 m/s; tiden sd 7 ms, största 18 ms. Med
+  2 px: +2 %, tiden sd 10 ms. Den påhittade svingen står still vid träffen
+  (±0,04 s, `generera.py`), så dess toppfart ligger ≈ 175 ms före träffen; i en
+  verklig sving ligger den närmare.
 
 ## M36 — Genomsvingens tid (båda vyerna)
 
@@ -507,15 +525,17 @@ tal; med 0,8 px brus står spridningen per rad.
 - **Finishen i tid:** första gången efter genomsvingens toppfart som handens
   fart faller under **10 %** av den, linjärt mellan två punkter på rutnätet.
   Toppfarten söks från träffen (uteslutet) till finishens fönster, **träffen
-  + 1,0 s** (M4). Farten som i M35, men i bildens plan i båda vyerna; bara
-  kvoten mot den egna toppen används, så skalan spelar ingen roll. Faller
+  + 1,0 s** (M4). Farten som i M35, men i bildens plan i båda vyerna, och där
+  bara den ena handleden går att räkna gäller den (bakifrån skyms den främre
+  ofta): bara kvoten mot den egna toppen används, så skalan och den yttre
+  handledens ≈ 3 % högre fart spelar ingen roll. Faller
   farten aldrig under (händerna rör sig ännu efter 1,0 s), eller ligger två
   punkter med fart mer än 0,10 s isär (M3), saknas måttet. **antagande:**
   10 % skiljer en hållen finish från rörelsen dit; ett lågt värde i en
   riktningsändring framifrån (händerna rör sig mot kameran) kan ge en för
   tidig finish.
 - **Osäkert:** som M35 kräver farten skarp bild (B11), oprovat på telefonen.
-- Uppmätt: inom 6 ms; med 0,8 px brus sd 9 ms, största 35 ms.
+- Uppmätt: inom 3 ms; med 0,8 px brus sd 7 ms, största 18 ms; med 2 px sd 18 ms.
 
 ## M37 — Främre armens vinkelfart (FO)
 
@@ -524,14 +544,14 @@ tal; med 0,8 px brus står spridningen per rad.
   vinkelfarten i nedsvingen** (toppen → träffen), grader/s, som belopp, i
   bildens plan. Vänsterarmen för en högerspelare. Sportsbox: Max Lead Arm
   Speed (Johannes lista, **ej bekräftad**; Sportsbox mäter i 3D).
-- **Utjämningen:** som M35, på vinkeln atan2(dy, dx) ur de råa lägena; varje
+- **Utjämningen och toppen:** som M35, på vinkeln atan2(dy, dx) ur de råa lägena; varje
   rutas vinkel räknas mot den första rutan i fönstret och läggs i (−180°,
   180°], så att ett varv förbi ±180° inte blir ett hopp (provat: 600 °/s genom
   180° ger 600). Toppen som M35.
 - **Osäkert:** skarp bild krävs (B11), oprovat på telefonen; en dold handled
   i nedsvingen tar bort punkterna där (fixturen `fo_lucka_arm` tappar toppen).
-- Uppmätt utan brus: −0,3 %, största 4,1 °/s på ≈ 700; med 0,8 px brus
-  +1,2 %, största 27 °/s; med 2 px +5 %.
+- Uppmätt utan brus: −0,3 %, största 3 °/s på ≈ 700; med 0,8 px brus
+  +1,3 %, största 27 °/s; med 2 px +5 %. Märkt `oprovad` i katalogen.
 
 ---
 
@@ -1044,9 +1064,9 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   kräver gränsen och märkningen från passet då övningen valdes, och historiken
   bedömer varje senare pass mot den. En ny övning för samma fel får analysens
   förslag igen.
-- Talen avrundas till **0,1** (cm, grader), **0,01** (tempo, stansen,
-  sekunder) och **1** (farterna i cm/s och °/s, tiden i ms, M35–M37), samma tal
-  som appen visar. **antagande.**
+- Talen avrundas till **0,1** (cm, grader, handens fart i m/s), **0,01**
+  (tempo, stansen, sekunder) och **1** (vinkelfarten i °/s och tiden i ms,
+  M35–M37), samma tal som appen visar. **antagande.**
 - Gränserna är slutna.
 
 ## MT4 — Rörelsen

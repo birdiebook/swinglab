@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b nu · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -67,19 +67,21 @@ follow-through-tid, handfart (max och tidpunkten före träffen) och vänsterarm
 vinkelfart. Farterna kräver skarp bild (B11) och märks osäkra tills de provats
 på telefonen. Sportsbox definitioner är ej lästa i original (B10).
 
-**Klart när:** måtten finns i båda språken med samma tal, i katalogen med
-positioner, och syns i passet och granskningen.
+**Klart när:** måtten finns i båda språken med samma tal och i katalogen med
+positioner, och syns i granskningen (via katalogens positioner); i passet bara de
+mått som har ett fel. Farterna märks "untested" där de visas.
 
-**Byggt (grenen `s1b`).** METOD M30–M37: `backen_bojning_*` (DTL, medlet av
-bålens och lårets lutning: bäckenet har ingen egen punkt bland lederna),
-`brost_lyft_*` och `hand_lyft_*` (båda vyerna), `framre_kna_*` (DTL, saknas när
-knät skyms), `framre_kna_sway_*` och `bakre_kna_sway_*` (FO), `genomsving_s`
-(finishen = handens fart under 10 % av genomsvingens topp), `handfart_max` och
-`handfart_max_fore_traff_ms` (FO) och `framre_arm_vinkelfart_max` (FO). Farterna
-räknas med en viktad linjär anpassning på ett rutnät om 1 ms (`tools/pc/farter.py`,
-`Swing/Farter.swift`) och är osäkra tills de provats på telefonen (B11). Katalogen
-har 23 nya `matt` med positioner, tre med `fel`; namnen i `Texter.swift`. Vyerna
-visar dem genom katalogen (S4b), utan ändring i `App/`.
+**Byggt (grenen `s1b`).** METOD M30–M37: `backen_bojning_*` (DTL, visas som
+"Hip hinge (est.)": medlet av bålens och lårets lutning, inte Sportsbox Pelvis
+Bend och visar inte early extension), `brost_lyft_*` och `hand_lyft_*` (båda
+vyerna), `framre_kna_*` (DTL, saknas när knät skyms), `framre_kna_sway_*` och
+`bakre_kna_sway_*` (FO), `genomsving_s` (finishen = handens fart under 10 % av
+genomsvingens topp), `handfart_max` (m/s) och `handfart_max_fore_traff_ms` (FO)
+och `framre_arm_vinkelfart_max` (FO). Farterna räknas med en viktad linjär
+anpassning på ett rutnät om 1 ms (`tools/pc/farter.py`, `Swing/Farter.swift`);
+toppen saknas vid en lucka eller i rutnätets ände. Katalogen har 23 nya `matt`
+med positioner, två med `fel`, och farterna med `status: "oprovad"` (märkningen
+"untested", BESLUT B11). Kvar till ✓: synas i granskningen på telefonen.
 
 ## S2 — Appskalet och första bygget
 

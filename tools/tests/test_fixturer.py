@@ -64,8 +64,14 @@ class Fixturerna(unittest.TestCase):
         vanster = json.loads(self.f["svingar"]["fo_vanster"][1])["matt"]
         self.assertNotIn("framre_armbage_topp", vanster)          # den egna handleden är dold
         self.assertIn("hander_fore_adress_traff", vanster)         # men greppregeln ger händerna
-        self.assertIn("handfart_max", vanster)                     # handens fart ur greppet (METOD M35)
-        self.assertNotIn("framre_arm_vinkelfart_max", vanster)     # armens kräver den egna (METOD M37)
+        self.assertNotIn("handfart_max", vanster)                  # farterna kräver den egna (METOD M35)
+        self.assertNotIn("framre_arm_vinkelfart_max", vanster)     # (METOD M37)
+        self.assertIn("genomsving_s", vanster)                     # finishens tid ur den bakre (M36)
+        lucka = json.loads(self.f["svingar"]["fo_lucka_fart"][1])["matt"]
+        self.assertNotIn("handfart_max", lucka)                    # 80 ms lucka över toppfarten
+        self.assertNotIn("framre_arm_vinkelfart_max", lucka)
+        nara = json.loads(self.f["svingar"]["fo_nara_traff"][1])["matt"]
+        self.assertAlmostEqual(nara["handfart_max_fore_traff_ms"], 15.0, delta=5.0)
         luckor = json.loads(self.f["svingar"]["fo_luckor"][1])["matt"]
         self.assertNotIn("backen_sway_topp", luckor)               # rå lucka 0,146 s
         self.assertIn("huvud_sway_topp", luckor)                   # rå lucka 0,067 s

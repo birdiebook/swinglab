@@ -88,7 +88,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 | `cm_per_px` | Skalan (METOD M2). |
 | `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4). |
 | `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). |
-| `matt` | Måtten per namn (METOD M5–M24, M29, M30–M37). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), cm/s (`fart`) och °/s (`vinkelfart`). |
+| `matt` | Måtten per namn (METOD M5–M24, M29, M30–M37). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), m/s (`fart`) och °/s (`vinkelfart`). |
 
 Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
 `tools/pc/matt.py` (Swift: `Matt.namn`). Tecknen står i varje METOD-rad.
@@ -119,7 +119,7 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [
 
 `matt` är måtten som granskningen visar vid en position utan att de är fel
 (BESLUT B32, METOD M29), t.ex. sway hittills vid P3. Varje post har `matt`, `vy`
-och `positioner`, och valfritt `fel`; inga andra fält:
+och `positioner`, och valfritt `fel` och `status`; inga andra fält:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
@@ -127,6 +127,7 @@ och `positioner`, och valfritt `fel`; inga andra fält:
 | `vy` | text | `"dtl"` eller `"fo"`. |
 | `positioner` | lista | Som felens, men aldrig tom. |
 | `fel` | text | Valfri. Katalogens id för felet som måttet hör till (sway hittills vid P3 → `sway_topp`), så att accenten för det du övar på (BESLUT B31) följer med. |
+| `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "own". Utan fältet: egen baslinje. |
 
 Granskningen vid en position visar felen och måtten vars `positioner` har den,
 i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid

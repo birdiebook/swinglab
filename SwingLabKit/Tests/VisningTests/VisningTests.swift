@@ -47,8 +47,8 @@ final class VisningTests: XCTestCase {
         // Tilläggen mot Sportsbox (METOD M30–M37), som test_analys.py.
         XCTAssertEqual(["framre_kna_sway_topp", "framre_kna_topp", "handfart_max", "handfart_max_fore_traff_ms",
                         "framre_arm_vinkelfart_max", "genomsving_s", "backen_bojning_traff", "hand_lyft_topp"]
-                        .map { Avrundning.enhet($0) }, ["cm", "°", "cm/s", "ms", "°/s", "s", "°", "cm"])
-        XCTAssertEqual(Avrundning.avrunda("handfart_max", 811.6), 812.0)
+                        .map { Avrundning.enhet($0) }, ["cm", "°", "m/s", "ms", "°/s", "s", "°", "cm"])
+        XCTAssertEqual(Avrundning.avrunda("handfart_max", 7.26), 7.3)
         XCTAssertEqual(Avrundning.decimaler("framre_arm_vinkelfart_max"), 0)
         XCTAssertEqual(Avrundning.avrunda("brost_bojning_tapp", 5.94), 5.9)
         XCTAssertEqual(Avrundning.avrunda("tempo", 2.876), 2.88)

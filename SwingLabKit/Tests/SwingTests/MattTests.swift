@@ -17,7 +17,8 @@ final class MattTests: XCTestCase {
 
     func testVarjeSvingGerPythonsTal() throws {
         XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
-                                                       "fo_kort_arm", "fo_lucka_arm", "dtl_vanster"])
+                                                       "fo_kort_arm", "fo_lucka_arm", "dtl_vanster", "fo_lucka_fart",
+                                                       "fo_nara_traff"])
         var jamforda = 0
         var positioner = 0
         for f in Fixturer.svingar {
@@ -47,10 +48,11 @@ final class MattTests: XCTestCase {
                 }
             }
         }
-        // Kvittot: testet jämförde verkligen måtten (54 + 48 + 41 + 34 + 48 + 32 + 51 + 53 + 41 = 402)
-        // och positionerna (9 × 7 − 5 saknade = 58).
-        XCTAssertEqual(jamforda, 402)
-        XCTAssertEqual(positioner, 58)
+        // Kvittot: testet jämförde verkligen måtten
+        // (54 + 46 + 41 + 34 + 48 + 32 + 51 + 50 + 41 + 51 + 54 = 502)
+        // och positionerna (11 × 7 − 5 saknade = 72).
+        XCTAssertEqual(jamforda, 502)
+        XCTAssertEqual(positioner, 72)
     }
 
     func testDePahittadeFormerna() throws {
@@ -76,9 +78,11 @@ final class MattTests: XCTestCase {
         XCTAssertNil(v.matt["framre_armbage_topp"])
         XCTAssertNil(v.matt["framre_armbage_efter_traff"])
         XCTAssertNotNil(v.matt["hander_fore_adress_traff"])
-        // Handens fart ur greppet finns, armens vinkelfart kräver den egna handleden. METOD M35, M37
-        XCTAssertNotNil(v.matt["handfart_max"])
+        // Farterna kräver den egna främre handleden (greppregeln ersätter inte); finishens
+        // tid räknas ur den bakre. METOD M35–M37
+        XCTAssertNil(v.matt["handfart_max"])
         XCTAssertNil(v.matt["framre_arm_vinkelfart_max"])
+        XCTAssertNotNil(v.matt["genomsving_s"])
     }
 
     /// Tilläggen mot Sportsbox (PLAN S1b) på den påhittade svingen: figurens tal inom bruset.
@@ -86,7 +90,7 @@ final class MattTests: XCTestCase {
         let fo = try Matt.mat(Sving.las(json: Fixturer.svingar[0].indata))
         XCTAssertEqual(fo.matt["bakre_kna_sway_topp"]!, -4.0, accuracy: 0.5)          // METOD M34
         XCTAssertEqual(fo.matt["framre_kna_sway_traff"]!, 9.0, accuracy: 0.5)
-        XCTAssertEqual(fo.matt["handfart_max"]!, 720.0, accuracy: 30.0)               // METOD M35
+        XCTAssertEqual(fo.matt["handfart_max"]!, 7.2, accuracy: 0.3)                  // METOD M35, m/s
         XCTAssertGreaterThan(fo.matt["handfart_max_fore_traff_ms"]!, 0)              // före träffen
         XCTAssertEqual(fo.matt["framre_arm_vinkelfart_max"]!, 700.0, accuracy: 30.0)  // METOD M37
         XCTAssertEqual(fo.matt["genomsving_s"]!, 0.76, accuracy: 0.05)                // METOD M36
@@ -98,6 +102,24 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(Farter.vinkel(181), -179)
         XCTAssertEqual(Farter.vinkel(-180), 180)
         XCTAssertEqual(Farter.rutnat(2.2, 2.5).count, 301)
+    }
+
+    /// Luckan över toppfarten ger inget tal, och toppfarten nära träffen hittas. METOD M35
+    func testToppfartenVidLuckaOchNaraTraffen() throws {
+        let lucka = try Matt.mat(Sving.las(json: Fixturer.svingar[9].indata))
+        XCTAssertNil(lucka.matt["handfart_max"])
+        XCTAssertNil(lucka.matt["handfart_max_fore_traff_ms"])
+        XCTAssertNil(lucka.matt["framre_arm_vinkelfart_max"])
+        XCTAssertNotNil(lucka.matt["genomsving_s"])
+        let nara = try Matt.mat(Sving.las(json: Fixturer.svingar[10].indata))
+        XCTAssertEqual(nara.matt["handfart_max_fore_traff_ms"]!, 15.0, accuracy: 5.0)
+        // Toppen i rutnätets ände eller intill en lång lucka saknas; en kort lucka gör inget.
+        let tau = Farter.rutnat(0.0, 0.1)
+        XCTAssertNil(Farter.maxpunkt(tau, tau.map { 500 + 1000 * $0 }))
+        let s = tau.map { 700 - 1e5 * ($0 - 0.0423) * ($0 - 0.0423) }
+        XCTAssertNil(Farter.maxpunkt(tau, zip(tau, s).map { $0 > 0.045 && $0 < 0.067 ? .nan : $1 }))
+        XCTAssertEqual(Farter.maxpunkt(tau, zip(tau, s).map { $0 > 0.050 && $0 < 0.062 ? .nan : $1 })!.tid,
+                       0.0423, accuracy: 1e-9)
     }
 
     func testRaLuckaLangreAnMaxLuckaSaknas() throws {

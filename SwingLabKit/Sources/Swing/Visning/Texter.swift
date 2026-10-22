@@ -29,7 +29,8 @@ public enum Texter {
     /// Måttens korta namn i vyn, per mått i katalogen.
     public static let mattnamn: [String: String] = [
         // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37).
-        "backen_bojning_adress": "Pelvis bend", "backen_bojning_topp": "Pelvis bend", "backen_bojning_traff": "Pelvis bend",
+        "backen_bojning_adress": "Hip hinge (est.)", "backen_bojning_topp": "Hip hinge (est.)",
+        "backen_bojning_traff": "Hip hinge (est.)",
         "framre_kna_adress": "Lead knee", "framre_kna_topp": "Lead knee", "framre_kna_traff": "Lead knee",
         "brost_lyft_topp": "Chest lift", "brost_lyft_traff": "Chest lift", "brost_lyft_finish": "Chest lift",
         "hand_lyft_topp": "Hand lift", "hand_lyft_traff": "Hand lift", "hand_lyft_finish": "Hand lift",
@@ -94,6 +95,9 @@ public enum Texter {
     public static let upplasningB10 = "limit not read in original"
     public static let upplasningEgen = "own baseline"
     public static let upplasningAv = "off"
+    /// Farterna (METOD M35–M37): oprövade på telefonen, kräver skarp bild (BESLUT B11).
+    public static let markningOprovad = "untested"
+    public static let upplasningOprovad = "untested on the phone, needs a sharp image"
 
     // MARK: jämförelsen och spannet
 

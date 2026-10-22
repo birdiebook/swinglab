@@ -20,6 +20,9 @@ import numpy as np
 from . import faser as F
 
 STEG_S = 0.001              # METOD M35: rutnätet i tiden som farten räknas på
+MIN_PER_SIDA = 2            # METOD M35: rutor med värde som krävs före och efter τ i fönstret
+NARA_S = 0.020              # METOD M35: så nära toppen får rutnätet inte ha en lucka …
+LUCKA_S = 0.020             # METOD M35: … längre än så, annars saknas toppen
 GENOMSVING_ANDEL = 0.10     # METOD M36: finishen = handens fart under 10 % av genomsvingens toppfart
 
 
@@ -31,10 +34,13 @@ def rutnat(a: float, b: float) -> np.ndarray:
 
 def _fonster(t: np.ndarray, ok: np.ndarray, tau: float) -> tuple[list[int], list[float]] | None:
     """Rutorna med värde inom 3σ från τ och deras gaussvikter, i tidsordning, eller
-    None utan en ruta med värde före τ och en efter. METOD M35"""
+    None utan minst MIN_PER_SIDA rutor med värde före τ och lika många efter: en
+    ensam ruta på ena sidan styr annars lutningen med hela sitt brus. METOD M35"""
     grans = F.TRUNKERA * F.SIGMA_S
     js = [int(j) for j in np.where(ok & (np.abs(t - tau) <= grans))[0]]
-    if not js or not (t[js[0]] < tau < t[js[-1]]):
+    fore = sum(1 for j in js if t[j] < tau)
+    efter = sum(1 for j in js if t[j] > tau)
+    if fore < MIN_PER_SIDA or efter < MIN_PER_SIDA:
         return None
     return js, [math.exp(-0.5 * ((float(t[j]) - tau) / F.SIGMA_S) ** 2) for j in js]
 
@@ -79,6 +85,26 @@ def fart(t: np.ndarray, p: np.ndarray, tau: np.ndarray) -> np.ndarray:
     return np.array([math.hypot(a, b) for a, b in v]) if len(v) else np.array([])
 
 
+def handens_fart(t: np.ndarray, fram: np.ndarray, bak: np.ndarray, tau: np.ndarray, bada: bool) -> np.ndarray:
+    """Greppets fart i px/s: medlet av handledernas hastigheter, var och en anpassad
+    på sin egen råa serie. Inte greppregelns punkt (M1): den hoppar 1–2 cm när en
+    handled försvinner, och hoppet blir en falsk fart. Med `bada` krävs båda
+    handlederna (toppfarten, M35); annars gäller den ena där bara den går att räkna
+    (finishens tid, M36, som bara jämför farten med sin egen topp: den yttre
+    handleden går ≈ 3 % fortare). METOD M35, METOD M36"""
+    vf, vb = hastighet(t, fram, tau), hastighet(t, bak, tau)
+    ut = np.full(len(tau), np.nan)
+    for i in range(len(tau)):
+        f, b = bool(np.isfinite(vf[i]).all()), bool(np.isfinite(vb[i]).all())
+        if f and b:
+            ut[i] = math.hypot((vf[i, 0] + vb[i, 0]) / 2, (vf[i, 1] + vb[i, 1]) / 2)
+        elif f and not bada:
+            ut[i] = math.hypot(vf[i, 0], vf[i, 1])
+        elif b and not bada:
+            ut[i] = math.hypot(vb[i, 0], vb[i, 1])
+    return ut
+
+
 def _vinkel(d: float) -> float:
     """Vinkelskillnaden i grader, lagd i (−180, 180]."""
     return d - 360.0 * math.ceil((d - 180.0) / 360.0)
@@ -114,15 +140,32 @@ def _parabel(t0: float, y0: float, t1: float, y1: float, t2: float, y2: float, t
 def maxpunkt(tau: np.ndarray, s: np.ndarray) -> tuple[float, float] | None:
     """(största värdet, dess tid) på rutnätet. Tiden och värdet förfinas med
     parabeln genom punkten och dess två grannar med värde (som toppen, METOD M4).
-    None utan värden. METOD M35"""
+    None utan värden, när toppen ligger i rutnätets ände (farten steg ännu eller
+    sjönk redan: toppen ligger utanför) eller saknar granne med värde på ena
+    sidan, och när en lucka i rutnätet längre än LUCKA_S når in inom NARA_S från
+    toppen (toppen kan ligga i luckan). METOD M35"""
     idx = np.where(np.isfinite(s))[0]
     if len(idx) == 0:
         return None
     j = int(np.argmax(s[idx]))
-    k1 = idx[j]
-    if not (0 < j < len(idx) - 1):
-        return float(s[k1]), float(tau[k1])
-    k0, k2 = idx[j - 1], idx[j + 1]
+    k1 = int(idx[j])
+    if k1 == 0 or k1 == len(tau) - 1 or not (0 < j < len(idx) - 1):
+        return None
+    # Varje lucka (punkter i följd utan värde) som når in inom NARA_S från toppen
+    # räknas med hela sin längd.
+    k = 0
+    while k < len(tau):
+        if math.isfinite(s[k]):
+            k += 1
+            continue
+        b = k
+        while b + 1 < len(tau) and not math.isfinite(s[b + 1]):
+            b += 1
+        nar = tau[k] - tau[k1] <= NARA_S and tau[k1] - tau[b] <= NARA_S
+        if nar and (b - k + 1) * STEG_S > LUCKA_S:
+            return None
+        k = b + 1
+    k0, k2 = int(idx[j - 1]), int(idx[j + 1])
     tc = float(F.toppunkt(tau[k0], -s[k0], tau[k1], -s[k1], tau[k2], -s[k2]))
     return _parabel(tau[k0], s[k0], tau[k1], s[k1], tau[k2], s[k2], tc), tc
 

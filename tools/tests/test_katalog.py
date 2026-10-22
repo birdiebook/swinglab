@@ -47,10 +47,13 @@ class Formen(unittest.TestCase):
         # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37).
         self.assertEqual(len(k["matt"]), 33)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
-        self.assertEqual(kopplat["backen_bojning_traff"], "early_extension")
+        self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
         self.assertEqual(matt[("fo", "genomsving_s")], ["P10"])
         self.assertEqual(matt[("fo", "handfart_max_fore_traff_ms")], ["P7"])
+        # Farterna är oprövade på telefonen (METOD M35–M37, BESLUT B11), inget annat.
+        oprovade = {m["matt"] for m in k["matt"] if m.get("status") == "oprovad"}
+        self.assertEqual(oprovade, {"handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"})
         # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
         alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
         self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
@@ -86,6 +89,7 @@ class Formen(unittest.TestCase):
         ('"fel": "sway_topp"}', '"fel": "finns_inte"}', "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
         ('{"matt": "stans_bredd", "vy": "fo",', '{"matt": "stans_bredd", "x": 1, "vy": "fo",',
          "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
+        ('"status": "oprovad"}', '"status": "provad"}', "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),

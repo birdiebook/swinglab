@@ -12,7 +12,7 @@ HANDBANA = 0.15        # rutnätet och utjämningen när händerna rör sig 4–
 # anpassningen över ±3σ rundar av toppen (handen −0,6 %, största felet 9,8 cm/s; armen −0,3 %,
 # 4,1 °/s), och toppens tid ligger på en flack kurva (sd 3 ms, största 6,1 ms). Handens lyft vid
 # toppen: utjämningen sänker toppen och toppen ligger tidigt (−0,06 cm, största 0,18).
-FARTER = {"handfart_max": 12.0, "handfart_max_fore_traff_ms": 8.0, "framre_arm_vinkelfart_max": 6.0,
+FARTER = {"handfart_max": 0.12, "handfart_max_fore_traff_ms": 8.0, "framre_arm_vinkelfart_max": 6.0,
           "genomsving_s": 0.008, "hand_lyft_topp": 0.2}
 
 
@@ -30,7 +30,9 @@ class KandaTal(unittest.TestCase):
         self.assertEqual(set(r["matt"]), set(M.MATT[vy]))
 
     def test_fo(self) -> None:
-        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER})
+        # Frö 3: frö 1 har en rå lucka på 33 ms vid handens toppfart, och då saknas toppen
+        # (test_farter.Svingen.test_lucka_vid_toppfarten_ger_ingen_topp).
+        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER}, seed=3)
 
     def test_dtl(self) -> None:
         self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER})

@@ -121,8 +121,7 @@ public enum Matt {
     /// Måtten för en sving. METOD M2–M24
     public static func mat(_ s: Sving) throws -> SvingResultat {
         let t = s.t
-        let raa = Faser.greppRegel(s.leder)
-        let b = raa.map { Faser.jamna(t, $0) }
+        let b = Faser.greppRegel(s.leder).map { Faser.jamna(t, $0) }
         // Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
         let handF = Faser.jamna(t, s.led(.handledF))
         let handB = Faser.jamna(t, s.led(.handledB))
@@ -132,8 +131,6 @@ public enum Matt {
         let C = mitt(.axelF, .axelB)
         let A = mitt(.fotledF, .fotledB)
         let G = mitt(.handledF, .handledB)
-        // Farterna ur de råa lägena. METOD M35
-        let gRaa = zip(raa[Led.handledF.rawValue], raa[Led.handledB.rawValue]).map { Punkt.mitt($0, $1) }
         let N = led(.nasa)
         let f = try Faser.hitta(t, G, tKlick: s.tKlick)
         // Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
@@ -245,8 +242,9 @@ public enum Matt {
             }
             // Farterna i nedsvingen, från toppen till träffen. METOD M35, METOD M37
             let nedsving = Farter.rutnat(f.topp, f.traff)
-            if let hf = Farter.maxpunkt(nedsving, Farter.fart(t, gRaa, nedsving).map { $0 * cm }) {
-                m["handfart_max"] = hf.varde
+            let hand = Farter.handensFart(t, fram: s.led(.handledF), bak: s.led(.handledB), nedsving, bada: true)
+            if let hf = Farter.maxpunkt(nedsving, hand.map { $0 * cm }) {
+                m["handfart_max"] = hf.varde / 100.0                                // m/s
                 m["handfart_max_fore_traff_ms"] = (f.traff - hf.tid) * 1000.0
             }
             if let af = Farter.maxpunkt(nedsving, Farter.vinkelfart(t, fran: s.led(.axelF), till: s.led(.handledF),
@@ -260,7 +258,8 @@ public enum Matt {
             m["hand_lyft_\(fz.rawValue)"] = flyttUpp(G, fz)
         }
         let efterTraff = Farter.rutnat(f.traff + Farter.stegS, f.traff + Faser.finish.fran)   // METOD M36
-        if let tf = Farter.finishTid(efterTraff, Farter.fart(t, gRaa, efterTraff)) {
+        if let tf = Farter.finishTid(efterTraff, Farter.handensFart(t, fram: s.led(.handledF), bak: s.led(.handledB),
+                                                                    efterTraff, bada: false)) {
             m["genomsving_s"] = tf - f.traff
         }
 

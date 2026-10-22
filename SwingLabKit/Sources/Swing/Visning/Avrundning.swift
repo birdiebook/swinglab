@@ -11,17 +11,17 @@ public enum Avrundning {
         if matt.hasSuffix("_ms") { return "ms" }
         if matt.hasSuffix("_s") { return "s" }
         if matt.contains("vinkelfart") { return "°/s" }
-        if matt.contains("fart") { return "cm/s" }
+        if matt.contains("fart") { return "m/s" }
         if matt.contains("_sway") { return "cm" }       // knänas sway är cm, inte knäets böjning
         if ["bojning", "lutning", "kna", "armbage"].contains(where: { matt.contains($0) }) { return "°" }
         return "cm"
     }
 
-    /// Decimalerna för en enhet: två för kvoter och sekunder, inga för farter och ms
-    /// (METOD M35–M37), annars en.
+    /// Decimalerna för en enhet: två för kvoter och sekunder, inga för vinkelfarten och
+    /// ms (METOD M35–M37), annars en (handens fart i m/s).
     public static func decimaler(enhet: String) -> Int {
         if enhet == "" || enhet == "s" { return 2 }
-        if enhet == "ms" || enhet == "cm/s" || enhet == "°/s" { return 0 }
+        if enhet == "ms" || enhet == "°/s" { return 0 }
         return 1
     }
 

@@ -22,6 +22,8 @@ SAMRE = ("+", "-", None)
 FALT = ("id", "namn", "vy", "matt", "fas", "gront", "gult", "kalla", "status", "kontrollerad",
         "aktiv", "samre", "ovning_id", "ovning", "tanke", "positioner")
 MATT_FALT = ("matt", "vy", "positioner")       # och valfritt fel: felet vars accent måttet följer (B31)
+MATT_VALFRIA = ("fel", "status")               # status: "oprovad" = oprövat på telefonen (METOD M35–M37)
+MATT_STATUS = ("oprovad",)
 POSITIONER_FEL = "positioner ska vara en lista av " + ", ".join(POSITIONER) + " i svingens ordning"
 # Övningens id: stabilt när texten skrivs om, så att historiken känner igen den.
 OVNING_ID = __import__("re").compile(r"^[a-z0-9_]+$")
@@ -86,9 +88,11 @@ def kontrollera(k: dict) -> list[str]:
             visade.add((vy, e.get("matt")))
     for i, e in enumerate(k["matt"]):
         namn = f"matt {e.get('matt', i) if isinstance(e, dict) else i}"
-        if not isinstance(e, dict) or not set(MATT_FALT) <= set(e) <= set(MATT_FALT) | {"fel"}:
-            fel.append(f"{namn}: ska ha matt, vy och positioner, och får ha fel")
+        if not isinstance(e, dict) or not set(MATT_FALT) <= set(e) <= set(MATT_FALT) | set(MATT_VALFRIA):
+            fel.append(f"{namn}: ska ha matt, vy och positioner, och får ha fel och status")
             continue
+        if "status" in e and e["status"] not in MATT_STATUS:
+            fel.append(f"{namn}: status ska vara oprovad")
         if "fel" in e and e["fel"] not in sedda:
             fel.append(f"{namn}: fel ska vara ett fel i katalogen")
         if e["vy"] not in ("dtl", "fo"):

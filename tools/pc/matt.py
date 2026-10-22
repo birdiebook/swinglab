@@ -113,8 +113,7 @@ def mat(s: Sving) -> dict:
     Ett mått som inte går att räkna (leden saknas i fasen, positionen saknas)
     står inte med."""
     t = s.t
-    raa = F.grepp_regel(s.xy)
-    b = F.jamna(t, raa)
+    b = F.jamna(t, F.grepp_regel(s.xy))
     # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
     hand_f = F.jamna(t, s.xy[:, HANDLED_F])
     hand_b = F.jamna(t, s.xy[:, HANDLED_B])
@@ -122,7 +121,6 @@ def mat(s: Sving) -> dict:
     C = (b[:, AXEL_F] + b[:, AXEL_B]) / 2
     A = (b[:, FOTLED_F] + b[:, FOTLED_B]) / 2
     G = (b[:, HANDLED_F] + b[:, HANDLED_B]) / 2
-    G_raa = (raa[:, HANDLED_F] + raa[:, HANDLED_B]) / 2      # farterna ur de råa lägena, METOD M35
     N = b[:, NASA]
     f = F.hitta_faser(t, G, s.t_klick)
     # Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
@@ -218,9 +216,9 @@ def mat(s: Sving) -> dict:
             m[f"bakre_kna_sway_{fz}"] = flytt(b[:, KNA_B], 0, fz)
         # Farterna i nedsvingen, från toppen till träffen. METOD M35, METOD M37
         nedsving = FA.rutnat(f.topp, f.traff)
-        hf = FA.maxpunkt(nedsving, FA.fart(t, G_raa, nedsving) * cm)
+        hf = FA.maxpunkt(nedsving, FA.handens_fart(t, s.xy[:, HANDLED_F], s.xy[:, HANDLED_B], nedsving, True) * cm)
         if hf is not None:
-            m["handfart_max"] = hf[0]
+            m["handfart_max"] = hf[0] / 100.0                       # m/s
             m["handfart_max_fore_traff_ms"] = (f.traff - hf[1]) * 1000.0
         af = FA.maxpunkt(nedsving, FA.vinkelfart(t, s.xy[:, AXEL_F], s.xy[:, HANDLED_F], nedsving))
         if af is not None:
@@ -230,7 +228,7 @@ def mat(s: Sving) -> dict:
         m[f"brost_lyft_{fz}"] = flytt(C, 1, fz, -1.0)
         m[f"hand_lyft_{fz}"] = flytt(G, 1, fz, -1.0)
     efter = FA.rutnat(f.traff + FA.STEG_S, f.traff + F.FINISH[0])  # METOD M36
-    tf = FA.finish_tid(efter, FA.fart(t, G_raa, efter))
+    tf = FA.finish_tid(efter, FA.handens_fart(t, s.xy[:, HANDLED_F], s.xy[:, HANDLED_B], efter, False))
     if tf is not None:
         m["genomsving_s"] = tf - f.traff
 
