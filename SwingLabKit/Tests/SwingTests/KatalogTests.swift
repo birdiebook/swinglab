@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 @testable import Swing
 
@@ -26,6 +27,48 @@ final class KatalogTests: XCTestCase {
         }
         let axel = try fel("axellutning")
         XCTAssertFalse(axel.aktiv)
+    }
+
+    /// Katalogen med en ändring (första förekomsten).
+    func andrad(_ fran: String, _ till: String) -> String {
+        let k = Fixturer.katalog
+        guard let r = k.range(of: fran) else {
+            XCTFail("finns inte i katalogen: \(fran)")
+            return k
+        }
+        return k.replacingCharacters(in: r, with: till)
+    }
+
+    /// Samma fall som test_katalog.py (Formen.test_formfelen_hittas).
+    static let formfel: [(fran: String, till: String, vantat: String)] = [
+        ("\"matt\": \"backen_sway_topp\"", "\"matt\": \"finns_inte\"", "sway_topp: måttet finns inte i vyn"),
+        ("\"vy\": \"bada\"", "\"vy\": \"sida\"", "tempo: vy ska vara"),
+        ("\"status\": \"tillverkare\"", "\"status\": \"rykte\"", "sway_topp: status ska vara"),
+        ("\"samre\": \"-\"", "\"samre\": \"x\"", "sway_topp: samre ska vara"),
+        ("\"gront\": [0, null]", "\"gront\": null", "sway_topp: gult utan gront"),
+        ("\"id\": \"tempo\"", "\"id\": \"sway_topp\"", "sway_topp: id finns två gånger"),
+        ("\"gront\": [2.5, 3.1]", "\"gront\": [2.5]", "tempo: gront ska vara"),
+    ]
+
+    func testKontrollernaSomPython() throws {
+        let hel = try katalog()
+        XCTAssertEqual(Katalog.kontrollera(hel), [])
+        for f in Self.formfel {
+            let k = try Katalog.avkoda(Data(andrad(f.fran, f.till).utf8))
+            let fel = Katalog.kontrollera(k)
+            XCTAssertTrue(fel.contains { $0.hasPrefix(f.vantat) }, "\(f.vantat): \(fel)")
+            XCTAssertThrowsError(try Katalog.las(json: andrad(f.fran, f.till)), f.vantat)
+        }
+    }
+
+    func testEttFaltSomSaknasFalls() {
+        // samre får vara null men måste stå med, som i Python.
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"samre\": \"-\",", ""))) { e in
+            XCTAssertTrue("\(e)".contains("samre"), "\(e)")
+        }
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"ovning\":", "\"ovn\":"))) { e in
+            XCTAssertTrue("\(e)".contains("ovning"), "\(e)")
+        }
     }
 
     func testSwayVidToppen() throws {

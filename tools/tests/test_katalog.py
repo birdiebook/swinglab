@@ -1,7 +1,7 @@
 """Katalogen (katalog.json, BESLUT B6) och bedömningen (METOD M27)."""
 from __future__ import annotations
 
-import copy
+import json
 import unittest
 
 from _hjalp import gen
@@ -33,14 +33,26 @@ class Formen(unittest.TestCase):
         self.assertFalse(f["aktiv"])
         self.assertIsNone(f["gront"])
 
+    # Samma fall som KatalogTests.swift (formfel): (från, till, väntat fel).
+    FORMFEL = [
+        ('"matt": "backen_sway_topp"', '"matt": "finns_inte"', "sway_topp: måttet finns inte i vyn"),
+        ('"vy": "bada"', '"vy": "sida"', "tempo: vy ska vara"),
+        ('"status": "tillverkare"', '"status": "rykte"', "sway_topp: status ska vara"),
+        ('"samre": "-"', '"samre": "x"', "sway_topp: samre ska vara"),
+        ('"gront": [0, null]', '"gront": null', "sway_topp: gult utan gront"),
+        ('"id": "tempo"', '"id": "sway_topp"', "sway_topp: id finns två gånger"),
+        ('"gront": [2.5, 3.1]', '"gront": [2.5]', "tempo: gront ska vara"),
+        ('"samre": "-",', "", "sway_topp: samre saknas"),
+        ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
+    ]
+
     def test_formfelen_hittas(self) -> None:
-        k = copy.deepcopy(K.las())
-        k["fel"][0]["matt"] = "finns_inte"
-        k["fel"][1]["vy"] = "sida"
-        del k["fel"][2]["ovning"]
-        k["fel"][3]["id"] = k["fel"][4]["id"]
-        fel = K.kontrollera(k)
-        self.assertEqual(len(fel), 4, fel)
+        text = K.KATALOG.read_text(encoding="utf-8")
+        for fran, till, vantat in self.FORMFEL:
+            with self.subTest(vantat=vantat):
+                self.assertIn(fran, text)
+                fel = K.kontrollera(json.loads(text.replace(fran, till, 1)))
+                self.assertTrue(any(f.startswith(vantat) for f in fel), fel)
 
 
 class Granserna(unittest.TestCase):
