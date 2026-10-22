@@ -473,6 +473,27 @@ värden i `CaptureTests`.
 - **Avvikelser:** stegen räknas `lo + i·steg` (numpys `arange` gör nästan det),
   och parar inget svaras prior (eller 0), osäker, i stället för sökningens början.
 
+## MS11 — Kvittot, trycket och disken
+
+- **Kvittot** efter varje serie (S2_SPEC §12 S2c): rutnätets frekvens (vit när
+  den når 240 − 0,5, gul under, röd under 100 = inte slowmotion, MS1 och MS3),
+  tappade rutor (gränserna i MS3), antal rutor, klicken (gul vid noll), filens
+  storlek per minut i MB (10⁶ byte, `byte / längd · 60`), längden och det högsta
+  värmetrycket under serien. **räkning**; storleken per minut mäts på telefonen
+  i S2c (S2_SPEC §2.6 antog några hundra MB i 1080p 240 HEVC).
+- **Trycket** (`systemPressureState.level`): nominal och fair vita, serious gul
+  och en varning i vyn, critical och shutdown röda. Apple: systemet kan sänka
+  kvaliteten under tryck och avbryter sessionen vid shutdown. **tillverkare +
+  antagande** (gränsen för varningen).
+- **Disken:** under **4 GB** ledigt (`volumeAvailableCapacityForImportantUsage`)
+  startar ingen inspelning, och `minFreeDiskSpaceLimit` = **2 GB** stoppar en
+  pågående. **antagande** (en minut i 240 bilder/s är några hundra MB).
+- **Ljudet ur filen** läses i bitar som klipps exakt vid `ClickDetector.segments`
+  (30 s med 1 s överlapp, räknat i prov från filens första ljudprov), med de
+  inre gränserna till `detect` (MS4). `ClickStream` ger samma klick som
+  `detectSegmented` på hela signalen och som PC:ns `klick_i_bitar`, provat med
+  buffertar av slumpad storlek på recepten `lang` och `bitgrans`. **räkning.**
+
 ---
 
 # Tolkningen (S5)
