@@ -123,8 +123,8 @@ final class SwingLabProvSlag: XCTestCase {
         let req = PoseScanRequest(file: klipp, from: 0, to: 1.5, stride: 1, exif: geo.exif,
                                   uprightWidth: upp.width, uprightHeight: upp.height)
         do {
-            let enheter = try VNDetectHumanBodyPoseRequest().supportedComputeStageDevices()
-            print("PROV: vision enheter i simulatorn \(enheter.map { "\($0.key.rawValue): \($0.value.map { "\(type(of: $0))" })" })")
+            let enheter = try VNDetectHumanBodyPoseRequest().supportedComputeStageDevices
+            print("PROV: vision enheter i simulatorn \(enheter.map { "\($0.key.rawValue): \($0.value.map { "\($0)" })" })")
         } catch {
             print("PROV: vision enheter: fel \(error)")
         }
