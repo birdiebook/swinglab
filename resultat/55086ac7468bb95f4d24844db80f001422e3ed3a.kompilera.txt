@@ -1,0 +1,47 @@
+55086ac7468bb95f4d24844db80f001422e3ed3a s2f 2026-10-22T21:51:27Z run 39860390835 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: Attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: Static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: Expected '}' in class
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: Attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: Static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: Expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: Attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: Static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: Expected '}' in class
+
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: Attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: Static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: Expected '}' in class
+/Users/runner/work/swinglab/swinglab/App/Store.swift:389:5: error: Attribute 'private' can only be used in a non-local scope
+/Users/runner/work/swinglab/swinglab/App/Store.swift:404:12: error: Static methods may only be declared on a type
+/Users/runner/work/swinglab/swinglab/App/Store.swift:412:1: error: Expected '}' in class
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
