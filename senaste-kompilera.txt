@@ -1,33 +1,31 @@
-5c5ad25aa022aca97c04f0b42b03394df28d40f9 s2e 2026-10-22T15:25:01Z run 39802559041 kompilera
+57fd0c898181832b0e5b787ceb019dd621512792 positioner 2026-10-22T15:25:49Z run 39802696899 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 19 test, 1 fel, 37 s i testerna
-  fel: SwingLabProvSlag.testSteg7VisionPaKlippet
-Långsammast (av 19):
-     11.2 s  SwingLabProvInspelning.testFilmenMedAAC
-      6.6 s  SwingLabProvInspelning.testFilmenMedLPCM
-      3.3 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+GRÖNT: 16 test, 0 fel, 18 s i testerna
+Långsammast (av 16):
+      3.2 s  SwingLabProvInspelning.testFilmenMedAAC
+      2.7 s  SwingLabProvInspelning.testFilmenMedLPCM
       2.6 s  SwingLabProvInspelning.testKvittotUrFilen
-      2.4 s  SwingLabProvSlag.testSteg6Klippet
-      2.2 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      2.2 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      1.6 s  SwingLabProvInspelning.testLuckaILjudet
-      1.5 s  SwingLabProv.testAppenStartarMedStartvyn
+      2.5 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      2.0 s  SwingLabProvInspelning.testLuckaILjudet
+      1.4 s  SwingLabProv.testAppenStartarMedStartvyn
       1.3 s  SwingLabProvInspelning.testLjusprovetsLasning
-      0.5 s  SwingLabProvVyer.testAttJobbaPa
+      0.6 s  SwingLabProvVyer.testAttJobbaPa
       0.5 s  SwingLabProvVyer.testPasset
-      0.4 s  SwingLabProvVyer.testGranskning
-      0.3 s  SwingLabProvVyer.testUtveckling
-      0.2 s  SwingLabProvVyer.testIdag
+      0.5 s  SwingLabProvVyer.testGranskning
+      0.2 s  SwingLabProvVyer.testUtveckling
+      0.1 s  SwingLabProvVyer.testIdag
+      0.1 s  SwingLabProvInspelning.testLagringen
+      0.0 s  SwingLabProv.testEngelskaTexter
+      0.0 s  SwingLabProv.testSwingLabKitLankat
 
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvSlag.swift:130: error: -[SwingLabProv.SwingLabProvSlag testSteg7VisionPaKlippet] : failed: caught error: "Error Domain=com.apple.Vision Code=9 "Unable to setup request in VNDetectHumanBodyPoseRequest" UserInfo={NSLocalizedDescription=Unable to setup request in VNDetectHumanBodyPoseRequest}"
-** TEST FAILED **
+** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
-PROV: String Catalog 72 texter i en.lproj
+PROV: String Catalog 59 texter i en.lproj
 PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
 PROV: aac i filen aac 44100.0 Hz 2 kanaler
 PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
@@ -41,10 +39,6 @@ PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
 PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Length 0:03
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
-PROV: kedjan avbruten: Shot 1 could not be analyzed: The operation couldn’t be completed. (SwingLabProv.ProvFel error 1.), steg [Capture.AnalysisStep.sparse(0), Capture.AnalysisStep.sparse(1)]
-PROV: kedjan klar: ["s01 swing 400 rutor klick i klipp 0.9996", "s02 swing 512 rutor klick i klipp 2.1996"], ms/ruta 1.0, linjerna vid t = -0.0079
-PROV: klipp längd 1.5000 s, 260 rutor, första 0.0, klick ["0.49956"], vita ["0.50000"], klicket mot väntat -0.44 ms, märkt false
-PROV: vision fel Error Domain=com.apple.Vision Code=9 "Unable to setup request in VNDetectHumanBodyPoseRequest" UserInfo={NSLocalizedDescription=Unable to setup request in VNDetectHumanBodyPoseRequest}
 PROV: skrev jobba.png (1170×4618 px)
 PROV: skrev jobba-stor.png (390×4368 px)
 PROV: skrev granskning-fo.png (1170×2178 px)

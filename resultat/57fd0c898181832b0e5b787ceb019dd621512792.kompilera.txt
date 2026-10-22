@@ -1,0 +1,55 @@
+57fd0c898181832b0e5b787ceb019dd621512792 positioner 2026-10-22T15:25:49Z run 39802696899 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+GRÖNT: 16 test, 0 fel, 18 s i testerna
+Långsammast (av 16):
+      3.2 s  SwingLabProvInspelning.testFilmenMedAAC
+      2.7 s  SwingLabProvInspelning.testFilmenMedLPCM
+      2.6 s  SwingLabProvInspelning.testKvittotUrFilen
+      2.5 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      2.0 s  SwingLabProvInspelning.testLuckaILjudet
+      1.4 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.3 s  SwingLabProvInspelning.testLjusprovetsLasning
+      0.6 s  SwingLabProvVyer.testAttJobbaPa
+      0.5 s  SwingLabProvVyer.testPasset
+      0.5 s  SwingLabProvVyer.testGranskning
+      0.2 s  SwingLabProvVyer.testUtveckling
+      0.1 s  SwingLabProvVyer.testIdag
+      0.1 s  SwingLabProvInspelning.testLagringen
+      0.0 s  SwingLabProv.testEngelskaTexter
+      0.0 s  SwingLabProv.testSwingLabKitLankat
+
+** TEST SUCCEEDED **
+== provets mätningar (påhittad film)
+PROV: region SE, språk en
+PROV: String Catalog 59 texter i en.lproj
+PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
+PROV: aac i filen aac 44100.0 Hz 2 kanaler
+PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm första tiderna ["0.000000", "0.005000", "0.013333", "0.016667", "0.025000", "0.030000", "0.038333", "0.041667", "0.050000", "0.055000", "0.063333", "0.066667"]
+PROV: lpcm stegen i 10 µs: ["333×128", "500×128", "833×255"]
+PROV: lpcm rutor 512, rutnät 240.0, saknas 0.3324641460234681, största hål 0.008333333333333748
+PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
+PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
+PROV: lpcm ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
+PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Length 0:03
+PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
+PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
+PROV: skrev jobba.png (1170×4618 px)
+PROV: skrev jobba-stor.png (390×4368 px)
+PROV: skrev granskning-fo.png (1170×2178 px)
+PROV: skrev granskning-dtl.png (1170×2178 px)
+PROV: skrev granskning-fo-stor.png (390×899 px)
+PROV: skrev idag.png (1170×2259 px)
+PROV: skrev idag-stor.png (390×1889 px)
+PROV: skrev passet.png (1170×7897 px)
+PROV: skrev passet-dtl.png (1170×3602 px)
+PROV: skrev passet-dtl-stor.png (390×2291 px)
+PROV: skrev utveckling.png (1170×1808 px)
+PROV: skrev utveckling-resa.png (1170×1808 px)
+PROV: skrev utveckling-tempo.png (1170×1808 px)
+PROV: skrev utveckling-stor.png (390×1148 px)
