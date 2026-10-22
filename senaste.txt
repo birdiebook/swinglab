@@ -1,20 +1,20 @@
-56bd015517cb2503dc1c60e14239a48cc1a2ca04 s2i 2026-10-22T19:29:05Z run 39840243521
+db9186c51f4e7de4f1699665924f383ba4ddb4a1 main 2026-10-22T19:47:04Z run 39842897880
 == swift-release
-GRÖNT: 153 test, 0 fel, 4 s i testerna, bygget 30 s
+GRÖNT: 153 test, 0 fel, 6 s i testerna, bygget 36 s
 Långsammast (av 153):
-      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.1 s  SessionTests.testSammanfattningenSomPython
+      0.2 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.2 s  MattTests.testPositionernaIOrdning
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
-      0.0 s  MattTests.testPositionernaIOrdning
-      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
-      0.0 s  VisningTests.testIngaSvenskaTeckenIVisningen
-      0.0 s  KatalogTests.testKontrollernaSomPython
-      0.0 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
-      0.0 s  MattTests.testDePahittadeFormerna
+      0.1 s  VisningTests.testPasset
+      0.1 s  VisningTests.testIdagVisarDenForstaSaken
+      0.1 s  VisningTests.testS5sExempelGarAttLasa
+      0.1 s  VardenaTests.testJamnt240
+      0.1 s  InspelningTests.testRutnatetTalSkakning
+      0.1 s  InspelningTests.testPassID
 
