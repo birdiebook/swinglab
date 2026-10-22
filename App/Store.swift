@@ -85,7 +85,7 @@ final class Store {
             index.upsert(pass.entry)
             try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
         } catch {
-            problem = "pass.json gick inte att spara."
+            problem = String(localized: "pass.json could not be saved.")
         }
     }
 
@@ -96,7 +96,7 @@ final class Store {
         do {
             try PassCoding.encoder().encode(settings).write(to: settingsFile, options: .atomic)
         } catch {
-            problem = "installningar.json gick inte att spara."
+            problem = String(localized: "installningar.json could not be saved.")
         }
     }
 
@@ -131,9 +131,9 @@ final class Store {
             return try PassCoding.decoder().decode(type, from: data)
         } catch {
             let undan = url.deletingLastPathComponent()
-                .appending(path: "\(aside)-oläslig-\(Int(Date().timeIntervalSince1970)).json")
+                .appending(path: "\(aside)-unreadable-\(Int(Date().timeIntervalSince1970)).json")
             try? FileManager.default.moveItem(at: url, to: undan)
-            problem = "\(url.lastPathComponent) gick inte att läsa. Sparad som \(undan.lastPathComponent)."
+            problem = String(localized: "\(url.lastPathComponent) could not be read. Saved as \(undan.lastPathComponent).")
             return nil
         }
     }

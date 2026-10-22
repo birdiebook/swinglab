@@ -11,9 +11,9 @@ enum MediaReader {
         case noVideo, cannotRead, blockCopy
         var errorDescription: String? {
             switch self {
-            case .noVideo: return "Filen har ingen video."
-            case .cannotRead: return "Filen gick inte att läsa."
-            case .blockCopy: return "Ljudet gick inte att läsa."
+            case .noVideo: return String(localized: "The file has no video.")
+            case .cannotRead: return String(localized: "The file could not be read.")
+            case .blockCopy: return String(localized: "The audio could not be read.")
             }
         }
     }

@@ -187,7 +187,11 @@ final class InspelningTests: XCTestCase {
         XCTAssertEqual(PassSetup.clampDistance(0.1), 1.0)
         XCTAssertEqual(PassSetup.clampDistance(40), 8.0)
         XCTAssertEqual(PassSetup.clampDistance(.nan), 3.0)
-        XCTAssertEqual(PassSetup.clubLabel("j7"), "J7")
+        // Engelska etiketter (BESLUT B30), manifestets id oförändrade.
+        XCTAssertEqual(PassSetup.clubLabel("j7"), "7i")
+        XCTAssertEqual(PassSetup.clubLabel("t3"), "3W")
+        XCTAssertEqual(PassSetup.clubLabel("h4"), "4H")
+        XCTAssertEqual(PassSetup.clubLabel("pw"), "PW")
         XCTAssertEqual(PassSetup.clubLabel("dr"), "Dr")
         XCTAssertTrue(PassSetup.clubs.contains(PassSetup().club))
         XCTAssertEqual(PassSetup().soundDelay, 3.0 / 343, accuracy: 1e-12)
@@ -293,15 +297,19 @@ final class InspelningTests: XCTestCase {
                                   start: Date(), startHost: nil, facts: facts())
         s.pressure = .serious
         let r = Receipt.rows(s)
-        XCTAssertEqual(r.map(\.label), ["Bilder/s", "Tappade", "Rutor", "Klick", "MB/min", "Längd", "Värme"])
-        XCTAssertEqual(r[0], ReceiptRow("Bilder/s", "240", .good))
-        XCTAssertEqual(r[1].value, "33 %")
+        XCTAssertEqual(r.map(\.label), ["fps", "Dropped", "Frames", "Clicks", "MB/min", "Length", "Heat"])
+        XCTAssertEqual(r[0], ReceiptRow("fps", "240", .good))
+        XCTAssertEqual(r[1].value, "33%")
         XCTAssertEqual(r[1].light, .tooDark)
         XCTAssertEqual(r[2].value, "480")
         XCTAssertEqual(r[3].value, "2")
         XCTAssertEqual(r[4].value, "300")
         XCTAssertEqual(r[5].value, "0:03")
-        XCTAssertEqual(r[6], ReceiptRow("Värme", "hög", .marginal))
+        XCTAssertEqual(r[6], ReceiptRow("Heat", "serious", .marginal))
+        // Inga svenska tecken i det kvittot visar (BESLUT B30).
+        for p in Pressure.allCases { XCTAssertNil(Receipt.pressureName(p).rangeOfCharacter(from: Self.svenska), "\(p)") }
+        for rad in r { XCTAssertNil((rad.label + rad.value).rangeOfCharacter(from: Self.svenska), rad.label) }
+        XCTAssertNil(ImportCheck.refusal.rangeOfCharacter(from: Self.svenska))
         // 120 bilder/s är slowmotion men inte 240: gul. 30 är inte slowmotion: röd.
         XCTAssertEqual(Receipt.rateLight(FrameTiming.analyze((0..<240).map { Double($0) / 120 })), .marginal)
         XCTAssertEqual(Receipt.rateLight(FrameTiming.analyze((0..<90).map { Double($0) / 30 })), .tooDark)
@@ -316,28 +324,33 @@ final class InspelningTests: XCTestCase {
         let morkt = Exposure.plan(aeDuration: 1.0 / 2000, aeISO: 2000, aeOffsetEV: -1.3, format: format)
         let c = Flicker.check(exposure: morkt, timing: timing, luma: t.map { _ in 0.3 }, times: t)
         let r = Receipt.rows(c)
-        XCTAssertEqual(r[0], ReceiptRow("Ljus", "För mörkt: 1,3 steg", .tooDark))
-        XCTAssertEqual(r[1], ReceiptRow("Flimmer", "0 %", .good))
-        XCTAssertEqual(r[2], ReceiptRow("Rutor", "240 bilder/s, 0 % tappade", .good))
-        XCTAssertEqual(r[3], ReceiptRow("Ljushet", "30 %", .good))
+        XCTAssertEqual(r[0], ReceiptRow("Light", "Too dark: 1.3 stops", .tooDark))
+        XCTAssertEqual(r[1], ReceiptRow("Flicker", "0%", .good))
+        XCTAssertEqual(r[2], ReceiptRow("Frames", "240 fps, 0% dropped", .good))
+        XCTAssertEqual(r[3], ReceiptRow("Brightness", "30%", .good))
+        for rad in r { XCTAssertNil((rad.label + rad.value).rangeOfCharacter(from: Self.svenska), rad.label) }
         let ljust = Exposure.plan(aeDuration: 1.0 / 2000, aeISO: 640, aeOffsetEV: 0, format: format)
         let c2 = Flicker.check(exposure: ljust, timing: timing, luma: t.map { _ in 0.3 }, times: t)
         XCTAssertEqual(Receipt.rows(c2)[0], ReceiptRow("ISO", "640", .good))
     }
 
-    func testSvenskaTal() {
-        XCTAssertEqual(Swedish.integer(43_776), "43\u{00A0}776")
-        XCTAssertEqual(Swedish.integer(2176), "2176")
-        XCTAssertEqual(Swedish.integer(-5), "−5")
-        XCTAssertEqual(Swedish.decimal(1.26, digits: 1), "1,3")
-        XCTAssertEqual(Swedish.decimal(-0.01, digits: 1), "0,0")
-        XCTAssertEqual(Swedish.percent(0.0004), "0 %")
-        XCTAssertEqual(Swedish.percent(0.0006), "0,1 %")
-        XCTAssertEqual(Swedish.percent(0.004), "0,4 %")
-        XCTAssertEqual(Swedish.percent(0.123), "12 %")
-        XCTAssertEqual(Swedish.percent(0), "0 %")
-        XCTAssertEqual(Swedish.duration(182.4), "3:02")
-        XCTAssertEqual(Swedish.integer(.nan), "–")
+    /// Å, ä och ö: får inte stå i något som appen visar (BESLUT B30).
+    static let svenska = CharacterSet(charactersIn: "åäöÅÄÖ")
+
+    func testTalPaEngelska() {
+        XCTAssertEqual(Taltext.integer(43_776), "43,776")
+        XCTAssertEqual(Taltext.integer(2176), "2176")
+        XCTAssertEqual(Taltext.integer(-5), "−5")
+        XCTAssertEqual(Taltext.decimal(1.26, digits: 1), "1.3")
+        XCTAssertEqual(Taltext.decimal(-0.01, digits: 1), "0.0")
+        XCTAssertEqual(Taltext.decimal(-2.4, digits: 1), "−2.4")
+        XCTAssertEqual(Taltext.percent(0.0004), "0%")
+        XCTAssertEqual(Taltext.percent(0.0006), "0.1%")
+        XCTAssertEqual(Taltext.percent(0.004), "0.4%")
+        XCTAssertEqual(Taltext.percent(0.123), "12%")
+        XCTAssertEqual(Taltext.percent(0), "0%")
+        XCTAssertEqual(Taltext.duration(182.4), "3:02")
+        XCTAssertEqual(Taltext.integer(.nan), "–")
     }
 
     // MARK: Importen

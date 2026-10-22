@@ -195,16 +195,17 @@ struct ImportView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    Skarmrubrik("Import from Photos")
                     PhotosPicker(selection: $items, matching: .videos, preferredItemEncoding: .current,
                                  photoLibrary: .shared()) {
-                        Text("Välj klipp")
+                        Text("Choose clips")
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(importer.running)
 
                     if importer.running {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("\(importer.current) av \(importer.total)")
+                            Text("\(importer.current) of \(importer.total)")
                                 .font(Theme.number(15))
                                 .foregroundStyle(Theme.secondary)
                             ProgressView(value: importer.fraction).tint(Theme.text)
@@ -212,7 +213,7 @@ struct ImportView: View {
                     }
 
                     if importer.askFullAccess {
-                        Button("Full åtkomst till Bilder") {
+                        Button("Full access to Photos") {
                             if let u = URL(string: UIApplication.openSettingsURLString) { openURL(u) }
                         }
                         .buttonStyle(RowButtonStyle())
@@ -220,9 +221,9 @@ struct ImportView: View {
 
                     ForEach(importer.outcomes) { o in
                         if let s = o.series {
-                            ReceiptCard(title: "Serie \(s.nr)", rows: Receipt.rows(s))
+                            ReceiptCard(title: String(localized: "Set \(s.nr)"), rows: Receipt.rows(s))
                         } else {
-                            Text(o.refused ? ImportCheck.refusal : "Klippet gick inte att hämta.")
+                            Text(verbatim: o.refused ? ImportCheck.refusal : String(localized: "The clip could not be loaded."))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Theme.flag)
                         }
@@ -231,11 +232,10 @@ struct ImportView: View {
                 .padding(20)
             }
             .background(Theme.ground, ignoresSafeAreaEdges: .all)
-            .navigationTitle("Hämta ur Bilder")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Stäng", action: onClose).disabled(importer.running)
+                    Button("Close", action: onClose).disabled(importer.running)
                 }
             }
         }

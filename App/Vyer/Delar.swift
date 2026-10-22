@@ -37,7 +37,26 @@ extension View {
     }
 }
 
-/// Liten etikett i versaler: "FO · TOPP", "ÖVNING".
+/// Skärmens rubrik i innehållet: bryts i stället för att kortas vid största
+/// textstorleken (navigeringsradens titel kortas).
+struct Skarmrubrik: View {
+    let titel: LocalizedStringKey
+
+    init(_ titel: LocalizedStringKey) { self.titel = titel }
+
+    var body: some View {
+        Text(titel)
+            .tracking(-0.4)
+            .typsnitt(22, .semibold)
+            .foregroundStyle(Theme.text)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+    }
+}
+
+/// Liten etikett i versaler: "FO · TOP", "DRILL".
 struct Etikett: View {
     let text: String
     var farg: Color = Theme.tertiary
@@ -124,33 +143,53 @@ struct Sektion<Innehall: View>: View {
     }
 }
 
-/// Raden överst i ett flöde: tillbaka, titeln i mitten och något till höger.
+/// Raden överst i ett flöde: tillbaka, titeln i mitten och något till höger. Får
+/// titeln inte plats på en rad (största textstorleken) står den under knapparna
+/// och bryts, i stället för att kortas.
 struct Navrad<Hoger: View>: View {
     let titel: String
     @ViewBuilder var hoger: () -> Hoger
     var tillbaka: () -> Void = {}
 
+    private var knapp: some View {
+        Button(action: tillbaka) {
+            Image(systemName: "chevron.left")
+                .typsnitt(17, .medium)
+                .foregroundStyle(Theme.secondary)
+                .frame(width: 40, height: 40)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var text: some View {
+        Text(titel)
+            .monospacedDigit()
+            .typsnitt(16, .semibold)
+            .foregroundStyle(Theme.text)
+    }
+
     var body: some View {
-        ZStack {
-            Text(titel)
-                .monospacedDigit()
-                .typsnitt(16, .semibold)
-                .foregroundStyle(Theme.text)
-                .lineLimit(1)
-                .padding(.horizontal, 56)
-            HStack {
-                Button(action: tillbaka) {
-                    Image(systemName: "chevron.left")
-                        .typsnitt(17, .medium)
-                        .foregroundStyle(Theme.secondary)
-                        .frame(width: 40, height: 40)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                knapp
+                Spacer(minLength: 0)
+                text.lineLimit(1).fixedSize()
+                Spacer(minLength: 0)
+                hoger().fixedSize()
+            }
+            .frame(minHeight: 44)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    knapp
+                    Spacer()
+                    hoger()
                 }
-                .buttonStyle(.plain)
-                Spacer()
-                hoger()
+                .frame(minHeight: 44)
+                text
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(minHeight: 44)
         .padding(.bottom, 8)
     }
 }

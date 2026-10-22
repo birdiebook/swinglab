@@ -62,7 +62,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         guard phase == .idle || phase == .failed else { return }
         phase = .starting
         guard await AVCaptureDevice.requestAccess(for: .video) else {
-            problem = "Kameran är avstängd för SwingLab i Inställningar."
+            problem = String(localized: "Camera access is off for SwingLab in Settings.")
             phase = .failed
             return
         }
@@ -97,7 +97,8 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             await onQueue { self.tearDown() }
             chosen = nil
             problem = (error as? CameraError) == .noFormat
-                ? "Inget format i 1080p med minst 120 bilder/s." : "Kameran gick inte att starta."
+                ? String(localized: "No 1080p format with at least 120 fps.")
+                : String(localized: "The camera could not start.")
             phase = .failed
         }
     }
@@ -122,7 +123,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
     func startSeries(to url: URL, available: Int64?) {
         guard phase == .ready else { return }
         guard PassStorage.canStart(available: available) else {
-            problem = "Under 4 GB ledigt."
+            problem = String(localized: "Less than 4 GB free.")
             return
         }
         problem = nil
@@ -203,7 +204,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             }
             return
         }
-        if !ok { problem = "Inspelningen avbröts." }
+        if !ok { problem = String(localized: "The recording was interrupted.") }
         let f = Finished(url: url, startHost: startHosts.removeValue(forKey: url), started: seriesStart,
                          pressure: seriesPressure, ok: ok)
         if phase == .recording { phase = .ready }
@@ -381,12 +382,12 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         observers.append(nc.addObserver(forName: AVCaptureSession.wasInterruptedNotification, object: session,
                                         queue: .main) { [weak self] _ in
             guard let self else { return }
-            self.problem = "Avbruten."
+            self.problem = String(localized: "Interrupted.")
             self.stopSeries()
         })
         observers.append(nc.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: session,
                                         queue: .main) { [weak self] _ in
-            self?.problem = "Kameran stannade."
+            self?.problem = String(localized: "The camera stopped.")
             self?.stopSeries()
         })
     }

@@ -13,7 +13,7 @@ och körs alltid mot passets analys och minnet före passet:
   samma övning fortsätter;
 - följdfel bara enligt kedjorna, övningar bara ur katalogen eller kedjor.json,
   "troligen rörlighet" bara enligt treregeln;
-- fritexten utan siffror, värdeord och utropstecken.
+- fritexten på engelska (BESLUT B30), utan siffror, värdeord och utropstecken.
 
 METOD MT5, MT6, MT8
 """
@@ -45,16 +45,20 @@ STEG = ("langsamt_med_foremal", "halv_fart", "full_fart", "varierat")
 # Treregeln (research 3 §5): [syns i full sving, ett kopplat test fallerar,
 # går inte heller långsamt utan klubba] → typen. METOD MT5
 TRE_REGELN = {(True, True, True): "troligen_rorlighet", (True, True, False): "teknik_kroppen_gor_det_svart"}
-# Värdeord på ordstam (BESLUT B13, regel 4). Ett ord fälls om det är `bra` eller
-# börjar på en stam, utom undantagen. METOD MT8
-VARDEORD = ("bra",)
-STAMMAR = ("bäst", "bättr", "sämr", "sämst", "fin", "duktig", "topp", "dålig", "perfekt", "utmärk", "fantastisk",
-           "snygg", "grym", "super", "underbar", "jättebra", "felfri", "klockren", "suverän", "lysande", "imponer",
-           "beröm", "grattis", "bravo", "tyvärr", "tråkig", "kanon", "härlig", "strålande", "utmärkt")
-UNDANTAG = ("finish", "finn", "fing", "final")      # finishen, finns, fingrarna: inga värdeord
-# "toppen" är svingens fas efter en preposition ("i toppen", "till toppen"), eller
-# en plats före "av" ("toppen av kepsen").
-FAS_FORE = ("i", "till", "vid", "från", "mot", "före", "efter", "nära", "upp")
+# Värdeord på ordstam (BESLUT B13, regel 4), på engelska som appen (BESLUT B30).
+# Ett ord fälls om det står i VARDEORD eller börjar på en stam, utom undantagen.
+# METOD MT8
+VARDEORD = ("fine", "finer", "finest", "ok", "okay", "wow", "yay", "bravo", "ideal", "ideally")
+STAMMAR = ("good", "better", "best", "worse", "worst", "bad", "poor", "great", "perfect", "nice", "excellen",
+           "awesome", "amazing", "fantastic", "terrific", "terribl", "horribl", "awful", "brillian", "superb",
+           "wonderful", "outstanding", "impressiv", "beautiful", "lovely", "gorgeous", "flawless", "congrat",
+           "unfortunat", "sloppy", "ugly", "incredibl", "remarkabl", "magnificent", "splendid", "marvel",
+           "stunning", "spectacular", "fabulous", "solid", "mistake", "wrong")
+# Ord som börjar på en stam utan att vara värdeord. "strong" och "weak" saknas med
+# flit: ett starkt eller svagt grepp är golfens ord för greppet, inget omdöme.
+UNDANTAG = ("badge", "badminton", "bestow")
+# Fritexten är engelska (BESLUT B30): svenska tecken fälls.
+SVENSKA = re.compile(r"[åäöÅÄÖ]")
 PASS_ID = re.compile(r"^\d{8}-\d{6}$")
 _ORD = re.compile(r"[a-zåäöéü]+", re.I)
 
@@ -71,11 +75,8 @@ BLOCK = ("start", "vecka")
 def vardeord(text: str) -> str | None:
     """Det första värdeordet i texten, eller None."""
     ord_ = [m.group(0).lower() for m in _ORD.finditer(text)]
-    for i, o in enumerate(ord_):
+    for o in ord_:
         if o.startswith(UNDANTAG):
-            continue
-        if o in ("toppen", "toppens") and ((i > 0 and ord_[i - 1] in FAS_FORE)
-                                           or (i + 1 < len(ord_) and ord_[i + 1] == "av")):
             continue
         if o in VARDEORD or o.startswith(STAMMAR):
             return o
@@ -95,6 +96,8 @@ def _fritext(v, falt: str, maxlen: int, fel: list[str]) -> None:
         fel.append(f"{falt}: värdeord ({o}) hör inte hemma i appens text")
     if "!" in v:
         fel.append(f"{falt}: inga utropstecken")
+    if SVENSKA.search(v):
+        fel.append(f"{falt}: på engelska, som allt i appen (BESLUT B30)")
 
 
 def _nycklar(d, tillatna: tuple, falt: str, fel: list[str]) -> bool:

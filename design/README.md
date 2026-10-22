@@ -18,12 +18,13 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 3. **Datan bär sidan.** Ett mått är namn, tal, enhet och spannet som en tunn
    linje med en markör. Geometri bara där den är själva måttet (en vinkel som
    två linjer).
-4. **Inga värdeord.** Förändring visas som tecken och tal ("+1,2 cm mot 6 jan"),
+4. **Inga värdeord.** Förändring visas som tecken och tal ("+1.2 cm vs Jan 6",
+   på engelska, BESLUT B30),
    och läget som en markör i spannet. Ingen totalpoäng.
 5. **Ingen beskrivande text.** Bara etiketter, tal, enheter och det som måste
    läsas för att använda appen: övningens namn, tanken och "klart när" som ett
    villkor i tal. Märkningarna är små symboler med en kort etikett: B10 (gräns
-   ej läst i original), egen (egen baslinje), av (avstängt mått).
+   ej läst i original), own (egen baslinje), off (avstängt mått).
 6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.
@@ -37,6 +38,15 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
     kort i Passet, sin rad på Idag, sin linje i Utveckling, sin uppmätta linje i
     Granskningen och i kedjan. Bara tunna linjer, markören och en etikett,
     aldrig ytor, knappar eller bakgrunder. Aldrig som dom över bra eller dåligt.
+
+## Språket (BESLUT B30, B33)
+
+Appen är på engelska; dokumenten och koden använder de svenska namnen. Skärmarna
+heter Today (Idag), Session (Passet), Progress (Utveckling), Work on (Att jobba
+på) och Review (Granskning). I appen: Drill (övning), Thought (tanke), Done when
+(klart när), Mobility (rörlighet), First set (första serien), Shots (slagen) och
+positionerna Address, Top, Impact och Finish. Klubborna skrivs 7i, 3W, 4H, PW,
+Dr. Tal med decimalpunkt och äkta minus ("−2.4 cm"), datum "Jan 9".
 
 ## Paletten
 

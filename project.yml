@@ -4,6 +4,8 @@
 name: SwingLab
 options:
   bundleIdPrefix: se.birdiebook
+  # BESLUT B30: appen är på engelska, grundspråket för App/Localizable.xcstrings (B33).
+  developmentLanguage: en
   # BESLUT B19: 18.2 för filens starttid på telefonens klocka (startPTS).
   deploymentTarget:
     iOS: "18.2"
@@ -36,6 +38,7 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: SwingLab
+        CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
@@ -43,12 +46,13 @@ targets:
           - UIInterfaceOrientationPortrait
         # Utan den här fastnar varje bygge på exportfrågan i App Store Connect.
         ITSAppUsesNonExemptEncryption: false
-        # Texterna visas i frågorna om tillåtelse (S2_SPEC §10.1). Saknas en kraschar appen vid frågan.
-        NSCameraUsageDescription: SwingLab filmar svingen i slowmotion. Videon stannar på telefonen.
-        NSMicrophoneUsageDescription: SwingLab spelar in ljudet för att hitta träffens klick. Ljudet stannar på telefonen.
-        NSPhotoLibraryUsageDescription: SwingLab hämtar slowmotion-originalet ur Bilder för att mäta svingen.
+        # Texterna visas i frågorna om tillåtelse (S2_SPEC §10.1), på engelska (BESLUT B30).
+        # Saknas en kraschar appen vid frågan.
+        NSCameraUsageDescription: SwingLab films your swing in slow motion. The video stays on the phone.
+        NSMicrophoneUsageDescription: SwingLab records sound to find the click of impact. The sound stays on the phone.
+        NSPhotoLibraryUsageDescription: SwingLab loads the slow-motion original from Photos to measure your swing.
         # BESLUT B21: två telefoner över Network.framework med Bonjour.
-        NSLocalNetworkUsageDescription: SwingLab kopplar ihop två telefoner som filmar samma sving.
+        NSLocalNetworkUsageDescription: SwingLab connects two phones filming the same swing.
         NSBonjourServices:
           - _swinglab._tcp
         # Documents/Export syns i Filer och i Apple Devices över kabel (som Idunn).
@@ -93,7 +97,7 @@ schemes:
     test:
       # Release som TestFlight; kompilera.yml sätter ENABLE_TESTABILITY=YES (som Idunn).
       config: Release
-      language: sv
-      region: SE
+      language: en
+      region: US
       targets:
         - SwingLabProv

@@ -99,7 +99,7 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ]}`, där va
 | Fält | Typ | Betydelse |
 |---|---|---|
 | `id` | text | Unikt. |
-| `namn` | text | Det Johannes ser. |
+| `namn` | text | Det Johannes ser, på engelska (BESLUT B30). |
 | `vy` | text | `"dtl"`, `"fo"` eller `"bada"` (måttet över alla svingar, tempot). |
 | `matt` | text | Måttets namn; måste finnas i vyn. |
 | `fas` | text | Var i svingen felet syns (`adress`, `topp`, `nedsving`, `traff`, `efter_traff`, `hela`). Bara för visningen. |
@@ -110,8 +110,8 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ]}`, där va
 | `kontrollerad` | bool | `false` tills källan lästs i original (BESLUT B10). |
 | `aktiv` | bool | `false` = felet bedöms inte (axellutningen, METOD M17). |
 | `samre` | `"+"`, `"-"` eller `null` | Åt vilket håll måttet blir sämre, för den egna baslinjen. `null` = båda. |
-| `ovning` | text | Övningen. |
-| `tanke` | text | Tanken under svingen, med extern fokus (research 3). |
+| `ovning` | text | Övningen, på engelska (BESLUT B30). |
+| `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
 | `notering` | text | Valfri. Varför gränsen ser ut som den gör. |
 
 Bedömningen (grönt, gult, rött, okänt, av) står i METOD M27.
@@ -189,16 +189,16 @@ okänd eller saknad nyckel fälls.
  "saker": [{
   "ordning": 1,
   "fel": "sway_topp",
-  "namn": "Bäckenet glider bakåt i baksvingen",
+  "namn": "Sway: the pelvis slides away from the target in the backswing",
   "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
   "nu": -5.7, "spann": [0, null], "markning": "B10",
-  "ovning": {"text": "Käpp i marken …", "tanke": "Rör inte käppen.", "kalla": "katalog",
+  "ovning": {"text": "Stick in the ground …", "tanke": "Don't touch the stick.", "kalla": "katalog",
              "steg": "langsamt_med_foremal"},
   "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
   "foljdfel": [
-   {"fel": "reverse_spine", "namn": "Reverse spine: överkroppen lutar mot målet i toppen",
+   {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top",
     "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
-   {"fel": "early_extension", "namn": "Early extension: bäckenet mot bollen",
+   {"fel": "early_extension", "namn": "Early extension: the pelvis moves toward the ball",
     "vag": ["sway_topp", "reverse_spine", "early_extension"], "nu": 3.3, "enhet": "cm"}
   ],
   "typ": "teknik",
@@ -241,7 +241,7 @@ okänd eller saknad nyckel fälls.
 | Fält | Typ | Krav och betydelse |
 |---|---|---|
 | `text` | text | övningen: katalogens ordagrant (`kalla: "katalog"`), eller en av felets övningar i `tools/pc/kedjor.json` ordagrant (`kalla: "research3"`). Aldrig fritext |
-| `tanke` | text | tanken under svingen, extern fokus, högst 60 tecken, utan siffror, värdeord och utropstecken (METOD MT8) |
+| `tanke` | text | tanken under svingen på engelska, extern fokus, högst 60 tecken, utan siffror, värdeord och utropstecken (METOD MT8) |
 | `kalla` | text | `"katalog"` eller `"research3"` |
 | `steg` | text | var Johannes är: ett av `"langsamt_med_foremal"`, `"halv_fart"`, `"full_fart"`, `"varierat"`, i den ordningen (METOD MT10). En ny övning börjar på första; en som fortsätter står kvar eller tar nästa |
 
@@ -256,7 +256,8 @@ Vyn visar alla fyra stegen och markerar `steg`.
 | `pa` | text | `"forsta_serien"`: medianen av de fem första slagen i serie 1 nästa pass, före uppvärmningen (METOD MT2) |
 | `pass_i_rad` | heltal | `2`: villkoret ska hållas två pass i rad |
 
-Vyn skriver det som ett villkor i tal, till exempel "första serien ≥ 0 cm, 2 pass".
+Vyn skriver det som ett villkor i tal på engelska (BESLUT B30), till exempel
+"First set ≥ 0 cm" och "2 sessions in a row".
 
 ### Följdfelen (`foljdfel[]`): kedjan
 
@@ -291,10 +292,13 @@ Vyn ritar kedjan grundorsak → följdfel med följdfelens tal.
 | `start` | text | dagen (`yyyy-MM-dd`) då felet först valdes; följer felet genom bytta övningar, och börjar om när felet väljs igen efter ett uppehåll |
 | `vecka` | heltal | hela veckor från `start` till passet + 1 (METOD MT10) |
 
-Vyn visar "vecka 3" i blocket (research 3 §4: 4–6 veckor per grundorsak).
+Vyn visar "week 3" i blocket (research 3 §4: 4–6 veckor per grundorsak).
 
-Ingen text bär värdeord, siffror i fritext eller utropstecken (BESLUT B13,
-METOD MT8). Rapporten till Johannes står i chatten, inte i filen.
+All text i filen är engelska, eftersom appen visar den som den står (BESLUT
+B30): `namn` och övningarna är katalogens och kedjornas, och fritexten (`tanke`,
+`fysik.ovning`) skrivs på engelska; kontrollen fäller å, ä och ö där. Ingen text
+bär värdeord, siffror i fritext eller utropstecken (BESLUT B13, METOD MT8).
+Rapporten till Johannes står i chatten, inte i filen, och får vara svensk.
 
 ## Historiken: `data/historik/`
 

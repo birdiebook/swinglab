@@ -7,12 +7,12 @@ import Foundation
 public struct AttJobbaPaVisning: Sendable {
     /// Ett följdfel i kedjan: vägen från saken och följdfelets tal.
     public struct Foljd: Equatable, Sendable {
-        /// Måttens korta namn längs vägen, utan saken: ["Sidböjning", "Thrust"].
+        /// Måttens korta namn längs vägen, utan saken: ["Side bend", "Thrust"].
         public let vag: [String]
         public let varde: String
         public let enhet: String
 
-        /// "Sidböjning, Thrust +3,3 cm"
+        /// "Side bend, Thrust +3.3 cm"
         public var upplasning: String { "\(vag.joined(separator: ", ")) \(Tal.medEnhet(varde, enhet))" }
     }
 
@@ -22,10 +22,10 @@ public struct AttJobbaPaVisning: Sendable {
         public let ordning: Int
         /// Måttets korta namn: "Sway".
         public let namn: String
-        /// "FO · topp · vecka 5"
+        /// "FO · top · week 5"
         public let rubrik: String
         public let markning: Markning?
-        /// Du nu: "−2,4" (filens `nu`).
+        /// Du nu: "−2.4" (filens `nu`).
         public let nu: String
         public let enhet: String
         /// Målet som spann: katalogens gröna spann med Du nu som markör; nil för egen baslinje.
@@ -35,11 +35,11 @@ public struct AttJobbaPaVisning: Sendable {
         public let steg: [(namn: String, lage: Steglage)]
         /// Rörligheten när typen inte är ren teknik: testet och övningen.
         public let rorlighet: (test: String, ovning: String?)?
-        /// "”Rör inte käppen.”"
+        /// "“Leave the stick standing.”"
         public let tanke: String
-        /// "Första serien ≥ 0 cm"
+        /// "First set ≥ 0 cm"
         public let villkor: String
-        /// "2 pass i rad"
+        /// "2 sessions in a row"
         public let villkorUnder: String
 
         /// Saken i ord för VoiceOver: namnet, Du nu, målet och veckan.
@@ -54,21 +54,20 @@ public struct AttJobbaPaVisning: Sendable {
         /// Hela saken i ord, för en sammanslagen VoiceOver-etikett.
         public var upplasningHel: String {
             var d = [upplasning]
-            d += foljd.map { "följd: \($0.upplasning)" }
-            d.append("övning: \(ovning)")
-            if let nu = steg.first(where: { $0.lage == .nu }) { d.append("steg: \(nu.namn)") }
-            if let r = rorlighet { d.append("rörlighet: \(r.test)" + (r.ovning.map { ", \($0)" } ?? "")) }
-            d.append("tanke: \(tanke)")
-            d.append("klart när: \(villkor), \(villkorUnder)")
+            d += foljd.map { Texter.upplasningFoljd($0.upplasning) }
+            d.append(Texter.upplasningOvning(ovning))
+            if let nu = steg.first(where: { $0.lage == .nu }) { d.append(Texter.upplasningSteg(nu.namn)) }
+            if let r = rorlighet { d.append(Texter.upplasningRorlighet(r.test + (r.ovning.map { ", \($0)" } ?? ""))) }
+            d.append(Texter.upplasningTanke(tanke))
+            d.append(Texter.upplasningKlartNar("\(villkor), \(villkorUnder)"))
             return d.joined(separator: ". ")
         }
     }
 
     /// Stegens namn i vyn, i S5:s ordning.
-    public static let stegnamn = ["langsamt_med_foremal": "Långsamt", "halv_fart": "Halv fart",
-                                  "full_fart": "Full fart", "varierat": "Varierat"]
+    public static var stegnamn: [String: String] { Texter.stegnamn }
 
-    /// "3 nov": passet tolkningen bygger på.
+    /// "Nov 3": passet tolkningen bygger på.
     public let fran: String
     public let saker: [Sakvisning]
 
@@ -86,7 +85,7 @@ public struct AttJobbaPaVisning: Sendable {
             let e = Etiketter.etikett(s.matt)
             var r = [e.vy ?? Etiketter.vy(s.vy)]
             if !e.fas.isEmpty { r.append(e.fas) }
-            r.append("vecka \(s.block.vecka)")
+            r.append(Texter.vecka(s.block.vecka))
             let markning: Markning? = s.markning == "B10" ? .b10 : s.markning == "egen" ? .egen : nil
             var mal: Spann? = nil
             if let nu = s.nu, let g = s.spann {
@@ -118,9 +117,9 @@ public struct AttJobbaPaVisning: Sendable {
             return Sakvisning(
                 ordning: s.ordning, namn: e.namn, rubrik: r.joined(separator: " · "), markning: markning,
                 nu: Mattkort.text(s.nu, e), enhet: s.enhet, mal: mal, foljd: foljd, ovning: s.ovning.text,
-                steg: steg, rorlighet: rorlighet, tanke: "”\(s.ovning.tanke)”",
-                villkor: Tal.medEnhet("Första serien \(grans)", s.enhet),
-                villkorUnder: "\(k.passIRad) pass i rad")
+                steg: steg, rorlighet: rorlighet, tanke: Texter.citat(s.ovning.tanke),
+                villkor: Tal.medEnhet(Texter.forstaSerien(grans), s.enhet),
+                villkorUnder: Texter.passIRad(k.passIRad))
         }
     }
 }
@@ -138,7 +137,7 @@ public struct Idagvisning: Sendable {
         /// Måttet övas just nu (BESLUT B31).
         public let ovas: Bool
 
-        /// "Sway −2,4 cm, mål från 0 cm"
+        /// "Sway −2.4 cm, target from 0 cm"
         public var upplasning: String {
             let m = spann.upplasning
             return "\(namn) \(Tal.medEnhet(varde, enhet))" + (m.isEmpty ? "" : ", \(m)")
@@ -148,13 +147,13 @@ public struct Idagvisning: Sendable {
     public struct Forsta: Sendable {
         public let namn: String
         public let tanke: String
-        /// Saken och dess närmaste följdfel: "Sway", "Sidböjning", "Resa framåt".
+        /// Saken och dess närmaste följdfel: "Sway", "Side bend", "Forward shift".
         public let kedja: [String]
     }
 
-    /// "tis 13 jan"
+    /// "Tue, Jan 13"
     public let dag: String
-    /// "lör 9 jan · järn 7 · 34"
+    /// "Sat, Jan 9 · 7-iron · 34"
     public let senaste: String?
     public let rader: [Rad]
     public let forsta: Forsta?

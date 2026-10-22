@@ -17,6 +17,12 @@ utmapp i repot utanför `data/`. Exemplen här är påhittade.
 
 På Windows heter kommandot `python`, inte `python3`.
 
+**Språket (BESLUT B30):** allt i `att_jobba_pa.json` visas i appen som det står
+och skrivs därför på **engelska**: katalogens och kedjornas namn och övningar
+(redan engelska, skrivs av ordagrant), tanken och rörlighetsövningen. Kontrollen
+fäller å, ä och ö i fritexten. **Rapporten till Johannes i chatten får vara
+svensk.**
+
 ## Kommandona
 
 Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
@@ -120,9 +126,9 @@ egen baslinje på 8 svingar. Säg i rapporten vilken sort varje gräns är.
 ordagrant (`kalla: "katalog"`) eller en av felets övningar i `kedjor.json`
 (`kalla: "research3"`). En ny övning börjar på `langsamt_med_foremal`; sedan
 halv fart, full fart, varierat, ett steg i taget när Johannes klarar steget.
-Tanken har **extern fokus**: vad klubban, bollen eller ett föremål (stol, käpp,
-vägg, headcover) gör, aldrig vad en led gör ("Rör inte käppen", inte "Håll
-höften stilla"). Högst 60 tecken, inga siffror.
+Tanken skrivs på engelska och har **extern fokus**: vad klubban, bollen eller ett
+föremål (stol, käpp, vägg, headcover) gör, aldrig vad en led gör ("Don't touch
+the stick", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 
 **J. "Klart när" som ett villkor i tal på första serien.** En ny övning: skriv
 av analysens `klart_nar` för felet (`villkor`, `grans`) och dess `markning`.
@@ -146,10 +152,11 @@ dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
 - **Flytta "klart när"** för en övning som fortsätter.
 - **Ändra `katalog.json` eller `kedjor.json`** under en tolkning. Ändringar där
   är egna commits med källa (BESLUT B6, B10).
-- **Värdeord eller siffror i appens fritext** (BESLUT B13): inget "bra",
-  "bättre", "finare", "toppen", "duktig", "perfekt", inga utropstecken, ingen
+- **Värdeord eller siffror i appens fritext** (BESLUT B13): inget "good",
+  "better", "best", "great", "nice", "perfect", inga utropstecken, ingen
   totalpoäng. Förändring är tecken och tal i rapporten ("+2,2 cm mot 3 nov").
-  Kontrollen fäller värdeord på ordstam.
+  Kontrollen fäller värdeord på ordstam (engelska listan, METOD MT8).
+- **Svenska i appens text** (BESLUT B30): filens fritext är engelska.
 - **Ge ett följdfel en egen övning**, väcka en avslutad övning, eller byta en
   övning som rör sig.
 - **Säga att något är rörlighet** utan treregeln, eller säga "är" i stället för
@@ -164,7 +171,7 @@ dess + 1. Ett block är 4–6 veckor per grundorsak (research 3 §4).
    Pass 3 nov, 16 slag (8 FO, 8 DTL), j7. Missen: tunn (Johannes).
    1. Bäckenet glider bakåt i baksvingen: −5,7 cm, grönt ≥ 0 (B10). Rött.
       Kedjan: → reverse spine → early extension; → resan framåt → tappad hållning; → sway gap.
-      Övning: käppen vid bakre höften, långsamt med käppen. Tanke: "Rör inte käppen."
+      Övning: käppen vid bakre höften, långsamt med käppen. Tanke: "Don't touch the stick."
       Klart när: första serien ≥ 0 cm, två pass i rad. Block vecka 1.
    Förra valet: — (första passet).
    Fil att dela: data/historik/att_jobba_pa/20261103-180000.json

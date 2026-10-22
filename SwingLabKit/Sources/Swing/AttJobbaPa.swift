@@ -48,7 +48,7 @@ public struct AttJobbaPa: Decodable, Sendable {
             // Formen är stängd (docs/FORMAT.md): nu, spann, markning och fysik står med även när de är null.
             for nyckel in [CodingKeys.nu, .spann, .markning, .fysik] where !c.contains(nyckel) {
                 throw DecodingError.keyNotFound(nyckel, DecodingError.Context(codingPath: c.codingPath,
-                                                                              debugDescription: "saknas"))
+                                                                              debugDescription: "missing"))
             }
             ordning = try c.decode(Int.self, forKey: .ordning)
             fel = try c.decode(String.self, forKey: .fel)
@@ -94,7 +94,7 @@ public struct AttJobbaPa: Decodable, Sendable {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             guard c.contains(.nu) else {
                 throw DecodingError.keyNotFound(CodingKeys.nu, DecodingError.Context(codingPath: c.codingPath,
-                                                                                    debugDescription: "saknas"))
+                                                                                    debugDescription: "missing"))
             }
             fel = try c.decode(String.self, forKey: .fel)
             namn = try c.decode(String.self, forKey: .namn)
@@ -191,20 +191,21 @@ public struct AttJobbaPa: Decodable, Sendable {
         do {
             a = try JSONDecoder().decode(AttJobbaPa.self, from: data)
         } catch let DecodingError.keyNotFound(nyckel, k) {
-            throw FormatFel("att_jobba_pa: \(plats(k.codingPath + [nyckel])) saknas")
+            throw FormatFel(Texter.filFel(Texter.saknas(plats(k.codingPath + [nyckel]))))
         } catch let DecodingError.typeMismatch(_, k) {
-            throw FormatFel("att_jobba_pa: \(plats(k.codingPath)): fel typ")
+            throw FormatFel(Texter.filFel(Texter.felTyp(plats(k.codingPath))))
         } catch let DecodingError.valueNotFound(_, k) {
-            throw FormatFel("att_jobba_pa: \(plats(k.codingPath)): saknar värde")
+            throw FormatFel(Texter.filFel(Texter.saknarVarde(plats(k.codingPath))))
         } catch let DecodingError.dataCorrupted(k) {
-            throw FormatFel("att_jobba_pa: \(plats(k.codingPath)): ogiltigt")
+            throw FormatFel(Texter.filFel(Texter.ogiltigt(plats(k.codingPath))))
         } catch {
-            throw FormatFel("att_jobba_pa: inte giltig JSON")
+            throw FormatFel(Texter.filFel(Texter.inteJSON))
         }
-        guard a.format.hasPrefix(formatPrefix) else { throw FormatFel("att_jobba_pa: format: ska börja med \(formatPrefix)") }
-        guard (1...3).contains(a.saker.count) else { throw FormatFel("att_jobba_pa: saker: ska vara 1–3") }
+        // Felen visas i appen när filen hämtas, därför på engelska (BESLUT B33).
+        guard a.format.hasPrefix(formatPrefix) else { throw FormatFel(Texter.filFel(Texter.formatSkaBorja(formatPrefix))) }
+        guard (1...3).contains(a.saker.count) else { throw FormatFel(Texter.filFel(Texter.sakerEttTillTre)) }
         for (i, s) in a.saker.enumerated() where !Ovning.stegen.contains(s.ovning.steg) {
-            throw FormatFel("att_jobba_pa: saker[\(i)].ovning.steg: ska vara ett av \(Ovning.stegen.joined(separator: ", "))")
+            throw FormatFel(Texter.filFel(Texter.stegSkaVara("saker[\(i)].ovning.steg", Ovning.stegen.joined(separator: ", "))))
         }
         return a
     }
@@ -222,6 +223,6 @@ public struct AttJobbaPa: Decodable, Sendable {
                 s += s.isEmpty ? k.stringValue : ".\(k.stringValue)"
             }
         }
-        return s.isEmpty ? "filen" : s
+        return s.isEmpty ? Texter.filen : s
     }
 }

@@ -48,7 +48,7 @@ struct GranskningVy: View {
                     }
                     .buttonStyle(.plain)
                     Spacer()
-                    Button("Passet", action: passet)
+                    Button("Session", action: passet)
                         .typsnitt(15, .semibold)
                         .foregroundStyle(Theme.text)
                         .buttonStyle(.plain)
@@ -77,8 +77,8 @@ struct GranskningVy: View {
                 .padding(.top, 14)
                 // VoiceOver: svep upp och ner för att gå mellan faserna.
                 .accessibilityElement()
-                .accessibilityLabel("\(g.yta.namn), tidslinje")
-                .accessibilityValue("\(g.yta.tidText(nu)), \(Tal.tecken(g.yta.lage(nu)?.matt, decimaler: 1)) cm")
+                .accessibilityLabel(Text("\(g.yta.namn), timeline"))
+                .accessibilityValue(Text(verbatim: "\(g.yta.tidText(nu)), \(Tal.tecken(g.yta.lage(nu)?.matt, decimaler: 1)) cm"))
                 .accessibilityAdjustableAction { riktning in
                     let faser = g.yta.fastider.map { $0.t }
                     switch riktning {
@@ -120,7 +120,7 @@ struct GranskningVy: View {
             .padding(.top, 10)
 
             HStack {
-                Etikett(text: "Slag")
+                Etikett(text: String(localized: "Shots"))
                 Spacer()
                 if let d = g.forraDatum {
                     Button {
@@ -147,7 +147,7 @@ struct GranskningVy: View {
                         slag = s.nr
                     } label: {
                         VStack(spacing: 2) {
-                            Text(s.nr.map { "\($0)" } ?? "median")
+                            Text(verbatim: s.nr.map { "\($0)" } ?? String(localized: "median"))
                                 .typsnitt(11, .semibold)
                                 .foregroundStyle(Theme.tertiary)
                             Text(s.text)
@@ -170,10 +170,10 @@ struct GranskningVy: View {
 
     static func fasnamn(_ f: Fas) -> String {
         switch f {
-        case .adress: return "Adress"
-        case .topp: return "Topp"
-        case .traff: return "Träff"
-        case .finish: return "Finish"
+        case .adress: return String(localized: "Address")
+        case .topp: return String(localized: "Top")
+        case .traff: return String(localized: "Impact")
+        case .finish: return String(localized: "Finish")
         }
     }
 }

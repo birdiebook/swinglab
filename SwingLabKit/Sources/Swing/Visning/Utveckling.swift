@@ -17,19 +17,19 @@ public struct Utveckling: Sendable {
 
     public let id: String
     public let namn: String
-    /// "FO · topp"
+    /// "FO · top"
     public let rubrik: String
     public let markning: Markning?
-    /// Senaste passet: "−2,4"
+    /// Senaste passet: "−2.4"
     public let varde: String
     public let enhet: String
-    /// "+5,5 cm mot 20 okt": senaste mot första passet i serien.
+    /// "+5.5 cm vs Oct 20": senaste mot första passet i serien.
     public let skillnad: String?
     public let punkter: [Passpunkt]
     public let band: Band?
     public let axel: Axel
     public let axelText: [(varde: Double, text: String)]
-    /// Månaderna under diagrammet: passets plats och "okt".
+    /// Månaderna under diagrammet: passets plats och "Oct".
     public let manader: [(index: Int, text: String)]
     /// Blockens gränser: mellan passet före och passet `index`, och "B2".
     public let block: [(index: Int, text: String)]
@@ -55,7 +55,7 @@ public struct Utveckling: Sendable {
         varde = Mattkort.text(punkter.last?.pass, e)
         if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
             let d = Avrundning.avrunda(fel.matt, b.pass)! - Avrundning.avrunda(fel.matt, a.pass)!
-            skillnad = Tal.medEnhet(Tal.tecken(d, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(a.datum)
+            skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(d, decimaler: e.decimaler), e.enhet), Tal.datum(a.datum))
         } else {
             skillnad = nil
         }
@@ -98,7 +98,7 @@ public struct Utveckling: Sendable {
 
 /// Skärmen Utveckling: perioden, måtten att välja bland och det valda måttet.
 public struct Utvecklingsvisning: Sendable {
-    /// "okt–jan · 16"
+    /// "Oct–Jan · 16"
     public let period: String
     public let matt: [Utveckling]
 

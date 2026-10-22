@@ -10,7 +10,7 @@ struct AttJobbaPaVy: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Navrad(titel: "Att jobba på", hoger: { Under(text: visning.fran) }, tillbaka: tillbaka)
+            Navrad(titel: String(localized: "Work on"), hoger: { Under(text: visning.fran) }, tillbaka: tillbaka)
             ForEach(Array(visning.saker.enumerated()), id: \.offset) { i, s in
                 SakVy(sak: s, antal: visning.saker.count)
                     .padding(.top, i == 0 ? 0 : 28)
@@ -104,7 +104,7 @@ struct SakVy: View {
                 }
             }
 
-            Sektion(etikett: "Övning") {
+            Sektion(etikett: String(localized: "Drill")) {
                 Text(sak.ovning)
                     .typsnitt(17, .medium)
                     .foregroundStyle(Theme.text)
@@ -128,7 +128,7 @@ struct SakVy: View {
             }
 
             if let r = sak.rorlighet {
-                Sektion(etikett: "Rörlighet", hoger: r.test) {
+                Sektion(etikett: String(localized: "Mobility"), hoger: r.test) {
                     if let o = r.ovning {
                         Text(o)
                             .typsnitt(17, .medium)
@@ -138,7 +138,7 @@ struct SakVy: View {
                 }
             }
 
-            Sektion(etikett: "Tanke") {
+            Sektion(etikett: String(localized: "Thought")) {
                 Text(sak.tanke)
                     .tracking(-0.3)
                     .typsnitt(30, .medium)
@@ -147,7 +147,7 @@ struct SakVy: View {
                     .padding(.top, 6)
             }
 
-            Sektion(etikett: "Klart när") {
+            Sektion(etikett: String(localized: "Done when")) {
                 Text(sak.villkor)
                     .typsnitt(20, .medium, siffror: true)
                     .foregroundStyle(Theme.text)

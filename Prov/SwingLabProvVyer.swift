@@ -10,7 +10,7 @@
 // katalog.json, läst från källträdet (simulatorn delar filsystem med Mac-värden).
 //
 // Varje bild prövas mot formspråket (BESLUT B13, regel 6): bara gråskala, och
-// botten svart.
+// botten svart. Vyerna ritas på engelska (BESLUT B30) i en engelsk miljö.
 
 import XCTest
 import SwiftUI
@@ -56,6 +56,7 @@ final class SwingLabProvVyer: XCTestCase {
         try rendera(UtvecklingVy(visning: v), namn: "utveckling")
         try rendera(UtvecklingVy(visning: v, valt: "backens_resa_framat"), namn: "utveckling-resa", accent: false)
         try rendera(UtvecklingVy(visning: v, valt: "tempo"), namn: "utveckling-tempo", accent: false)
+        try rendera(UtvecklingVy(visning: v), namn: "utveckling-stor", textstorlek: .accessibility5)
     }
 
     func testGranskning() throws {
@@ -73,6 +74,7 @@ final class SwingLabProvVyer: XCTestCase {
         try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .fo, fas: .topp), namn: "granskning-fo", accent: true)
         try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .dtl, fas: .traff, visaForra: true), namn: "granskning-dtl",
                     accent: false)
+        try rendera(GranskningVy(fo: fo, dtl: dtl, vy: .fo, fas: .topp), namn: "granskning-fo-stor", textstorlek: .accessibility5)
     }
 
     // MARK: - Hjälp
@@ -88,7 +90,7 @@ final class SwingLabProvVyer: XCTestCase {
             .fixedSize(horizontal: false, vertical: true)
             .background(Theme.ground)
             .environment(\.colorScheme, .dark)
-            .environment(\.locale, Locale(identifier: "sv_SE"))
+            .environment(\.locale, Locale(identifier: "en_US"))
         let r = ImageRenderer(content: innehall)
         // De största textstorlekarna blir mycket långa; i @1x ryms de i en PNG.
         r.scale = textstorlek.isAccessibilitySize ? 1 : 3

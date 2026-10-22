@@ -32,7 +32,8 @@ extension Color {
     }
 }
 
-/// Primärknappen: ett vitt fält med svart text, överallt (B13 regel 8).
+/// Primärknappen: ett vitt fält med svart text, överallt (B13 regel 8). Texten
+/// skalas med Dynamisk text och bryts hellre än kortas; fältet växer med den.
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Field(configuration: configuration)
@@ -44,8 +45,11 @@ struct PrimaryButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(size: 17, weight: .semibold))
+                .typsnitt(17, .semibold)
+                .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.ground)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Theme.text, in: .rect(cornerRadius: 4))
                 .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.3)
@@ -65,8 +69,9 @@ struct RowButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(size: 17, weight: .medium))
+                .typsnitt(17, .medium)
                 .foregroundStyle(isEnabled ? Theme.text : Theme.tertiary)
+                .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
                 .contentShape(.rect)
                 .overlay(alignment: .top) {

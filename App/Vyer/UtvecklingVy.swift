@@ -15,7 +15,7 @@ struct UtvecklingVy: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Utveckling")
+                Text("Progress")
                     .tracking(-0.6)
                     .typsnitt(30, .semibold)
                     .foregroundStyle(Theme.text)
@@ -63,8 +63,8 @@ struct UtvecklingKort: View {
                 .aspectRatio(350.0 / 220.0, contentMode: .fit)
             if u.harSerie1 {
                 HStack(spacing: 16) {
-                    nyckel(ihalig: false, "pass")
-                    nyckel(ihalig: true, "serie 1")
+                    nyckel(ihalig: false, String(localized: "session"))
+                    nyckel(ihalig: true, String(localized: "set 1"))
                 }
                 .padding(.top, 8)
             }

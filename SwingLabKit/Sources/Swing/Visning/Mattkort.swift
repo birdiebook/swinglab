@@ -9,14 +9,20 @@ public enum Markning: String, Sendable {
     /// Avstängt mått (katalogens `aktiv: false`).
     case av
 
-    public var etikett: String { self == .b10 ? "B10" : rawValue }
+    public var etikett: String {
+        switch self {
+        case .b10: return "B10"
+        case .egen: return Texter.markningEgen
+        case .av: return Texter.markningAv
+        }
+    }
 
     /// Märkningen i ord för VoiceOver.
     public var upplasning: String {
         switch self {
-        case .b10: return "gränsen ej läst i original"
-        case .egen: return "egen baslinje"
-        case .av: return "avstängt"
+        case .b10: return Texter.upplasningB10
+        case .egen: return Texter.upplasningEgen
+        case .av: return Texter.upplasningAv
         }
     }
 
@@ -40,15 +46,15 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public let id: String
     public let matt: String
     public let namn: String
-    /// "FO · topp · + mot mål"
+    /// "FO · top · + to target"
     public let rubrik: String
     /// Vyn för filtret; nil = båda telefonerna.
     public let vy: Vy?
     public let markning: Markning?
-    /// "−2,4"; "—" när måttet saknas eller är avstängt.
+    /// "−2.4"; "—" när måttet saknas eller är avstängt.
     public let varde: String
     public let enhet: String
-    /// "+1,2 cm mot 6 jan"
+    /// "+1.2 cm vs Jan 6"
     public let skillnad: String?
     public let spann: Spann?
     public let geometri: Geometri?
@@ -70,7 +76,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         self.geometri = geometri
     }
 
-    /// Kortet i ord för VoiceOver: "Sway −2,4 cm, mål från 0 cm, förra −3,6 cm, +1,2 cm mot 6 jan, B10".
+    /// Kortet i ord för VoiceOver: "Sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, …".
     public var upplasning: String {
         var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet == ": 1" ? "" : enhet))"]
         if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
@@ -101,7 +107,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         if let f = forraMedian, let d = forra?.datum {
             // På de avrundade talen, så att skillnaden stämmer med de två tal som visas.
             let a = Avrundning.avrunda(fel.matt, s.median)!, b = Avrundning.avrunda(fel.matt, f)!
-            skillnad = Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(d)
+            skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet), Tal.datum(d))
         }
         let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
         let spann = Spann(nu: s.median, spridning: (s.q1, s.q3), forra: forraMedian, gront: fel.gront,
@@ -139,9 +145,9 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
 
 /// Passets skärm: rubriken, raden under och korten.
 public struct Passvisning: Sendable {
-    /// "fre 9 jan"
+    /// "Fri, Jan 9"
     public let titel: String
-    /// "järn 7 · 34"
+    /// "7-iron · 34"
     public let undertitel: String
     public let kort: [Mattkort]
 
@@ -155,7 +161,7 @@ public struct Passvisning: Sendable {
     public enum Filter: String, CaseIterable, Sendable {
         case alla, fo, dtl
 
-        public var etikett: String { self == .alla ? "Alla" : rawValue.uppercased() }
+        public var etikett: String { self == .alla ? Texter.alla : rawValue.uppercased() }
     }
 
     /// Korten i filtret: ett kort för båda telefonerna syns i alla filter.

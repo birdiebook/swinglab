@@ -62,67 +62,67 @@
  "ovningar": [
   {
    "fel": "sway_topp",
-   "text": "Fötterna ihop, 3/4-svingar: glider bäckenet tappar du balansen.",
+   "text": "Feet together, 3/4 swings: if the pelvis slides, you lose your balance.",
    "kalla": "https://www.golfmagic.com/best-tips-and-instruction/step-2-how-fix-sway",
    "status": "tranare"
   },
   {
    "fel": "sway_topp",
-   "text": "Käpp i marken vid bakre höften: höften roterar i en cirkel, käppen står kvar.",
+   "text": "Stick in the ground at the trail hip: the hip turns in a circle, the stick stays put.",
    "kalla": "https://onlinedigeditions.com/article/GolfShots/3261965/550370/article.html",
    "status": "tranare"
   },
   {
    "fel": "sway_topp",
-   "text": "TPI:s Reach Over the Fence.",
+   "text": "TPI's Reach Over the Fence.",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle",
    "status": "tranare"
   },
   {
    "fel": "reverse_spine",
-   "text": "Fötterna ihop, 3/4-svingar: glidningen som matar felet försvinner.",
+   "text": "Feet together, 3/4 swings: the slide that feeds the fault disappears.",
    "kalla": "https://practicecaddie.com/blog/reverse-pivot-golf-swing-fix",
    "status": "tranare"
   },
   {
    "fel": "reverse_spine",
-   "text": "TPI:s Reach Over the Fence.",
+   "text": "TPI's Reach Over the Fence.",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle",
    "status": "tranare"
   },
   {
    "fel": "sway_gap",
-   "text": "Fötterna ihop, 3/4-svingar: glidningen som matar felet försvinner.",
+   "text": "Feet together, 3/4 swings: the slide that feeds the fault disappears.",
    "kalla": "https://practicecaddie.com/blog/reverse-pivot-golf-swing-fix",
    "status": "tranare"
   },
   {
    "fel": "early_extension",
-   "text": "Stjärten mot en vägg eller stol bakom dig. Långsamma svingar som håller kontakten till träffen, och bäckenet roterar samtidigt.",
+   "text": "Backside against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
    "kalla": "https://mygolfspy.com/news-opinion/instruction/3-drills-to-fix-early-extension-in-the-golf-swing/",
    "status": "tranare"
   },
   {
    "fel": "tappad_hallning",
-   "text": "Stjärten mot en vägg eller stol bakom dig. Långsamma svingar som håller kontakten till träffen, och bäckenet roterar samtidigt.",
+   "text": "Backside against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
    "kalla": "https://mygolfspy.com/news-opinion/instruction/3-drills-to-fix-early-extension-in-the-golf-swing/",
    "status": "tranare"
   },
   {
    "fel": "backens_resa_framat",
-   "text": "Stegövningen: kliv med främre foten mot målet i nedsvingen, bakre foten upp på tå. Tio repetitioner med kort järn utan boll.",
+   "text": "The step drill: step toward the target with the lead foot in the downswing, trail foot up on its toe. Ten reps with a short iron, no ball.",
    "kalla": "https://sportsmonkie.com/golf-hip-rotation-drills/",
    "status": "tranare"
   },
   {
    "fel": "over_the_top",
-   "text": "En headcover utanför och lite bakom bollen. Träffas den kom klubban utifrån.",
+   "text": "A headcover outside and slightly behind the ball. If you hit it, the club came from outside.",
    "kalla": "https://golfguidebook.com/how-to-stop-coming-over-the-top/",
    "status": "tranare"
   },
   {
    "fel": "chicken_wing",
-   "text": "Motorcykelövningen: handleden böjd genom träffen, halvsvingar mot 4:30-banan.",
+   "text": "The motorcycle drill: lead wrist flexed through impact, half swings toward the 4:30 path.",
    "kalla": "https://hackmotion.com/chicken-wing-in-golf/",
    "status": "tillverkare"
   }
@@ -136,49 +136,49 @@
   },
   {
    "fel": "early_extension",
-   "test": "Bridge, höger sida",
+   "test": "Bridge, right side",
    "status": "forskning",
    "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"
   },
   {
    "fel": "early_extension",
-   "test": "Djup knäböj med armarna över huvudet",
+   "test": "Overhead deep squat",
    "status": "tranare",
    "kalla": "https://www.mytpi.com/articles/swing/early-extension-swing-characteristic"
   },
   {
    "fel": "early_extension",
-   "test": "Främre höftens inåtrotation",
+   "test": "Lead hip internal rotation",
    "status": "tranare",
    "kalla": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10379059/"
   },
   {
    "fel": "tappad_hallning",
-   "test": "Bridge, höger sida",
+   "test": "Bridge, right side",
    "status": "forskning",
    "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"
   },
   {
    "fel": "sway_topp",
-   "test": "Bakre höftens inåtrotation",
+   "test": "Trail hip internal rotation",
    "status": "tranare",
    "kalla": "https://www.mytpi.com/articles/swing/your-hips-and-your-swing"
   },
   {
    "fel": "reverse_spine",
-   "test": "Bröstryggens rotation",
+   "test": "Thoracic rotation",
    "status": "tranare",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle"
   },
   {
    "fel": "flying_elbow",
-   "test": "90/90, bakre axelns utåtrotation",
+   "test": "90/90, trail shoulder external rotation",
    "status": "tranare",
    "kalla": "https://golfrehabdoc.wordpress.com/tag/golf-swing-faults/"
   },
   {
    "fel": "backens_resa_framat",
-   "test": "Höftens och fotledens rörlighet",
+   "test": "Hip and ankle mobility",
    "status": "tranare",
    "kalla": "https://www.scottsdaleptperformance.com/overcoming-golf-swing-faults/"
   }

@@ -15,7 +15,8 @@ struct SwingLabApp: App {
 
 /// Startvyn (S2_SPEC §12). Nytt pass (S2c) och Hämta ur Bilder (S2d) öppnar
 /// uppställningen; Hämta Att jobba på öppnas i S2f. Formspråket är BESLUT B13:
-/// bara etiketter, ingen beskrivande text.
+/// bara etiketter, ingen beskrivande text. Texterna är engelska och står i
+/// Localizable.xcstrings (BESLUT B30, B33).
 struct StartView: View {
     @Environment(Store.self) private var store
     @State private var flow: PassFlowView.Mode?
@@ -29,12 +30,12 @@ struct StartView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 18)
 
-            Button("Nytt pass") { flow = .record }
+            Button("New session") { flow = .record }
                 .buttonStyle(PrimaryButtonStyle())
 
             VStack(spacing: 0) {
-                Button("Hämta ur Bilder") { flow = .photos }
-                Button("Hämta Att jobba på") {}
+                Button("Import from Photos") { flow = .photos }
+                Button("Import Work on") {}
                     .disabled(true)
             }
             .buttonStyle(RowButtonStyle())

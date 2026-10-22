@@ -25,13 +25,13 @@ struct PassFlowView: View {
             }
         } else {
             NavigationStack {
-                SetupView(setup: $setup, primary: mode == .record ? "Kamera" : "Välj klipp") {
+                SetupView(setup: $setup, titel: mode == .record ? "New session" : "Import from Photos",
+                          primary: mode == .record ? "Camera" : "Choose clips") {
                     pass = store.newPass(setup: setup)
                 }
-                .navigationTitle(mode == .record ? "Nytt pass" : "Hämta ur Bilder")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Stäng", action: onClose) }
+                    ToolbarItem(placement: .cancellationAction) { Button("Close", action: onClose) }
                 }
             }
         }
@@ -41,30 +41,35 @@ struct PassFlowView: View {
 /// Uppställningen: vy, spelhand, klubba och avstånd till bollen (S2_SPEC §4.4, §5).
 struct SetupView: View {
     @Binding var setup: PassSetup
-    let primary: String
+    /// Rubriken står i innehållet, inte i navigeringsraden, så att den bryts i stället
+    /// för att kortas vid största textstorleken.
+    let titel: LocalizedStringKey
+    let primary: LocalizedStringKey
     let onConfirm: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            Skarmrubrik(titel)
+                .padding(.horizontal, 20)
             Form {
-                Picker("Vy", selection: $setup.view) {
+                Picker("View", selection: $setup.view) {
                     Text("DTL").tag(Vy.dtl)
                     Text("FO").tag(Vy.fo)
                 }
                 .pickerStyle(.segmented)
-                Picker("Spelhand", selection: $setup.hand) {
-                    Text("Höger").tag(Hand.hoger)
-                    Text("Vänster").tag(Hand.vanster)
+                Picker("Hand", selection: $setup.hand) {
+                    Text("Right").tag(Hand.hoger)
+                    Text("Left").tag(Hand.vanster)
                 }
                 .pickerStyle(.segmented)
-                Picker("Klubba", selection: $setup.club) {
-                    ForEach(PassSetup.clubs, id: \.self) { Text(PassSetup.clubLabel($0)).tag($0) }
+                Picker("Club", selection: $setup.club) {
+                    ForEach(PassSetup.clubs, id: \.self) { Text(verbatim: PassSetup.clubLabel($0)).tag($0) }
                 }
                 Stepper(value: $setup.distance, in: PassSetup.distanceRange, step: PassSetup.distanceStep) {
                     HStack {
-                        Text("Avstånd")
+                        Text("Distance")
                         Spacer()
-                        Text("\(Swedish.decimal(setup.distance, digits: 1)) m").font(Theme.number(17))
+                        Text(verbatim: "\(Taltext.decimal(setup.distance, digits: 1)) m").font(Theme.number(17))
                     }
                 }
             }

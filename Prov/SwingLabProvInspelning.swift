@@ -360,14 +360,14 @@ final class SwingLabProvInspelning: XCTestCase {
                                            start: Date(), startHost: nil, microphone: "MicrophoneBuiltIn")
         let rader = Receipt.rows(s)
         print("PROV: kvitto " + rader.map { "\($0.label) \($0.value)" }.joined(separator: " · "))
-        XCTAssertEqual(rader.first { $0.label == "Bilder/s" }?.value, "240")
-        XCTAssertEqual(rader.first { $0.label == "Klick" }?.value, "2")
-        XCTAssertEqual(rader.first { $0.label == "Tappade" }?.value, "33 %")
+        XCTAssertEqual(rader.first { $0.label == "fps" }?.value, "240")
+        XCTAssertEqual(rader.first { $0.label == "Clicks" }?.value, "2")
+        XCTAssertEqual(rader.first { $0.label == "Dropped" }?.value, "33%")
         XCTAssertEqual(s.orientation, 6)
         XCTAssertGreaterThan(s.bytes, 0)
         XCTAssertEqual(s.duration, 3.2, accuracy: 0.05)
 
-        let bild = ReceiptCard(title: "Serie 1", rows: rader)
+        let bild = ReceiptCard(title: String(localized: "Set \(1)"), rows: rader)
             .frame(width: 360)
             .padding(20)
             .background(Theme.ground)
@@ -460,7 +460,7 @@ final class SwingLabProvInspelning: XCTestCase {
         XCTAssertNil(igen.load(pass.id))
         XCTAssertNotNil(igen.problem)
         let undan = try FileManager.default.contentsOfDirectory(atPath: store.passFolder(pass.id).path)
-            .filter { $0.hasPrefix("pass-oläslig-") }
+            .filter { $0.hasPrefix("pass-unreadable-") }
         XCTAssertEqual(undan.count, 1)
     }
 }

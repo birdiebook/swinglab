@@ -35,9 +35,16 @@ public struct PassSetup: Codable, Equatable, Sendable {
     /// Klubborna i uppställningen, med manifestets namn (S2_SPEC §8.3, "j7").
     public static let clubs = ["dr", "t3", "t5", "h4", "j4", "j5", "j6", "j7", "j8", "j9", "pw", "gw", "sw", "lw"]
 
-    /// Klubbans etikett i vyn: "J7", "PW", "Dr".
+    /// Klubbans etikett i vyn, på engelskt sätt (BESLUT B30): "7i", "3W", "4H", "PW", "Dr".
+    /// Id:t är manifestets ("j7", "t3", "h4") och ändras inte.
     public static func clubLabel(_ id: String) -> String {
-        id == "dr" ? "Dr" : id.uppercased()
+        guard id.count == 2, let tal = Int(id.dropFirst()) else { return id == "dr" ? "Dr" : id.uppercased() }
+        switch String(id.prefix(1)) {
+        case "j": return "\(tal)i"
+        case "t": return "\(tal)W"
+        case "h": return "\(tal)H"
+        default: return id.uppercased()
+        }
     }
 
     /// Avståndet inom spannet och på stegen.

@@ -72,22 +72,22 @@ public struct Spann: Equatable, Sendable {
     /// Katalogens gräns som den står (nil i en ände = öppen), nil utan gräns.
     public let grans: (fran: Double?, till: Double?)?
 
-    /// Spannet i ord för VoiceOver: "mål från 0 cm, förra −3,6 cm".
+    /// Spannet i ord för VoiceOver: "target from 0 cm, last −3.6 cm".
     public var upplasning: String {
         func t(_ v: Double) -> String { Tal.medEnhet(Tal.axel(v, decimaler: Swift.max(decimaler, 1)), enhet) }
         func ta(_ v: Double) -> String { Tal.axel(v, decimaler: Swift.max(decimaler, 1)) }
         var d: [String] = []
         if let g = grans {
             switch (g.fran, g.till) {
-            case let (a?, b?): d.append("mål \(ta(a)) till \(t(b))")
-            case let (a?, nil): d.append("mål från \(t(a))")
-            case let (nil, b?): d.append("mål till \(t(b))")
+            case let (a?, b?): d.append(Texter.malMellan(ta(a), t(b)))
+            case let (a?, nil): d.append(Texter.malFran(t(a)))
+            case let (nil, b?): d.append(Texter.malTill(t(b)))
             case (nil, nil): break
             }
         } else if case let .baslinje(lo, hi)? = zon {
-            d.append("egen baslinje \(ta(lo)) till \(t(hi))")
+            d.append(Texter.egenBaslinje(ta(lo), t(hi)))
         }
-        if let f = forra { d.append("förra \(Tal.medEnhet(Tal.tal(f, decimaler: decimaler), enhet))") }
+        if let f = forra { d.append(Texter.forra(Tal.medEnhet(Tal.tal(f, decimaler: decimaler), enhet))) }
         return d.joined(separator: ", ")
     }
 

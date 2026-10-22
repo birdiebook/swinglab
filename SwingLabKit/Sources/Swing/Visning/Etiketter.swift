@@ -15,11 +15,11 @@ public struct Mattetikett: Equatable, Sendable {
     public let namn: String
     public let enhet: String
     public let decimaler: Int
-    /// "topp", "topp–träff" …
+    /// "top", "top–impact" …
     public let fas: String
     /// Visas med tecken (+/−), för mått där noll är adressen.
     public let tecken: Bool
-    /// Åt vilket håll + pekar: "mål" eller "boll". nil = inget håll.
+    /// Åt vilket håll + pekar: "target" eller "ball". nil = inget håll.
     public let plus: String?
     /// Vyns etikett när den inte är katalogens (tempot kommer ur klicket).
     public let vy: String?
@@ -40,20 +40,29 @@ public struct Mattetikett: Equatable, Sendable {
 
 public enum Etiketter {
     /// Måtten som katalogen pekar på (Matt.namnDTL/namnFO), i vyns ord.
-    public static let tabell: [String: Mattetikett] = [
-        "backen_sway_topp": Mattetikett("Sway", "cm", Avrundning.decimaler("backen_sway_topp"), "topp", tecken: true, plus: "mål"),
-        "backen_resa_framat": Mattetikett("Resa framåt", "cm", Avrundning.decimaler("backen_resa_framat"), "topp–träff", plus: "mål"),
-        "backen_thrust_traff": Mattetikett("Thrust", "cm", Avrundning.decimaler("backen_thrust_traff"), "träff", tecken: true, plus: "boll"),
-        "brost_bojning_tapp": Mattetikett("Böjning", "°", Avrundning.decimaler("brost_bojning_tapp"), "adress–träff", tecken: true, geometri: .bojning),
-        "tempo": Mattetikett("Tempo", ": 1", Avrundning.decimaler("tempo"), "start–topp–träff", vy: "Klick", geometri: .tempo),
-        "sway_gap_traff": Mattetikett("Sway gap", "cm", Avrundning.decimaler("sway_gap_traff"), "träff", tecken: true, plus: "mål"),
-        "axellinje_lutning_traff": Mattetikett("Axellutning", "°", Avrundning.decimaler("axellinje_lutning_traff"), "träff", tecken: true),
-        "sidbojning_topp": Mattetikett("Sidböjning", "°", Avrundning.decimaler("sidbojning_topp"), "topp", tecken: true),
-        "framre_armbage_efter_traff": Mattetikett("Främre armbåge", "°", Avrundning.decimaler("framre_armbage_efter_traff"), "efter träff"),
-        "bakre_armbage_topp": Mattetikett("Bakre armbåge", "°", Avrundning.decimaler("bakre_armbage_topp"), "topp", tecken: true),
-        "handbana": Mattetikett("Handens bana", "cm", Avrundning.decimaler("handbana"), "nedsving", tecken: true),
-        "framre_armbage_topp": Mattetikett("Främre arm", "°", Avrundning.decimaler("framre_armbage_topp"), "topp"),
-    ]
+    public static let tabell: [String: Mattetikett] = {
+        // Namnen och faserna står i Texter (BESLUT B33); decimalerna följer PC:ns regel.
+        func e(_ m: String, _ enhet: String, _ fas: String, tecken: Bool = false, plus: String? = nil,
+               vy: String? = nil, geometri: Geometrityp? = nil) -> (String, Mattetikett) {
+            (m, Mattetikett(Texter.mattnamn[m] ?? m, enhet, Avrundning.decimaler(m), fas, tecken: tecken,
+                            plus: plus, vy: vy, geometri: geometri))
+        }
+        let T = Texter.self
+        return Dictionary(uniqueKeysWithValues: [
+            e("backen_sway_topp", "cm", T.top, tecken: true, plus: T.target),
+            e("backen_resa_framat", "cm", T.topToImpact, plus: T.target),
+            e("backen_thrust_traff", "cm", T.impact, tecken: true, plus: T.ball),
+            e("brost_bojning_tapp", "°", T.addressToImpact, tecken: true, geometri: .bojning),
+            e("tempo", ": 1", T.startTopImpact, vy: T.click, geometri: .tempo),
+            e("sway_gap_traff", "cm", T.impact, tecken: true, plus: T.target),
+            e("axellinje_lutning_traff", "°", T.impact, tecken: true),
+            e("sidbojning_topp", "°", T.top, tecken: true),
+            e("framre_armbage_efter_traff", "°", T.afterImpact),
+            e("bakre_armbage_topp", "°", T.top, tecken: true),
+            e("handbana", "cm", T.downswing, tecken: true),
+            e("framre_armbage_topp", "°", T.top),
+        ])
+    }()
 
     /// Etiketten för ett mått. Ett mått utan rad visas med sitt nyckelnamn, så att
     /// det syns i provet och får en rad.
@@ -71,12 +80,12 @@ public enum Etiketter {
         }
     }
 
-    /// Kortets översta rad: "FO · topp · + mot mål".
+    /// Kortets översta rad: "FO · top · + to target".
     public static func rubrik(_ fel: Katalog.Fel) -> String {
         let e = etikett(fel.matt)
         var delar = [e.vy ?? vy(fel.vy)]
         if !e.fas.isEmpty { delar.append(e.fas) }
-        if let p = e.plus { delar.append("+ mot \(p)") }
+        if let p = e.plus { delar.append(Texter.plus(p)) }
         return delar.joined(separator: " · ")
     }
 }

@@ -31,7 +31,7 @@ public struct Matyta: Sendable {
 
     public init(sving s: Sving, resultat r: SvingResultat) {
         vy = s.vy
-        namn = s.vy == .fo ? "Sway" : "Thrust"
+        namn = s.vy == .fo ? Texter.sway : Texter.thrust
         faser = r.faser
         cmPerPx = r.cmPerPx
         t = s.t
@@ -108,7 +108,7 @@ public struct Matyta: Sendable {
         return ut
     }
 
-    /// Tiden som text: "1,45 s" från klippets början.
+    /// Tiden som text: "1.45 s" från klippets början.
     public func tidText(_ tc: Double) -> String {
         Tal.tal(tc - start, decimaler: 2) + " s"
     }
@@ -125,7 +125,7 @@ public struct Granskningsvisning: Sendable {
     public let yta: Matyta
     /// Förra passets mediansving i samma vy, för jämförelsen.
     public let forra: Matyta?
-    /// "6 jan"
+    /// "Jan 6"
     public let forraDatum: String?
     public let slag: [Slag]
     /// Måttet på ytan övas just nu: den uppmätta linjen bär accenten (BESLUT B31).

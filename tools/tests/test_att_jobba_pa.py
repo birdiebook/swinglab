@@ -30,7 +30,7 @@ def _sak(fid: str, ordning: int = 1, **kw) -> dict:
     k = K[fid]
     s = {"ordning": ordning, "fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"],
          "enhet": A.enhet(k["matt"]), "nu": 1.0, "spann": k["gront"], "markning": "egen",
-         "ovning": {"text": k["ovning"], "tanke": "Stolen ska känna stjärten.", "kalla": "katalog",
+         "ovning": {"text": k["ovning"], "tanke": "The chair stays in contact.", "kalla": "katalog",
                     "steg": "langsamt_med_foremal"},
          "klart_nar": {"villkor": "<=", "grans": 0.5, "pa": "forsta_serien", "pass_i_rad": 2},
          "foljdfel": [], "typ": "teknik", "fysik": None, "block": {"start": "2026-11-03", "vecka": 1}}
@@ -181,18 +181,26 @@ class Fritexten(unittest.TestCase):
         return "; ".join(AJP.kontrollera(_doc(s), _analys({"early_extension": "rod"})))
 
     def test_vardeord_pa_ordstam(self) -> None:
-        for t in ("Bra rotation.", "Finare vridning.", "Duktigt.", "Toppen.", "Bästa svingen.", "Bättre balans.",
-                  "Sämre balans.", "Perfekta svingar.", "Dåligt slag.", "Snyggt."):
+        """Den engelska listan (BESLUT B30), på ordstam och oavsett versaler."""
+        for t in ("Good rotation.", "Better balance.", "Best swing yet.", "Worse balance.", "Worst of the day.",
+                  "Bad shot.", "Poorly timed.", "Great turn.", "Perfect swings.", "Nicely done.", "Excellent.",
+                  "Awesome.", "Amazing pivot.", "Fine contact.", "Fantastic.", "Terrible.", "Wrong way."):
             self.assertIn("värdeord", self.kolla(t), t)
 
     def test_inga_falska_traffar(self) -> None:
-        for t in ("Händerna i toppen.", "Stolen kvar till finishen.", "Det finns en käpp bakom dig.",
-                  "Klubban brant ner.", "Fingrarna lätt på greppet.", "Bollen ser toppen av kepsen."):
+        for t in ("Hands at the top.", "The chair stays there to the finish.", "Find the stick behind you.",
+                  "The club steep down.", "Fingers light on the grip.", "The ball sees the top of your cap.",
+                  "A strong grip on the club.", "Final position held.", "The badge on the cap faces the ball."):
             self.assertEqual(self.kolla(t), "", t)
 
+    def test_fritexten_ar_engelska(self) -> None:
+        """Svensk fritext fälls (BESLUT B30): appen visar den som den står."""
+        self.assertIn("engelska", self.kolla("Rör inte käppen."))
+        self.assertEqual(self.kolla("Don't touch the stick."), "")
+
     def test_inga_siffror_utropstecken_eller_langd(self) -> None:
-        self.assertIn("inga siffror", self.kolla("Tre slag, sedan 5 till."))
-        self.assertIn("utropstecken", self.kolla("Stolen!"))
+        self.assertIn("inga siffror", self.kolla("Three swings, then 5 more."))
+        self.assertIn("utropstecken", self.kolla("The chair!"))
         self.assertIn("högst", self.kolla("x" * (AJP.MAX_TANKE + 1)))
 
     def test_katalogens_och_kedjornas_texter_ar_rena(self) -> None:
@@ -203,7 +211,13 @@ class Fritexten(unittest.TestCase):
             self.assertEqual(fel, [], f["id"])
         for o in KED["ovningar"]:
             self.assertIsNone(AJP.vardeord(o["text"]), o["text"])
+            self.assertIsNone(AJP.SVENSKA.search(o["text"]), o["text"])
             self.assertIn(o["fel"], K)
+        for f in KATL["fel"]:
+            for falt in ("namn", "ovning"):
+                self.assertIsNone(AJP.SVENSKA.search(f[falt]), f"{f['id']}.{falt}")
+        for x in KED["fysik"]:
+            self.assertIsNone(AJP.SVENSKA.search(x["test"]), x["test"])
 
 
 class Ovningen(unittest.TestCase):
@@ -212,7 +226,7 @@ class Ovningen(unittest.TestCase):
 
     def test_ur_katalogen_ordagrant_eller_ur_listan(self) -> None:
         s = _sak("early_extension")
-        s["ovning"]["text"] = "Stol bakom."
+        s["ovning"]["text"] = "Chair behind."
         self.assertIn("katalogens när kalla är katalog", self.kolla(s))
         s["ovning"]["kalla"] = "research3"
         self.assertIn("en av felets övningar i kedjor.json", self.kolla(s))
@@ -223,7 +237,7 @@ class Ovningen(unittest.TestCase):
         s = _sak("early_extension")
         s["ovning"]["steg"] = "full_fart"
         self.assertIn("börjar på langsamt_med_foremal", self.kolla(s))
-        s["ovning"]["steg"] = "springa"
+        s["ovning"]["steg"] = "sprint"
         self.assertIn("ovning.steg: ska vara ett av", self.kolla(s))
 
     def test_blocket_for_ett_nytt_fel(self) -> None:
@@ -231,7 +245,7 @@ class Ovningen(unittest.TestCase):
         self.assertIn("block.vecka", self.kolla(_sak("early_extension", block={"start": "2026-11-03", "vecka": 2})))
 
     def test_treregeln(self) -> None:
-        fy = {"test": "Toe touch", "treregeln": [True, True, True], "ovning": "Toe touch-progressionen varje morgon."}
+        fy = {"test": "Toe touch", "treregeln": [True, True, True], "ovning": "Toe touch progression every morning."}
         self.assertEqual(self.kolla(_sak("early_extension", typ="troligen_rorlighet", fysik=fy)), "")
         self.assertIn("treregeln", self.kolla(_sak("early_extension", typ="troligen_rorlighet",
                                                    fysik=dict(fy, treregeln=[True, False, True]))))
@@ -243,7 +257,7 @@ class Ovningen(unittest.TestCase):
                                                                   fysik=dict(fy, treregeln=[True, False, False]))))
         self.assertIn("fysik: krävs", self.kolla(_sak("early_extension", typ="troligen_rorlighet")))
         self.assertIn("inget test", self.kolla(_sak("early_extension", typ="troligen_rorlighet",
-                                                     fysik=dict(fy, test="Planka"))))
+                                                     fysik=dict(fy, test="Plank"))))
         self.assertIn("inga siffror", self.kolla(_sak("early_extension", typ="troligen_rorlighet",
                                                       fysik=dict(fy, ovning="Toe touch, 3 × 10."))))
 
@@ -255,7 +269,7 @@ class Minnet(unittest.TestCase):
         self.text = K["early_extension"]["ovning"]
         self.o = {"fel": "early_extension", "ovning": self.text, "lage": "fortsatt", "fel_start": "20261020-180000",
                   "klart_nar": {"villkor": "<=", "grans": 2.0, "pa": "forsta_serien", "pass_i_rad": 2},
-                  "markning": "egen", "steg": "langsamt_med_foremal", "forra_ovningar": ["Gammal övning."]}
+                  "markning": "egen", "steg": "langsamt_med_foremal", "forra_ovningar": ["Old drill."]}
 
     def sak(self, **kw) -> dict:
         s = _sak("early_extension", klart_nar={"villkor": "<=", "grans": 2.0, "pa": "forsta_serien", "pass_i_rad": 2},
@@ -289,7 +303,7 @@ class Minnet(unittest.TestCase):
         self.assertIn("släpp saken", self.kolla(self.sak(), dict(self.o, lage="klart")))
         self.assertIn("minnet säger byt övning", self.kolla(self.sak(), dict(self.o, lage="byt_ovning")))
         s = self.sak()
-        s["ovning"].update(text="Gammal övning.", kalla="research3")
+        s["ovning"].update(text="Old drill.", kalla="research3")
         self.assertIn("redan provad", self.kolla(s))
         self.assertIn("minnet säger fysik", self.kolla(self.sak(), dict(self.o, lage="fysik")))
 

@@ -17,7 +17,7 @@ struct IdagVy: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Talet med enheten direkt efter för grader ("+2,0°").
+    /// Talet med enheten direkt efter för grader ("+2.0°").
     private func tal(_ r: Idagvisning.Rad) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: r.enhet == "°" ? 0 : 2) {
             Text(r.varde)
@@ -33,7 +33,7 @@ struct IdagVy: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Idag")
+                Text("Today")
                     .tracking(-0.6)
                     .typsnitt(30, .semibold)
                     .foregroundStyle(Theme.text)
@@ -43,13 +43,13 @@ struct IdagVy: View {
             .padding(.top, 8)
             .padding(.bottom, 18)
 
-            Button("Starta pass", action: startaPass)
+            Button("Start session", action: startaPass)
                 .buttonStyle(PrimaryButtonStyle())
                 .padding(.bottom, 22)
 
             if let senaste = visning.senaste {
                 Button(action: oppnaPasset) {
-                    Sektion(etikett: "Senaste passet", hoger: senaste) {
+                    Sektion(etikett: String(localized: "Last session"), hoger: senaste) {
                         VStack(spacing: 0) {
                             ForEach(visning.rader, id: \.id) { r in
                                 // En rad när den får plats; med stor text namnet över spannet och talet.
@@ -81,7 +81,7 @@ struct IdagVy: View {
 
             if let f = visning.forsta {
                 Button(action: oppnaJobba) {
-                    Sektion(etikett: "Att jobba på") {
+                    Sektion(etikett: String(localized: "Work on")) {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(f.namn)
                                 .typsnitt(22, .semibold)

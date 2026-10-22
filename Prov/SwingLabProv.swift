@@ -55,6 +55,29 @@ final class SwingLabProv: XCTestCase {
         XCTAssertEqual(primär?["CFBundleIconName"] as? String, "AppIcon", "ikonen saknas i bygget")
     }
 
+    /// Appens texter (BESLUT B30, B33): String Catalog med engelska som grundspråk är
+    /// med i bygget, och inget i den bär å, ä eller ö. tools/tests/test_engelska.py
+    /// prövar källan; det här prövar det som kom med i appen.
+    func testEngelskaTexter() throws {
+        XCTAssertEqual(Bundle.main.developmentLocalization, "en")
+        XCTAssertEqual(Bundle.main.localizedString(forKey: "Start session", value: "SAKNAS", table: nil), "Start session")
+        XCTAssertEqual(String(localized: "Set \(3)"), "Set 3")
+        let fil = try XCTUnwrap(Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil,
+                                                 forLocalization: "en"), "Localizable.strings saknas i en.lproj")
+        let tabell = try XCTUnwrap(NSDictionary(contentsOfFile: fil) as? [String: String], "går inte att läsa \(fil)")
+        print("PROV: String Catalog \(tabell.count) texter i en.lproj")
+        XCTAssertGreaterThan(tabell.count, 30)
+        let svenska = CharacterSet(charactersIn: "åäöÅÄÖ")
+        for (k, v) in tabell {
+            XCTAssertNil((k + v).rangeOfCharacter(from: svenska), k)
+        }
+        let info = try XCTUnwrap(Bundle.main.infoDictionary)
+        for nyckel in ["NSCameraUsageDescription", "NSMicrophoneUsageDescription",
+                       "NSPhotoLibraryUsageDescription", "NSLocalNetworkUsageDescription"] {
+            XCTAssertNil((info[nyckel] as? String ?? "").rangeOfCharacter(from: svenska), nyckel)
+        }
+    }
+
     /// SwingLabKit är länkat och svarar som på Linux.
     func testSwingLabKitLankat() {
         XCTAssertFalse(Matt.namn(.dtl).isEmpty)

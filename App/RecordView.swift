@@ -67,7 +67,7 @@ struct RecordView: View {
 
     private var topBar: some View {
         HStack {
-            Button("Stäng") {
+            Button("Close") {
                 camera.stop()
                 onClose()
             }
@@ -83,7 +83,7 @@ struct RecordView: View {
                     if camera.phase == .recording {
                         Circle().fill(Theme.text).frame(width: 8, height: 8)
                     }
-                    Text("\(Int(camera.frameRate)) bilder/s").font(Theme.number(17))
+                    Text("\(Int(camera.frameRate)) fps").font(Theme.number(17))
                 }
                 .foregroundStyle(camera.reachesWanted ? Theme.text : Theme.flag)
                 .padding(.horizontal, 14)
@@ -98,13 +98,13 @@ struct RecordView: View {
     @ViewBuilder private var warnings: some View {
         VStack(alignment: .leading, spacing: 4) {
             if camera.pressure.warns {
-                Text("\(Receipt.pressureLabel): \(Receipt.pressureName(camera.pressure))")
+                Text(verbatim: "\(Receipt.pressureLabel): \(Receipt.pressureName(camera.pressure))")
             }
             if camera.micWarning {
-                Text("Extern mikrofon")
+                Text("External microphone")
             }
             if camera.audioDenied {
-                Text("Mikrofon av")
+                Text("Microphone off")
             }
         }
         .font(.system(size: 13, weight: .semibold))
@@ -115,7 +115,7 @@ struct RecordView: View {
 
     private var controls: some View {
         HStack {
-            Button("Ljusprov") { Task { await lightProbe() } }
+            Button("Light test") { Task { await lightProbe() } }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.text)
                 .frame(minWidth: 96, minHeight: 44)
@@ -132,7 +132,7 @@ struct RecordView: View {
             }
             .disabled(!(camera.phase == .ready || camera.phase == .recording) || working)
             .opacity(camera.phase == .ready || camera.phase == .recording ? 1 : 0.4)
-            .accessibilityLabel(camera.phase == .recording ? "Stoppa" : "Spela in")
+            .accessibilityLabel(camera.phase == .recording ? Text("Stop") : Text("Record"))
             Spacer()
             ZStack {
                 if working || camera.phase == .metering || camera.phase == .probing || camera.phase == .starting {
@@ -173,7 +173,7 @@ struct RecordView: View {
                 receipt = r.series
             }
         } catch {
-            camera.problem = "\(current.file) gick inte att läsa."
+            camera.problem = String(localized: "\(current.file) could not be read.")
         }
     }
 
@@ -208,7 +208,7 @@ struct RecordView: View {
             pass.lightCheck = c
             store.save(pass)
         } catch {
-            camera.problem = "Ljusprovet gick inte att läsa."
+            camera.problem = String(localized: "The light test could not be read.")
         }
     }
 }
@@ -220,8 +220,8 @@ struct ReceiptSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ReceiptCard(title: "Serie \(series.nr)", rows: Receipt.rows(series))
-            Button("Klar", action: onDone).buttonStyle(PrimaryButtonStyle())
+            ReceiptCard(title: String(localized: "Set \(series.nr)"), rows: Receipt.rows(series))
+            Button("Done", action: onDone).buttonStyle(PrimaryButtonStyle())
         }
         .padding(20)
         .frame(maxHeight: .infinity, alignment: .top)

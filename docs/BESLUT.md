@@ -375,7 +375,12 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   ombyggnad.
 - **Behålls på svenska:** kod, kommentarer, planer, beslut och metod i repot,
   som i de andra apparna.
-- **Genomförs:** i ett eget spår efter att S2c/S2d och S4-grunden landat.
+- **Genomfört** 2026-10-22 (grenen `engelska`): vyerna, kvittot, ljusprovet,
+  uppställningen, felen, frågorna om tillåtelse, katalogens och kedjornas fält som
+  visas (`namn`, `ovning`, `tanke`, fysiska test) och skillens text till appen.
+  Golfens engelska termer (sway, early extension, loss of posture, reverse spine,
+  chicken wing, flying elbow, over the top, lead/trail). Id:n och nycklar är
+  kontrakt och oförändrade. Hur texterna bor: B33.
 
 ## B31 — Accenten: isblått för det du övar på
 *2026-10-22 · gäller · Johannes beslut, efter skissen*
@@ -403,3 +408,35 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Bortvalt:** bara faserna adress, topp, träff och finish (för grovt för
   analysen), och alla tio positioner redan nu (tre kräver klubban).
 
+## B33 — Texterna: String Catalog i appen, en textfil i SwingLabKit
+*2026-10-22 · gäller · genomförandet av B30*
+
+- **Valt:** två källor, var och en för sin sida.
+  - **App/** har `App/Localizable.xcstrings` med engelska som grundspråk
+    (`developmentLanguage: en` i `project.yml`). Varje text i App/ går genom den:
+    `Text("…")`, `Button("…")` och `String(localized: "…")`; tal och SwingLabKits
+    färdiga texter visas med `Text(verbatim:)`.
+  - **SwingLabKit** har en enda fil med ord till användaren,
+    `Swing/Visning/Texter.swift` (engelska strängar och små funktioner som
+    `Texter.mot("+1.2 cm", "Jan 6")`). Vymodellerna, kvittot, ljusprovet och felen
+    när telefonen läser `att_jobba_pa.json` bygger sina texter därifrån. Talen
+    formateras för hand (`Tal`, `Taltext`): decimalpunkt, äkta minus (−), "Jan 9",
+    samma decimaler som PC:n (Avrundning).
+- **Varför inte nycklar i SwingLabKit som App/ slår upp:** VisningTests på Linux
+  prövar den färdiga texten ("+1.2 cm vs Jan 6", VoiceOver-raderna), och Linux har
+  ingen String Catalog och inget `Bundle.module` i paketet (BESLUT B12: fixturerna
+  är Swift-källa, inga resurser). Med nycklar hade texten bara gått att se i
+  simulatorn. Varför inte `String(localized:)` i paketet: samma skäl, och
+  telefonens språk får inte ändra hur ett tal skrivs.
+- **Kostnad:** ett nytt språk kräver två ändringar: en kolumn i String Catalog och
+  en tabell i `Texter` (t.ex. ett språkval där). Det är litet så länge texterna
+  bor i den enda filen.
+- **Hålls av prov:** `tools/tests/test_engelska.py` fäller å, ä och ö i String
+  Catalog, i strängarna i App/ och i `Texter.swift`, kräver att varje text i App/
+  står i katalogen och att varje rad där används. VisningTests fäller å, ä och ö
+  (och decimalkomma) i allt vymodellerna räknar fram på de påhittade passen, och
+  simulatorprovet (`testEngelskaTexter`) i det som kom med i appen.
+- **Behålls på svenska:** kod, kommentarer och dokument (B30), och de fel som bara
+  utvecklaren ser (formatet för en sving och katalogens kontroll, samma som
+  Pythons). `notering` och `om` i katalogen och kedjorna är dokumentation.
+- **Omprövas:** när ett andra språk ska in.

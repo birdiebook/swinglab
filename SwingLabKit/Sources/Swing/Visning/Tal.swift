@@ -1,43 +1,42 @@
 import Foundation
 
 /// Talen och datumen som vyn visar (BESLUT B13, design/README.md regel 4 och 7):
-/// decimalkomma, typografiskt minus och tecken på förändringar. Räknas för hand,
-/// inte med NumberFormatter, så att telefonens språk inte spelar in och Linux
-/// ger samma text som telefonen.
+/// decimalpunkt och engelska datum (BESLUT B30), typografiskt minus och tecken på
+/// förändringar. Räknas för hand, inte med NumberFormatter, så att telefonens språk
+/// inte spelar in och Linux ger samma text som telefonen. Orden står i Texter.
 public enum Tal {
     /// U+2212, samma bredd som plus i tabellsiffror.
     public static let minus = "\u{2212}"
 
-    /// |v| med `decimaler` decimaler och decimalkomma, utan tecken.
+    /// |v| med `decimaler` decimaler och decimalpunkt, utan tecken.
     static func belopp(_ v: Double, _ decimaler: Int) -> String {
-        let s = String(format: "%.\(Swift.max(0, decimaler))f", abs(v))
-        return s.replacingOccurrences(of: ".", with: ",")
+        String(format: "%.\(Swift.max(0, decimaler))f", abs(v))
     }
 
-    /// Avrundat till noll? Då visas inget minus ("−0,0").
+    /// Avrundat till noll? Då visas inget minus ("−0.0").
     static func noll(_ v: Double, _ decimaler: Int) -> Bool {
         abs(v) < 0.5 * pow(10, -Double(Swift.max(0, decimaler)))
     }
 
-    /// Ett värde: "−2,4", "11,3". Saknas värdet: "—".
+    /// Ett värde: "−2.4", "11.3". Saknas värdet: "—".
     public static func tal(_ v: Double?, decimaler: Int) -> String {
         guard let v, v.isFinite else { return "—" }
         return (v < 0 && !noll(v, decimaler) ? minus : "") + belopp(v, decimaler)
     }
 
-    /// En förändring eller ett mått med riktning: "+1,2", "−2,4", "±0,0".
+    /// En förändring eller ett mått med riktning: "+1.2", "−2.4", "±0.0".
     public static func tecken(_ v: Double?, decimaler: Int) -> String {
         guard let v, v.isFinite else { return "—" }
         if noll(v, decimaler) { return "±" + belopp(0, decimaler) }
         return (v > 0 ? "+" : minus) + belopp(v, decimaler)
     }
 
-    /// En gräns på en axel: högst `decimaler` decimaler, utan nollor på slutet ("0", "2,5").
+    /// En gräns på en axel: högst `decimaler` decimaler, utan nollor på slutet ("0", "2.5").
     public static func axel(_ v: Double, decimaler: Int) -> String {
         var s = tal(v, decimaler: decimaler)
-        guard s.contains(",") else { return s }
+        guard s.contains(".") else { return s }
         while s.hasSuffix("0") { s.removeLast() }
-        if s.hasSuffix(",") { s.removeLast() }
+        if s.hasSuffix(".") { s.removeLast() }
         return s == minus + "0" ? "0" : s
     }
 
@@ -53,8 +52,8 @@ public enum Tal {
 
     // MARK: datumen
 
-    public static let manader = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
-    public static let veckodagar = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"]
+    public static var manader: [String] { Texter.manader }
+    public static var veckodagar: [String] { Texter.veckodagar }
 
     /// Svensk tid, oavsett telefonens zon, så att ett pass har samma datum överallt.
     public static let kalender: Calendar = {
@@ -64,19 +63,19 @@ public enum Tal {
         return k
     }()
 
-    /// "6 jan"
+    /// "Jan 6"
     public static func datum(_ d: Date) -> String {
         let c = kalender.dateComponents([.day, .month], from: d)
-        return "\(c.day ?? 0) \(manader[((c.month ?? 1) - 1) % 12])"
+        return Texter.datum(dag: c.day ?? 0, manad: manader[((c.month ?? 1) - 1) % 12])
     }
 
-    /// "fre 9 jan"
+    /// "Fri, Jan 9"
     public static func dag(_ d: Date) -> String {
         let v = kalender.component(.weekday, from: d)
-        return "\(veckodagar[(v - 1) % 7]) \(datum(d))"
+        return Texter.dag(veckodag: veckodagar[(v - 1) % 7], datum: datum(d))
     }
 
-    /// "jan"
+    /// "Jan"
     public static func manad(_ d: Date) -> String {
         manader[(kalender.component(.month, from: d) - 1) % 12]
     }

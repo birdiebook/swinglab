@@ -121,7 +121,7 @@ public enum Demo {
                 svingar.append(SvingMatt(vy: .fo, matt: fo[j]))
                 svingar.append(SvingMatt(vy: .dtl, matt: dtl[j]))
             }
-            return Pass(datum: datum[i], klubba: "järn 7", svingar: svingar, serie1: serie1)
+            return Pass(datum: datum[i], klubba: "7-iron", svingar: svingar, serie1: serie1)
         }
     }
 
@@ -159,21 +159,21 @@ public enum Demo {
       {
        "ordning": 1,
        "fel": "sway_topp",
-       "namn": "Bäckenet glider bakåt i baksvingen",
+       "namn": "Sway: the pelvis slides away from the target in the backswing",
        "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
        "nu": -2.4, "spann": [0, null], "markning": "B10",
        "ovning": {
-        "text": "Käpp i marken utanför bakre höften. Baksving till toppen och stopp: höften roterar, käppen står kvar. Sedan fötterna ihop, 3/4-svingar.",
-        "tanke": "Rör inte käppen.",
+        "text": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
+        "tanke": "Don't touch the stick.",
         "kalla": "katalog",
         "steg": "halv_fart"
        },
        "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
        "foljdfel": [
-        {"fel": "reverse_spine", "namn": "Reverse spine: överkroppen lutar mot målet i toppen", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
-        {"fel": "backens_resa_framat", "namn": "För liten resa framåt från toppen", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},
-        {"fel": "tappad_hallning", "namn": "Tappad hållning: bröstet reser sig", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 2.0, "enhet": "°"},
-        {"fel": "sway_gap", "namn": "Sway gap vid träffen", "vag": ["sway_topp", "sway_gap"], "nu": 4.1, "enhet": "cm"}
+        {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
+        {"fel": "backens_resa_framat", "namn": "Too little forward shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},
+        {"fel": "tappad_hallning", "namn": "Loss of posture: the chest rises", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 2.0, "enhet": "°"},
+        {"fel": "sway_gap", "namn": "Sway gap at impact", "vag": ["sway_topp", "sway_gap"], "nu": 4.1, "enhet": "cm"}
        ],
        "typ": "teknik",
        "fysik": null,
@@ -182,19 +182,19 @@ public enum Demo {
       {
        "ordning": 2,
        "fel": "flying_elbow",
-       "namn": "Flying elbow: bakre armbågen pekar ut i toppen",
+       "namn": "Flying elbow: the trail elbow points out at the top",
        "vy": "dtl", "matt": "bakre_armbage_topp", "enhet": "°",
        "nu": 56.0, "spann": null, "markning": "egen",
        "ovning": {
-        "text": "Ingen svingövning hittad. Testa 90/90 (bakre axelns utåtrotation) först: är den begränsad är det rörlighet.",
-        "tanke": "En handduk under bakre armen ska sitta kvar till toppen.",
+        "text": "No swing drill found. Test 90/90 (trail shoulder external rotation) first: if it is limited, it is mobility.",
+        "tanke": "A towel under the trail arm stays in place to the top.",
         "kalla": "katalog",
         "steg": "langsamt_med_foremal"
        },
        "klart_nar": {"villkor": "<=", "grans": 51.5, "pa": "forsta_serien", "pass_i_rad": 2},
        "foljdfel": [],
        "typ": "teknik_kroppen_gor_det_svart",
-       "fysik": {"test": "90/90, bakre axelns utåtrotation", "treregeln": [true, true, false], "ovning": "Ligg på rygg med armen i rät vinkel och låt handen sjunka bakåt utan att axeln lyfter."},
+       "fysik": {"test": "90/90, trail shoulder external rotation", "treregeln": [true, true, false], "ovning": "Lie on your back with the arm at a right angle and let the hand sink back without the shoulder lifting."},
        "block": {"start": "2027-01-09", "vecka": 1}
       }
      ]

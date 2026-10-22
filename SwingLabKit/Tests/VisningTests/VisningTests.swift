@@ -15,22 +15,24 @@ final class VisningTests: XCTestCase {
     // MARK: talen
 
     func testTalen() {
-        XCTAssertEqual(Tal.tal(-2.4, decimaler: 1), "−2,4")
-        XCTAssertEqual(Tal.tal(11.27, decimaler: 1), "11,3")
-        XCTAssertEqual(Tal.tal(-0.04, decimaler: 1), "0,0")          // inget "−0,0"
+        // Engelskt sätt (BESLUT B30): decimalpunkt och äkta minus.
+        XCTAssertEqual(Tal.tal(-2.4, decimaler: 1), "\u{2212}2.4")
+        XCTAssertEqual(Tal.tal(11.27, decimaler: 1), "11.3")
+        XCTAssertEqual(Tal.tal(-0.04, decimaler: 1), "0.0")          // inget "−0.0"
         XCTAssertEqual(Tal.tal(nil, decimaler: 1), "—")
-        XCTAssertEqual(Tal.tecken(1.2, decimaler: 1), "+1,2")
-        XCTAssertEqual(Tal.tecken(-2.4, decimaler: 1), "−2,4")
-        XCTAssertEqual(Tal.tecken(0.03, decimaler: 1), "±0,0")
+        XCTAssertEqual(Tal.tecken(1.2, decimaler: 1), "+1.2")
+        XCTAssertEqual(Tal.tecken(-2.4, decimaler: 1), "−2.4")
+        XCTAssertEqual(Tal.tecken(0.03, decimaler: 1), "±0.0")
         XCTAssertEqual(Tal.tecken(2, decimaler: 0), "+2")
         XCTAssertEqual(Tal.axel(-12, decimaler: 1), "−12")
-        XCTAssertEqual(Tal.axel(2.5, decimaler: 1), "2,5")
-        XCTAssertEqual(Tal.axel(3.1, decimaler: 2), "3,1")
-        XCTAssertEqual(Tal.axel(12.5, decimaler: 1), "12,5")
+        XCTAssertEqual(Tal.axel(2.5, decimaler: 1), "2.5")
+        XCTAssertEqual(Tal.axel(3.1, decimaler: 2), "3.1")
+        XCTAssertEqual(Tal.axel(12.5, decimaler: 1), "12.5")
         XCTAssertEqual(Tal.axel(0, decimaler: 1), "0")
-        XCTAssertEqual(Tal.medEnhet("+1,2", "cm"), "+1,2 cm")
+        XCTAssertEqual(Tal.axel(-0.04, decimaler: 1), "0")
+        XCTAssertEqual(Tal.medEnhet("+1.2", "cm"), "+1.2 cm")
         XCTAssertEqual(Tal.medEnhet("+2", "°"), "+2°")
-        XCTAssertEqual(Tal.medEnhet("+0,1", ": 1"), "+0,1")
+        XCTAssertEqual(Tal.medEnhet("+0.1", ": 1"), "+0.1")
     }
 
     func testDecimalregelnArPCns() {
@@ -46,7 +48,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(Avrundning.avrunda("tempo", 2.876), 2.88)
         XCTAssertNil(Avrundning.avrunda("tempo", nil))
         // Grader med en decimal överallt: 5,9° blir inte 6°.
-        XCTAssertEqual(Mattkort.text(5.9, Etiketter.etikett("brost_bojning_tapp")), "+5,9")
+        XCTAssertEqual(Mattkort.text(5.9, Etiketter.etikett("brost_bojning_tapp")), "+5.9")
         XCTAssertEqual(Etiketter.etikett("sidbojning_topp").decimaler, 1)
     }
 
@@ -56,8 +58,8 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(Etiketter.etikett("nytt_s").decimaler, 2)
         XCTAssertEqual(Etiketter.etikett("nytt_matt").enhet, "cm")
         // Tom enhet: talet utan något efter.
-        XCTAssertEqual(Tal.medEnhet("1,25", ""), "1,25")
-        XCTAssertEqual(Tal.medEnhet("2,90", ": 1"), "2,90")
+        XCTAssertEqual(Tal.medEnhet("1.25", ""), "1.25")
+        XCTAssertEqual(Tal.medEnhet("2.90", ": 1"), "2.90")
         // Varje mått i katalogen har en enhet i regeln (tempot är kvoten "").
         if let k = try? katalog() {
             for f in k.fel where f.matt != "tempo" {
@@ -69,15 +71,15 @@ final class VisningTests: XCTestCase {
     func testUpplasningen() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
         let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
-        XCTAssertEqual(sway.upplasning, "Sway −2,4 cm, mål från 0 cm, förra −3,6 cm, +1,2 cm mot 6 jan, gränsen ej läst i original")
+        XCTAssertEqual(sway.upplasning, "Sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, limit not read in original")
         let tempo = try XCTUnwrap(v.kort.first { $0.id == "tempo" })
-        XCTAssertTrue(tempo.upplasning.hasPrefix("Tempo 2,90, mål 2,5 till 3,1"), tempo.upplasning)
+        XCTAssertTrue(tempo.upplasning.hasPrefix("Tempo 2.90, target 2.5 to 3.1"), tempo.upplasning)
         let tapp = try XCTUnwrap(v.kort.first { $0.id == "tappad_hallning" })
-        XCTAssertTrue(tapp.upplasning.contains("egen baslinje"), tapp.upplasning)
-        XCTAssertEqual(v.kort.last?.upplasning, "Axellutning, avstängt")
+        XCTAssertTrue(tapp.upplasning.contains("own baseline"), tapp.upplasning)
+        XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt, off")
         let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
-        XCTAssertEqual(j.saker[0].upplasning, "Sway −2,4 cm, mål från 0 cm, gränsen ej läst i original, FO · topp · vecka 5")
-        XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Resa framåt, Böjning +2,0°")
+        XCTAssertEqual(j.saker[0].upplasning, "Sway −2.4 cm, target from 0 cm, limit not read in original, FO · top · week 5")
+        XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Forward shift, Chest bend +2.0°")
     }
 
     func testAccentenBaraForDetSomOvas() throws {
@@ -94,11 +96,77 @@ final class VisningTests: XCTestCase {
     }
 
     func testDatumen() {
-        XCTAssertEqual(Tal.datum(Tal.dag(2027, 1, 6)), "6 jan")
-        XCTAssertEqual(Tal.dag(Tal.dag(2027, 1, 9)), "lör 9 jan")
-        XCTAssertEqual(Tal.dag(Tal.dag(2026, 10, 20)), "tis 20 okt")
+        XCTAssertEqual(Tal.datum(Tal.dag(2027, 1, 6)), "Jan 6")
+        XCTAssertEqual(Tal.dag(Tal.dag(2027, 1, 9)), "Sat, Jan 9")
+        XCTAssertEqual(Tal.dag(Tal.dag(2026, 10, 20)), "Tue, Oct 20")
+        XCTAssertEqual(Tal.manad(Tal.dag(2027, 5, 1)), "May")
         // Sent på kvällen i Sverige är fortfarande samma dag.
-        XCTAssertEqual(Tal.datum(Tal.dag(2027, 1, 6, timme: 23)), "6 jan")
+        XCTAssertEqual(Tal.datum(Tal.dag(2027, 1, 6, timme: 23)), "Jan 6")
+    }
+
+    // MARK: engelska (BESLUT B30)
+
+    /// Inget som vymodellerna räknar fram bär å, ä eller ö: alla skärmar på de
+    /// påhittade passen, märkningarna, filtret och stegen. Fäller svenska som smyger
+    /// tillbaka i Texter, i katalogens fält som visas eller i Demo.
+    func testIngaSvenskaTeckenIVisningen() throws {
+        let k = try katalog()
+        var texter: [String] = []
+        let p = Passvisning(katalog: k, pass: Demo.pass, ovas: Demo.attJobbaPa.ovas)
+        texter += [p.titel, p.undertitel] + Passvisning.Filter.allCases.map(\.etikett)
+        for kort in p.kort {
+            texter += [kort.namn, kort.rubrik, kort.varde, kort.enhet, kort.skillnad ?? "", kort.upplasning]
+            texter += (kort.spann?.etiketter.map { $0.text } ?? []) + [kort.markning?.etikett ?? ""]
+        }
+        let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: k)
+        texter.append(j.fran)
+        for sak in j.saker {
+            texter += [sak.namn, sak.rubrik, sak.nu, sak.ovning, sak.tanke, sak.villkor, sak.villkorUnder, sak.upplasningHel]
+            texter += sak.steg.map { $0.namn } + sak.foljd.flatMap { $0.vag + [$0.upplasning] }
+            texter += [sak.rorlighet?.test ?? "", sak.rorlighet?.ovning ?? ""]
+        }
+        let i = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: Demo.pass, attJobbaPa: Demo.attJobbaPa)
+        texter += [i.dag, i.senaste ?? "", i.forsta?.namn ?? "", i.forsta?.tanke ?? ""] + (i.forsta?.kedja ?? [])
+        texter += i.rader.map { $0.upplasning }
+        let u = Utvecklingsvisning(katalog: k, pass: Demo.pass, block: Demo.block)
+        texter.append(u.period)
+        for m in u.matt {
+            texter += [m.namn, m.rubrik, m.varde, m.skillnad ?? ""] + m.manader.map { $0.text } + m.axelText.map { $0.text }
+        }
+        for vy in [Vy.fo, .dtl] {
+            let s = Demo.sving(vy)
+            let y = Matyta(sving: s, resultat: try Matt.mat(s))
+            let g = Granskningsvisning(yta: y, forra: nil, forraDatum: Demo.datum[14], pass: Demo.pass.last!,
+                                       matt: Granskningsvisning.matt(vy))
+            texter += [y.namn, y.tidText(1), g.forraDatum ?? ""] + g.slag.map { $0.text }
+        }
+        for m in [Markning.b10, .egen, .av] { texter += [m.etikett, m.upplasning] }
+        texter += Etiketter.tabell.values.flatMap { [$0.namn, $0.fas, $0.vy ?? "", $0.plus.map(Texter.plus) ?? ""] }
+        texter += Array(Texter.stegnamn.values) + Texter.manader + Texter.veckodagar
+        // Katalogens fält som visas (namn, övning, tanke) är också engelska.
+        texter += k.fel.flatMap { [$0.namn, $0.ovning, $0.tanke] }
+        XCTAssertGreaterThan(texter.count, 100)
+        let svenska = CharacterSet(charactersIn: "åäöÅÄÖ")
+        for t in texter { XCTAssertNil(t.rangeOfCharacter(from: svenska), t) }
+        // Tal på engelskt sätt: inget decimalkomma mellan siffror.
+        let komma = try NSRegularExpression(pattern: "[0-9],[0-9]")
+        for t in texter where !t.contains("/") {
+            XCTAssertNil(komma.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)), t)
+        }
+    }
+
+    func testFelenVidLasningenArEngelska() {
+        let fel = AttJobbaPaFixtur.exempel.replacingOccurrences(of: "swinglab-att-jobba-pa/1", with: "annat/1")
+        XCTAssertThrowsError(try AttJobbaPa.las(json: fel)) { e in
+            XCTAssertEqual("\(e)", "att_jobba_pa: format: must start with swinglab-att-jobba-pa/")
+        }
+        XCTAssertThrowsError(try AttJobbaPa.las(json: "{")) { e in
+            XCTAssertTrue(["att_jobba_pa: not valid JSON", "att_jobba_pa: file: invalid"].contains("\(e)"), "\(e)")
+        }
+        let utan = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""markning": "B10","#, with: "")
+        XCTAssertThrowsError(try AttJobbaPa.las(json: utan)) { e in
+            XCTAssertTrue("\(e)".hasSuffix("markning is missing"), "\(e)")
+        }
     }
 
     // MARK: axeln och spannet
@@ -130,7 +198,7 @@ final class VisningTests: XCTestCase {
     func testSpannetMedBaslinje() {
         let s = Spann(nu: 11.3, spridning: (10.2, 12.1), forra: 11.0, gront: nil, baslinje: (7.6, 8.4), decimaler: 1)
         XCTAssertEqual(s.zon, .baslinje(lo: 7.6, hi: 8.4))
-        XCTAssertEqual(s.etiketter.map { $0.text }.dropFirst().prefix(2), ["7,6", "8,4"])
+        XCTAssertEqual(s.etiketter.map { $0.text }.dropFirst().prefix(2), ["7.6", "8.4"])
         XCTAssertLessThanOrEqual(s.axel.lo, 7.6)
         XCTAssertGreaterThanOrEqual(s.axel.hi, 12.1)
     }
@@ -154,29 +222,29 @@ final class VisningTests: XCTestCase {
 
     func testPasset() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
-        XCTAssertEqual(v.titel, "lör 9 jan")
-        XCTAssertEqual(v.undertitel, "järn 7 · 34")
+        XCTAssertEqual(v.titel, "Sat, Jan 9")
+        XCTAssertEqual(v.undertitel, "7-iron · 34")
         let k = Dictionary(uniqueKeysWithValues: v.kort.map { ($0.id, $0) })
         let sway = try XCTUnwrap(k["sway_topp"])
         XCTAssertEqual(sway.namn, "Sway")
-        XCTAssertEqual(sway.rubrik, "FO · topp · + mot mål")
-        XCTAssertEqual(sway.varde, "−2,4")
+        XCTAssertEqual(sway.rubrik, "FO · top · + to target")
+        XCTAssertEqual(sway.varde, "−2.4")
         XCTAssertEqual(sway.enhet, "cm")
-        XCTAssertEqual(sway.skillnad, "+1,2 cm mot 6 jan")
+        XCTAssertEqual(sway.skillnad, "+1.2 cm vs Jan 6")
         XCTAssertEqual(sway.markning, .b10)
         XCTAssertEqual(sway.spann?.forra ?? 0, -3.6, accuracy: 1e-6)
 
         let tempo = try XCTUnwrap(k["tempo"])
-        XCTAssertEqual(tempo.rubrik, "Klick · start–topp–träff")
-        XCTAssertEqual(tempo.varde, "2,90")
-        XCTAssertEqual(tempo.skillnad, "+0,10 mot 6 jan")
+        XCTAssertEqual(tempo.rubrik, "Click · start–top–impact")
+        XCTAssertEqual(tempo.varde, "2.90")
+        XCTAssertEqual(tempo.skillnad, "+0.10 vs Jan 6")
         guard case let .tempo(bak, ned, bakText, _)? = tempo.geometri else { return XCTFail("tempot utan sträckor") }
         XCTAssertEqual(bak / ned, 2.9, accuracy: 0.05)
-        XCTAssertEqual(bakText, "0,85")
+        XCTAssertEqual(bakText, "0.85")
 
         let tapp = try XCTUnwrap(k["tappad_hallning"])
         XCTAssertEqual(tapp.markning, .egen)
-        XCTAssertEqual(tapp.varde, "+2,0")
+        XCTAssertEqual(tapp.varde, "+2.0")
         XCTAssertEqual(tapp.enhet, "°")
         guard case let .bojning(a, t)? = tapp.geometri else { return XCTFail("böjningen utan linjer") }
         XCTAssertEqual(a - t, 2, accuracy: 1e-6)
@@ -208,14 +276,14 @@ final class VisningTests: XCTestCase {
     func testS5sExempelGarAttLasa() throws {
         let a = try AttJobbaPa.las(json: AttJobbaPaFixtur.exempel)
         XCTAssertEqual(a.pass, "20261103-180000")
-        XCTAssertEqual(Tal.datum(try XCTUnwrap(a.passDatum)), "3 nov")
+        XCTAssertEqual(Tal.datum(try XCTUnwrap(a.passDatum)), "Nov 3")
         XCTAssertEqual(a.saker.count, 1)
         let s = a.saker[0]
         XCTAssertEqual(s.fel, "sway_topp")
         XCTAssertEqual(s.matt, "backen_sway_topp")
         XCTAssertEqual(s.nu, -5.7)
         XCTAssertEqual(s.markning, "B10")
-        XCTAssertEqual(s.ovning.tanke, "Rör inte käppen.")
+        XCTAssertEqual(s.ovning.tanke, "Don't touch the stick.")
         XCTAssertEqual(s.ovning.steg, "langsamt_med_foremal")
         XCTAssertEqual(s.klartNar.villkor, .minst)
         XCTAssertEqual(s.klartNar.lo, 0)
@@ -234,16 +302,16 @@ final class VisningTests: XCTestCase {
 
         // Vyn visar filen som den är.
         let v = AttJobbaPaVisning(a, katalog: try katalog())
-        XCTAssertEqual(v.fran, "3 nov")
+        XCTAssertEqual(v.fran, "Nov 3")
         let sv = v.saker[0]
-        XCTAssertEqual(sv.rubrik, "FO · topp · vecka 1")
-        XCTAssertEqual(sv.nu, "−5,7")
-        XCTAssertEqual(sv.foljd.map { $0.vag }, [["Sidböjning"], ["Sidböjning", "Thrust"], ["Resa framåt"],
-                                                ["Resa framåt", "Böjning"], ["Sway gap"]])
-        XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4,0", "+3,3", "13,8", "+5,9", "+16,5"])   // filens tal, inte avrundade om
-        XCTAssertEqual(sv.steg.map { $0.namn }, ["Långsamt", "Halv fart", "Full fart", "Varierat"])
+        XCTAssertEqual(sv.rubrik, "FO · top · week 1")
+        XCTAssertEqual(sv.nu, "−5.7")
+        XCTAssertEqual(sv.foljd.map { $0.vag }, [["Side bend"], ["Side bend", "Thrust"], ["Forward shift"],
+                                                ["Forward shift", "Chest bend"], ["Sway gap"]])
+        XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4.0", "+3.3", "13.8", "+5.9", "+16.5"])   // filens tal, inte avrundade om
+        XCTAssertEqual(sv.steg.map { $0.namn }, ["Slow", "Half speed", "Full speed", "Varied"])
         XCTAssertEqual(sv.steg[0].lage, .nu)
-        XCTAssertEqual(sv.villkor, "Första serien ≥ 0 cm")
+        XCTAssertEqual(sv.villkor, "First set ≥ 0 cm")
     }
 
     func testFixturenArS5s() throws {
@@ -293,9 +361,10 @@ final class VisningTests: XCTestCase {
             .replacingOccurrences(of: #""matt": "backen_sway_topp""#, with: #""matt": "brost_bojning_tapp""#)
             .replacingOccurrences(of: #""enhet": "cm",\#n   "nu""#, with: #""enhet": "°",\#n   "nu""#)
         let v = AttJobbaPaVisning(try AttJobbaPa.las(json: grader), katalog: try katalog())
-        XCTAssertEqual(v.saker[0].villkor, "Första serien ≤ 12,5°")
-        XCTAssertEqual(v.saker[0].nu, "−5,7")
-        let utanTanke = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""tanke": "Rör inte käppen.","#, with: "")
+        XCTAssertEqual(v.saker[0].villkor, "First set ≤ 12.5°")
+        XCTAssertEqual(v.saker[0].nu, "−5.7")
+        let utanTanke = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""tanke": "Don't touch the stick.","#, with: "")
+        XCTAssertNotEqual(utanTanke, AttJobbaPaFixtur.exempel)
         XCTAssertThrowsError(try AttJobbaPa.las(json: utanTanke)) { e in
             XCTAssertTrue("\(e)".contains("tanke"), "\(e)")
         }
@@ -303,57 +372,57 @@ final class VisningTests: XCTestCase {
 
     func testAttJobbaPa() throws {
         let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
-        XCTAssertEqual(v.fran, "9 jan")
+        XCTAssertEqual(v.fran, "Jan 9")
         XCTAssertEqual(v.saker.count, 2)
         let s = v.saker[0]
         XCTAssertEqual(s.namn, "Sway")
-        XCTAssertEqual(s.rubrik, "FO · topp · vecka 5")
+        XCTAssertEqual(s.rubrik, "FO · top · week 5")
         XCTAssertEqual(s.markning, .b10)
-        XCTAssertEqual(s.nu, "−2,4")
+        XCTAssertEqual(s.nu, "−2.4")
         guard case let .grans(lo, _)? = s.mal?.zon else { return XCTFail("målet utan spann") }
         XCTAssertEqual(lo, 0)
-        XCTAssertEqual(s.foljd.first?.vag, ["Sidböjning"])
+        XCTAssertEqual(s.foljd.first?.vag, ["Side bend"])
         XCTAssertEqual(s.steg[1].lage, .nu)
         XCTAssertEqual(s.steg[0].lage, .klart)
-        XCTAssertEqual(s.tanke, "”Rör inte käppen.”")
-        XCTAssertEqual(s.villkor, "Första serien ≥ 0 cm")
-        XCTAssertEqual(s.villkorUnder, "2 pass i rad")
+        XCTAssertEqual(s.tanke, "\u{201C}Don't touch the stick.\u{201D}")
+        XCTAssertEqual(s.villkor, "First set ≥ 0 cm")
+        XCTAssertEqual(s.villkorUnder, "2 sessions in a row")
         XCTAssertNil(s.rorlighet)
         let t = v.saker[1]
-        XCTAssertEqual(t.namn, "Bakre armbåge")
+        XCTAssertEqual(t.namn, "Trail elbow")
         XCTAssertEqual(t.markning, .egen)
         XCTAssertNil(t.mal)                                   // egen baslinje: inget spann i filen
         XCTAssertTrue(t.foljd.isEmpty)
-        XCTAssertEqual(t.nu, "+56,0")
-        XCTAssertEqual(t.villkor, "Första serien ≤ 51,5°")
-        XCTAssertEqual(t.rorlighet?.test, "90/90, bakre axelns utåtrotation")
+        XCTAssertEqual(t.nu, "+56.0")
+        XCTAssertEqual(t.villkor, "First set ≤ 51.5°")
+        XCTAssertEqual(t.rorlighet?.test, "90/90, trail shoulder external rotation")
     }
 
     func testIdagVisarDenForstaSaken() throws {
         let v = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass,
                             attJobbaPa: Demo.attJobbaPa)
-        XCTAssertEqual(v.dag, "ons 13 jan")
-        XCTAssertEqual(v.senaste, "lör 9 jan · järn 7 · 34")
+        XCTAssertEqual(v.dag, "Wed, Jan 13")
+        XCTAssertEqual(v.senaste, "Sat, Jan 9 · 7-iron · 34")
         XCTAssertEqual(v.rader.first?.namn, "Sway")
         XCTAssertFalse(v.rader.contains { $0.id == "axellutning" })     // avstängt
         XCTAssertEqual(v.rader.first { $0.id == "tempo" }?.enhet, "")
         XCTAssertEqual(v.forsta?.namn, "Sway")
-        XCTAssertEqual(v.forsta?.tanke, "”Rör inte käppen.”")
-        XCTAssertEqual(v.forsta?.kedja, ["Sway", "Sidböjning", "Resa framåt"])
+        XCTAssertEqual(v.forsta?.tanke, "\u{201C}Don't touch the stick.\u{201D}")
+        XCTAssertEqual(v.forsta?.kedja, ["Sway", "Side bend", "Forward shift"])
     }
 
     // MARK: Utveckling
 
     func testUtveckling() throws {
         let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block)
-        XCTAssertEqual(v.period, "okt–jan · 16")
+        XCTAssertEqual(v.period, "Oct–Jan · 16")
         let sway = try XCTUnwrap(v.matt.first { $0.id == "sway_topp" })
         XCTAssertEqual(sway.punkter.count, 16)
-        XCTAssertEqual(sway.rubrik, "FO · topp")
-        XCTAssertEqual(sway.varde, "−2,4")
-        XCTAssertEqual(sway.skillnad, "+5,5 cm mot 20 okt")
+        XCTAssertEqual(sway.rubrik, "FO · top")
+        XCTAssertEqual(sway.varde, "−2.4")
+        XCTAssertEqual(sway.skillnad, "+5.5 cm vs Oct 20")
         XCTAssertTrue(sway.harSerie1)
-        XCTAssertEqual(sway.manader.map { $0.text }, ["okt", "nov", "dec", "jan"])
+        XCTAssertEqual(sway.manader.map { $0.text }, ["Oct", "Nov", "Dec", "Jan"])
         XCTAssertEqual(sway.manader.map { $0.index }, [0, 3, 10, 13])
         XCTAssertEqual(sway.block.map { $0.index }, [4, 11])
         XCTAssertEqual(sway.block.map { $0.text }, ["B1", "B2"])
@@ -419,11 +488,11 @@ final class VisningTests: XCTestCase {
         let g = Granskningsvisning(yta: y, forra: nil, forraDatum: Demo.datum[14], pass: Demo.pass.last!,
                                    matt: Granskningsvisning.matt(.fo))
         XCTAssertEqual(g.slag.count, 35)
-        XCTAssertEqual(g.slag[0], .init(nr: nil, text: "−2,4"))
+        XCTAssertEqual(g.slag[0], .init(nr: nil, text: "−2.4"))
         XCTAssertEqual(g.slag[1].nr, 1)
-        XCTAssertEqual(g.forraDatum, "6 jan")
+        XCTAssertEqual(g.forraDatum, "Jan 6")
         XCTAssertEqual(y.namn, "Sway")
-        XCTAssertEqual(y.tidText(2.2), "2,20 s")
+        XCTAssertEqual(y.tidText(2.2), "2.20 s")
         XCTAssertEqual(y.faser.topp, 2.2, accuracy: 0.01)
     }
 }

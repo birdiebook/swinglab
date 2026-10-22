@@ -643,11 +643,14 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
 - **Fritexten** är tanken (högst **60** tecken) och rörlighetsövningen (högst
   **200**). Den bär inga siffror (tal står bara i "klart när", där de är
   analysens), inga utropstecken och inga **värdeord** (BESLUT B13 regel 4),
-  som fälls på ordstam: `bra`, och ord som börjar på bäst, bättr, sämr, fin,
-  duktig, topp, dålig, perfekt, utmärk, fantastisk, snygg, grym, super med
-  flera (listan i `att_jobba_pa.py`). Undantag: finish…, finn…, fing…, final…,
-  och "toppen" efter en preposition eller före "av" (fasen, platsen).
-  **antagande** (gränserna); katalogens längsta tanke är 56 tecken.
+  som fälls på ordstam på engelska, appens språk (BESLUT B30): fine, ok,
+  ideal med flera som hela ord, och ord som börjar på good, better, best,
+  worse, worst, bad, poor, great, perfect, nice, excellen, awesome, amazing,
+  fantastic, terribl, awful, superb, wonderful, solid, wrong med flera (listan
+  i `att_jobba_pa.py`). Undantag: badge, badminton, bestow. "strong" och "weak"
+  fälls inte: ett starkt eller svagt grepp är golfens ord, inget omdöme.
+  Fritexten är engelska: å, ä och ö fälls. **antagande** (gränserna);
+  katalogens längsta tanke är 54 tecken.
 - Formen är stängd: en okänd eller saknad nyckel fälls.
 - **Extern fokus** i tanken: vad klubban, bollen eller ett föremål ska göra
   (research 3 (a) 6, medeleffekt ~0,54, Barzyk & Gruber 2024). **forskning, ej
