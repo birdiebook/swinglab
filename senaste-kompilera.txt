@@ -1,18 +1,37 @@
-e646c2c9d52a480c711e8ada3ecd96dae454ce9b s4-vyn 2026-10-22T13:11:49Z run 39783845355 kompilera
+f920cc6437f01fa0fef69636923801f3a481e851 s2cd 2026-10-22T13:25:48Z run 39786063797 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 8 test, 0 fel, 4 s i testerna
-Långsammast (av 8):
-      1.5 s  SwingLabProvVyer.testAttJobbaPa
-      1.4 s  SwingLabProv.testAppenStartarMedStartvyn
-      0.6 s  SwingLabProvVyer.testGranskning
-      0.5 s  SwingLabProvVyer.testPasset
-      0.3 s  SwingLabProvVyer.testUtveckling
-      0.1 s  SwingLabProvVyer.testIdag
+RÖTT: 10 test, 2 fel, 48 s i testerna
+  fel: SwingLabProvInspelning.testLuckaILjudet
+Långsammast (av 10):
+     30.6 s  SwingLabProvInspelning.testFilmenMedAAC
+      6.6 s  SwingLabProvInspelning.testKvittotUrFilen
+      4.0 s  SwingLabProvInspelning.testFilmenMedLPCM
+      2.6 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      1.5 s  SwingLabProvInspelning.testLuckaILjudet
+      1.5 s  SwingLabProvInspelning.testLjusprovetsLasning
+      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
+      0.1 s  SwingLabProvInspelning.testLagringen
       0.0 s  SwingLabProv.testSwingLabKitLankat
       0.0 s  SwingLabProv.testInfoPlist
 
-** TEST SUCCEEDED **
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:337: error: -[SwingLabProv.SwingLabProvInspelning testLuckaILjudet] : XCTAssertEqualWithAccuracy failed: ("2.1142708333333333") is not equal to ("2.2") +/- ("0.001") - klicket vid 2.2, efter luckan
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvInspelning.swift:339: error: -[SwingLabProv.SwingLabProvInspelning testLuckaILjudet] : XCTAssertEqualWithAccuracy failed: ("149504.0") is not equal to ("153600.0") +/- ("1100.0")
+** TEST FAILED **
+== provets mätningar (påhittad film)
+PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
+PROV: aac i filen aac 44100.0 Hz 2 kanaler
+PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm första tiderna ["0.000000", "0.005000", "0.013333", "0.016667", "0.025000", "0.030000", "0.038333", "0.041667", "0.050000", "0.055000", "0.063333", "0.066667"]
+PROV: lpcm stegen i 10 µs: ["333×128", "500×128", "833×255"]
+PROV: lpcm rutor 512, rutnät 240.0, saknas 0.3324641460234681, största hål 0.008333333333333748
+PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
+PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
+PROV: lpcm ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
+PROV: kvitto Bilder/s 240 · Tappade 33 % · Rutor 512 · Klick 2 · MB/min 7 · Längd 0:03
+PROV: ljusprov ISO 800 good · Flimmer 0,5 % good · Rutor 240 bilder/s, 33 % tappade tooDark · Ljushet 50 % good
+PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 149504 prov; klick ["0.99956", "2.11427"]
