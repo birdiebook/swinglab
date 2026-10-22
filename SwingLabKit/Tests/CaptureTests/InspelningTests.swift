@@ -109,9 +109,74 @@ final class InspelningTests: XCTestCase {
         XCTAssertEqual(FrameTiming.analyze(t).gridRate, 240)
     }
 
+    /// Rutornas tider som `tools/pc/tre_d/kamera.py` `bildtider`: 240-rutnätet med
+    /// slumpad fas och tappade rutor i skurar (Markovkedja), avrundade till tidsskalan
+    /// och med likformig skakning. Påhittade tider.
+    struct Slump {
+        var s: UInt64
+        mutating func u() -> Double {
+            s = s &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Double(s >> 11) / Double(UInt64(1) << 53)
+        }
+    }
+
+    static func skurtider(sekunder: Double, tapp: Double, skur: Double, skala: Double?, skak: Double = 0,
+                          fro: UInt64) -> [Double] {
+        var r = Slump(s: fro)
+        let n = Int(sekunder * 240)
+        let fas = r.u() / 240
+        let b = 1 / skur
+        let a = tapp * b / (1 - tapp)
+        var kvar = r.u() > tapp
+        var ut: [Double] = []
+        for k in 0..<n {
+            if kvar {
+                var t = Double(k) / 240 + fas
+                t += skak * (2 * r.u() - 1)
+                if let skala { t = (t * skala).rounded() / skala }
+                ut.append(t)
+            }
+            kvar = kvar ? r.u() > a : r.u() < b
+        }
+        return ut
+    }
+
+    /// Skurar av tappade rutor i tidsskalan 600: 0,5 s, 3 s och 10 s med 36 % (skurar om
+    /// 1,5) och 60 % (skurar om 2 och 5) ger 240 i 50 av 50 (granskningen fick 229–249
+    /// utan förfiningen). Skakning ±0,3 ms likaså. METOD MS3
+    func testRutnatetVidSkurarAvTappadeRutor() {
+        let fall: [(Double, Double, Double, Double?, Double)] = [
+            (0.5, 0.36, 1.5, 600, 0), (3, 0.36, 1.5, 600, 0), (10, 0.36, 1.5, 600, 0),
+            (10, 0.6, 2, 600, 0), (3, 0.6, 5, 600, 0), (3, 0.36, 1.5, nil, 0.0003), (3, 0.36, 1.5, 600, 0.0003),
+        ]
+        for (sek, tapp, skur, skala, skak) in fall {
+            for fro in UInt64(1)...50 {
+                let t = Self.skurtider(sekunder: sek, tapp: tapp, skur: skur, skala: skala, skak: skak, fro: fro)
+                let f = FrameTiming.analyze(t)
+                XCTAssertEqual(f.gridRate, 240, "\(sek) s, \(tapp) tappade, skurar \(skur), skala \(skala ?? 0), frö \(fro)")
+                XCTAssertEqual(f.missingFraction, tapp, accuracy: sek < 1 ? 0.25 : 0.1)
+            }
+        }
+    }
+
     func testTomStromGerInget() {
         var s = ClickStream()
         XCTAssertEqual(s.finish(), [])
+    }
+
+    /// Luckor och överlapp i ljudets buffertar, och längden ur spåret. METOD MS11
+    func testLjudetsTidslinje() {
+        // En buffert som börjar 0,1 s för sent: 4 800 nollor först.
+        XCTAssertEqual(AudioTimeline.correction(first: 0, count: 48_000, bufferStart: 1.1), 4800)
+        // Avrundning inom 1 ms är ingen lucka.
+        XCTAssertEqual(AudioTimeline.correction(first: 0.02, count: 48_000, bufferStart: 1.0205), 0)
+        // Ett överlapp: hoppa över 960 prov.
+        XCTAssertEqual(AudioTimeline.correction(first: 0, count: 48_000, bufferStart: 0.98), -960)
+        XCTAssertEqual(AudioTimeline.correction(first: .nan, count: 0, bufferStart: 1), 0)
+        XCTAssertEqual(AudioTimeline.length(first: 0, trackEnd: 3.2), 153_600)
+        XCTAssertEqual(AudioTimeline.length(first: 0.5, trackEnd: 0.5 + 1.0 / 48_000 * 10.5), 10)
+        XCTAssertNil(AudioTimeline.length(first: 1, trackEnd: .nan))
+        XCTAssertNil(AudioTimeline.length(first: 1, trackEnd: 0.5))
     }
 
     // MARK: Passet
@@ -228,7 +293,7 @@ final class InspelningTests: XCTestCase {
                                   start: Date(), startHost: nil, facts: facts())
         s.pressure = .serious
         let r = Receipt.rows(s)
-        XCTAssertEqual(r.map(\.label), ["Bilder/s", "Tappade", "Rutor", "Klick", "MB/min", "Längd", "Tryck"])
+        XCTAssertEqual(r.map(\.label), ["Bilder/s", "Tappade", "Rutor", "Klick", "MB/min", "Längd", "Värme"])
         XCTAssertEqual(r[0], ReceiptRow("Bilder/s", "240", .good))
         XCTAssertEqual(r[1].value, "33 %")
         XCTAssertEqual(r[1].light, .tooDark)
@@ -236,7 +301,7 @@ final class InspelningTests: XCTestCase {
         XCTAssertEqual(r[3].value, "2")
         XCTAssertEqual(r[4].value, "300")
         XCTAssertEqual(r[5].value, "0:03")
-        XCTAssertEqual(r[6], ReceiptRow("Tryck", "högt", .marginal))
+        XCTAssertEqual(r[6], ReceiptRow("Värme", "hög", .marginal))
         // 120 bilder/s är slowmotion men inte 240: gul. 30 är inte slowmotion: röd.
         XCTAssertEqual(Receipt.rateLight(FrameTiming.analyze((0..<240).map { Double($0) / 120 })), .marginal)
         XCTAssertEqual(Receipt.rateLight(FrameTiming.analyze((0..<90).map { Double($0) / 30 })), .tooDark)

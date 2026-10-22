@@ -46,12 +46,29 @@ enum MediaReader {
 
     // MARK: Ljudet
 
-    /// Läser ljudet som 48 kHz mono Float32 i de buffertar AVAssetReader ger, och
-    /// svarar tiden för filens första ljudprov (nil = inget ljudspår). Omsamplingen och
-    /// nedmixningen görs av läsaren (S2_SPEC §3.1).
-    static func readAudio(_ url: URL, _ chunk: ([Float]) throws -> Void) async throws -> Double? {
+    /// Vad en läsning av ljudet gav: första provets tid, antalet prov, och luckorna
+    /// som fylldes med nollor eller överlappen som hoppades över (METOD MS11).
+    struct AudioRead: Equatable {
+        var first: Double
+        var samples: Int
+        /// Spårets längd i prov, floor((slut − första) · 48 000); nil = okänd.
+        var length: Int?
+        var gaps = 0
+        var filled = 0
+        var skipped = 0
+    }
+
+    /// Läser ljudet som 48 kHz mono Float32 i de buffertar AVAssetReader ger.
+    /// Omsamplingen och nedmixningen görs av läsaren (S2_SPEC §3.1). Varje buffert
+    /// läggs på sin egen tid: en lucka fylls med nollor och ett överlapp hoppas över,
+    /// så att prov n ligger på första + n / 48 000. Antalet prov kapas eller fylls till
+    /// spårets längd, så att varje läsning ger lika många (`AudioTimeline`). nil =
+    /// inget ljudspår. METOD MS11
+    static func readAudio(_ url: URL, _ chunk: ([Float]) throws -> Void) async throws -> AudioRead? {
         let asset = AVURLAsset(url: url)
         guard let track = try await asset.loadTracks(withMediaType: .audio).first else { return nil }
+        let range = try await track.load(.timeRange)
+        let trackEnd = range.end.isValid ? range.end.seconds : .nan
         let reader = try AVAssetReader(asset: asset)
         var mono = AudioChannelLayout()
         mono.mChannelLayoutTag = kAudioChannelLayoutTag_Mono
@@ -71,13 +88,31 @@ enum MediaReader {
         guard reader.canAdd(output) else { throw ReadError.cannotRead }
         reader.add(output)
         guard reader.startReading() else { throw reader.error ?? ReadError.cannotRead }
-        var first: Double?
+
+        var read: AudioRead?
+        /// Lämnar ut prov, aldrig förbi spårets längd.
+        func emit(_ x: [Float]) throws {
+            guard var r = read, !x.isEmpty else { return }
+            let rum = r.length.map { $0 - r.samples } ?? x.count
+            guard rum > 0 else { return }
+            let y = x.count <= rum ? x : Array(x.prefix(rum))
+            r.samples += y.count
+            read = r
+            try chunk(y)
+        }
+        func zeros(_ n: Int) throws {
+            var kvar = n
+            while kvar > 0, read.map({ r in r.length.map { r.samples < $0 } ?? true }) ?? false {
+                let k = min(kvar, Int(sampleRate))
+                try emit([Float](repeating: 0, count: k))
+                kvar -= k
+            }
+        }
+
         while let buffer = output.copyNextSampleBuffer() {
             guard CMSampleBufferGetNumSamples(buffer) > 0, let block = CMSampleBufferGetDataBuffer(buffer) else { continue }
-            if first == nil {
-                let t = CMSampleBufferGetPresentationTimeStamp(buffer)
-                first = t.isValid ? t.seconds : 0
-            }
+            let pts = CMSampleBufferGetPresentationTimeStamp(buffer)
+            let t = pts.isValid ? pts.seconds : Double.nan
             let n = CMBlockBufferGetDataLength(block) / MemoryLayout<Float>.size
             guard n > 0 else { continue }
             var samples = [Float](repeating: 0, count: n)
@@ -87,24 +122,44 @@ enum MediaReader {
                                                   destination: base)
             }
             guard status == kCMBlockBufferNoErr else { throw ReadError.blockCopy }
-            try chunk(samples)
+            if read == nil {
+                let first = t.isFinite ? t : 0
+                read = AudioRead(first: first, samples: 0,
+                                 length: AudioTimeline.length(first: first, trackEnd: trackEnd, sampleRate: sampleRate))
+            } else if let r = read {
+                let rätta = AudioTimeline.correction(first: r.first, count: r.samples, bufferStart: t,
+                                                     sampleRate: sampleRate)
+                if rätta > 0 {
+                    read?.gaps += 1
+                    read?.filled += rätta
+                    try zeros(rätta)
+                } else if rätta < 0 {
+                    read?.gaps += 1
+                    let bort = min(-rätta, samples.count)
+                    read?.skipped += bort
+                    samples.removeFirst(bort)
+                }
+            }
+            try emit(samples)
         }
         if reader.status == .failed { throw reader.error ?? ReadError.cannotRead }
-        return first ?? 0
+        // Spårets längd: ett omsamplat ljud som tog slut några prov tidigt fylls ut.
+        if let r = read, let length = r.length, r.samples < length { try zeros(length - r.samples) }
+        return read
     }
 
     /// Ljudet i bitar om högst `segment` s med `overlap` s överlapp, klippta exakt vid
     /// `ClickDetector.segments`-proven räknat från filens första ljudprov, så att PC:ns
-    /// bitar får samma medianer (S2_SPEC §12 S2c). Svarar tiden för första provet.
+    /// bitar får samma medianer (S2_SPEC §12 S2c). nil = inget ljudspår.
     @discardableResult
     static func audio(_ url: URL, segment: Double = ClickDetector.segmentSeconds,
                       overlap: Double = ClickDetector.overlapSeconds,
-                      _ each: (AudioSegmenter.Segment) throws -> Void) async throws -> Double? {
+                      _ each: (AudioSegmenter.Segment) throws -> Void) async throws -> AudioRead? {
         var segmenter = AudioSegmenter(sampleRate: sampleRate, segment: segment, overlap: overlap)
-        let first = try await readAudio(url) { try segmenter.feed($0, emit: each) }
-        guard first != nil else { return nil }
+        let read = try await readAudio(url) { try segmenter.feed($0, emit: each) }
+        guard read != nil else { return nil }
         try segmenter.finish(emit: each)
-        return first
+        return read
     }
 
     /// Klicken i filen, med tiden i filens tidslinje (första ljudprovets tid + prov / 48 000).
@@ -112,8 +167,8 @@ enum MediaReader {
     static func clicks(_ url: URL, segment: Double = ClickDetector.segmentSeconds,
                        overlap: Double = ClickDetector.overlapSeconds) async throws -> [Click] {
         var stream = ClickStream(sampleRate: sampleRate, segment: segment, overlap: overlap)
-        guard let first = try await readAudio(url, { stream.feed($0) }) else { return [] }
-        return stream.finish().map { Click(time: first + $0.time, strength: $0.strength) }
+        guard let read = try await readAudio(url, { stream.feed($0) }) else { return [] }
+        return stream.finish().map { Click(time: read.first + $0.time, strength: $0.strength) }
     }
 
     /// Ljudspårets format som det står i filen (S2_SPEC §2.5): frekvens, kanaler, kodek.

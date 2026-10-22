@@ -36,7 +36,7 @@ public enum Receipt {
             ReceiptRow("MB/min", Swedish.integer(s.megabytesPerMinute)),
             ReceiptRow("Längd", Swedish.duration(s.duration)),
         ]
-        if let p = s.pressure { r.append(ReceiptRow("Tryck", pressureName(p), p.light)) }
+        if let p = s.pressure { r.append(ReceiptRow(pressureLabel, pressureName(p), p.light)) }
         return r
     }
 
@@ -57,14 +57,17 @@ public enum Receipt {
         ]
     }
 
+    /// Samma ord för värmetrycket i kvittot och i inspelningsvyn (BESLUT B13).
+    public static let pressureLabel = "Värme"
+
     /// Trycket på svenska.
     public static func pressureName(_ p: Pressure) -> String {
         switch p {
-        case .nominal: return "normalt"
-        case .fair: return "måttligt"
-        case .serious: return "högt"
-        case .critical: return "kritiskt"
-        case .shutdown: return "avstängt"
+        case .nominal: return "normal"
+        case .fair: return "förhöjd"
+        case .serious: return "hög"
+        case .critical: return "kritisk"
+        case .shutdown: return "stopp"
         }
     }
 }

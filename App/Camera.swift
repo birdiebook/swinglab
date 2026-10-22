@@ -33,6 +33,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
     @ObservationIgnored private var probeURL: URL?
     @ObservationIgnored private var probeWaiter: CheckedContinuation<Bool, Never>?
     @ObservationIgnored private var probeDone: Bool?
+    @ObservationIgnored private var seriesWaiter: CheckedContinuation<Finished?, Never>?
 
     private(set) var phase: Phase = .idle
     /// Rutnätet som ställdes in, bilder/s.
@@ -71,11 +72,14 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         observeInterruptions()
         do {
             if chosen == nil {                               // en gång per kamera: in- och utgångar finns sedan
-                let (formats, chosen) = try await onQueueThrowing { try self.configure(audio: audio) }
-                self.formats = formats
-                self.chosen = chosen
-                frameRate = chosen.maxFrameRate.rounded()
-                reachesWanted = FormatChoice.reaches(chosen)
+                let described = try await onQueueThrowing { try self.configure(audio: audio) }
+                let (active, rate) = await onQueue { self.readBack(described) }
+                formats = described
+                chosen = active
+                frameRate = rate.rounded()
+                // Det som ställdes in, inte det som begärdes. METOD MS1
+                reachesWanted = FormatChoice.reaches(rate: rate)
+                guard active != nil, rate > 0 else { throw CameraError.noFormat }
             }
             if pressureObservation == nil, let device {
                 pressureObservation = device.observe(\.systemPressureState, options: [.initial, .new]) { [weak self] d, _ in
@@ -89,7 +93,11 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             exposure = await onQueue { self.meterAndLock() }
             phase = .ready
         } catch {
-            problem = "Kameran gick inte att starta."
+            // Sessionen rivs, så att nästa start() börjar från noll.
+            await onQueue { self.tearDown() }
+            chosen = nil
+            problem = (error as? CameraError) == .noFormat
+                ? "Inget format i 1080p med minst 120 bilder/s." : "Kameran gick inte att starta."
             phase = .failed
         }
     }
@@ -124,6 +132,17 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         queue.async { [self] in output.startRecording(to: url, recordingDelegate: self) }
     }
 
+    /// Avslutar en pågående serie och väntar på filen, när vyn försvinner mitt i en
+    /// serie: serien sparas i stället för att bli en fil utan ägare. nil = ingen serie.
+    @MainActor
+    func finishSeries() async -> Finished? {
+        guard phase == .recording else { return nil }
+        return await withCheckedContinuation { c in
+            seriesWaiter = c
+            stopSeries()
+        }
+    }
+
     func stopSeries() {
         queue.async { [self] in if output.isRecording { output.stopRecording() } }
     }
@@ -153,6 +172,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         }
         probeURL = nil
         phase = .ready
+        if !ok { try? FileManager.default.removeItem(at: url) }       // ingen fil utan ägare
         return ok ? (url, rec) : nil
     }
 
@@ -184,54 +204,90 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             return
         }
         if !ok { problem = "Inspelningen avbröts." }
-        finished = Finished(url: url, startHost: startHosts.removeValue(forKey: url), started: seriesStart,
-                            pressure: seriesPressure, ok: ok)
+        let f = Finished(url: url, startHost: startHosts.removeValue(forKey: url), started: seriesStart,
+                         pressure: seriesPressure, ok: ok)
         if phase == .recording { phase = .ready }
+        if let w = seriesWaiter {
+            seriesWaiter = nil
+            w.resume(returning: f)                                       // vyn som försvann sparar den
+        } else {
+            finished = f
+        }
     }
 
     // MARK: Inställningen (körs på kön)
 
     enum CameraError: Error { case noCamera, noFormat, cannotAdd }
 
-    /// Körs på `queue`. In- och utgångar först, sedan formatet och bildtiden (S2_SPEC §2.2).
-    private func configure(audio: Bool) throws -> ([CameraFormat], CameraFormat) {
+    /// Körs på `queue`. Formatet väljs först, ur det telefonen rapporterar, så att
+    /// ett saknat format inte lämnar halva sessionen kvar; sedan in- och utgångar,
+    /// formatet och bildtiden (S2_SPEC §2.2). Vid fel rivs sessionen, så att nästa
+    /// `start()` börjar om från noll.
+    private func configure(audio: Bool) throws -> [CameraFormat] {
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
             throw CameraError.noCamera
         }
-        let input = try AVCaptureDeviceInput(device: device)
-        session.beginConfiguration()
-        defer { session.commitConfiguration() }
-        guard session.canAddInput(input) else { throw CameraError.cannotAdd }
-        session.addInput(input)
-        if audio, let mic = AVCaptureDevice.default(for: .audio),
-           let micInput = try? AVCaptureDeviceInput(device: mic), session.canAddInput(micInput) {
-            session.addInput(micInput)
-        }
-        guard session.canAddOutput(output) else { throw CameraError.cannotAdd }
-        session.addOutput(output)
-        output.minFreeDiskSpaceLimit = PassStorage.recordingFloor
-
         let described = Self.describe(device.formats)
         guard let index = FormatChoice.choose(described), index < device.formats.count else { throw CameraError.noFormat }
         let format = device.formats[index]
-        try device.lockForConfiguration()
-        device.activeFormat = format                                  // sessionens preset blir .inputPriority
-        if let range = format.videoSupportedFrameRateRanges.max(by: { $0.maxFrameRate < $1.maxFrameRate }) {
-            device.activeVideoMinFrameDuration = range.minFrameDuration   // ur intervallet, inte 1/240 (risk R3)
-            device.activeVideoMaxFrameDuration = range.minFrameDuration   // fast takt: ingen sänkning i mörker
+        let input = try AVCaptureDeviceInput(device: device)
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
+        do {
+            guard session.canAddInput(input) else { throw CameraError.cannotAdd }
+            session.addInput(input)
+            if audio, let mic = AVCaptureDevice.default(for: .audio),
+               let micInput = try? AVCaptureDeviceInput(device: mic), session.canAddInput(micInput) {
+                session.addInput(micInput)
+            }
+            guard session.canAddOutput(output) else { throw CameraError.cannotAdd }
+            session.addOutput(output)
+            output.minFreeDiskSpaceLimit = PassStorage.recordingFloor
+
+            try device.lockForConfiguration()
+            device.activeFormat = format                                  // sessionens preset blir .inputPriority
+            if let range = format.videoSupportedFrameRateRanges.max(by: { $0.maxFrameRate < $1.maxFrameRate }) {
+                device.activeVideoMinFrameDuration = range.minFrameDuration   // ur intervallet, inte 1/240 (risk R3)
+                device.activeVideoMaxFrameDuration = range.minFrameDuration   // fast takt: ingen sänkning i mörker
+            }
+            device.videoZoomFactor = 1.0
+            if format.isVideoHDRSupported {
+                device.automaticallyAdjustsVideoHDREnabled = false
+                device.isVideoHDREnabled = false
+            }
+            device.unlockForConfiguration()
+        } catch {
+            for i in session.inputs { session.removeInput(i) }
+            for o in session.outputs { session.removeOutput(o) }
+            throw error
         }
-        device.videoZoomFactor = 1.0
-        if format.isVideoHDRSupported {
-            device.automaticallyAdjustsVideoHDREnabled = false
-            device.isVideoHDREnabled = false
-        }
-        device.unlockForConfiguration()
         if let c = output.connection(with: .video) {
             if c.isVideoRotationAngleSupported(90) { c.videoRotationAngle = 90 }
             if c.isVideoStabilizationSupported { c.preferredVideoStabilizationMode = .off }
         }
         self.device = device
-        return (described, described[index])
+        return described
+    }
+
+    /// Körs på `queue`: tar bort in- och utgångar.
+    private func tearDown() {
+        session.stopRunning()
+        session.beginConfiguration()
+        for i in session.inputs { session.removeInput(i) }
+        for o in session.outputs { session.removeOutput(o) }
+        session.commitConfiguration()
+        device = nil
+    }
+
+    /// Körs på `queue` efter `commitConfiguration`: formatet och bildtiden som faktiskt
+    /// ställdes in, inte de som begärdes. METOD MS1
+    private func readBack(_ described: [CameraFormat]) -> (format: CameraFormat?, rate: Double) {
+        guard let device else { return (nil, 0) }
+        let index = device.formats.firstIndex(of: device.activeFormat)
+        let format = index.flatMap { $0 < described.count ? described[$0] : nil }
+        let d = device.activeVideoMinFrameDuration
+        let rate = d.isValid && d.seconds > 0 ? 1 / d.seconds : 0
+        return (format, rate)
     }
 
     /// Formaten som värden för SwingLabKit (S2_SPEC §2.2). METOD MS1

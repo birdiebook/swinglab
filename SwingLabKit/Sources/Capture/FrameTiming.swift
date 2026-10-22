@@ -5,7 +5,7 @@ import Foundation
 public struct FrameTiming: Codable, Equatable, Sendable {
     public var count: Int
     /// Rutnätets frekvens: 1 / medel av de korta stegen (högst 1,75 × 5:e percentilen),
-    /// avrundat till heltal. 0 = okänt.
+    /// förfinad med hela spannet (`refine`) och avrundad till heltal. 0 = okänt.
     public var gridRate: Double
     /// (count − 1) / (sista − första).
     public var meanRate: Double
@@ -45,6 +45,27 @@ public struct FrameTiming: Codable, Equatable, Sendable {
         return sorted[lo] + (pos - Double(lo)) * (sorted[hi] - sorted[lo])
     }
 
+    /// Varven i förfiningen; den stannar när det avrundade rutnätet står still. METOD MS3
+    public static let refineRounds = 5
+
+    /// Förfinar skattningen g0 med hela spannet: varje steg räknas som ett helt antal
+    /// rutor, max(1, round(steg · g)), och rutnätet är summan / (sista − första), tills
+    /// det avrundade talet står still. De korta stegen ensamma vandrar vid skurar av
+    /// tappade rutor i en grov tidsskala (240 → 229–249); spannet gör felet till en
+    /// enhet i tidsskalan över hela filen. METOD MS3
+    static func refine(_ g0: Double, steps: [Double], span: Double) -> Double {
+        guard g0 > 0, g0.isFinite, span > 0 else { return 0 }
+        var g = g0
+        for _ in 0..<refineRounds {
+            let rutor = steps.reduce(0.0) { $0 + max(1, ($1 * g).rounded()) }
+            let ny = rutor / span
+            let stilla = ny.rounded() == g.rounded()
+            g = ny
+            if stilla { break }
+        }
+        return g.rounded()
+    }
+
     public static func analyze(_ times: [Double]) -> FrameTiming {
         let t = times.filter { $0.isFinite }.sorted()
         guard t.count >= 2, let forsta = t.first, let sista = t.last, sista > forsta else {
@@ -59,8 +80,8 @@ public struct FrameTiming: Codable, Equatable, Sendable {
         let p = positiva.isEmpty ? 0 : percentile(positiva, gridPercentile)
         let korta = positiva.filter { $0 <= shortStepFactor * p }
         let medel = korta.isEmpty ? 0 : korta.reduce(0, +) / Double(korta.count)
-        let grid = medel > 0 ? (1 / medel).rounded() : 0
         let langd = sista - forsta
+        let grid = refine(medel > 0 ? 1 / medel : 0, steps: positiva, span: langd)
         let mojliga = langd * grid + 1
         let saknas = grid > 0 ? max(0, 1 - Double(t.count) / mojliga) : 0
         return FrameTiming(count: t.count, gridRate: grid, meanRate: Double(t.count - 1) / langd,

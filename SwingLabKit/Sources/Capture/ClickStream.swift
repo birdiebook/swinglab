@@ -96,3 +96,30 @@ public struct ClickStream {
                                       innerStart: s.innerStart, innerEnd: s.innerEnd))
     }
 }
+
+/// Ljudets tidslinje när filen läses i buffertar (granskningen av S2c): varje buffert
+/// har sin egen tid, och proven räknas från filens första ljudprov. En lucka fylls med
+/// nollor och ett överlapp hoppas över, så att prov n alltid ligger på första + n/48 000
+/// och klicken inte glider. Längden är spårets: floor((slut − första) · 48 000), så att
+/// ett omsamplat ljud får samma antal prov varje läsning. METOD MS11
+public enum AudioTimeline {
+    /// Avvikelser upp till så mycket (s) är avrundning, inte en lucka. METOD MS11
+    public static let tolerance = 0.001
+
+    /// Prov att fylla med nollor (> 0) eller hoppa över (< 0) före en buffert som börjar
+    /// på `bufferStart`, när `count` prov redan lästs från `first`. 0 inom toleransen.
+    public static func correction(first: Double, count: Int, bufferStart: Double,
+                                  sampleRate: Double = 48_000) -> Int {
+        guard first.isFinite, bufferStart.isFinite, sampleRate > 0 else { return 0 }
+        let vantat = first + Double(count) / sampleRate
+        let skillnad = bufferStart - vantat
+        guard abs(skillnad) > tolerance else { return 0 }
+        return Int((skillnad * sampleRate).rounded())
+    }
+
+    /// Antalet prov från `first` till spårets slut, eller nil när slutet är okänt.
+    public static func length(first: Double, trackEnd: Double, sampleRate: Double = 48_000) -> Int? {
+        guard first.isFinite, trackEnd.isFinite, trackEnd > first, sampleRate > 0 else { return nil }
+        return Int(((trackEnd - first) * sampleRate).rounded(.down))
+    }
+}

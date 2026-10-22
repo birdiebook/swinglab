@@ -32,8 +32,9 @@ enum SyntheticMovie {
     /// Klicken och de vita rutorna, s.
     static let flashes = [1.000, 2.200]
 
+    /// `audioGap`: ljudbuffertar som börjar i spannet skrivs inte (en lucka i ljudet).
     static func write(to url: URL, sound: Sound, rate: Int = 240, dropEveryThird: Bool = true,
-                      seconds: Double = 3.2) async throws {
+                      seconds: Double = 3.2, audioGap: Range<Double>? = nil) async throws {
         try? FileManager.default.removeItem(at: url)
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let w = 480, h = 270
@@ -122,6 +123,10 @@ enum SyntheticMovie {
         let nextAudio: () -> Bool = {
             guard pos < total, let a = audio else { return false }
             let frames = min(1024, total - pos)
+            if let gap = audioGap, gap.contains(Double(pos) / audioRate) {
+                pos += frames                                            // luckan: inget skrivs
+                return true
+            }
             let bytes = frames * channels * 2
             var block: CMBlockBuffer?
             guard CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: bytes,
@@ -281,8 +286,9 @@ final class SwingLabProvInspelning: XCTestCase {
     /// ge ett prov mer eller mindre i en annan läsning. METOD MS4, MS11
     func provaBitarna(_ url: URL, namn: String) async throws {
         var bitar: [AudioSegmenter.Segment] = []
-        let first = try await MediaReader.audio(url, segment: 1.0, overlap: 0.5) { bitar.append($0) }
-        let forsta = try XCTUnwrap(first)
+        let lasning = try await MediaReader.audio(url, segment: 1.0, overlap: 0.5) { bitar.append($0) }
+        let read = try XCTUnwrap(lasning)
+        let forsta = read.first
         var alla: [Float] = []
         for b in bitar where b.range.upperBound > alla.count {
             XCTAssertLessThanOrEqual(b.range.lowerBound, alla.count, "ett hål mellan bitarna")
@@ -290,8 +296,13 @@ final class SwingLabProvInspelning: XCTestCase {
             XCTAssertEqual(Array(b.samples.prefix(overlapp)), Array(alla.suffix(overlapp)), "överlappet i \(b.range)")
             alla.append(contentsOf: b.samples.dropFirst(overlapp))
         }
-        print("PROV: \(namn) ljud \(alla.count) prov à 48 kHz, första provet \(forsta) s, \(bitar.count) bitar")
+        print("PROV: \(namn) ljud \(alla.count) prov à 48 kHz (spåret \(read.length ?? -1)), första provet \(forsta) s, "
+              + "\(bitar.count) bitar, luckor \(read.gaps) (\(read.filled) fyllda, \(read.skipped) överhoppade)")
         XCTAssertEqual(Double(alla.count), 3.2 * 48_000, accuracy: 2048, "omsamplat till 48 kHz mono")
+        XCTAssertEqual(alla.count, read.samples)
+        XCTAssertEqual(read.samples, read.length, "lika många prov som spåret, varje läsning")
+        let igen = try await MediaReader.readAudio(url) { _ in }
+        XCTAssertEqual(igen?.samples, read.samples, "en andra läsning ger lika många prov")
         XCTAssertEqual(bitar.map(\.range),
                        ClickDetector.segments(count: alla.count, sampleRate: 48_000, segment: 1.0, overlap: 0.5))
         for b in bitar {
@@ -309,6 +320,23 @@ final class SwingLabProvInspelning: XCTestCase {
         let iBitar = try await MediaReader.clicks(url, segment: 1.0, overlap: 0.5)
         XCTAssertEqual(iBitar.count, urBitarna.count)
         for (a, b) in zip(iBitar, urBitarna) { XCTAssertEqual(a.time, forsta + b.time, accuracy: 1.5 / 48_000) }
+    }
+
+    /// En lucka i ljudet (buffertarna 1,50–1,60 s skrivs inte): klicket efter luckan
+    /// ligger ändå inom 1 ms från 2,200 s, eftersom varje buffert läggs på sin egen tid. METOD MS11
+    func testLuckaILjudet() async throws {
+        let url = try tmp("lucka.mov")
+        try await SyntheticMovie.write(to: url, sound: .lpcm, audioGap: 1.5..<1.6)
+        let lasning = try await MediaReader.readAudio(url) { _ in }
+        let read = try XCTUnwrap(lasning)
+        let klick = try await MediaReader.clicks(url)
+        print("PROV: lucka luckor \(read.gaps), \(read.filled) prov fyllda, \(read.skipped) överhoppade, "
+              + "\(read.samples) prov; klick \(klick.map { String(format: "%.5f", $0.time) })")
+        XCTAssertEqual(klick.count, 2)
+        for (k, t) in zip(klick, SyntheticMovie.flashes) {
+            XCTAssertEqual(k.time, t, accuracy: 0.001, "klicket vid \(t), efter luckan")
+        }
+        XCTAssertEqual(Double(read.samples), 3.2 * 48_000, accuracy: 1100)
     }
 
     // MARK: Kvittot och ljusprovet
