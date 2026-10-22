@@ -1,0 +1,20 @@
+da66203895089237953005ebf989702805f0dfa8 s5-pc 2026-10-22T12:57:07Z run 39782480554
+== swift-release
+GRÖNT: 66 test, 0 fel, 3 s i testerna, bygget 17 s
+Långsammast (av 66):
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  SessionTests.testSammanfattningenSomPython
+      0.1 s  TvaTelefonerTests.testKandForskjutningMedOchUtanPrior
+      0.1 s  FormatTests.testLagKonfidensArSaknad
+      0.1 s  VardenaTests.testTiderSomKodasTillJSON
+      0.1 s  TvaTelefonerTests.testLjudetsVag
+      0.1 s  TvaTelefonerTests.testFormelnOchOgiltigaProv
+      0.1 s  KlickTests.testBitarna
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
+      0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+
