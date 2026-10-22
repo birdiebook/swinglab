@@ -65,7 +65,11 @@ enum MediaReader {
     /// spårets längd, så att varje läsning ger lika många (`AudioTimeline`). nil =
     /// inget ljudspår. METOD MS11
     static func readAudio(_ url: URL, _ chunk: ([Float]) throws -> Void) async throws -> AudioRead? {
-        let asset = AVURLAsset(url: url)
+        try await readAudio(asset: AVURLAsset(url: url), chunk)
+    }
+
+    /// Samma för en asset (en komposition i simulatorprovet, med en lucka i ljudet).
+    static func readAudio(asset: AVAsset, _ chunk: ([Float]) throws -> Void) async throws -> AudioRead? {
         guard let track = try await asset.loadTracks(withMediaType: .audio).first else { return nil }
         let range = try await track.load(.timeRange)
         let trackEnd = range.end.isValid ? range.end.seconds : .nan
@@ -166,8 +170,13 @@ enum MediaReader {
     /// METOD MS4
     static func clicks(_ url: URL, segment: Double = ClickDetector.segmentSeconds,
                        overlap: Double = ClickDetector.overlapSeconds) async throws -> [Click] {
+        try await clicks(asset: AVURLAsset(url: url), segment: segment, overlap: overlap)
+    }
+
+    static func clicks(asset: AVAsset, segment: Double = ClickDetector.segmentSeconds,
+                       overlap: Double = ClickDetector.overlapSeconds) async throws -> [Click] {
         var stream = ClickStream(sampleRate: sampleRate, segment: segment, overlap: overlap)
-        guard let read = try await readAudio(url, { stream.feed($0) }) else { return [] }
+        guard let read = try await readAudio(asset: asset, { stream.feed($0) }) else { return [] }
         return stream.finish().map { Click(time: read.first + $0.time, strength: $0.strength) }
     }
 

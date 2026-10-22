@@ -32,9 +32,8 @@ enum SyntheticMovie {
     /// Klicken och de vita rutorna, s.
     static let flashes = [1.000, 2.200]
 
-    /// `audioGap`: ljudbuffertar som börjar i spannet skrivs inte (en lucka i ljudet).
     static func write(to url: URL, sound: Sound, rate: Int = 240, dropEveryThird: Bool = true,
-                      seconds: Double = 3.2, audioGap: Range<Double>? = nil) async throws {
+                      seconds: Double = 3.2) async throws {
         try? FileManager.default.removeItem(at: url)
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let w = 480, h = 270
@@ -123,10 +122,6 @@ enum SyntheticMovie {
         let nextAudio: () -> Bool = {
             guard pos < total, let a = audio else { return false }
             let frames = min(1024, total - pos)
-            if let gap = audioGap, gap.contains(Double(pos) / audioRate) {
-                pos += frames                                            // luckan: inget skrivs
-                return true
-            }
             let bytes = frames * channels * 2
             var block: CMBlockBuffer?
             guard CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: bytes,
@@ -322,20 +317,35 @@ final class SwingLabProvInspelning: XCTestCase {
         for (a, b) in zip(iBitar, urBitarna) { XCTAssertEqual(a.time, forsta + b.time, accuracy: 1.5 / 48_000) }
     }
 
-    /// En lucka i ljudet (buffertarna 1,50–1,60 s skrivs inte): klicket efter luckan
-    /// ligger ändå inom 1 ms från 2,200 s, eftersom varje buffert läggs på sin egen tid. METOD MS11
+    /// En lucka i ljudet: en komposition av den påhittade filmen där ljudet saknas
+    /// 1,50–1,60 s (en tom redigering, som när telefonen tappar ljud). AVAssetWriter kan
+    /// inte skriva en sådan lucka i LPCM (den lägger proven i följd: klicket hamnade på
+    /// 2,114 s). Klicket efter luckan ligger ändå inom 1 ms från 2,200 s, eftersom varje
+    /// buffert läggs på sin egen tid, och längden är spårets. METOD MS11
     func testLuckaILjudet() async throws {
-        let url = try tmp("lucka.mov")
-        try await SyntheticMovie.write(to: url, sound: .lpcm, audioGap: 1.5..<1.6)
-        let lasning = try await MediaReader.readAudio(url) { _ in }
+        let kalla = try tmp("lucka-kalla.mov")
+        try await SyntheticMovie.write(to: kalla, sound: .lpcm)
+        let asset = AVURLAsset(url: kalla)
+        let ljudspar = try await asset.loadTracks(withMediaType: .audio)
+        let ljud = try XCTUnwrap(ljudspar.first)
+        let comp = AVMutableComposition()
+        let spar = try XCTUnwrap(comp.addMutableTrack(withMediaType: .audio,
+                                                      preferredTrackID: kCMPersistentTrackID_Invalid))
+        func tid(_ s: Double) -> CMTime { CMTime(value: CMTimeValue((s * 48_000).rounded()), timescale: 48_000) }
+        try spar.insertTimeRange(CMTimeRange(start: .zero, end: tid(1.5)), of: ljud, at: .zero)
+        spar.insertEmptyTimeRange(CMTimeRange(start: tid(1.5), end: tid(1.6)))
+        try spar.insertTimeRange(CMTimeRange(start: tid(1.6), end: tid(3.2)), of: ljud, at: tid(1.6))
+
+        let lasning = try await MediaReader.readAudio(asset: comp) { _ in }
         let read = try XCTUnwrap(lasning)
-        let klick = try await MediaReader.clicks(url)
+        let klick = try await MediaReader.clicks(asset: comp)
         print("PROV: lucka luckor \(read.gaps), \(read.filled) prov fyllda, \(read.skipped) överhoppade, "
-              + "\(read.samples) prov; klick \(klick.map { String(format: "%.5f", $0.time) })")
+              + "\(read.samples) prov (spåret \(read.length ?? -1)); klick \(klick.map { String(format: "%.5f", $0.time) })")
         XCTAssertEqual(klick.count, 2)
         for (k, t) in zip(klick, SyntheticMovie.flashes) {
             XCTAssertEqual(k.time, t, accuracy: 0.001, "klicket vid \(t), efter luckan")
         }
+        XCTAssertEqual(read.samples, read.length)
         XCTAssertEqual(Double(read.samples), 3.2 * 48_000, accuracy: 1100)
     }
 
