@@ -1,20 +1,20 @@
-db9186c51f4e7de4f1699665924f383ba4ddb4a1 main 2026-10-22T19:47:04Z run 39842897880
+76c4747da4476fe9116c0da0c67bd200c9667956 main 2026-10-22T20:14:45Z run 39846960637
 == swift-release
-GRÖNT: 153 test, 0 fel, 6 s i testerna, bygget 36 s
+GRÖNT: 153 test, 0 fel, 5 s i testerna, bygget 36 s
 Långsammast (av 153):
-      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  VisningTests.testIngaSvenskaTeckenIVisningen
-      0.2 s  MattTests.testPositionernaIOrdning
       0.1 s  MattTests.testVarjeSvingGerPythonsTal
       0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  VisningTests.testPasset
-      0.1 s  VisningTests.testIdagVisarDenForstaSaken
-      0.1 s  VisningTests.testS5sExempelGarAttLasa
-      0.1 s  VardenaTests.testJamnt240
-      0.1 s  InspelningTests.testRutnatetTalSkakning
-      0.1 s  InspelningTests.testPassID
+      0.1 s  VardenaTests.testLjusprovetsDom
+      0.1 s  KatalogTests.testSwayVidToppen
+      0.1 s  InspelningTests.testKvittot
+      0.1 s  VardenaTests.testFlimretPaHalvaBildfrekvensenGarAttRakna
+      0.1 s  KlickTests.testBitarna
+      0.1 s  InspelningTests.testUppstallningen
+      0.1 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.1 s  MattTests.testPositionernaIOrdning
 
