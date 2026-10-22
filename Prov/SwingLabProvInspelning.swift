@@ -207,6 +207,10 @@ final class SwingLabProvInspelning: XCTestCase {
         // Steg 2: rutornas tider.
         let times = try await MediaReader.frameTimes(url)
         let timing = FrameTiming.analyze(times)
+        var steg: [Int: Int] = [:]
+        for (x, y) in zip(times, times.dropFirst()) { steg[Int(((y - x) * 1e5).rounded()), default: 0] += 1 }
+        print("PROV: lpcm första tiderna \(times.prefix(12).map { String(format: "%.6f", $0) })")
+        print("PROV: lpcm stegen i 10 µs: \(steg.sorted { $0.key < $1.key }.map { "\($0.key)×\($0.value)" })")
         print("PROV: lpcm rutor \(timing.count), rutnät \(timing.gridRate), saknas \(timing.missingFraction), "
               + "största hål \(timing.largestGap)")
         XCTAssertEqual(timing.gridRate, 240)
