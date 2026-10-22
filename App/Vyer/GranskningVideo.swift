@@ -459,7 +459,7 @@ struct PositionsradVy: View {
                 Text(rad.varde)
                     .typsnitt(15, .medium, siffror: true)
                     .foregroundStyle(rad.varde == "—" ? Theme.tertiary : Theme.text)
-                if !rad.enhet.isEmpty {
+                if !rad.enhet.isEmpty && rad.varde != "—" {
                     Text(rad.enhet)
                         .typsnitt(11)
                         .foregroundStyle(Theme.tertiary)

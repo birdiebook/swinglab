@@ -123,8 +123,12 @@ final class SwingLabProvGranskning: XCTestCase {
             XCTAssertEqual(b.x, vantat.x, accuracy: 2)
             XCTAssertEqual(b.y, vantat.y, accuracy: 2)
             if namn == "ruta" {
+                // Bilden: leden som osäker (ihålig, svart inuti), så att den syns mot den vita markören.
+                var svag = serie
+                svag.frames[0].joints[0]?.c = 0.2
                 let bada = try rendera(ReviewStage(surface: Image(decorative: bild, scale: 1).resizable(),
-                                                   overlay: review.overlay(0), overlayOn: true, time: "0.000 s"),
+                                                   overlay: ShotReview(series: svag, crop: utsnitt).overlay(0),
+                                                   overlayOn: true, time: "0.000 s"),
                                        bredd: bredd, hojd: hojd)
                 try spara(bada, "granskning-markor")
             }
