@@ -1,21 +1,21 @@
-c4715891baa37a03a72919c16c1db39cf77fcf7d engelska 2026-10-22T14:26:42Z run 39793986690 kompilera
+1c61b4dbebe30a7387f651487d640d9ceacb52df engelska 2026-10-22T14:38:38Z run 39796117549 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 16 test, 0 fel, 43 s i testerna
+GRÖNT: 16 test, 0 fel, 22 s i testerna
 Långsammast (av 16):
-     17.6 s  SwingLabProvInspelning.testFilmenMedAAC
-      9.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      4.3 s  SwingLabProvInspelning.testFilmenMedLPCM
+      4.6 s  SwingLabProvInspelning.testFilmenMedAAC
+      3.8 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.5 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
       3.3 s  SwingLabProvInspelning.testKvittotUrFilen
-      1.9 s  SwingLabProvInspelning.testLjusprovetsLasning
-      1.7 s  SwingLabProvInspelning.testLuckaILjudet
-      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
-      0.8 s  SwingLabProvVyer.testAttJobbaPa
+      1.4 s  SwingLabProvInspelning.testLuckaILjudet
+      1.4 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.1 s  SwingLabProvInspelning.testLjusprovetsLasning
+      0.7 s  SwingLabProvVyer.testAttJobbaPa
       0.6 s  SwingLabProvVyer.testPasset
-      0.5 s  SwingLabProvVyer.testGranskning
+      0.6 s  SwingLabProvVyer.testGranskning
       0.3 s  SwingLabProvVyer.testUtveckling
       0.2 s  SwingLabProvVyer.testIdag
       0.1 s  SwingLabProvInspelning.testLagringen
@@ -39,10 +39,10 @@ PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Len
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
 PROV: skrev jobba.png (1170×4618 px)
-PROV: skrev jobba-stor.png (390×4246 px)
+PROV: skrev jobba-stor.png (390×4368 px)
 PROV: skrev granskning-fo.png (1170×2178 px)
 PROV: skrev granskning-dtl.png (1170×2178 px)
-PROV: skrev granskning-fo-stor.png (390×1063 px)
+PROV: skrev granskning-fo-stor.png (390×899 px)
 PROV: skrev idag.png (1170×2259 px)
 PROV: skrev idag-stor.png (390×1934 px)
 PROV: skrev passet.png (1170×7897 px)
@@ -51,4 +51,4 @@ PROV: skrev passet-dtl-stor.png (390×2291 px)
 PROV: skrev utveckling.png (1170×1808 px)
 PROV: skrev utveckling-resa.png (1170×1808 px)
 PROV: skrev utveckling-tempo.png (1170×1808 px)
-PROV: skrev utveckling-stor.png (390×1159 px)
+PROV: skrev utveckling-stor.png (390×1148 px)
