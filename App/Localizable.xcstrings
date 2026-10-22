@@ -210,6 +210,17 @@
         }
       }
     },
+    "Focus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus"
+          }
+        }
+      }
+    },
     "Full access to Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -243,6 +254,17 @@
         }
       }
     },
+    "Import focus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import focus"
+          }
+        }
+      }
+    },
     "Import from Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -250,17 +272,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Import from Photos"
-          }
-        }
-      }
-    },
-    "Import Work on": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import Work on"
           }
         }
       }
@@ -507,6 +518,17 @@
         }
       }
     },
+    "Swing thought": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swing thought"
+          }
+        }
+      }
+    },
     "The audio could not be read.": {
       "extractionState": "manual",
       "localizations": {
@@ -595,17 +617,6 @@
         }
       }
     },
-    "Thought": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thought"
-          }
-        }
-      }
-    },
     "Today": {
       "extractionState": "manual",
       "localizations": {
@@ -635,17 +646,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
-          }
-        }
-      }
-    },
-    "Work on": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Work on"
           }
         }
       }

@@ -48,15 +48,18 @@ TRE_REGELN = {(True, True, True): "troligen_rorlighet", (True, True, False): "te
 # Värdeord på ordstam (BESLUT B13, regel 4), på engelska som appen (BESLUT B30).
 # Ett ord fälls om det står i VARDEORD eller börjar på en stam, utom undantagen.
 # METOD MT8
-VARDEORD = ("fine", "finer", "finest", "ok", "okay", "wow", "yay", "bravo", "ideal", "ideally")
+VARDEORD = ("ok", "okay", "wow", "yay", "bravo", "ideal", "ideally")
 STAMMAR = ("good", "better", "best", "worse", "worst", "bad", "poor", "great", "perfect", "nice", "excellen",
+           "super", "cool", "neat", "sweet", "kudos", "nail", "crush", "pure", "crisp", "boring", "fine",
            "awesome", "amazing", "fantastic", "terrific", "terribl", "horribl", "awful", "brillian", "superb",
            "wonderful", "outstanding", "impressiv", "beautiful", "lovely", "gorgeous", "flawless", "congrat",
            "unfortunat", "sloppy", "ugly", "incredibl", "remarkabl", "magnificent", "splendid", "marvel",
            "stunning", "spectacular", "fabulous", "solid", "mistake", "wrong")
 # Ord som börjar på en stam utan att vara värdeord. "strong" och "weak" saknas med
 # flit: ett starkt eller svagt grepp är golfens ord för greppet, inget omdöme.
-UNDANTAG = ("badge", "badminton", "bestow")
+UNDANTAG = ("badge", "badminton", "bestow", "supinat", "coolin")
+# Fraser som är värdeord fast orden var för sig inte är det.
+FRASER = re.compile(r"\bwell\s+done\b", re.I)
 # Fritexten är engelska (BESLUT B30): svenska tecken fälls.
 SVENSKA = re.compile(r"[åäöÅÄÖ]")
 PASS_ID = re.compile(r"^\d{8}-\d{6}$")
@@ -65,7 +68,7 @@ _ORD = re.compile(r"[a-zåäöéü]+", re.I)
 TOPP = ("format", "pass", "skapad", "saker")
 SAK = ("ordning", "fel", "namn", "vy", "matt", "enhet", "nu", "spann", "markning", "ovning", "klart_nar",
        "foljdfel", "typ", "fysik", "block")
-OVNING = ("text", "tanke", "kalla", "steg")
+OVNING = ("id", "text", "tanke", "kalla", "steg")
 KLART = ("villkor", "grans", "pa", "pass_i_rad")
 FOLJD = ("fel", "namn", "vag", "nu", "enhet")
 FYSIK = ("test", "treregeln", "ovning")
@@ -74,6 +77,9 @@ BLOCK = ("start", "vecka")
 
 def vardeord(text: str) -> str | None:
     """Det första värdeordet i texten, eller None."""
+    fras = FRASER.search(text)
+    if fras:
+        return fras.group(0).lower()
     ord_ = [m.group(0).lower() for m in _ORD.finditer(text)]
     for o in ord_:
         if o.startswith(UNDANTAG):
@@ -197,26 +203,33 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
         if s.get("nu") != b.get("visat"):
             fel.append(f"{p}.nu: ska vara analysens tal (visat)")
 
-        # Minnet: fortsätter samma övning, eller är den ny?
+        # Minnet: fortsätter samma övning, eller är den ny? Jämförs på övningens id,
+        # inte texten, så att en omskriven text inte nollställer steget.
         o = minne.get(fid)
         ov = s.get("ovning")
         text = ov.get("text") if isinstance(ov, dict) else None
-        fortsatter = o is not None and o["ovning"] == text
+        ov_id = ov.get("id") if isinstance(ov, dict) else None
+        fortsatter = o is not None and o.get("ovning_id", o["ovning"]) == ov_id
         if fortsatter and o["lage"] == "klart":
             fel.append(f"{p}: övningen är klar enligt minnet; släpp saken")
         if fortsatter and o["lage"] == "byt_ovning":
             fel.append(f"{p}.ovning: minnet säger byt övning")
-        if o is not None and text in o.get("forra_ovningar", []):
-            fel.append(f"{p}.ovning.text: övningen är redan provad för felet")
+        if o is not None and ov_id in o.get("forra_ovningar", []):
+            fel.append(f"{p}.ovning.id: övningen är redan provad för felet")
 
-        # Övningen: ur katalogen eller kedjor.json, aldrig fritext.
+        # Övningen: ur katalogen eller kedjor.json, aldrig fritext; id och text hör ihop.
         if _nycklar(ov, OVNING, f"{p}.ovning", fel):
             if ov.get("kalla") == "katalog":
+                if ov_id != k.get("ovning_id"):
+                    fel.append(f"{p}.ovning.id: ska vara katalogens när kalla är katalog")
                 if text != k["ovning"]:
                     fel.append(f"{p}.ovning.text: ska vara katalogens när kalla är katalog")
             elif ov.get("kalla") == "research3":
-                if text not in [x["text"] for x in kedjor["ovningar"] if x["fel"] == fid]:
-                    fel.append(f"{p}.ovning.text: ska vara en av felets övningar i kedjor.json")
+                x = next((x for x in kedjor["ovningar"] if x["fel"] == fid and x.get("id") == ov_id), None)
+                if x is None:
+                    fel.append(f"{p}.ovning.id: ska vara en av felets övningar i kedjor.json")
+                elif text != x["text"]:
+                    fel.append(f"{p}.ovning.text: ska vara övningens text i kedjor.json")
             else:
                 fel.append(f"{p}.ovning.kalla: ska vara katalog eller research3")
             _fritext(ov.get("tanke"), f"{p}.ovning.tanke", MAX_TANKE, fel)

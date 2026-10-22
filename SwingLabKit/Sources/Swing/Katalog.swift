@@ -27,12 +27,15 @@ public struct Katalog: Decodable, Sendable {
         public let aktiv: Bool
         /// "+" eller "-": åt vilket håll måttet blir sämre. nil = båda.
         public let samre: String?
+        /// Övningens stabila id (historiken jämför på det, inte på texten).
+        public let ovningId: String
         public let ovning: String
         public let tanke: String
         public let notering: String?
 
         enum CodingKeys: String, CodingKey {
             case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
+            case ovningId = "ovning_id"
         }
 
         public init(from decoder: Decoder) throws {
@@ -54,6 +57,7 @@ public struct Katalog: Decodable, Sendable {
             kontrollerad = try c.decode(Bool.self, forKey: .kontrollerad)
             aktiv = try c.decode(Bool.self, forKey: .aktiv)
             samre = try c.decodeIfPresent(String.self, forKey: .samre)
+            ovningId = try c.decode(String.self, forKey: .ovningId)
             ovning = try c.decode(String.self, forKey: .ovning)
             tanke = try c.decode(String.self, forKey: .tanke)
             notering = try c.decodeIfPresent(String.self, forKey: .notering)

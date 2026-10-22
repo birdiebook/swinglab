@@ -111,6 +111,10 @@ class Engelska(unittest.TestCase):
         projekt = (ROT / "project.yml").read_text(encoding="utf-8")
         self.assertIn("developmentLanguage: en", projekt)
         self.assertNotIn("language: sv", projekt)
+        # Provet körs med svensk region, så att decimalpunkten bevisas på en svensk telefon.
+        self.assertIn("region: SE", projekt)
+        vyer = (ROT / "Prov" / "SwingLabProvVyer.swift").read_text(encoding="utf-8")
+        self.assertIn('Locale(identifier: "sv_SE")', vyer)
 
     def test_inga_svenska_tecken_i_katalogen(self) -> None:
         for k, v in self.katalog["strings"].items():

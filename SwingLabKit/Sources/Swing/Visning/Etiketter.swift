@@ -53,7 +53,7 @@ public enum Etiketter {
             e("backen_resa_framat", "cm", T.topToImpact, plus: T.target),
             e("backen_thrust_traff", "cm", T.impact, tecken: true, plus: T.ball),
             e("brost_bojning_tapp", "°", T.addressToImpact, tecken: true, geometri: .bojning),
-            e("tempo", ": 1", T.startTopImpact, vy: T.click, geometri: .tempo),
+            e("tempo", ": 1", T.startTopImpact, vy: T.ljud, geometri: .tempo),
             e("sway_gap_traff", "cm", T.impact, tecken: true, plus: T.target),
             e("axellinje_lutning_traff", "°", T.impact, tecken: true),
             e("sidbojning_topp", "°", T.top, tecken: true),

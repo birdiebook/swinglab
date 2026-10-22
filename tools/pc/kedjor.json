@@ -1,6 +1,6 @@
 {
  "version": 1,
- "om": "Tolkningens kunskap för PC:n (skillen svinganalys, tools/pc/analys.py): vilka fel i katalog.json som kan vara följdfel av vilka, i vilken ordning faserna kommer, vilka fysiska test som hör till ett fel, och övningarna ur research 3 §2 som Claude får byta till. Ur docs/research/3_tolkning_och_appar.md §1 och §5; allt är ej läst i original (BESLUT B10). Claude får bara använda kedjor och test som står här (METOD MT6).",
+ "om": "Tolkningens kunskap för PC:n (skillen svinganalys, tools/pc/analys.py): vilka fel i katalog.json som kan vara följdfel av vilka, i vilken ordning faserna kommer, vilka fysiska test som hör till ett fel, och övningarna ur research 3 §2 som Claude får byta till. Ur docs/research/3_tolkning_och_appar.md §1 och §5; allt är ej läst i original (BESLUT B10). Claude får bara använda kedjor och test som står här (METOD MT6). Texterna som visas (övningarnas text och testen) är engelska (BESLUT B30); varje övning har ett stabilt id som historiken jämför på (tools/pc/historik.py), så att en ändrad formulering inte nollställer steget.",
  "faser": [
   "adress",
   "topp",
@@ -62,66 +62,77 @@
  "ovningar": [
   {
    "fel": "sway_topp",
+   "id": "fotterna_ihop_balans",
    "text": "Feet together, 3/4 swings: if the pelvis slides, you lose your balance.",
    "kalla": "https://www.golfmagic.com/best-tips-and-instruction/step-2-how-fix-sway",
    "status": "tranare"
   },
   {
    "fel": "sway_topp",
+   "id": "kapp_vid_bakre_hoften",
    "text": "Stick in the ground at the trail hip: the hip turns in a circle, the stick stays put.",
    "kalla": "https://onlinedigeditions.com/article/GolfShots/3261965/550370/article.html",
    "status": "tranare"
   },
   {
    "fel": "sway_topp",
-   "text": "TPI's Reach Over the Fence.",
+   "id": "reach_over_the_fence",
+   "text": "TPI’s Reach Over the Fence.",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle",
    "status": "tranare"
   },
   {
    "fel": "reverse_spine",
+   "id": "fotterna_ihop",
    "text": "Feet together, 3/4 swings: the slide that feeds the fault disappears.",
    "kalla": "https://practicecaddie.com/blog/reverse-pivot-golf-swing-fix",
    "status": "tranare"
   },
   {
    "fel": "reverse_spine",
-   "text": "TPI's Reach Over the Fence.",
+   "id": "reach_over_the_fence",
+   "text": "TPI’s Reach Over the Fence.",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle",
    "status": "tranare"
   },
   {
    "fel": "sway_gap",
+   "id": "fotterna_ihop",
    "text": "Feet together, 3/4 swings: the slide that feeds the fault disappears.",
    "kalla": "https://practicecaddie.com/blog/reverse-pivot-golf-swing-fix",
    "status": "tranare"
   },
   {
    "fel": "early_extension",
-   "text": "Backside against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
+   "id": "vagg_eller_stol_bakom",
+   "text": "Glutes against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
    "kalla": "https://mygolfspy.com/news-opinion/instruction/3-drills-to-fix-early-extension-in-the-golf-swing/",
    "status": "tranare"
   },
   {
    "fel": "tappad_hallning",
-   "text": "Backside against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
+   "id": "vagg_eller_stol_bakom",
+   "text": "Glutes against a wall or chair behind you. Slow swings that keep contact through impact while the pelvis rotates.",
    "kalla": "https://mygolfspy.com/news-opinion/instruction/3-drills-to-fix-early-extension-in-the-golf-swing/",
    "status": "tranare"
   },
   {
    "fel": "backens_resa_framat",
+   "id": "steget_i_nedsvingen",
    "text": "The step drill: step toward the target with the lead foot in the downswing, trail foot up on its toe. Ten reps with a short iron, no ball.",
    "kalla": "https://sportsmonkie.com/golf-hip-rotation-drills/",
    "status": "tranare"
   },
   {
    "fel": "over_the_top",
+   "id": "headcover",
    "text": "A headcover outside and slightly behind the ball. If you hit it, the club came from outside.",
    "kalla": "https://golfguidebook.com/how-to-stop-coming-over-the-top/",
    "status": "tranare"
   },
   {
    "fel": "chicken_wing",
+   "id": "motorcykelovningen",
    "text": "The motorcycle drill: lead wrist flexed through impact, half swings toward the 4:30 path.",
    "kalla": "https://hackmotion.com/chicken-wing-in-golf/",
    "status": "tillverkare"
@@ -136,8 +147,9 @@
   },
   {
    "fel": "early_extension",
-   "test": "Bridge, right side",
+   "test": "Bridge with leg extension, trail side",
    "status": "forskning",
+   "notering": "Källan säger höger sida: bakre sidan för en högerspelare. För en vänsterspelare speglas det (vänster sida), därför trail side.",
    "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"
   },
   {
@@ -154,8 +166,9 @@
   },
   {
    "fel": "tappad_hallning",
-   "test": "Bridge, right side",
+   "test": "Bridge with leg extension, trail side",
    "status": "forskning",
+   "notering": "Källan säger höger sida: bakre sidan för en högerspelare. För en vänsterspelare speglas det (vänster sida), därför trail side.",
    "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"
   },
   {
@@ -166,7 +179,7 @@
   },
   {
    "fel": "reverse_spine",
-   "test": "Thoracic rotation",
+   "test": "Seated trunk rotation",
    "status": "tranare",
    "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle"
   },

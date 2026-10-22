@@ -950,7 +950,7 @@ Documents/Export/swinglab-<pass-id>-<vy>.zip   synlig i Filer och i Apple Device
 - Pass-id: `yyyyMMdd-HHmmss` i lokal tid vid passets start. Inga namn eller
   e-post i någon fil.
 - `pass.json` som inte går att läsa skrivs aldrig över: den flyttas till
-  `pass-oläslig-<tid>.json` och vyn säger det (Airtime).
+  `pass-unreadable-<tid>.json` och vyn säger det (Airtime).
 - **Originalen** tas bort efter export bara om Johannes slår på "Spara bara
   klippen" (§13).
 

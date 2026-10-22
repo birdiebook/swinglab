@@ -62,6 +62,11 @@ final class SwingLabProv: XCTestCase {
         XCTAssertEqual(Bundle.main.developmentLocalization, "en")
         XCTAssertEqual(Bundle.main.localizedString(forKey: "Start session", value: "SAKNAS", table: nil), "Start session")
         XCTAssertEqual(String(localized: "Set \(3)"), "Set 3")
+        // Regionen är svensk (schemat), men talen och datumen är engelska ändå.
+        print("PROV: region \(Locale.current.region?.identifier ?? "?"), språk \(Locale.current.language.languageCode?.identifier ?? "?")")
+        XCTAssertEqual(Locale.current.region?.identifier, "SE")
+        XCTAssertEqual(Tal.tecken(-2.4, decimaler: 1), "\u{2212}2.4")
+        XCTAssertEqual(Tal.dag(Tal.dag(2027, 1, 9)), "Sat, Jan 9")
         let fil = try XCTUnwrap(Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil,
                                                  forLocalization: "en"), "Localizable.strings saknas i en.lproj")
         let tabell = try XCTUnwrap(NSDictionary(contentsOfFile: fil) as? [String: String], "går inte att läsa \(fil)")

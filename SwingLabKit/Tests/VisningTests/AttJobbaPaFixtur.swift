@@ -20,8 +20,9 @@ enum AttJobbaPaFixtur {
    "spann": [0, null],
    "markning": "B10",
    "ovning": {
+    "id": "kapp_och_fotterna_ihop",
     "text": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
-    "tanke": "Don't touch the stick.",
+    "tanke": "Leave the stick standing.",
     "kalla": "katalog",
     "steg": "langsamt_med_foremal"
    },
@@ -29,7 +30,7 @@ enum AttJobbaPaFixtur {
    "foljdfel": [
     {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
     {"fel": "early_extension", "namn": "Early extension: the pelvis moves toward the ball", "vag": ["sway_topp", "reverse_spine", "early_extension"], "nu": 3.3, "enhet": "cm"},
-    {"fel": "backens_resa_framat", "namn": "Too little forward shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 13.8, "enhet": "cm"},
+    {"fel": "backens_resa_framat", "namn": "Too little hip shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 13.8, "enhet": "cm"},
     {"fel": "tappad_hallning", "namn": "Loss of posture: the chest rises", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 5.9, "enhet": "°"},
     {"fel": "sway_gap", "namn": "Sway gap at impact", "vag": ["sway_topp", "sway_gap"], "nu": 16.5, "enhet": "cm"}
    ],

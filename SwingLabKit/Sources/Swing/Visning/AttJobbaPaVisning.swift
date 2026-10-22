@@ -147,13 +147,13 @@ public struct Idagvisning: Sendable {
     public struct Forsta: Sendable {
         public let namn: String
         public let tanke: String
-        /// Saken och dess närmaste följdfel: "Sway", "Side bend", "Forward shift".
+        /// Saken och dess närmaste följdfel: "Sway", "Side bend", "Hip shift".
         public let kedja: [String]
     }
 
     /// "Tue, Jan 13"
     public let dag: String
-    /// "Sat, Jan 9 · 7-iron · 34"
+    /// "Sat, Jan 9 · 7i · 34", med hårt mellanslag före punkterna (Texter.skilje)
     public let senaste: String?
     public let rader: [Rad]
     public let forsta: Forsta?
@@ -161,7 +161,7 @@ public struct Idagvisning: Sendable {
     public init(idag: Date, katalog: Katalog, pass: [Pass], attJobbaPa: AttJobbaPa?) {
         dag = Tal.dag(idag)
         if let nu = pass.last {
-            senaste = "\(Tal.dag(nu.datum)) · \(nu.klubba) · \(nu.slag)"
+            senaste = [Tal.dag(nu.datum), nu.klubba, "\(nu.slag)"].joined(separator: Texter.skilje)
             let p = Passvisning(katalog: katalog, pass: pass, ovas: attJobbaPa?.ovas ?? [])
             rader = p.kort.compactMap { k -> Rad? in
                 guard let s = k.spann else { return nil }

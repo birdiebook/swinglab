@@ -93,7 +93,7 @@ struct IdagVy: View {
 
             if let f = visning.forsta {
                 Button(action: oppnaJobba) {
-                    Sektion(etikett: String(localized: "Work on")) {
+                    Sektion(etikett: String(localized: "Focus")) {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(f.namn)
                                 .typsnitt(22, .semibold)

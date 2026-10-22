@@ -19,7 +19,9 @@ VYER = ("dtl", "fo", "bada")
 STATUS = ("tillverkare", "forskning", "tranare", "antagande")
 SAMRE = ("+", "-", None)
 FALT = ("id", "namn", "vy", "matt", "fas", "gront", "gult", "kalla", "status", "kontrollerad",
-        "aktiv", "samre", "ovning", "tanke")
+        "aktiv", "samre", "ovning_id", "ovning", "tanke")
+# Övningens id: stabilt när texten skrivs om, så att historiken känner igen den.
+OVNING_ID = __import__("re").compile(r"^[a-z0-9_]+$")
 
 MIN_BASLINJE = 8         # METOD M27: svingar i baslinjen (8 försök räcker, research 1 del 4)
 GRON_Z = 1.0             # METOD M27: inom 1 robust sd från baslinjen = grönt
@@ -59,6 +61,8 @@ def kontrollera(k: dict) -> list[str]:
                 fel.append(f"{namn}: {g} ska vara [min, max] eller null")
         if e.get("gront") is None and e.get("gult") is not None:
             fel.append(f"{namn}: gult utan gront")
+        if "ovning_id" in e and not (isinstance(e["ovning_id"], str) and OVNING_ID.match(e["ovning_id"])):
+            fel.append(f"{namn}: ovning_id ska vara a–z, 0–9 och _")
         if not isinstance(e.get("kontrollerad"), bool) or not isinstance(e.get("aktiv"), bool):
             fel.append(f"{namn}: kontrollerad och aktiv ska vara true/false")
     return fel

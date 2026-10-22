@@ -110,6 +110,7 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ]}`, där va
 | `kontrollerad` | bool | `false` tills källan lästs i original (BESLUT B10). |
 | `aktiv` | bool | `false` = felet bedöms inte (axellutningen, METOD M17). |
 | `samre` | `"+"`, `"-"` eller `null` | Åt vilket håll måttet blir sämre, för den egna baslinjen. `null` = båda. |
+| `ovning_id` | text | Övningens stabila id (`a–z`, `0–9`, `_`). Historiken känner igen övningen på det, inte på texten, så att en omskriven formulering inte nollställer steget. Samma id i katalogen och `tools/pc/kedjor.json` betyder samma text. |
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
 | `notering` | text | Valfri. Varför gränsen ser ut som den gör. |
@@ -192,7 +193,7 @@ okänd eller saknad nyckel fälls.
   "namn": "Sway: the pelvis slides away from the target in the backswing",
   "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
   "nu": -5.7, "spann": [0, null], "markning": "B10",
-  "ovning": {"text": "Stick in the ground …", "tanke": "Don't touch the stick.", "kalla": "katalog",
+  "ovning": {"id": "kapp_och_fotterna_ihop", "text": "Stick in the ground …", "tanke": "Leave the stick standing.", "kalla": "katalog",
              "steg": "langsamt_med_foremal"},
   "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
   "foljdfel": [
@@ -240,6 +241,7 @@ okänd eller saknad nyckel fälls.
 
 | Fält | Typ | Krav och betydelse |
 |---|---|---|
+| `id` | text | övningens stabila id: katalogens `ovning_id` (`kalla: "katalog"`) eller övningens `id` i `kedjor.json` (`kalla: "research3"`). Historiken och kontrollen jämför övningar på id:t (`tools/pc/historik.py`); en fil utan id (före 2026-10-22) känns igen på texten |
 | `text` | text | övningen: katalogens ordagrant (`kalla: "katalog"`), eller en av felets övningar i `tools/pc/kedjor.json` ordagrant (`kalla: "research3"`). Aldrig fritext |
 | `tanke` | text | tanken under svingen på engelska, extern fokus, högst 60 tecken, utan siffror, värdeord och utropstecken (METOD MT8) |
 | `kalla` | text | `"katalog"` eller `"research3"` |
@@ -313,8 +315,8 @@ att_jobba_pa/<pass>.json      sparad och kontrollerad med historik.py spara-att-
 
 `historik.py minne` skriver `"format": "swinglab-minne/1"`: passen, varje fels
 väg genom vintern (`varde`, `forsta_serien`, `status` per pass) och en rad per
-fel som fått en övning (`ovningar[]`): `ovning`, `valt_i_pass`, `fel_start`,
-`forra_ovningar`, `klart_nar` och `markning` (från valet), `steg`,
+fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
+`valt_i_pass`, `fel_start`, `forra_ovningar` (id:n), `klart_nar` och `markning` (från valet), `steg`,
 `uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),
 `pass_utan_rorelse`, `dagar_sedan_felet_valdes`, `rorelse_sedan_felet_valdes`,
 `aktuell` och `lage` (`avslutad`, `klart`, `fysik`, `ny`, `byt_ovning`,

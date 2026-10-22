@@ -46,7 +46,7 @@ def minne_ur(d: dict) -> list[dict]:
         if s["ovning"]["steg"] == AJP.STEG[0]:
             continue
         i = AJP.STEG.index(s["ovning"]["steg"])
-        ut.append({"fel": s["fel"], "ovning": s["ovning"]["text"], "lage": "fortsatt",
+        ut.append({"fel": s["fel"], "ovning": s["ovning"]["text"], "ovning_id": s["ovning"]["id"], "lage": "fortsatt",
                    "fel_start": s["block"]["start"].replace("-", "") + "-180000",
                    "klart_nar": {k: s["klart_nar"][k] for k in ("villkor", "grans", "pa", "pass_i_rad")},
                    "markning": s["markning"], "steg": AJP.STEG[i - 1], "forra_ovningar": []})

@@ -35,7 +35,7 @@ struct StartView: View {
 
             VStack(spacing: 0) {
                 Button("Import from Photos") { flow = .photos }
-                Button("Import Work on") {}
+                Button("Import focus") {}
                     .disabled(true)
             }
             .buttonStyle(RowButtonStyle())

@@ -10,7 +10,7 @@ struct AttJobbaPaVy: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Navrad(titel: String(localized: "Work on"), hoger: { Under(text: visning.fran) }, tillbaka: tillbaka)
+            Navrad(titel: String(localized: "Focus"), hoger: { Under(text: visning.fran) }, tillbaka: tillbaka)
             ForEach(Array(visning.saker.enumerated()), id: \.offset) { i, s in
                 SakVy(sak: s, antal: visning.saker.count)
                     .padding(.top, i == 0 ? 0 : 28)
@@ -156,7 +156,7 @@ struct SakVy: View {
                 }
             }
 
-            Sektion(etikett: String(localized: "Thought")) {
+            Sektion(etikett: String(localized: "Swing thought")) {
                 Text(sak.tanke)
                     .tracking(-0.3)
                     .typsnitt(30, .medium)

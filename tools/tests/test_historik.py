@@ -28,10 +28,12 @@ def _analys(pass_id: str, forsta: float, hela: float | None = None) -> dict:
             "bedomning": [{"id": "sway_topp", "visat": hela, "forsta_serien": forsta, "status": "rod"}]}
 
 
-def _doc(pass_id: str, text: str = "Käpp vid höften.", grans: float = 0, fysik=None) -> dict:
+def _doc(pass_id: str, text: str = "Stick at the hip.", grans: float = 0, fysik=None, ovid: str | None = None) -> dict:
+    """Ett påhittat val. Övningen känns igen på `ovid` (standard: texten gjord till id)."""
     d = json.loads(FIXTUR.read_text(encoding="utf-8"))
     d["pass"] = pass_id
     d["saker"][0]["ovning"]["text"] = text
+    d["saker"][0]["ovning"]["id"] = ovid or text.lower().rstrip(".").replace(" ", "_")
     d["saker"][0]["klart_nar"]["grans"] = grans
     d["saker"][0]["fysik"] = fysik
     return d
@@ -136,12 +138,12 @@ class Historiken(unittest.TestCase):
         for i, p in enumerate(pass_ids):
             self.pass_(p, -6.0)
             if i % 5 == 0:                                     # ny övning var femte pass
-                self.ajp(p, text=f"Övning {'ABCD'[i // 5]}.")
+                self.ajp(p, text=f"Drill {'ABCD'[i // 5]}.")
         o = self.lage(till=pass_ids[13])                       # dag 39
         self.assertNotEqual(o["lage"], "fysik")
         o = self.lage(till=pass_ids[14])                       # dag 42
         self.assertEqual((o["lage"], o["fel_start"], o["dagar_sedan_felet_valdes"]), ("fysik", pass_ids[0], 42))
-        self.assertEqual(o["forra_ovningar"], ["Övning C.", "Övning B.", "Övning A."][1:])
+        self.assertEqual(o["forra_ovningar"], ["drill_c", "drill_b", "drill_a"][1:])
 
     def test_fysiken_fragas_bara_en_gang(self) -> None:
         pass_ids = _pass("20261101", 7, 8)
@@ -166,19 +168,40 @@ class Historiken(unittest.TestCase):
         pass_ids = _pass("20261101", 7, 4)
         for p in pass_ids:
             self.pass_(p, -6.0)
-        self.ajp(pass_ids[0], text="Övning A.")
+        self.ajp(pass_ids[0], text="Drill A.")
         self.tomt_val(pass_ids[1])
-        self.ajp(pass_ids[2], text="Övning B.")
+        self.ajp(pass_ids[2], text="Drill B.")
         o = self.lage()
-        self.assertEqual((o["fel_start"], o["forra_ovningar"], o["lage"]), (pass_ids[2], ["Övning A."], "fortsatt"))
+        self.assertEqual((o["fel_start"], o["forra_ovningar"], o["lage"]), (pass_ids[2], ["drill_a"], "fortsatt"))
 
     def test_fore_tar_bara_valen_fore_passet(self) -> None:
         self.pass_("20261101-180000", -6.0)
-        self.ajp("20261101-180000", text="Övning A.")
+        self.ajp("20261101-180000", text="Drill A.")
         self.pass_("20261103-180000", -6.0)
-        self.ajp("20261103-180000", text="Övning B.")
+        self.ajp("20261103-180000", text="Drill B.")
         o = {x["fel"]: x for x in H.ovningar(self.rot, till="20261103-180000", fore="20261103-180000")}["sway_topp"]
-        self.assertEqual((o["ovning"], o["pass_sedan"]), ("Övning A.", 1))
+        self.assertEqual((o["ovning"], o["ovning_id"], o["pass_sedan"]), ("Drill A.", "drill_a", 1))
+
+    def test_omskriven_text_ar_samma_ovning(self) -> None:
+        """Övningen jämförs på sitt id: en ny formulering (som B30:s översättning)
+        nollställer inte steget, "klart när" eller blocket."""
+        self.pass_("20261103-180000", -6.0)
+        self.ajp("20261103-180000", text="Käpp vid höften.", ovid="kapp", grans=0)
+        self.pass_("20261106-180000", -4.0)
+        self.ajp("20261106-180000", text="Stick at the hip.", ovid="kapp", grans=-2)
+        self.pass_("20261110-180000", -3.0)
+        o = self.lage()
+        self.assertEqual((o["valt_i_pass"], o["fel_start"], o["forra_ovningar"]), ("20261103-180000", "20261103-180000", []))
+        self.assertEqual((o["ovning"], o["ovning_id"], o["klart_nar"]["grans"]), ("Stick at the hip.", "kapp", 0))
+        self.assertEqual(o["pass_sedan"], 2)
+        # Ett nytt id är en ny övning, även med samma text.
+        self.ajp("20261110-180000", text="Stick at the hip.", ovid="annan")
+        o = self.lage()
+        self.assertEqual((o["valt_i_pass"], o["forra_ovningar"]), ("20261110-180000", ["kapp"]))
+
+    def test_aldre_fil_utan_id_kanns_igen_pa_texten(self) -> None:
+        self.assertEqual(H.ovning_id({"text": "Drill A."}), "Drill A.")
+        self.assertEqual(H.ovning_id({"id": "a", "text": "Drill A."}), "a")
 
     def test_minnet_har_felens_vag(self) -> None:
         self.pass_("20261103-180000", -6.0)

@@ -97,7 +97,9 @@ schemes:
     test:
       # Release som TestFlight; kompilera.yml sätter ENABLE_TESTABILITY=YES (som Idunn).
       config: Release
+      # Engelska i en svensk region: provet visar att en svensk telefon får
+      # decimalpunkt och engelska datum (BESLUT B30, B33).
       language: en
-      region: US
+      region: SE
       targets:
         - SwingLabProv

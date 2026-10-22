@@ -24,8 +24,9 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "-",
+   "ovning_id": "kapp_och_fotterna_ihop",
    "ovning": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
-   "tanke": "Don't touch the stick.",
+   "tanke": "Leave the stick standing.",
    "notering": "Låg handicap nära 0 (Sportsbox), tour ≈ +10 cm mot målet (GolfTEC). Gränsen är ett antagande byggt på de två (research 1 §1.1)."
   },
   {
@@ -41,6 +42,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": null,
+   "ovning_id": "metronom",
    "ovning": "Swing to a metronome or a Tour Tempo beat: three counts up, one down.",
    "tanke": "The club meets the ball on the third beat.",
    "notering": "Låg prioritet: tempot har inget belagt samband med utfallet (research 1 §1.9). Utanför grönt är gult, aldrig rött."
@@ -58,7 +60,8 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
-   "ovning": "Backside against a chair behind you at address. Slow swings that keep contact through impact while the pelvis rotates.",
+   "ovning_id": "stol_bakom",
+   "ovning": "Glutes against a chair behind you at address. Slow swings that keep contact through impact while the pelvis rotates.",
    "tanke": "The chair stays in contact all the way.",
    "notering": "Egen baslinje tills tecknet och TPI-exemplet (> 3 tum mot bollen) är kontrollerade (research 1 §1.6)."
   },
@@ -75,13 +78,14 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
-   "ovning": "Same as early extension: the chair behind your backside, and your head below a line on the wall in front of you.",
+   "ovning_id": "stol_och_linje_pa_vaggen",
+   "ovning": "Same as early extension: the chair behind your glutes, and your head below a line on the wall in front of you.",
    "tanke": "The ball sees the top of your cap all the way.",
    "notering": "Felet i 2D är lika stort som förlusten, därför egen trend (research 1 §1.5)."
   },
   {
    "id": "backens_resa_framat",
-   "namn": "Too little forward shift from the top",
+   "namn": "Too little hip shift from the top",
    "vy": "fo",
    "matt": "backen_resa_framat",
    "fas": "traff",
@@ -92,6 +96,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "-",
+   "ovning_id": "steget_fotterna_ihop",
    "ovning": "The step drill: feet together at address, step toward the target with the lead foot as the backswing changes direction. Ten reps with a short iron, no ball.",
    "tanke": "Step toward the target.",
    "notering": "Sway bakåt och för lite förskjutning framåt är samma tema, bäckenets väg (PLAN S1)."
@@ -109,6 +114,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": null,
+   "ovning_id": "fotterna_ihop",
    "ovning": "Feet together, 3/4 swings: the slide that feeds the fault disappears.",
    "tanke": "The belt buckle beats the cap to the target.",
    "notering": "Sportsbox definition och tecken är okända; vårt mått är bäckenets sway minus bröstets (M19). Ingen tour-gräns (research 1 §1.3)."
@@ -126,6 +132,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": false,
    "samre": null,
+   "ovning_id": "sidbojning_i_adressen",
    "ovning": "Set up with the side bend that impact requires.",
    "tanke": "The trail shoulder below the lead shoulder.",
    "notering": "Avstängd: definitionen granskas i S0 och får ingen tour-gräns (METOD M17)."
@@ -143,7 +150,8 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "-",
-   "ovning": "Feet together (removes the slide that feeds the fault), and TPI's Reach Over the Fence.",
+   "ovning_id": "fotterna_ihop_och_reach",
+   "ovning": "Feet together (removes the slide that feeds the fault), and TPI’s Reach Over the Fence.",
    "tanke": "The cap stays behind the ball at the top.",
    "notering": "Negativ sidböjning i toppen = mot målet = reverse spine (METOD M14)."
   },
@@ -160,6 +168,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
+   "ovning_id": "halvsving_motorcykel",
    "ovning": "Half swings toward the 4:30 path, with the lead wrist flexed (motorcycle) through impact.",
    "tanke": "The clubhead passes the hands after the ball.",
    "notering": "Inga tal vid träff i källorna; egen baslinje (research 1 §1.11)."
@@ -177,6 +186,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
+   "ovning_id": "test_90_90",
    "ovning": "No swing drill found. Test 90/90 (trail shoulder external rotation) first: if it is limited, it is mobility.",
    "tanke": "A towel under the trail arm stays in place to the top.",
    "notering": "Egen baslinje (research 1 §1.11, research 3)."
@@ -194,6 +204,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
+   "ovning_id": "headcover",
    "ovning": "A headcover outside and slightly behind the ball. If you hit it, the club came from outside.",
    "tanke": "Miss the headcover.",
    "notering": "Ingen gräns i cm hittad (research 1 §1.11). Handens bana, inte klubbans, tills S7."
@@ -211,6 +222,7 @@ enum Fixturer {
    "kontrollerad": false,
    "aktiv": true,
    "samre": "+",
+   "ovning_id": "vaggen_bakom",
    "ovning": "Swing to the top and stop against a wall behind you: the clubhead reaches the wall with a straight arm, not a bent one.",
    "tanke": "The clubhead far from your head at the top.",
    "notering": "För en vänsterspelare är det högerarmen (främre). GolfTEC: 76° mot 10° är ett elevexempel, ingen norm."

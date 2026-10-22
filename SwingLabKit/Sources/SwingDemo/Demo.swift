@@ -121,7 +121,8 @@ public enum Demo {
                 svingar.append(SvingMatt(vy: .fo, matt: fo[j]))
                 svingar.append(SvingMatt(vy: .dtl, matt: dtl[j]))
             }
-            return Pass(datum: datum[i], klubba: "7-iron", svingar: svingar, serie1: serie1)
+            // Klubban i samma form som uppställningen (PassSetup.clubLabel("j7") i Capture).
+            return Pass(datum: datum[i], klubba: "7i", svingar: svingar, serie1: serie1)
         }
     }
 
@@ -163,15 +164,16 @@ public enum Demo {
        "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
        "nu": -2.4, "spann": [0, null], "markning": "B10",
        "ovning": {
+        "id": "kapp_och_fotterna_ihop",
         "text": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
-        "tanke": "Don't touch the stick.",
+        "tanke": "Leave the stick standing.",
         "kalla": "katalog",
         "steg": "halv_fart"
        },
        "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
        "foljdfel": [
         {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
-        {"fel": "backens_resa_framat", "namn": "Too little forward shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},
+        {"fel": "backens_resa_framat", "namn": "Too little hip shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},
         {"fel": "tappad_hallning", "namn": "Loss of posture: the chest rises", "vag": ["sway_topp", "backens_resa_framat", "tappad_hallning"], "nu": 2.0, "enhet": "°"},
         {"fel": "sway_gap", "namn": "Sway gap at impact", "vag": ["sway_topp", "sway_gap"], "nu": 4.1, "enhet": "cm"}
        ],
@@ -186,6 +188,7 @@ public enum Demo {
        "vy": "dtl", "matt": "bakre_armbage_topp", "enhet": "°",
        "nu": 56.0, "spann": null, "markning": "egen",
        "ovning": {
+        "id": "test_90_90",
         "text": "No swing drill found. Test 90/90 (trail shoulder external rotation) first: if it is limited, it is mobility.",
         "tanke": "A towel under the trail arm stays in place to the top.",
         "kalla": "katalog",

@@ -147,14 +147,14 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
 public struct Passvisning: Sendable {
     /// "Fri, Jan 9"
     public let titel: String
-    /// "7-iron · 34"
+    /// "7i · 34"
     public let undertitel: String
     public let kort: [Mattkort]
 
     public init(katalog: Katalog, pass: [Pass], ovas: Set<String> = []) {
         let nu = pass.last!
         titel = Tal.dag(nu.datum)
-        undertitel = "\(nu.klubba) · \(nu.slag)"
+        undertitel = "\(nu.klubba)\(Texter.skilje)\(nu.slag)"
         kort = Mattkort.passet(katalog, nu: nu, tidigare: Array(pass.dropLast()), ovas: ovas)
     }
 

@@ -643,14 +643,20 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
 - **Fritexten** är tanken (högst **60** tecken) och rörlighetsövningen (högst
   **200**). Den bär inga siffror (tal står bara i "klart när", där de är
   analysens), inga utropstecken och inga **värdeord** (BESLUT B13 regel 4),
-  som fälls på ordstam på engelska, appens språk (BESLUT B30): fine, ok,
-  ideal med flera som hela ord, och ord som börjar på good, better, best,
-  worse, worst, bad, poor, great, perfect, nice, excellen, awesome, amazing,
-  fantastic, terribl, awful, superb, wonderful, solid, wrong med flera (listan
-  i `att_jobba_pa.py`). Undantag: badge, badminton, bestow. "strong" och "weak"
+  som fälls på ordstam på engelska, appens språk (BESLUT B30): ok, wow,
+  ideal med flera som hela ord, frasen "well done", och ord som börjar på
+  good, better, best, worse, worst, bad, poor, great, perfect, nice, excellen,
+  awesome, amazing, super, cool, neat, sweet, kudos, nail, crush, pure, crisp,
+  boring, fine, terribl, awful, wonderful, solid, wrong med flera (listan i
+  `att_jobba_pa.py`). Undantag: badge, badminton, bestow, supinat…, coolin….
+  Golfens ord går igenom (top, finish, lead, trail, grip). "strong" och "weak"
   fälls inte: ett starkt eller svagt grepp är golfens ord, inget omdöme.
   Fritexten är engelska: å, ä och ö fälls. **antagande** (gränserna);
   katalogens längsta tanke är 54 tecken.
+- **Övningens id** (`ovning.id`, katalogens `ovning_id`, `id` i kedjorna):
+  historiken (MT4, MT5) och kontrollen jämför övningar på id:t, så att en
+  omskriven text (som översättningen, BESLUT B30) inte nollställer steget,
+  "klart när" eller blocket.
 - Formen är stängd: en okänd eller saknad nyckel fälls.
 - **Extern fokus** i tanken: vad klubban, bollen eller ett föremål ska göra
   (research 3 (a) 6, medeleffekt ~0,54, Barzyk & Gruber 2024). **forskning, ej

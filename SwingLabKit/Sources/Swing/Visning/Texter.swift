@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Det här är den enda filen i paketet med ord till användaren: vymodellerna i
 /// Swing/Visning, kvittot och ljusprovet i Capture, och felen när telefonen läser
-/// `att_jobba_pa.json`. Övriga filer bygger sina texter av talen och orden här.
+/// `att_jobba_pa.json`. Övriga filer bygger sina texter av talen och orden här;
+/// bara förkortningar och enheter (FO, DTL, B10, cm, s, °) står i koden där de används.
 /// Appens egna etiketter (knappar, rubriker, felen i App/) står i
 /// `App/Localizable.xcstrings`. Ett nytt språk blir en tabell här och en kolumn i
 /// katalogen, ingen ombyggnad av vyerna (BESLUT B33).
@@ -28,7 +29,7 @@ public enum Texter {
     /// Måttens korta namn i vyn, per mått i katalogen.
     public static let mattnamn: [String: String] = [
         "backen_sway_topp": "Sway",
-        "backen_resa_framat": "Forward shift",
+        "backen_resa_framat": "Hip shift",
         "backen_thrust_traff": "Thrust",
         "brost_bojning_tapp": "Chest bend",
         "tempo": "Tempo",
@@ -50,8 +51,8 @@ public enum Texter {
     public static let addressToImpact = "address–impact"
     public static let startTopImpact = "start–top–impact"
 
-    /// Tempots vy: det kommer ur klicket, inte ur en kamera.
-    public static let click = "Click"
+    /// Tempots vy: det kommer ur ljudet (klicket), inte ur en kamera.
+    public static let ljud = "Audio"
 
     /// Åt vilket håll + pekar.
     public static let target = "target"
@@ -82,6 +83,10 @@ public enum Texter {
 
     // MARK: passet
 
+    /// Mellan delarna i en rad ("Sat, Jan 9 · 7i · 34"): hårt mellanslag före
+    /// punkten, så att en bruten rad aldrig börjar med "·".
+    public static let skilje = "\u{00A0}\u{00B7} "
+
     /// Filtret Alla/FO/DTL.
     public static let alla = "All"
 
@@ -97,10 +102,10 @@ public enum Texter {
     /// "First set ≥ 0": villkoret på första serien (METOD MT2).
     public static func forstaSerien(_ grans: String) -> String { "First set \(grans)" }
 
-    /// "2 sessions in a row"
+    /// "2 sessions in a row" (och "1 session" när villkoret gäller ett enda pass).
     public static func passIRad(_ n: Int) -> String { n == 1 ? "1 session" : "\(n) sessions in a row" }
 
-    /// Tanken inom citattecken: "“Leave the stick standing.”"
+    /// Tanken inom typografiska citattecken: “Leave the stick standing.”
     public static func citat(_ text: String) -> String { "\u{201C}\(text)\u{201D}" }
 
     /// Sakens delar i ord för VoiceOver.
@@ -108,7 +113,7 @@ public enum Texter {
     public static func upplasningOvning(_ t: String) -> String { "drill: \(t)" }
     public static func upplasningSteg(_ t: String) -> String { "step: \(t)" }
     public static func upplasningRorlighet(_ t: String) -> String { "mobility: \(t)" }
-    public static func upplasningTanke(_ t: String) -> String { "thought: \(t)" }
+    public static func upplasningTanke(_ t: String) -> String { "swing thought: \(t)" }
     public static func upplasningKlartNar(_ t: String) -> String { "done when: \(t)" }
 
     // MARK: Granskningen

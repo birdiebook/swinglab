@@ -30,7 +30,7 @@ def _sak(fid: str, ordning: int = 1, **kw) -> dict:
     k = K[fid]
     s = {"ordning": ordning, "fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"],
          "enhet": A.enhet(k["matt"]), "nu": 1.0, "spann": k["gront"], "markning": "egen",
-         "ovning": {"text": k["ovning"], "tanke": "The chair stays in contact.", "kalla": "katalog",
+         "ovning": {"id": k["ovning_id"], "text": k["ovning"], "tanke": "The chair stays in contact.", "kalla": "katalog",
                     "steg": "langsamt_med_foremal"},
          "klart_nar": {"villkor": "<=", "grans": 0.5, "pa": "forsta_serien", "pass_i_rad": 2},
          "foljdfel": [], "typ": "teknik", "fysik": None, "block": {"start": "2026-11-03", "vecka": 1}}
@@ -184,13 +184,18 @@ class Fritexten(unittest.TestCase):
         """Den engelska listan (BESLUT B30), på ordstam och oavsett versaler."""
         for t in ("Good rotation.", "Better balance.", "Best swing yet.", "Worse balance.", "Worst of the day.",
                   "Bad shot.", "Poorly timed.", "Great turn.", "Perfect swings.", "Nicely done.", "Excellent.",
-                  "Awesome.", "Amazing pivot.", "Fine contact.", "Fantastic.", "Terrible.", "Wrong way."):
+                  "Awesome.", "Amazing pivot.", "Fine contact.", "Fantastic.", "Terrible.", "Wrong way.",
+                  "Super swing.", "Cool turn.", "Neat move.", "Sweet strike.", "Kudos.", "Nail the finish.",
+                  "Nailed it.", "Crush the ball.", "Pure contact.", "Crisp strike.", "Boring tempo.",
+                  "Finely timed.", "Well done.", "Well  done."):
             self.assertIn("värdeord", self.kolla(t), t)
 
     def test_inga_falska_traffar(self) -> None:
         for t in ("Hands at the top.", "The chair stays there to the finish.", "Find the stick behind you.",
                   "The club steep down.", "Fingers light on the grip.", "The ball sees the top of your cap.",
-                  "A strong grip on the club.", "Final position held.", "The badge on the cap faces the ball."):
+                  "A strong grip on the club.", "Final position held.", "The badge on the cap faces the ball.",
+                  "Lead arm long at the top.", "Trail elbow points down to the finish.", "Grip the club lightly.",
+                  "The club finishes high.", "Hold the finish as well."):
             self.assertEqual(self.kolla(t), "", t)
 
     def test_fritexten_ar_engelska(self) -> None:
@@ -227,11 +232,26 @@ class Ovningen(unittest.TestCase):
     def test_ur_katalogen_ordagrant_eller_ur_listan(self) -> None:
         s = _sak("early_extension")
         s["ovning"]["text"] = "Chair behind."
-        self.assertIn("katalogens när kalla är katalog", self.kolla(s))
-        s["ovning"]["kalla"] = "research3"
-        self.assertIn("en av felets övningar i kedjor.json", self.kolla(s))
-        s["ovning"]["text"] = [o["text"] for o in KED["ovningar"] if o["fel"] == "early_extension"][0]
+        self.assertIn("ovning.text: ska vara katalogens när kalla är katalog", self.kolla(s))
+        s = _sak("early_extension")
+        s["ovning"]["id"] = "annan"
+        self.assertIn("ovning.id: ska vara katalogens", self.kolla(s))
+        x = [o for o in KED["ovningar"] if o["fel"] == "early_extension"][0]
+        s["ovning"].update(kalla="research3", id="finns_inte", text=x["text"])
+        self.assertIn("ovning.id: ska vara en av felets övningar i kedjor.json", self.kolla(s))
+        s["ovning"]["id"] = x["id"]
         self.assertEqual(self.kolla(s), "")
+        s["ovning"]["text"] = "Chair behind."
+        self.assertIn("ovning.text: ska vara övningens text i kedjor.json", self.kolla(s))
+
+    def test_ovningarna_har_stabila_id(self) -> None:
+        """Varje övning har ett id; samma id betyder samma text i katalogen och kedjorna."""
+        texter: dict[str, str] = {}
+        for oid, text in ([(f["ovning_id"], f["ovning"]) for f in KATL["fel"]]
+                          + [(o["id"], o["text"]) for o in KED["ovningar"]]):
+            self.assertRegex(oid, r"^[a-z0-9_]+$")
+            self.assertEqual(texter.setdefault(oid, text), text, oid)
+        self.assertEqual(len({f["ovning_id"] for f in KATL["fel"]}), len(KATL["fel"]))
 
     def test_en_ny_ovning_borjar_pa_forsta_steget(self) -> None:
         s = _sak("early_extension")
@@ -267,9 +287,10 @@ class Minnet(unittest.TestCase):
 
     def setUp(self) -> None:
         self.text = K["early_extension"]["ovning"]
-        self.o = {"fel": "early_extension", "ovning": self.text, "lage": "fortsatt", "fel_start": "20261020-180000",
+        self.o = {"fel": "early_extension", "ovning": self.text, "ovning_id": K["early_extension"]["ovning_id"],
+                  "lage": "fortsatt", "fel_start": "20261020-180000",
                   "klart_nar": {"villkor": "<=", "grans": 2.0, "pa": "forsta_serien", "pass_i_rad": 2},
-                  "markning": "egen", "steg": "langsamt_med_foremal", "forra_ovningar": ["Old drill."]}
+                  "markning": "egen", "steg": "langsamt_med_foremal", "forra_ovningar": ["gammal_ovning"]}
 
     def sak(self, **kw) -> dict:
         s = _sak("early_extension", klart_nar={"villkor": "<=", "grans": 2.0, "pa": "forsta_serien", "pass_i_rad": 2},
@@ -294,17 +315,18 @@ class Minnet(unittest.TestCase):
         self.assertIn("inget hopp", self.kolla(s))
 
     def test_ny_ovning_for_samma_fel_far_analysens_klart_nar_men_samma_block(self) -> None:
-        text = [o["text"] for o in KED["ovningar"] if o["fel"] == "early_extension"][0]
+        x = [o for o in KED["ovningar"] if o["fel"] == "early_extension"][0]
         s = _sak("early_extension", block={"start": "2026-10-20", "vecka": 3})
-        s["ovning"].update(text=text, kalla="research3")
+        s["ovning"].update(id=x["id"], text=x["text"], kalla="research3")
         self.assertEqual(self.kolla(s, dict(self.o, lage="byt_ovning")), "")
 
     def test_klar_byt_provad_och_fysik(self) -> None:
         self.assertIn("släpp saken", self.kolla(self.sak(), dict(self.o, lage="klart")))
         self.assertIn("minnet säger byt övning", self.kolla(self.sak(), dict(self.o, lage="byt_ovning")))
         s = self.sak()
-        s["ovning"].update(text="Old drill.", kalla="research3")
-        self.assertIn("redan provad", self.kolla(s))
+        x = [o for o in KED["ovningar"] if o["fel"] == "early_extension"][0]
+        s["ovning"].update(id=x["id"], text=x["text"], kalla="research3")
+        self.assertIn("redan provad", self.kolla(s, dict(self.o, forra_ovningar=[x["id"]])))
         self.assertIn("minnet säger fysik", self.kolla(self.sak(), dict(self.o, lage="fysik")))
 
     def test_en_avslutad_ovning_ar_inget_minne(self) -> None:

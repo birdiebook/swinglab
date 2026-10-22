@@ -10,7 +10,8 @@
 // katalog.json, läst från källträdet (simulatorn delar filsystem med Mac-värden).
 //
 // Varje bild prövas mot formspråket (BESLUT B13, regel 6): bara gråskala, och
-// botten svart. Vyerna ritas på engelska (BESLUT B30) i en engelsk miljö.
+// botten svart. Vyerna ritas med svensk region (sv_SE), som Johannes telefon: texten
+// ska ändå bli engelsk med decimalpunkt och engelska datum (BESLUT B30, B33).
 
 import XCTest
 import SwiftUI
@@ -90,7 +91,7 @@ final class SwingLabProvVyer: XCTestCase {
             .fixedSize(horizontal: false, vertical: true)
             .background(Theme.ground)
             .environment(\.colorScheme, .dark)
-            .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.locale, Locale(identifier: "sv_SE"))
         let r = ImageRenderer(content: innehall)
         // De största textstorlekarna blir mycket långa; i @1x ryms de i en PNG.
         r.scale = textstorlek.isAccessibilitySize ? 1 : 3

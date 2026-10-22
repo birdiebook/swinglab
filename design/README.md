@@ -42,11 +42,12 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 ## Språket (BESLUT B30, B33)
 
 Appen är på engelska; dokumenten och koden använder de svenska namnen. Skärmarna
-heter Today (Idag), Session (Passet), Progress (Utveckling), Work on (Att jobba
-på) och Review (Granskning). I appen: Drill (övning), Thought (tanke), Done when
-(klart när), Mobility (rörlighet), First set (första serien), Shots (slagen) och
-positionerna Address, Top, Impact och Finish. Klubborna skrivs 7i, 3W, 4H, PW,
-Dr. Tal med decimalpunkt och äkta minus ("−2.4 cm"), datum "Jan 9".
+heter Today (Idag), Session (Passet), Progress (Utveckling), Focus (Att jobba
+på) och Review (Granskning). I appen: Drill (övning), Swing thought (tanke), Done
+when (klart när), Mobility (rörlighet), First set (första serien), Shots (slagen),
+Audio (tempots vy, ur klicket) och positionerna Address, Top, Impact och Finish.
+Måtten: Sway, Hip shift, Thrust, Chest bend, Side bend, Sway gap. Klubborna skrivs
+7i, 3W, 4H, PW, Dr överallt. Tal med decimalpunkt och äkta minus ("−2.4 cm"), datum "Jan 9".
 
 ## Paletten
 

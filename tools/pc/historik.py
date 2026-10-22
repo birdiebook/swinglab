@@ -170,6 +170,11 @@ def _foljning(analyser: dict, pass_ids: list[str], vy: str, matt: str, kn: dict,
     return start, spr, rader
 
 
+def ovning_id(ov: dict) -> str:
+    """Övningens stabila id. En fil från före id:t (S5) känns igen på texten."""
+    return ov.get("id") or ov["text"]
+
+
 def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> list[dict]:
     """Varje fel som fått en övning: den senaste övningen, sedan när, och hur
     första serien rört sig pass för pass. `fore` tar bara med valen före det
@@ -186,18 +191,21 @@ def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> lis
     forra_fel: set[str] = set()
     for d in docs:                                     # äldst först
         for s in d["saker"]:
-            fid, text = s["fel"], s["ovning"]["text"]
+            # Övningen känns igen på sitt id (kedjor.json, katalogens ovning_id), inte på
+            # texten: en omskriven formulering är samma övning och behåller steget.
+            fid, text, ov_id = s["fel"], s["ovning"]["text"], ovning_id(s["ovning"])
             g = senast.get(fid)
             if g is None or fid not in forra_fel:      # felet väljs (på nytt): ett nytt block
-                tidigare_ov = ([g["ovning"]] + g["forra_ovningar"]) if g else []
+                tidigare_ov = ([g["ovning_id"]] + g["forra_ovningar"]) if g else []
                 g = senast[fid] = {"fel": fid, "vy": s["vy"], "matt": s["matt"], "fel_start": d["pass"],
-                                   "valt_i_pass": d["pass"], "ovning": text, "forra_ovningar": tidigare_ov,
+                                   "valt_i_pass": d["pass"], "ovning_id": ov_id, "forra_ovningar": tidigare_ov,
                                    "klart_nar": s["klart_nar"], "markning": s["markning"]}
-            elif g["ovning"] != text:                  # ny övning för samma fel: ny "klart när"
-                g.update(valt_i_pass=d["pass"], ovning=text, forra_ovningar=[g["ovning"]] + g["forra_ovningar"],
+            elif g["ovning_id"] != ov_id:              # ny övning för samma fel: ny "klart när"
+                g.update(valt_i_pass=d["pass"], ovning_id=ov_id,
+                         forra_ovningar=[g["ovning_id"]] + g["forra_ovningar"],
                          klart_nar=s["klart_nar"], markning=s["markning"])
-            g.update(tanke=s["ovning"]["tanke"], steg=s["ovning"]["steg"], typ=s["typ"], fysik=s["fysik"],
-                     senast_i_pass=d["pass"])
+            g.update(ovning=text, tanke=s["ovning"]["tanke"], steg=s["ovning"]["steg"], typ=s["typ"],
+                     fysik=s["fysik"], senast_i_pass=d["pass"])
         forra_fel = {s["fel"] for s in d["saker"]}
     ut = []
     for fid, o in senast.items():
