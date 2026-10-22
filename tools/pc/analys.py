@@ -1,0 +1,253 @@
+"""Passets analys: paketen → måtten per slag, sessionen, katalogens bedömning,
+jämförelsen mot förra passet och kandidaterna till "Att jobba på".
+
+Allt här är mekaniskt (BESLUT B2): samma paket ger samma analys. Claude läser
+`analys.json` och väljer (skillen `svinganalys`), men räknar inget själv.
+Formatet står i docs/FORMAT.md ("Analysen").
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import math
+from pathlib import Path
+
+from . import faser as F
+from . import format as fm
+from . import katalog as KAT
+from . import matt as M
+from . import session as S
+from .paket import MATS, Paket, till_sving
+
+FORMAT = "swinglab-analys/1"
+KEDJOR = Path(__file__).resolve().parent / "kedjor.json"
+FORSTA_SERIEN_SLAG = 5     # METOD MT2: utan egen serie är första serien passets fem första slag
+FLAGGAD = ("gul", "rod")
+
+
+def las_kedjor(sokvag: Path = KEDJOR) -> dict:
+    return json.loads(Path(sokvag).read_text(encoding="utf-8"))
+
+
+def enhet(matt: str) -> str:
+    """Måttets enhet, för visningen och "klart när"."""
+    if matt in ("tempo", "stans_bredd"):
+        return ""
+    if matt.endswith("_s"):
+        return "s"
+    if any(o in matt for o in ("bojning", "lutning", "kna", "armbage")):
+        return "°"
+    return "cm"
+
+
+def avrunda(matt: str, v: float | None) -> float | None:
+    """Talet som visas och som "klart när" skrivs i. METOD MT3"""
+    if v is None:
+        return None
+    return round(v, 2 if enhet(matt) in ("", "s") else 1)
+
+
+# --- slagen ----------------------------------------------------------------------
+
+def mat_paket(p: Paket, langd_m: float) -> list[dict]:
+    """Varje slag i paketet: måtten (matt.mat) eller felet. Slag med domen
+    inte_sving mäts inte (METOD MT1). Första serien märks (METOD MT2)."""
+    serier = sorted({s.serie for s in p.slag})
+    ut = []
+    for s in p.slag:
+        rad = {"id": s.id, "vy": p.vy, "serie": s.serie, "klubba": s.klubba, "dom": s.dom,
+               "plats": s.serie_ordning, "paket": p.fil}
+        if s.dom not in MATS:
+            rad["utelamnat"] = "domen är inte_sving"
+            ut.append(rad)
+            continue
+        try:
+            r = M.mat(fm.fran_dict(till_sving(p, s, langd_m)))
+        except (fm.FormatFel, F.SvingFel) as e:
+            rad["fel"] = f"{p.fil}: {s.leder}: {e}"
+            ut.append(rad)
+            continue
+        rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], matt=r["matt"])
+        ut.append(rad)
+    matta = [r for r in ut if "matt" in r]
+    if len(serier) > 1:
+        for r in matta:
+            r["forsta_serien"] = r["serie"] == serier[0]
+    else:
+        for k, r in enumerate(matta):
+            r["forsta_serien"] = k < FORSTA_SERIEN_SLAG
+    return ut
+
+
+def svingar(analys: dict) -> list[dict]:
+    """De mätta slagen i passets ordning, i den form session.py och katalog.py läser."""
+    return [{"vy": r["vy"], "matt": r["matt"]} for r in analys["slag"] if "matt" in r]
+
+
+# --- "klart när" -----------------------------------------------------------------
+
+def klart_nar(fel: dict, bed: dict, nu: dict | None, baslinje: list[float]) -> dict | None:
+    """Förslaget till "klart när" för ett fel, ur katalogens gräns, den egna
+    baslinjen eller passet självt. Claude skriver av det, hittar aldrig på ett
+    eget (BESLUT B2). METOD MT3"""
+    if not fel["aktiv"]:
+        return None
+    m = fel["matt"]
+    if fel["gront"] is not None:
+        lo, hi = fel["gront"]
+        markning = None if fel["kontrollerad"] else "B10"
+        if lo is None and hi is None:
+            return None
+        if lo is None:
+            return {"villkor": "<=", "grans": hi, "grund": "grans", "markning": markning}
+        if hi is None:
+            return {"villkor": ">=", "grans": lo, "grund": "grans", "markning": markning}
+        return {"villkor": "mellan", "grans": [lo, hi], "grund": "grans", "markning": markning}
+    if bed["grund"] == "baslinje":
+        s = sorted(baslinje)
+        med = S.percentil(s, 0.5)
+        spr = (S.percentil(s, 0.75) - S.percentil(s, 0.25)) / S.IQR_SKALA
+        grund = "baslinje"
+    elif nu is not None and fel["samre"] is not None:
+        med, spr, grund = nu["median"], S.robust_sd(nu), "nu"
+    else:
+        return None
+    if not spr > 0:
+        return None
+    if grund == "nu":
+        # En spridning åt det bättre hållet från passets median.
+        g = med - spr if fel["samre"] == "+" else med + spr
+        return {"villkor": "<=" if fel["samre"] == "+" else ">=", "grans": avrunda(m, g),
+                "grund": "nu", "markning": "egen"}
+    z = KAT.GRON_Z * spr
+    if fel["samre"] == "+":
+        return {"villkor": "<=", "grans": avrunda(m, med + z), "grund": grund, "markning": "egen"}
+    if fel["samre"] == "-":
+        return {"villkor": ">=", "grans": avrunda(m, med - z), "grund": grund, "markning": "egen"}
+    return {"villkor": "mellan", "grans": [avrunda(m, med - z), avrunda(m, med + z)], "grund": grund,
+            "markning": "egen"}
+
+
+def uppfyllt(villkor: str, grans, v: float) -> bool:
+    """Om värdet uppfyller "klart när". Gränserna är slutna."""
+    if villkor == ">=":
+        return v >= grans
+    if villkor == "<=":
+        return v <= grans
+    return grans[0] <= v <= grans[1]
+
+
+# --- kedjorna och kandidaterna ---------------------------------------------------
+
+def orsaker(kedjor: dict, fel_id: str) -> dict[str, list[str]]:
+    """Alla fel som kan ligga före `fel_id` i en kedja, med vägen dit
+    ({orsak: [orsak, …, fel_id]}). Kedjorna läses transitivt. METOD MT6"""
+    fore: dict[str, list[str]] = {}
+    for k in kedjor["kedjor"]:
+        fore.setdefault(k["foljd"], []).append(k["orsak"])
+    ut: dict[str, list[str]] = {}
+    ko = [(o, [o, fel_id]) for o in fore.get(fel_id, [])]
+    while ko:
+        o, vag = ko.pop(0)
+        if o in ut or o == fel_id:
+            continue
+        ut[o] = vag
+        ko += [(o2, [o2] + vag) for o2 in fore.get(o, [])]
+    return ut
+
+
+def kandidater(bedomning: list[dict], kedjor: dict) -> list[dict]:
+    """De flaggade felen (gult eller rött) i den ordning skillen börjar läsa
+    dem: grundorsaker före följdfel, låg prioritet sist, tidigt i svingen före
+    sent, rött före gult, sedan längst från grönt. METOD MT6"""
+    flaggade = {b["id"]: b for b in bedomning if b["status"] in FLAGGAD}
+    lag = {x["fel"] for x in kedjor.get("lag_prioritet", [])}
+    fas = {f: i for i, f in enumerate(kedjor["faser"])}
+    ut = []
+    for fid, b in flaggade.items():
+        o = {k: v for k, v in orsaker(kedjor, fid).items() if k in flaggade}
+        ut.append({"fel": fid, "status": b["status"], "fas": b["fas"], "orsaker": o,
+                   "foljdfel": False if not o else True,
+                   "fysik": [x["test"] for x in kedjor["fysik"] if x["fel"] == fid]})
+    ut.sort(key=lambda k: (k["foljdfel"], k["fel"] in lag, fas.get(k["fas"], len(fas)),
+                           0 if k["status"] == "rod" else 1, -abs(flaggade[k["fel"]]["z"] or 0.0), k["fel"]))
+    return ut
+
+
+# --- hela analysen ---------------------------------------------------------------
+
+def _grupp(vy: str) -> str:
+    return "alla" if vy == "bada" else vy
+
+
+def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: dict | None = None,
+              katalog: dict | None = None, kedjor: dict | None = None, baslinje_pass: list[str] = (),
+              skapad: str | None = None) -> dict:
+    """Passets analys. `tidigare` = svingarna ur tidigare pass (baslinjen, M27),
+    `forra` = förra passets analys (eller None)."""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or las_kedjor()
+    pass_id = paket[0].pass_id
+    if any(p.pass_id != pass_id for p in paket):
+        raise ValueError("paketen är från olika pass")
+    if len({p.vy for p in paket}) != len(paket):
+        raise ValueError("två paket med samma vy")
+    slag = [r for p in sorted(paket, key=lambda p: p.vy) for r in mat_paket(p, langd_m)]
+    a = {"format": FORMAT, "pass": pass_id,
+         "skapad": skapad or dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+         "paket": [{"fil": p.fil, "vy": p.vy, "slag": len(p.slag),
+                    "klipp": sum(1 for s in p.slag if s.klipp)} for p in paket],
+         "spelhand": paket[0].spelhand, "spelarens_langd_m": langd_m,
+         "klubbor": sorted({r["klubba"] for r in slag if r.get("klubba")}),
+         "slag": slag}
+    nu = svingar(a)
+    sammanf = S.sammanfatta_session(nu)
+    forsta = S.sammanfatta_session([{"vy": r["vy"], "matt": r["matt"]} for r in slag
+                                    if r.get("forsta_serien")])
+    a["session"] = sammanf
+    a["forsta_serien"] = forsta
+    a["baslinje"] = {"pass": list(baslinje_pass),
+                     "svingar": {vy: sum(1 for s in tidigare if s["vy"] == vy) for vy in ("dtl", "fo")}}
+    if forra is not None:
+        a["forra"] = {"pass": forra["pass"],
+                      "jamforelse": {g: S.jamfor(sammanf[g], forra["session"][g]) for g in sammanf}}
+    else:
+        a["forra"] = None
+
+    bed = []
+    for fel, b in zip(katalog["fel"], KAT.bedom(katalog, nu, tidigare)):
+        g, m = _grupp(fel["vy"]), fel["matt"]
+        bas = [s["matt"][m] for s in tidigare if (fel["vy"] == "bada" or s["vy"] == fel["vy"]) and m in s["matt"]]
+        sn = sammanf[g].get(m)
+        fs = forsta[g].get(m)
+        rad = dict(b)
+        rad.update(namn=fel["namn"], vy=fel["vy"], matt=m, fas=fel["fas"], enhet=enhet(m),
+                   visat=avrunda(m, b["varde"]), n=sn["n"] if sn else 0,
+                   spann=fel["gront"], gult=fel["gult"], kontrollerad=fel["kontrollerad"],
+                   kalla_status=fel["status"], samre=fel["samre"],
+                   forsta_serien=avrunda(m, fs["median"]) if fs else None,
+                   klart_nar=klart_nar(fel, b, sn, bas))
+        if a["forra"] is not None:
+            j = a["forra"]["jamforelse"][g].get(m)
+            rad["mot_forra"] = None if j is None else {"skillnad": avrunda(m, j["skillnad"]), "tydlig": j["tydlig"]}
+        bed.append(rad)
+    a["bedomning"] = bed
+    a["kandidater"] = kandidater(bed, kedjor)
+    a["kontaktark"] = {}
+    return a
+
+
+def skriv(analys: dict, sokvag: Path) -> None:
+    sokvag.parent.mkdir(parents=True, exist_ok=True)
+    sokvag.write_text(json.dumps(ren(analys), ensure_ascii=False, indent=1, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def ren(v):
+    """NaN och oändligt blir null, så att analysen alltid är giltig JSON."""
+    if isinstance(v, float) and not math.isfinite(v):
+        return None
+    if isinstance(v, dict):
+        return {k: ren(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [ren(x) for x in v]
+    return v

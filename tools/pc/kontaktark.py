@@ -1,0 +1,141 @@
+"""Kontaktarket: en bild per vy med en rad per slag och en kolumn per fas
+(adress, topp, träff, finish), med de uppmätta lederna ritade över klippet.
+Claude tittar på arket för att se det måtten inte säger (skillen svinganalys).
+METOD MT7
+
+Rutorna läses med ffmpeg, annars med OpenCV. Finns ingetdera hoppas arket över
+med en rad. PNG skrivs med zlib, utan beroenden.
+"""
+from __future__ import annotations
+
+import shutil
+import struct
+import subprocess
+import tempfile
+import zipfile
+import zlib
+from pathlib import Path
+
+import numpy as np
+
+from .faser import ADRESS, FINISH, TOPP_ADRESS_S
+
+BREDD = 180                # METOD MT7: px per ruta i arket
+MAX_RADER = 12             # METOD MT7: högst så många slag per ark (de första i passet)
+MELLANRUM = 2              # px svart mellan rutorna
+KOLUMNER = ("adress", "topp", "traff", "finish")
+# Linjerna mellan lederna (index i filen, docs/FORMAT.md).
+BEN = ((1, 2), (1, 3), (3, 5), (2, 4), (4, 6), (7, 8), (1, 7), (2, 8), (7, 9), (9, 11), (8, 10), (10, 12))
+
+
+def verktyg() -> str | None:
+    """"ffmpeg", "opencv" eller None."""
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
+    try:
+        import cv2  # noqa: F401
+        return "opencv"
+    except ImportError:
+        return None
+
+
+def las_ruta(klipp: Path, t: float, bredd: int, hojd: int, satt: str) -> np.ndarray | None:
+    """Rutan närmast t (s i klippet) som (hojd, bredd, 3) uint8, eller None."""
+    t = max(0.0, t)
+    if satt == "ffmpeg":
+        r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.4f}", "-i", str(klipp), "-frames:v", "1",
+                            "-vf", f"scale={bredd}:{hojd}", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:"],
+                           capture_output=True, timeout=60)
+        if r.returncode != 0 or len(r.stdout) < bredd * hojd * 3:
+            return None
+        return np.frombuffer(r.stdout[:bredd * hojd * 3], np.uint8).reshape(hojd, bredd, 3).copy()
+    import cv2
+    v = cv2.VideoCapture(str(klipp))
+    try:
+        v.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
+        ok, bild = v.read()
+    finally:
+        v.release()
+    if not ok:
+        return None
+    return cv2.cvtColor(cv2.resize(bild, (bredd, hojd)), cv2.COLOR_BGR2RGB)
+
+
+def _punkt(img: np.ndarray, x: float, y: float, r: int = 1) -> None:
+    h, w = img.shape[:2]
+    xi, yi = int(round(x)), int(round(y))
+    img[max(0, yi - r):min(h, yi + r + 1), max(0, xi - r):min(w, xi + r + 1)] = 255
+
+
+def rita_leder(img: np.ndarray, leder: list, sx: float, sy: float) -> None:
+    """Lederna som vita punkter och linjer (bara uppmätta linjer, BESLUT B13)."""
+    p = []
+    for j in leder:
+        if j is None:
+            p.append(None)
+            continue
+        x, y, c = (j["x"], j["y"], j["c"]) if isinstance(j, dict) else j
+        p.append((x * sx, y * sy) if c > 0 else None)
+    for a, b in BEN:
+        if p[a] is None or p[b] is None:
+            continue
+        n = int(max(abs(p[b][0] - p[a][0]), abs(p[b][1] - p[a][1]))) + 1
+        for u in np.linspace(0.0, 1.0, n):
+            _punkt(img, p[a][0] + u * (p[b][0] - p[a][0]), p[a][1] + u * (p[b][1] - p[a][1]), 0)
+    for q in p:
+        if q is not None:
+            _punkt(img, *q, 1)
+
+
+def skriv_png(sokvag: Path, img: np.ndarray) -> None:
+    """RGB-bild (h, w, 3) uint8 som PNG."""
+    h, w = img.shape[:2]
+    raa = b"".join(b"\x00" + img[y].tobytes() for y in range(h))
+
+    def bit(typ: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + typ + data + struct.pack(">I", zlib.crc32(typ + data) & 0xFFFFFFFF)
+
+    sokvag.write_bytes(b"\x89PNG\r\n\x1a\n" + bit(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+                       + bit(b"IDAT", zlib.compress(raa, 6)) + bit(b"IEND", b""))
+
+
+def tider(faser: dict) -> dict[str, float]:
+    """Kolumnernas tider (s relativt klicket): adressens och finishens fönsters
+    mitt (M4), toppen och träffen. METOD MT7"""
+    s0 = faser["start"] if faser.get("start") is not None else faser["topp"] - TOPP_ADRESS_S
+    return {"adress": s0 + sum(ADRESS) / 2, "topp": faser["topp"], "traff": faser["traff"],
+            "finish": faser["traff"] + sum(FINISH) / 2}
+
+
+def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | None = None) -> dict:
+    """Arket för ett paket. Svarar {"fil", "rader", "kolumner"} eller {"hoppat": skäl}."""
+    satt = satt or verktyg()
+    if satt is None:
+        return {"hoppat": "varken ffmpeg eller OpenCV finns"}
+    matta = {r["id"]: r for r in slag_rader if "faser" in r}
+    med_klipp = [s for s in paket.slag if s.klipp and s.id in matta and s.lederna][:MAX_RADER]
+    if not med_klipp:
+        return {"hoppat": "paketet har inga klipp till mätta slag"}
+    w0, h0 = med_klipp[0].lederna["width"], med_klipp[0].lederna["height"]
+    hojd = int(round(BREDD * h0 / w0 / 2)) * 2
+    ark = np.zeros((len(med_klipp) * (hojd + MELLANRUM), len(KOLUMNER) * (BREDD + MELLANRUM), 3), np.uint8)
+    rader = []
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(paket_fil) as z:
+        for i, s in enumerate(med_klipp):
+            klipp = Path(tmp) / f"{s.id}{Path(s.klipp).suffix}"
+            klipp.write_bytes(z.read(s.klipp))
+            rutor = s.lederna["frames"]
+            sx, sy = BREDD / s.lederna["width"], hojd / s.lederna["height"]
+            for k, (fas, t) in enumerate(tider(matta[s.id]["faser"]).items()):
+                img = las_ruta(klipp, t + float(s.klick_i_klipp_s), BREDD, hojd, satt)
+                if img is None:
+                    img = np.zeros((hojd, BREDD, 3), np.uint8)
+                narmast = min(rutor, key=lambda r: abs(r["t"] - t))
+                rita_leder(img, narmast["joints"], sx, sy)
+                y, x = i * (hojd + MELLANRUM), k * (BREDD + MELLANRUM)
+                ark[y:y + hojd, x:x + BREDD] = img
+            rader.append(s.id)
+    ut.mkdir(parents=True, exist_ok=True)
+    fil = ut / f"kontaktark-{paket.vy}.png"
+    skriv_png(fil, ark)
+    return {"fil": fil.name, "rader": rader, "kolumner": list(KOLUMNER)}

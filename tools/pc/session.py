@@ -3,10 +3,26 @@ förra passet. METOD M25, METOD M26
 
 Percentilen, medianen och rangerna räknas här för hand (inte med np.percentile),
 så att Swift kan göra exakt samma sak.
+
+Som kommando läser den telefonens paket och skriver passets analys (S5):
+
+    python3 tools/pc/session.py <paket> [<paket>] [--forra <paket> …] [--langd 1.80]
+
+Ett paket per telefon (vy) och pass. Analysen och kontaktarken hamnar i
+`data/historik/pass/<pass>/` (gitignorerad); baslinjen och förra passet tas ur
+historiken om `--forra` inte anges. `--ut <mapp>` skriver dit i stället och
+lämnar historiken orörd.
 """
 from __future__ import annotations
 
+import argparse
 import math
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    __package__ = "pc"
 
 MIN_N = 3                # METOD M25: färre svingar ger ingen sammanfattning
 MAD_GRANS = 3.0          # METOD M25: avvikare = mer än 3 robusta sd från medianen
@@ -100,3 +116,80 @@ def sammanfatta_session(svingar: list[dict]) -> dict[str, dict]:
     return {"dtl": sammanfatta([s["matt"] for s in svingar if s["vy"] == "dtl"]),
             "fo": sammanfatta([s["matt"] for s in svingar if s["vy"] == "fo"]),
             "alla": sammanfatta([s["matt"] for s in svingar])}
+
+
+# --- kommandot: paket → analys.json ----------------------------------------------
+
+def _las_paket(filer) -> list:
+    from . import paket as P
+    return [P.las(f) for f in filer]
+
+
+def main(argv=None) -> int:
+    from . import analys as A
+    from . import historik as H
+    from . import kontaktark as KA
+    from . import paket as P
+
+    ap = argparse.ArgumentParser(description="Paketen från telefonen → analys.json och kontaktark.")
+    ap.add_argument("paket", nargs="+", help="swinglab-<pass>-<vy>.zip, ett per vy")
+    ap.add_argument("--forra", nargs="+", help="förra passets paket (annars ur historiken)")
+    ap.add_argument("--langd", type=float, help="spelarens längd i m (sparas i historiken)")
+    ap.add_argument("--historik", default=str(H.ROT), help="historikens mapp (standard data/historik)")
+    ap.add_argument("--ut", help="skriv hit i stället för i historiken (historiken läses inte)")
+    ap.add_argument("--utan-kontaktark", action="store_true")
+    a = ap.parse_args(argv)
+    rot = Path(a.historik)
+    try:
+        paket = _las_paket(a.paket)
+        forra_paket = _las_paket(a.forra) if a.forra else None
+    except P.PaketFel as e:
+        print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
+        return 1
+    pass_id = paket[0].pass_id
+    langd = a.langd or paket[0].langd_m or (None if a.ut else H.spelare(rot).get("spelarens_langd_m"))
+    if langd is None:
+        print("Spelarens längd saknas: ange --langd (sparas i historiken till nästa gång).")
+        return 1
+    if a.langd and not a.ut:
+        H.spara_spelare(rot, a.langd)
+
+    tidigare, bas_pass, forra = [], [], None
+    if not a.ut:
+        tidigare, bas_pass = H.baslinje(rot, pass_id)
+        forra = H.forra(rot, pass_id)
+    if forra_paket:
+        f_pass = forra_paket[0].pass_id
+        forra = A.analysera(forra_paket, langd, [], skapad="")
+        if f_pass not in bas_pass:
+            tidigare = tidigare + A.svingar(forra)
+            bas_pass = sorted(bas_pass + [f_pass])
+    try:
+        analys = A.analysera(paket, langd, tidigare, forra=forra, baslinje_pass=bas_pass)
+    except ValueError as e:
+        print(f"Analysen stoppade: {e}")
+        return 1
+    ut = Path(a.ut) if a.ut else H.pass_mapp(rot, pass_id)
+    if a.utan_kontaktark:
+        analys["kontaktark"] = {p.vy: {"hoppat": "--utan-kontaktark"} for p in paket}
+    else:
+        for fil, p in zip(a.paket, paket):
+            analys["kontaktark"][p.vy] = KA.bygg(Path(fil), p, [r for r in analys["slag"] if r["vy"] == p.vy], ut)
+    A.skriv(analys, ut / "analys.json")
+
+    matta = [r for r in analys["slag"] if "matt" in r]
+    print(f"Pass {pass_id}: {len(matta)} slag mätta av {len(analys['slag'])}"
+          + (f", förra passet {analys['forra']['pass']}" if analys["forra"] else ", inget förra pass")
+          + f", baslinje ur {len(bas_pass)} pass")
+    for r in analys["slag"]:
+        if "fel" in r:
+            print(f"  ej mätt: {r['fel']}")
+    for vy, k in analys["kontaktark"].items():
+        print(f"  kontaktark {vy}: {k.get('fil') or 'hoppat (' + k['hoppat'] + ')'}")
+    print(f"  kandidater: {', '.join(k['fel'] + ' (' + k['status'] + ')' for k in analys['kandidater']) or 'inga'}")
+    print(f"Skrev {ut / 'analys.json'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

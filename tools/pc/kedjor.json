@@ -1,0 +1,63 @@
+{
+ "version": 1,
+ "om": "Tolkningens kunskap för PC:n (skillen svinganalys, tools/pc/analys.py): vilka fel i katalog.json som kan vara följdfel av vilka, i vilken ordning faserna kommer, och vilka fysiska test som hör till ett fel. Ur docs/research/3_tolkning_och_appar.md §1 och §5; allt är ej läst i original (BESLUT B10). Claude får bara använda kedjor och test som står här (METOD MT6).",
+ "faser": ["adress", "topp", "nedsving", "traff", "efter_traff", "hela"],
+ "lag_prioritet": [
+  {"fel": "tempo", "notering": "Tempot har inget belagt samband med utfallet (research 1 §1.9): det väljs bara när inget annat är flaggat."}
+ ],
+ "kedjor": [
+  {
+   "orsak": "sway_topp",
+   "foljd": "reverse_spine",
+   "status": "tranare",
+   "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle",
+   "notering": "TPI anger lateral sway i baksvingen som orsak till reverse spine (research 3 §1)."
+  },
+  {
+   "orsak": "sway_topp",
+   "foljd": "backens_resa_framat",
+   "status": "antagande",
+   "kalla": "docs/research/3_tolkning_och_appar.md",
+   "notering": "Sway bakåt och för lite resa framåt är samma tema, bäckenets väg (research 3 (a)). Det tidigare i svingen övas."
+  },
+  {
+   "orsak": "sway_topp",
+   "foljd": "sway_gap",
+   "status": "antagande",
+   "kalla": "https://practicecaddie.com/blog/reverse-pivot-golf-swing-fix",
+   "notering": "Glidningen matar felet: fötterna ihop tar bort båda (research 3 §2)."
+  },
+  {
+   "orsak": "reverse_spine",
+   "foljd": "early_extension",
+   "status": "tranare",
+   "kalla": "https://golfwrx.com/194659/three-common-swing-faults-early-extension/",
+   "notering": "Reverse spine ger early extension (research 3 §1)."
+  },
+  {
+   "orsak": "backens_resa_framat",
+   "foljd": "tappad_hallning",
+   "status": "antagande",
+   "kalla": "docs/research/3_tolkning_och_appar.md",
+   "notering": "Utan bäckenets förskjutning saknas utrymme, och bröstet reser sig (research 3 (a))."
+  },
+  {
+   "orsak": "early_extension",
+   "foljd": "tappad_hallning",
+   "status": "antagande",
+   "kalla": "docs/research/3_tolkning_och_appar.md",
+   "notering": "Loss of posture har ingen egen övning utöver early extensions (research 3 §2)."
+  }
+ ],
+ "fysik": [
+  {"fel": "early_extension", "test": "Toe touch", "status": "forskning", "kalla": "https://journals.lww.com/nsca-jscr/fulltext/2014/02000/correlation_of_titleist_performance_institute.29.aspx"},
+  {"fel": "early_extension", "test": "Bridge, höger sida", "status": "forskning", "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"},
+  {"fel": "early_extension", "test": "Djup knäböj med armarna över huvudet", "status": "tranare", "kalla": "https://www.mytpi.com/articles/swing/early-extension-swing-characteristic"},
+  {"fel": "early_extension", "test": "Främre höftens inåtrotation", "status": "tranare", "kalla": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10379059/"},
+  {"fel": "tappad_hallning", "test": "Bridge, höger sida", "status": "forskning", "kalla": "https://www.bisp-datenbanken.de/Record/PU201403003148"},
+  {"fel": "sway_topp", "test": "Bakre höftens inåtrotation", "status": "tranare", "kalla": "https://www.mytpi.com/articles/swing/your-hips-and-your-swing"},
+  {"fel": "reverse_spine", "test": "Bröstryggens rotation", "status": "tranare", "kalla": "https://www.mytpi.com/improve-my-game/swing-characteristics/reverse-spine-angle"},
+  {"fel": "flying_elbow", "test": "90/90, bakre axelns utåtrotation", "status": "tranare", "kalla": "https://golfrehabdoc.wordpress.com/tag/golf-swing-faults/"},
+  {"fel": "backens_resa_framat", "test": "Höftens och fotledens rörlighet", "status": "tranare", "kalla": "https://www.scottsdaleptperformance.com/overcoming-golf-swing-faults/"}
+ ]
+}

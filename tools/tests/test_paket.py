@@ -1,0 +1,167 @@
+"""Paketet från telefonen (S2_SPEC §8.3): formen, felen utan värden och
+vägen till S1:s mått (METOD MT1). Bara påhittade paket."""
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+
+import _hjalp  # noqa: F401  (sökvägen till tools/)
+from pc import analys as A
+from pc import format as fm
+from pc import generera_paket as GP
+from pc import matt as M
+from pc import paket as P
+
+PASS = "20261103-180000"
+
+
+def _skriv_om(src: Path, dst: Path, manifest=None, filer: dict | None = None, utan: tuple = ()) -> Path:
+    """Kopia av paketet med ändrat manifest, ändrade eller borttagna filer."""
+    with zipfile.ZipFile(src) as zi, zipfile.ZipFile(dst, "w") as zo:
+        for n in zi.namelist():
+            if n in utan:
+                continue
+            if n == "manifest.json" and manifest is not None:
+                zo.writestr(n, manifest if isinstance(manifest, str) else json.dumps(manifest))
+            elif filer and n in filer:
+                zo.writestr(n, filer[n])
+            else:
+                zo.writestr(n, zi.read(n))
+    return dst
+
+
+class Paketet(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.mapp = Path(cls.tmp.name)
+        cls.fo = GP.paket(cls.mapp, PASS, "fo", n=4, inte_sving=1, osaker=1, serier=1)
+        with zipfile.ZipFile(cls.fo) as z:
+            cls.manifest = json.loads(z.read("manifest.json"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def fel(self, **kw) -> list[str]:
+        dst = _skriv_om(self.fo, self.mapp / "trasig.zip", **kw)
+        with self.assertRaises(P.PaketFel) as e:
+            P.las(dst)
+        return e.exception.fel
+
+    def test_det_pahittade_paketet_las(self) -> None:
+        p = P.las(self.fo)
+        self.assertEqual((p.pass_id, p.vy, p.spelhand, len(p.slag)), (PASS, "fo", "hoger", 5))
+        self.assertEqual([s.dom for s in p.slag].count("inte_sving"), 1)
+        self.assertEqual([s.serie_ordning for s in p.slag], list(range(5)))
+        self.assertTrue(all(s.lederna for s in p.slag))
+
+    def test_slaget_ger_generatorns_tal(self) -> None:
+        """Paketets väg (JointSeries, t relativt klicket, träffen före klicket)
+        ger samma mått som svingen i filformatet. METOD MT1"""
+        p = P.las(self.fo)
+        s = p.slag[1]
+        r = M.mat(fm.fran_dict(P.till_sving(p, s, 1.80)))
+        self.assertAlmostEqual(P.traff_i_serien(p, s), -GP.AVSTAND_M / P.LJUDETS_FART, places=3)
+        self.assertAlmostEqual(r["faser"]["traff"], P.traff_i_serien(p, s))
+        self.assertTrue(-9.0 < r["matt"]["backen_sway_topp"] < -3.0)
+
+    def test_traffen_utan_traff_s_kommer_ur_avstandet(self) -> None:
+        m = json.loads(json.dumps(self.manifest))
+        for s in m["slag"]:
+            s.pop("traff_s")
+        p = P.las(_skriv_om(self.fo, self.mapp / "utan_traff.zip", manifest=m))
+        self.assertAlmostEqual(P.traff_i_serien(p, p.slag[0]), -3.0 / 343.0)
+
+    def test_leden_som_lista_och_null(self) -> None:
+        with zipfile.ZipFile(self.fo) as z:
+            d = json.loads(z.read("slag/s01.json"))
+        for r in d["frames"]:
+            r["joints"] = [None if j is None else [j["x"], j["y"], j["c"]] for j in r["joints"]]
+        d["frames"][0]["joints"][3] = None
+        p = P.las(_skriv_om(self.fo, self.mapp / "listor.zip", filer={"slag/s01.json": json.dumps(d)}))
+        sv = P.till_sving(p, p.slag[0], 1.8)
+        self.assertEqual(sv["rutor"][0]["leder"][3], [0.0, 0.0, 0.0])
+
+    def test_inte_en_zip(self) -> None:
+        f = self.mapp / "inte.zip"
+        f.write_text("hej")
+        with self.assertRaises(P.PaketFel) as e:
+            P.las(f)
+        self.assertIn("inte en zip", str(e.exception))
+
+    def test_manifestet_saknas(self) -> None:
+        self.assertIn("manifest.json saknas", self.fel(utan=("manifest.json",))[0])
+
+    def test_manifestet_ar_inte_json(self) -> None:
+        self.assertIn("inte giltig JSON", self.fel(manifest="{trasig")[0])
+
+    def test_felen_namner_falt_aldrig_varden(self) -> None:
+        m = json.loads(json.dumps(self.manifest))
+        m["vy"] = "sidan"
+        m["slag"][1]["klick_s"] = "12.3456"
+        m["slag"][2]["dom"] = "kanske"
+        m["slag"][3]["serie"] = 7
+        m["spelarens_langd_m"] = 3.1
+        fel = self.fel(manifest=m)
+        text = "; ".join(fel)
+        for falt in ("vy", "slag[1].klick_s", "slag[2].dom", "slag[3].serie", "spelarens_langd_m"):
+            self.assertIn(falt, text)
+        for varde in ("sidan", "12.3456", "kanske", "3.1"):
+            self.assertNotIn(varde, text)
+
+    def test_ledernas_fil_saknas(self) -> None:
+        self.assertIn("slag[0].leder: filen saknas", "; ".join(self.fel(utan=("slag/s01.json",))))
+
+    def test_sokvag_ut_ur_paketet_vagras(self) -> None:
+        m = json.loads(json.dumps(self.manifest))
+        m["slag"][0]["leder"] = "../hemlig.json"
+        self.assertIn("slag[0].leder ska vara en sökväg", "; ".join(self.fel(manifest=m)))
+
+    def test_trasig_led_namner_ruta_och_led(self) -> None:
+        with zipfile.ZipFile(self.fo) as z:
+            d = json.loads(z.read("slag/s02.json"))
+        d["frames"][5]["joints"][6] = {"x": "77.7", "y": 1.0, "c": 0.9}
+        fel = "; ".join(self.fel(filer={"slag/s02.json": json.dumps(d)}))
+        self.assertIn("slag/s02.json: frames[5], handled_h", fel)
+        self.assertNotIn("77.7", fel)
+
+    def test_klipp_kraver_klicket_i_klippet(self) -> None:
+        m = json.loads(json.dumps(self.manifest))
+        m["slag"][0]["klipp"] = "slag/s02.json"     # en fil som finns
+        self.assertIn("klick_i_klipp_s", "; ".join(self.fel(manifest=m)))
+
+
+class Slagen(unittest.TestCase):
+    def test_inte_sving_mats_inte_och_forsta_serien_ar_de_fem_forsta(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            p = P.las(GP.paket(tmp, PASS, "dtl", n=7, inte_sving=1, serier=1))
+        rader = A.mat_paket(p, 1.80)
+        self.assertEqual(sum(1 for r in rader if "matt" in r), 7)
+        self.assertEqual([r for r in rader if "utelamnat" in r][0]["id"], "s08")
+        self.assertEqual(sum(1 for r in rader if r.get("forsta_serien")), A.FORSTA_SERIEN_SLAG)
+
+    def test_med_tva_serier_ar_forsta_serien_serie_ett(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            p = P.las(GP.paket(tmp, PASS, "fo", n=7, inte_sving=0, serier=2))
+        rader = A.mat_paket(p, 1.80)
+        self.assertEqual([r["forsta_serien"] for r in rader], [r["serie"] == 1 for r in rader])
+
+    def test_ett_slag_som_inte_gar_att_mata_far_ett_fel_utan_varde(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = GP.paket(tmp, PASS, "fo", n=3, inte_sving=0)
+            with zipfile.ZipFile(src) as z:
+                d = json.loads(z.read("slag/s02.json"))
+            for r in d["frames"]:
+                r["joints"][5] = r["joints"][6] = None       # händerna syns aldrig
+            p = P.las(_skriv_om(src, Path(tmp) / "x.zip", filer={"slag/s02.json": json.dumps(d)}))
+        rader = A.mat_paket(p, 1.80)
+        self.assertIn("händerna syns inte", rader[1]["fel"])
+        self.assertIn("matt", rader[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

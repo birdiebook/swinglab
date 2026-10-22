@@ -472,3 +472,113 @@ värden i `CaptureTests`.
   bästa parar lika många. **antagande.** Python och Swift ger samma dom.
 - **Avvikelser:** stegen räknas `lo + i·steg` (numpys `arange` gör nästan det),
   och parar inget svaras prior (eller 0), osäker, i stället för sökningens början.
+
+---
+
+# Tolkningen (S5)
+
+Konstanterna i PC-länken (`tools/pc/paket.py`, `analys.py`, `historik.py`,
+`att_jobba_pa.py`, `kontaktark.py`) och reglerna som skillen `svinganalys`
+tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
+(inspelningen), så att grenarna inte krockar. Tolkningen räknar inget själv
+(BESLUT B2): varje tal och varje "klart när" kommer ur analysen.
+
+## MT1 — Paketet till svingar
+
+- Varje slag i paketet (S2_SPEC §8.3, docs/FORMAT.md "Paketet") blir en sving i
+  filformatet och mäts med M1–M24 oförändrade.
+- **Träffen** i lederna tidsskala (s relativt klicket) = `traff_s − klick_s` ur
+  manifestet; saknas `traff_s`: −avstånd / 343 m/s (MS6); saknas avståndet: 0
+  (klicket). **fysik** (MS6).
+- En led som är `null` (Visions konfidens 0) får konfidensen 0 och räknas som
+  saknad (M1).
+- **Domarna:** `sving` och `osaker` mäts (S2_SPEC §4.3: osäkra behålls men
+  märks), `inte_sving` utelämnas. **antagande.**
+- `avstand_m` godtas mellan **0,5** och **20** m. **antagande** (rimlighet, ett
+  fält utanför är fel).
+- **Spelarens längd** (skalan, M2): `--langd`, annars `spelarens_langd_m` i
+  manifestet, annars den sparade i historiken (`spelare.json`). Utan längd stoppar
+  analysen hellre än gissar.
+
+## MT2 — Första serien
+
+- "Klart när" mäts på **första serien**, före uppvärmningen (research 3 (a) 7 och
+  §4: retention nästa pass, inte slutet av samma pass). **forskning, ej läst i
+  original** (retention), **antagande** (formen).
+- Har passet flera serier är första serien serie 1. Har det en enda serie är den
+  de **5** första mätta slagen (design/README.md öppna val 4: 5 slag före
+  uppvärmningen). **antagande.**
+- Första seriens median sammanfattas som passet (M25, minst 3 slag).
+
+## MT3 — "Klart när"-förslaget
+
+- Analysen föreslår villkoret för varje aktivt fel, och Claude skriver av det:
+  - **Med gräns** i katalogen: det gröna spannet (`>=` nedre, `<=` övre eller
+    `mellan`), märkt **B10** när gränsen inte är kontrollerad.
+  - **Med egen baslinje** (M27): gränsen för grönt, baslinjens median ±
+    1 robust sd åt det håll `samre` anger, märkt **egen**.
+  - **Utan baslinje** (färre än 8 svingar, M27): **en** robust sd (M26) åt det
+    bättre hållet från passets median, märkt **egen**. Kräver `samre`.
+    **antagande:** en spridning är den minsta flytt som M26 kallar tydlig.
+- Talen avrundas till **0,1** (cm, grader) och **0,01** (tempo, stansen,
+  sekunder), samma tal som appen visar. **antagande.**
+- Gränserna är slutna.
+
+## MT4 — Rörelsen
+
+- Övningens start = första seriens median (MT2) i passet då övningen valdes,
+  annars passets median.
+- Rörelsen i ett senare pass = första seriens median − starten, åt det håll
+  villkoret pekar (för `mellan`: närmare spannets mitt).
+- **Tydlig** när rörelsen är större än startpassets robusta sd (M26).
+  **antagande**, samma konservativa mått som jämförelsen mot förra passet.
+
+## MT5 — Läget för en övning, och treregeln
+
+- **Klart** när "klart när" hålls på första serien **2** pass i rad
+  (`pass_i_rad`; research 3 §4 förslag 6). **antagande.**
+- **Byt övning** efter **4** pass i rad utan tydlig rörelse (MT4). **antagande:**
+  med cirka två pass i veckan är det två veckor, och ett block på 4–6 veckor
+  (research 3 §4) rymmer en andra övning.
+- **Fysiken:** **42** dagar (sex veckor) från starten utan någon tydlig rörelse →
+  pröva treregeln (research 3 §4 förslag 6). **antagande.**
+- **Treregeln** (research 3 §5): (1) felet syns i full sving, (2) ett kopplat test
+  i `tools/pc/kedjor.json` fallerar, (3) rörelsen går inte heller långsamt utan
+  klubba. Alla tre → "troligen rörlighet" (rörlighetsövning, testa om om 3–4
+  veckor); 1 och 2 men inte 3 → "teknik, men kroppen gör det svårt"; annars
+  teknik. Svaren på 2 och 3 kommer från Johannes. **tränare/antagande, ej läst
+  i original**; stödet för testen är svagt (Gulgin 2014, research 3 §5).
+
+## MT6 — Prioriteringen
+
+- **1–3 saker** (research 3 (a) 5: en sak att öva, högst två till att se).
+  **tillverkare, ej läst i original** (18Birdies, Sportsbox).
+- **Kedjorna** står i `tools/pc/kedjor.json` med källa och status, ur research 3
+  §1, och läses transitivt (sway → reverse spine → early extension). Ett fel med
+  en flaggad orsak är ett **följdfel**: det mäts men får ingen egen övning så
+  länge orsaken övas. **tränare/antagande, ej läst i original.**
+- **Kandidaternas ordning** i analysen: grundorsaker före följdfel, låg
+  prioritet sist (tempot, research 1 §1.9), tidigt i svingen före sent
+  (`adress`, `topp`, `nedsving`, `traff`, `efter_traff`, `hela`), rött före gult,
+  sedan störst |z|. **antagande** byggt på research 3 (a) 1–2.
+- Valda saker står i svingens ordning; `att_jobba_pa.py` fäller annat.
+
+## MT7 — Kontaktarket
+
+- En bild per vy: en rad per slag (högst **12**, de första i passet), fyra
+  kolumner: adressens och finishens fönsters mitt (M4), toppen och träffen.
+  Rutorna är **180** px breda, med de uppmätta lederna ritade (BESLUT B13: bara
+  uppmätta linjer). **antagande** (storleken: läsbar för Claude, liten fil).
+- Rutorna läses med ffmpeg, annars OpenCV; utan dem hoppas arket över med en rad.
+
+## MT8 — Texten i `att_jobba_pa.json`
+
+- Appen visar övningen, tanken och "klart när" (design/README.md regel 5). Tanken
+  högst **60** tecken, övningen högst **300**, rörlighetsövningen högst **200**.
+  **antagande** (katalogens längsta övning är under 200).
+- **Inga värdeord** (BESLUT B13 regel 4): bättre, sämre, bra, dålig, bäst,
+  sämst, perfekt, utmärkt, fantastisk, snyggt, fint, tyvärr, grattis, bravo med
+  flera (listan i `att_jobba_pa.py`), och inga utropstecken.
+- **Extern fokus** i tanken: vad klubban, bollen eller ett föremål ska göra
+  (research 3 (a) 6, medeleffekt ~0,54, Barzyk & Gruber 2024). **forskning, ej
+  läst i original.** Går inte att fälla i kod; skillen håller regeln.
