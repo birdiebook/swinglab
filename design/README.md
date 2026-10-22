@@ -68,4 +68,4 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    som kan förklara den?
 6. **Signalfärgen:** behövs den alls, eller räcker gråskalan även för
    varningarna?
-7. **Granskningen:** positionerna P1–P10 och måtten per position.
+7. **Granskningen:** besvarat 2026-10-22: P-positionerna och måtten per position (BESLUT B32).
