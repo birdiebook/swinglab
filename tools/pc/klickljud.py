@@ -61,6 +61,11 @@ RECEPT = [
     {"namn": "lang", "sr": 48000, "langd_s": 61.0, "fro": 3, "brus": 0.001,          # tre bitar; två klick i överlappen
      "klick": [_k(48000, 10.0, 0.5), _k(48000, 29.5, 0.5), _k(48000, 45.0, 0.3), _k(48000, 58.6, 0.5),
                _k(48000, 60.2, 0.4)]},
+    # Klick vid bitgränserna: 13 prov in i bit 2 och 3, och i bit 1:s och 2:s sista prov
+    # (klicket går över gränsen). Bitarna är [0, 30 s), [29, 59 s), [58, 61 s).
+    {"namn": "bitgrans", "sr": 48000, "langd_s": 61.0, "fro": 17, "brus": 0.001,
+     "klick": [{"prov": 29 * 48000 + 13, "amp": 0.5}, {"prov": 30 * 48000 - 1, "amp": 0.4},
+               {"prov": 58 * 48000 + 13, "amp": 0.3}, {"prov": 59 * 48000 - 1, "amp": 0.5}]},
 ]
 
 # Två telefoners klick: b ≈ a + förskjutning, med jitter, ett klick som bara a
@@ -80,6 +85,9 @@ PARA = [
     {"namn": "med_prior", "a": _A + [7.15], "b": _b(2.347, 9.9), "prior": 2.30},
     {"namn": "negativ", "a": _A, "b": _b(-4.512, 4.0), "prior": None},
     {"namn": "fel_prior", "a": _A, "b": _b(2.347, 9.9), "prior": 1.0},   # inget inom ± 0,25 s
+    # Ett par: sann 2,07 s, men a:s andra klick parar lika bra vid −8,46 s → osäker.
+    {"namn": "ett_par", "a": [1.0, 11.53], "b": [3.07], "prior": None},
+    {"namn": "tomt_fonster", "a": _A, "b": _b(2.347, 9.9), "prior": 2.347, "prior_fonster": 0.0},
 ]
 
 
@@ -109,7 +117,7 @@ def facit_klick(r: dict) -> dict:
 
 
 def facit_para(p: dict) -> dict:
-    return KL.para(p["a"], p["b"], prior=p["prior"])
+    return KL.para(p["a"], p["b"], prior=p["prior"], prior_fonster=p.get("prior_fonster", KL.PRIOR_FONSTER_S))
 
 
 def fixtur() -> dict:

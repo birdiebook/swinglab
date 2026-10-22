@@ -497,7 +497,7 @@ faktorn `F = 25`, minsta avstånd `GAP_S = 0,5` s, ansatsens sökfönster `ONSET
    första index i `a…p` där `e[o] > 0,5 · e[p]`.
 7. Svaret per topp: `(tid = o / sr, styrka = e[p] / bas)`.
 
-Ansatsen ligger upp till `w − 1 − h` prov (1 ms) före själva ljudet, eftersom
+Ansatsen ligger upp till `h` prov (47 vid 48 kHz, 1 ms) före själva ljudet, eftersom
 fönstret är centrerat. Det är samma i Python och Swift och lika för två
 telefoner.
 
@@ -857,7 +857,7 @@ klocka som `startPTS` räknas om till, §2.1). Pingen är NTP:s fyra tider:
 public struct PingSample: Codable, Equatable, Sendable { public var t0, t1, t2, t3: Double }
 public struct ClockOffset: Codable, Equatable, Sendable {
     public var offset: Double        // följarens klocka − styrande
-    public var uncertainty: Double   // minsta δ / 2
+    public var uncertainty: Double   // största δ / 2 bland de använda proven
     public var samples: Int
 }
 public enum ClockSync {
@@ -869,7 +869,8 @@ public enum ClockSync {
 ```
 
 30 ping med 20 ms mellanrum vid anslutning, före varje start och efter varje
-stopp. Noggrannheten är `δ_min / 2` (antagande: några ms över wifi eller
+stopp. Felet är högst största δ / 2 bland de använda proven, eftersom varje
+provs θ ligger inom δ/2 från den sanna förskjutningen (antagande: några ms över wifi eller
 peer-to-peer). Pingen behövs bara som förhandsvärde: den slutliga synken är
 klicket.
 
@@ -884,7 +885,9 @@ klicket.
 3. Styrande parar klicken (`ClickPairing`, ur Golf SG:s `para()`): sök
    förskjutningen `d` i steg om 5 ms som parar flest klick inom 30 ms, förfina
    med medianen av de parade resterna. Med pingen söks bara `prior ± 0,25 s`;
-   utan ping `± 10 s`.
+   utan ping `± 10 s`. Parningen är **osäker** med färre än 3 par utan ping
+   (1 med), eller när ett annat `d` (minst 60 ms bort) parar lika många; då
+   visas den som osäker och PC:n parar om (METOD MS10).
 4. Ljudets väg rättas: `träff_A = klick_A − d_A/343`, och bildernas förskjutning
    mellan telefonerna är skillnaden i träff. Avstånden står i uppställningen.
 5. Resultatet skrivs i den styrande telefonens `par.json` (§8): par, rester och
@@ -895,6 +898,10 @@ klicket.
 public struct ClickPairing: Codable, Equatable, Sendable {
     public var offset: Double                  // s: b ≈ a + offset
     public var pairs: [Pair]
+    public var count: Int                      // flest parade i sökningen
+    public var secondBestOffset: Double?       // bästa d minst 2·tolerance bort (marginalen)
+    public var secondBestCount: Int
+    public var uncertain: Bool                 // count < 3 utan prior (1 med), eller secondBestCount ≥ count
     public struct Pair: Codable, Equatable, Sendable { public var a: Int; public var b: Int; public var residual: Double }
     public static func pair(_ a: [Double], _ b: [Double], prior: Double?, priorWindow: Double = 0.25,
                             search: Double = 10, step: Double = 0.005, tolerance: Double = 0.03) -> ClickPairing
@@ -1236,9 +1243,11 @@ distribution, och de fyra hemligheterna i repot.
 
 Alla tester bär påhittad data (CLAUDE.md, dataregeln):
 
-- `ClickDetector`: en impuls i prov k ger ansatsen k − 48 vid 48 kHz; två
+- `ClickDetector`: en impuls i prov k ger ansatsen k − 47 vid 48 kHz; två
   klick 0,4 s isär blir ett; brus utan klick ger inget; bitar med överlapp ger
-  samma klick som hela signalen när klicket ligger i överlappet.
+  samma klick som hela signalen när klicket ligger i överlappet, 13 prov in i en
+  bit eller i en bits sista prov (en bit kastar klick närmare än 0,02 s +
+  fönstret från en inre bitgräns, METOD MS4).
   **Paritet med Python:** signalen byggs av ett recept båda språken kan följa
   (LCG `x = (1103515245·x + 12345) mod 2³¹`, frö 1, brus ±0,001, klick som
   10 prov med amplitud 0,5 på kända prov), och de väntade talen räknas med Golf
@@ -1327,21 +1336,26 @@ README, och efter hans ja ligger ett bygge i TestFlight som öppnar startvyn.
 
 ### S2b — SwingLabKit `Capture`: klicket, tiderna och värdena
 
-Bara Linux. Kan byggas parallellt med S2a (egna filer). Alla typer i §9 utom
-`Link`, `ClockSync` och `ClickPairing` (S2g), med testerna i §11.2 och
-paritetsfixturen för klicket (kräver att Golf SG:s `klick()` körs en gång på
-receptet; skriptet läggs i `tools/pc/` när S1:s PC-sida finns, eller räknas i
-Golf SG och bara talen förs hit).
+Bara Linux. Kan byggas parallellt med S2a (egna filer). Typerna i §9 för
+klicket, tiderna, formatet, exponeringen, ljusprovet, orienteringen, lederna och
+svingdomen, med testerna i §11.2 och paritetsfixturen för klicket
+(`tools/pc/klick.py`, `tools/pc/klickljud.py`). `ClockSync` och `ClickPairing`
+byggs redan här, eftersom två telefoner ingår i S2 (Johannes 2026-10-22); bara
+nätverkskoden (`Link`, `Wire`) väntar till S2g. `ZipWriter` och manifestets
+typer hör till S2f, `PassState` till S2c (med `Store.swift`).
 
 **Klart när:** `swift test` grönt, klickets paritet exakt på ansatsens prov,
-och `METOD MS1–MS8` står i docs/METOD.md.
+och `METOD MS1–MS10` står i docs/METOD.md.
 
 ### S2c — Inspelningen
 
 `Camera.swift`, `RecordView.swift`, `MediaReader.swift`, Ljusprovet (§2), kvittot
 efter varje serie (antal rutor, frekvens, tappade, filstorlek per minut,
 trycket), `Store.swift` och `PassState`, uppställningen (vy, klubba, avstånd,
-spelhand). Simulatorprovets steg 1–5 (§10.2).
+spelhand). Simulatorprovets steg 1–5 (§10.2). `MediaReader.audio` klipper ljudet
+exakt vid `ClickDetector.segments`-proven (30 s med 1 s överlapp, räknat i prov
+från filens första ljudprov) och anger inre gränser till `detect`, så att PC:ns
+bitar får samma medianer och samma klick.
 
 **Klart när:** `kompilera` grönt med provet, och på telefonen: T1 visar 240
 bilder/s och tappade rutor, och en serie med tre klapp ger tre klick i kvittot.
@@ -1365,7 +1379,8 @@ falska slag. Avviker domen kalibreras MS5 här, med siffrorna i METOD.
 
 ### S2f — Paketet och vägen tillbaka
 
-`ZipWriter` används från `Export.swift`; manifestet (§8.3), `enhet.json`,
+`ZipWriter` och manifestets typer (`PackageManifest.swift`) byggs i SwingLabKit
+med testerna i §11.2 och används från `Export.swift`; manifestet (§8.3), `enhet.json`,
 `ljusprov.json`, med och utan klipp, `ActivitySheet`, `fileImporter` (§8.5).
 Simulatorprovets steg 8.
 
@@ -1374,8 +1389,8 @@ med Pythons `zipfile` (manifestet, ett slag, ett klipp som spelar).
 
 ### S2g — Två telefoner (kan flyttas till S6, §13)
 
-`Link.swift` (App) och `Link`, `ClockSync`, `ClickPairing` i SwingLabKit,
-`par.json`. Simulatorprovets steg 9.
+`Link.swift` (App) och `Link` (`LinkMessage`, `Wire`) i SwingLabKit, `par.json`.
+`ClockSync` och `ClickPairing` finns redan (S2b). Simulatorprovets steg 9.
 
 **Klart när:** två telefoner i samma rum: Följ ansluter av sig själv, Start och
 Stopp på den styrande styr båda, tre klapp paras med median |rest| under 5 ms,

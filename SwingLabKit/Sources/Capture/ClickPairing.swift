@@ -6,6 +6,14 @@ public struct ClickPairing: Codable, Equatable, Sendable {
     /// s: b ≈ a + offset.
     public var offset: Double
     public var pairs: [Pair]
+    /// Flest parade i sökningen (före förfiningen).
+    public var count: Int
+    /// Det bästa d minst 2·tolerance från det valda, och hur många det parar
+    /// (marginalen). nil och 0 när inget annat d parar något.
+    public var secondBestOffset: Double?
+    public var secondBestCount: Int
+    /// För få par (3 utan prior, 1 med), eller ett annat d parar lika många. METOD MS10
+    public var uncertain: Bool
 
     public struct Pair: Codable, Equatable, Sendable {
         /// Index i a och b.
@@ -21,9 +29,19 @@ public struct ClickPairing: Codable, Equatable, Sendable {
         }
     }
 
-    public init(offset: Double, pairs: [Pair]) {
+    public init(offset: Double, pairs: [Pair], count: Int, secondBestOffset: Double?, secondBestCount: Int,
+                uncertain: Bool) {
         self.offset = offset
         self.pairs = pairs
+        self.count = count
+        self.secondBestOffset = secondBestOffset
+        self.secondBestCount = secondBestCount
+        self.uncertain = uncertain
+    }
+
+    /// Ingen parning: förskjutningen är prior (eller 0), osäker.
+    static func none(_ prior: Double?) -> ClickPairing {
+        ClickPairing(offset: prior ?? 0, pairs: [], count: 0, secondBestOffset: nil, secondBestCount: 0, uncertain: true)
     }
 
     /// Kvaliteten i par.json: medianen av |rest|, s. nil utan par.
@@ -38,6 +56,9 @@ public struct ClickPairing: Codable, Equatable, Sendable {
     public static let defaultTolerance = 0.03
     public static let defaultPriorWindow = 0.25
     public static let defaultSearch = 10.0
+    /// Så många par krävs för en säker parning. METOD MS10
+    public static let minPairsWithoutPrior = 3
+    public static let minPairsWithPrior = 1
     /// Ljudets fart i luft vid cirka 20 °C, m/s. METOD MS6
     public static let speedOfSound = 343.0
 
@@ -56,22 +77,27 @@ public struct ClickPairing: Codable, Equatable, Sendable {
 
     /// Sök d i steg om `step` över prior ± priorWindow (med ping) eller ± search
     /// (utan), ta det som parar flest inom tolerance (det första vid lika), och
-    /// förfina med medianen av de parade resterna. Parar inget svaras prior (eller 0)
-    /// och inga par. METOD MS10
+    /// förfina med medianen av de parade resterna. Parar inget, eller är fönstret
+    /// tomt (priorWindow ≤ 0), svaras prior (eller 0), inga par och osäker. METOD MS10
     public static func pair(_ a: [Double], _ b: [Double], prior: Double?, priorWindow: Double = defaultPriorWindow,
                             search: Double = defaultSearch, step: Double = defaultStep,
                             tolerance: Double = defaultTolerance) -> ClickPairing {
-        guard !a.isEmpty, !b.isEmpty, step > 0 else { return ClickPairing(offset: prior ?? 0, pairs: []) }
+        guard !a.isEmpty, !b.isEmpty, step > 0 else { return none(prior) }
         let (lo, hi): (Double, Double) = prior.map { ($0 - priorWindow, $0 + priorWindow) } ?? (-search, search)
         let n = max(0, Int(((hi - lo) / step).rounded(.up)))
-        var bast = lo
-        var flest = -1
+        var sokta: [(d: Double, n: Int)] = []
+        sokta.reserveCapacity(n)
         for i in 0..<n {
             let d = lo + Double(i) * step
-            let antal = rester(a, b, d).filter { abs($0.r) < tolerance }.count
-            if antal > flest { bast = d; flest = antal }
+            sokta.append((d: d, n: rester(a, b, d).filter { abs($0.r) < tolerance }.count))
         }
-        guard flest > 0 else { return ClickPairing(offset: prior ?? 0, pairs: []) }
+        var bast = lo
+        var flest = 0
+        for s in sokta where s.n > flest { bast = s.d; flest = s.n }
+        guard flest > 0 else { return none(prior) }
+        var nast: Double?
+        var nastAntal = 0
+        for s in sokta where abs(s.d - bast) >= 2 * tolerance && s.n > nastAntal { nast = s.d; nastAntal = s.n }
         let parade = rester(a, b, bast).map(\.r).filter { abs($0) < tolerance }.sorted()
         let median = parade.count % 2 == 1 ? parade[parade.count / 2]
             : (parade[parade.count / 2 - 1] + parade[parade.count / 2]) / 2
@@ -79,7 +105,9 @@ public struct ClickPairing: Codable, Equatable, Sendable {
         let par = rester(a, b, d).enumerated().compactMap { j, x -> Pair? in
             abs(x.r) < tolerance ? Pair(a: x.i, b: j, residual: x.r) : nil
         }
-        return ClickPairing(offset: d, pairs: par)
+        let minst = prior == nil ? minPairsWithoutPrior : minPairsWithPrior
+        return ClickPairing(offset: d, pairs: par, count: flest, secondBestOffset: nast, secondBestCount: nastAntal,
+                            uncertain: flest < minst || nastAntal >= flest)
     }
 
     /// Tiden ljudet tar från bollen till telefonen: träffen = klicket − soundDelay. METOD MS6

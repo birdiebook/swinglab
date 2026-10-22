@@ -135,12 +135,16 @@ public enum PosePicker {
     /// I första rutan räknas bara de som är minst så höga som den högsta. METOD MS8
     public static let tallFraction = 0.5
 
-    /// Index i candidates, eller nil när ingen har höfterna. Med previousHipMid: den
+    /// Index i candidates, eller nil när ingen säker observation (confidence ≥ 0,6) har
+    /// höfterna; rutan saknar då leder. Med previousHipMid: den
     /// vars höfters mitt ligger närmast. Utan (första rutan): bland dem som är minst
     /// hälften så höga som den högsta (H, fotledernas mitt − näsan; en kandidat utan H
     /// räknas inte som hög), den vars höfter ligger närmast bildens mitt i x. METOD MS8
     public static func pick(_ candidates: [PoseFrame], previousHipMid: (x: Double, y: Double)?, width: Int) -> Int? {
-        let med = candidates.indices.compactMap { i in candidates[i].hipMid.map { (i, $0) } }
+        let med = candidates.indices.compactMap { i -> (Int, (x: Double, y: Double))? in
+            guard candidates[i].confidence >= PoseRules.observationConfidence else { return nil }
+            return candidates[i].hipMid.map { (i, $0) }
+        }
         guard !med.isEmpty else { return nil }
         if let p = previousHipMid {
             return med.min { a, b in

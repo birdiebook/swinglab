@@ -96,7 +96,30 @@ final class TvaTelefonerTests: XCTestCase {
         XCTAssertNil(p.medianAbsResidual)
         // Ingen ping efter stopp: fönstret vidgas till ± 0,5 s (S2_SPEC §7.4).
         XCTAssertEqual(ClickPairing.pair(a, b, prior: 2.0, priorWindow: 0.5).pairs.count, 6)
-        XCTAssertEqual(ClickPairing.pair([], b, prior: nil), ClickPairing(offset: 0, pairs: []))
+        XCTAssertEqual(ClickPairing.pair([], b, prior: nil),
+                       ClickPairing(offset: 0, pairs: [], count: 0, secondBestOffset: nil, secondBestCount: 0, uncertain: true))
+        // Ett tomt fönster parar inget: prior, osäker.
+        let tom = ClickPairing.pair(a, b, prior: 2.347, priorWindow: 0)
+        XCTAssertEqual(tom.offset, 2.347)
+        XCTAssertTrue(tom.pairs.isEmpty && tom.uncertain)
+    }
+
+    func testEttParArOsakert() {
+        // Granskningens exempel: sann 2,07 s, men a:s andra klick parar lika bra vid −8,46 s.
+        let p = ClickPairing.pair([1.0, 11.53], [3.07], prior: nil)
+        XCTAssertEqual(p.offset, -8.46, accuracy: 1e-9)
+        XCTAssertEqual(p.count, 1)
+        XCTAssertEqual(p.secondBestCount, 1)
+        XCTAssertEqual(p.secondBestOffset ?? 0, 2.07, accuracy: 0.035)
+        XCTAssertTrue(p.uncertain)
+        // Två par räcker inte utan prior, men med.
+        XCTAssertTrue(ClickPairing.pair([1.0, 4.0], [3.0, 6.0], prior: nil).uncertain)
+        XCTAssertFalse(ClickPairing.pair([1.0, 4.0], [3.0, 6.0], prior: 2.0).uncertain)
+        // Sex par med god marginal är säkert.
+        let (a, b) = Self.listor(2.347)
+        let s = ClickPairing.pair(a, b, prior: nil)
+        XCTAssertFalse(s.uncertain)
+        XCTAssertLessThan(s.secondBestCount, 3)
     }
 
     func testLjudetsVag() {

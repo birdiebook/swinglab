@@ -85,9 +85,8 @@ public enum ClickDetector {
         return n % 2 == 1 ? s[n / 2] : (s[n / 2 - 1] + s[n / 2]) / 2
     }
 
-    /// Klicken i en bit, med tiden från bitens början. METOD MS4
-    public static func detect(_ x: [Float], sampleRate: Double = 48_000, params: Params = .init()) -> [Click] {
-        let sr = sampleRate
+    /// Klicken i prov: ansatsen, toppen och styrkan. Golf SG:s rader. METOD MS4
+    static func peaks(_ x: [Float], sampleRate sr: Double, params: Params) -> [(onset: Int, peak: Int, strength: Double)] {
         let w = max(1, Int(sr * params.window))
         guard x.count >= 10, x.count >= w else { return [] }   // samma vakt som tools/pc/klick.py
         let e = energy(x, w: w)
@@ -103,12 +102,32 @@ public enum ClickDetector {
             toppar.append(i)
         }
         let bak = Int(sr * params.onsetLookback)
-        return toppar.map { p in
+        return toppar.map { p -> (onset: Int, peak: Int, strength: Double) in
             let a = max(0, p - bak)
             var o = a
             let halva = params.onsetFraction * e[p]
             while o < p, !(e[o] > halva) { o += 1 }
-            return Click(time: Double(o) / sr, strength: e[p] / bas)
+            return (onset: o, peak: p, strength: e[p] / bas)
+        }
+    }
+
+    /// Prov från en inre bitgräns där bitens energi är kapad: ansatsens sökfönster
+    /// plus energins fönster (1056 vid 48 kHz). Grannbiten, som överlappar 1 s, ser
+    /// klicket helt. Samma som `tools/pc/klick.py` `kant()`. METOD MS4
+    public static func edge(sampleRate sr: Double = 48_000, params: Params = .init()) -> Int {
+        Int(sr * params.onsetLookback) + max(1, Int(sr * params.window))
+    }
+
+    /// Klicken i en bit, med tiden från bitens början. `innerStart`/`innerEnd`: bitens
+    /// början eller slut är en inre bitgräns (en grannbit överlappar där), och då
+    /// kastas klick vars topp ligger närmare än `edge` från den. METOD MS4
+    public static func detect(_ x: [Float], sampleRate: Double = 48_000, params: Params = .init(),
+                              innerStart: Bool = false, innerEnd: Bool = false) -> [Click] {
+        let k = edge(sampleRate: sampleRate, params: params)
+        return peaks(x, sampleRate: sampleRate, params: params).compactMap { t -> Click? in
+            if innerStart && t.peak < k { return nil }
+            if innerEnd && t.peak > x.count - 1 - k { return nil }
+            return Click(time: Double(t.onset) / sampleRate, strength: t.strength)
         }
     }
 
@@ -152,12 +171,15 @@ public enum ClickDetector {
     }
 
     /// detect per bit och merge, som telefonen läser en lång serie (§4.2). För en
-    /// signal som redan ligger i minnet; appen läser bitarna ur filen själv.
+    /// signal som redan ligger i minnet. Appen läser bitarna ur filen själv, klippta
+    /// exakt vid `segments`-proven (så att PC:ns bitar får samma medianer), och anger
+    /// innerStart/innerEnd.
     public static func detectSegmented(_ x: [Float], sampleRate: Double = 48_000, params: Params = .init(),
                                        segment: Double = segmentSeconds, overlap: Double = overlapSeconds) -> [Click] {
         let delar = segments(count: x.count, sampleRate: sampleRate, segment: segment, overlap: overlap).map { r in
             (start: Double(r.lowerBound) / sampleRate,
-             clicks: detect(Array(x[r]), sampleRate: sampleRate, params: params))
+             clicks: detect(Array(x[r]), sampleRate: sampleRate, params: params,
+                            innerStart: r.lowerBound > 0, innerEnd: r.upperBound < x.count))
         }
         return merge(delar, minGap: params.minGap)
     }

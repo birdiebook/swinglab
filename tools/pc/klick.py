@@ -33,11 +33,13 @@ STEG_S = 0.005
 TOL_S = 0.03
 PRIOR_FONSTER_S = 0.25
 SOK_S = 10.0
+# METOD MS10: så många par krävs för att parningen ska räknas som säker (antagande).
+MIN_PAR_UTAN_PRIOR = 3
+MIN_PAR_MED_PRIOR = 1
 
 
-def klick(x: np.ndarray, sr: int = SR) -> list[tuple[float, float]]:
-    """Korta, kraftiga ansatser i ljudet: (tid s, styrka mot medianen). Tiden
-    är ansatsen, första provet över halva toppen inom 20 ms före den."""
+def _klick_prov(x: np.ndarray, sr: int = SR) -> list[tuple[int, int, float]]:
+    """klick() i prov: (ansats, topp, styrka). Golf SG:s rader, bara utan tiden."""
     w = max(1, int(sr * FONSTER_S))
     if len(x) < 10 or len(x) < w:    # vakten: np.convolve byter annars plats på fönstret och signalen
         return []
@@ -55,8 +57,20 @@ def klick(x: np.ndarray, sr: int = SR) -> list[tuple[float, float]]:
     for p in toppar:
         a = max(0, p - int(sr * ANSATS_S))
         o = a + int(np.argmax(e[a:p + 1] > ANSATS_ANDEL * e[p]))
-        ut.append((o / sr, float(e[p] / bas)))
+        ut.append((o, p, float(e[p] / bas)))
     return ut
+
+
+def klick(x: np.ndarray, sr: int = SR) -> list[tuple[float, float]]:
+    """Korta, kraftiga ansatser i ljudet: (tid s, styrka mot medianen). Tiden
+    är ansatsen, första provet över halva toppen inom 20 ms före den."""
+    return [(o / sr, s) for o, _, s in _klick_prov(x, sr)]
+
+
+def kant(sr: int = SR) -> int:
+    """Prov från en inre bitgräns där bitens energi är kapad: ansatsens sökfönster
+    plus energins fönster (METOD MS4). Grannbiten, som överlappar 1 s, ser klicket helt."""
+    return int(sr * ANSATS_S) + max(1, int(sr * FONSTER_S))
 
 
 def bitar(n: int, sr: int = SR, bit_s: float = BIT_S, overlapp_s: float = OVERLAPP_S) -> list[tuple[int, int]]:
@@ -88,9 +102,21 @@ def sla_ihop(delar: list[tuple[float, list[tuple[float, float]]]], avstand: floa
     return ut
 
 
+def bitens_klick(x: np.ndarray, a: int, b: int, n: int, sr: int = SR) -> list[tuple[float, float]]:
+    """klick() i biten x[a:b] av en signal med n prov, utan klick vars topp ligger
+    närmare än kant() från en inre bitgräns (S2_SPEC §4.2, METOD MS4)."""
+    k = kant(sr)
+    ut = []
+    for o, p, s in _klick_prov(x[a:b], sr):
+        if (a > 0 and p < k) or (b < n and p > (b - a) - 1 - k):
+            continue
+        ut.append((o / sr, s))
+    return ut
+
+
 def klick_i_bitar(x: np.ndarray, sr: int = SR, bit_s: float = BIT_S, overlapp_s: float = OVERLAPP_S) -> list[tuple[float, float]]:
     """klick() per bit, ihopslaget. Så räknar telefonen (S2_SPEC §4.2)."""
-    return sla_ihop([(a / sr, klick(x[a:b], sr)) for a, b in bitar(len(x), sr, bit_s, overlapp_s)])
+    return sla_ihop([(a / sr, bitens_klick(x, a, b, len(x), sr)) for a, b in bitar(len(x), sr, bit_s, overlapp_s)])
 
 
 def ljudets_vag(avstand_m: float, fart: float = 343.0) -> float:
@@ -107,12 +133,19 @@ def para(a, b, prior: float | None = None, prior_fonster: float = PRIOR_FONSTER_
          steg: float = STEG_S, tol: float = TOL_S) -> dict:
     """Förskjutningen d där b ≈ a + d parar flest klick inom tol, förfinad med
     medianen av de parade resterna (Golf SG para(), med a = klicken och b = bandet).
-    Svarar {"forskjutning": d, "par": [[i_a, i_b, rest], ...]} där rest = a[i] + d − b[j]
-    för det a som ligger närmast varje b. Parar inget svaras prior (eller 0) och inga par."""
+
+    Svarar {"forskjutning": d, "par": [[i_a, i_b, rest], ...], "antal", "nast_bast",
+    "nast_antal", "osaker"}: rest = a[i] + d − b[j] för det a som ligger närmast
+    varje b; antal = flest parade i sökningen; nast_bast och nast_antal = det bästa
+    d minst 2·tol från det valda (marginalen, None och 0 om inget finns). Osäker när
+    antal < MIN_PAR (3 utan prior, 1 med) eller när näst bästa parar lika många.
+    Parar inget (eller är fönstret tomt) svaras prior (eller 0), inga par, osäker."""
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
+    tom = {"forskjutning": float(prior or 0.0), "par": [], "antal": 0, "nast_bast": None, "nast_antal": 0,
+           "osaker": True}
     if not len(a) or not len(b):
-        return {"forskjutning": float(prior or 0.0), "par": []}
+        return tom
 
     def rest(d):
         k = a + d
@@ -120,16 +153,22 @@ def para(a, b, prior: float | None = None, prior_fonster: float = PRIOR_FONSTER_
         return idx, np.array([k[i] - x for i, x in zip(idx, b)])
 
     lo, hi = (prior - prior_fonster, prior + prior_fonster) if prior is not None else (-sok, sok)
-    bast, flest = lo, -1
-    for d in _steg(lo, hi, steg):
-        n = int((np.abs(rest(d)[1]) < tol).sum())
+    sokta = [(d, int((np.abs(rest(d)[1]) < tol).sum())) for d in _steg(lo, hi, steg)]
+    bast, flest = lo, 0
+    for d, n in sokta:
         if n > flest:
             bast, flest = d, n
     if flest == 0:                     # inget parar: ingen förskjutning att lita på (Golf SG svarade sökningens början)
-        return {"forskjutning": float(prior or 0.0), "par": []}
+        return tom
+    nast, nast_antal = None, 0
+    for d, n in sokta:
+        if abs(d - bast) >= 2 * tol and n > nast_antal:
+            nast, nast_antal = d, n
     _, r = rest(bast)
     ok = np.abs(r) < tol
-    d = bast - float(np.median(r[ok])) if ok.any() else bast
+    d = bast - float(np.median(r[ok]))
     idx, r = rest(d)
     par = [[int(idx[j]), j, float(r[j])] for j in range(len(b)) if abs(r[j]) < tol]
-    return {"forskjutning": float(d), "par": par}
+    minst = MIN_PAR_UTAN_PRIOR if prior is None else MIN_PAR_MED_PRIOR
+    return {"forskjutning": float(d), "par": par, "antal": flest, "nast_bast": nast, "nast_antal": nast_antal,
+            "osaker": flest < minst or nast_antal >= flest}
