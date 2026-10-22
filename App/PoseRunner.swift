@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreMedia
+import CoreML
 import Foundation
 import ImageIO
 import Vision
@@ -44,8 +45,7 @@ struct VisionPoseSource: PoseSource {
         guard reader.startReading() else { throw reader.error ?? PoseError.cannotRead }
 
         let orientation = CGImagePropertyOrientation(rawValue: r.exif) ?? .up
-        let request = VNDetectHumanBodyPoseRequest()            // tillståndslös, återanvänds
-        request.revision = VNDetectHumanBodyPoseRequestRevision1
+        let request = try Self.request()                        // tillståndslös, återanvänds
         let stride = max(1, r.stride)
         let span = max(r.to - r.from, 1e-6)
         let start = Date()
@@ -76,6 +76,23 @@ struct VisionPoseSource: PoseSource {
         if reader.status == .failed { throw reader.error ?? PoseError.cannotRead }
         return PoseScan(frames: frames, decodedFrames: decoded, visionSeconds: visionSeconds,
                         wallSeconds: Date().timeIntervalSince(start))
+    }
+
+    /// Frågan, revision 1 (S2_SPEC §6.1). I simulatorn går den på CPU: där gav den annars
+    /// "Unable to setup request" (Vision kod 9, simulatorprovet 2026-10-22). På telefonen
+    /// väljer Vision själv (Neural Engine). METOD MS12
+    static func request() throws -> VNDetectHumanBodyPoseRequest {
+        let r = VNDetectHumanBodyPoseRequest()
+        r.revision = VNDetectHumanBodyPoseRequestRevision1
+        #if targetEnvironment(simulator)
+        let enheter = try r.supportedComputeStageDevices()[.main] ?? []
+        if let cpu = enheter.first(where: { $0 is MLCPUComputeDevice }) {
+            r.setComputeDevice(cpu, for: .main)
+        } else {
+            r.usesCPUOnly = true
+        }
+        #endif
+        return r
     }
 
     /// En observation till värden: punkterna per namn, normaliserade i den orienterade
