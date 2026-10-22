@@ -19,8 +19,9 @@ let package = Package(
         .testTarget(name: "SwingTests", dependencies: ["Swing"]),
         // Inspelningens logik (S2_SPEC §9, METOD MS1–MS10): klicket, rutornas tider, formatet,
         // exponeringen, ljusprovet, orienteringen, lederna, svingdomen, klockorna och parningen.
-        // Bara Foundation; App/ fyller i värdena ur AVFoundation och Vision.
-        .target(name: "Capture"),
+        // Bara Foundation; App/ fyller i värdena ur AVFoundation och Vision. Passets
+        // uppställning (S2c) använder Swings Vy och Hand, så att "dtl|fo" finns på ett ställe.
+        .target(name: "Capture", dependencies: ["Swing"]),
         // KlickFixturer.swift är Pythons tal (tools/pc/klickljud.py --swift), BESLUT B12.
         // Swing behövs bara för att pröva att ledernas namn är formatets (docs/FORMAT.md).
         .testTarget(name: "CaptureTests", dependencies: ["Capture", "Swing"]),

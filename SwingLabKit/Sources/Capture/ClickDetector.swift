@@ -153,12 +153,18 @@ public enum ClickDetector {
         return ut
     }
 
+    /// En bits längd och steget mellan bitarnas början, i prov. Samma avrundning som
+    /// `tools/pc/klick.py` `bitar()` (int()). Används av `segments` och `AudioSegmenter`.
+    public static func segmentSamples(sampleRate: Double = 48_000, segment: Double = segmentSeconds,
+                                      overlap: Double = overlapSeconds) -> (length: Int, step: Int) {
+        (Int(segment * sampleRate), Int((segment - overlap) * sampleRate))
+    }
+
     /// Bitarnas prov [början, slut): `segment` s långa med `overlap` s överlapp; den
     /// sista slutar vid signalens slut. Samma som `tools/pc/klick.py` `bitar()`.
     public static func segments(count: Int, sampleRate: Double = 48_000,
                                 segment: Double = segmentSeconds, overlap: Double = overlapSeconds) -> [Range<Int>] {
-        let langd = Int(segment * sampleRate)
-        let steg = Int((segment - overlap) * sampleRate)
+        let (langd, steg) = segmentSamples(sampleRate: sampleRate, segment: segment, overlap: overlap)
         guard langd > 0, steg > 0 else { return [0..<count] }
         var ut: [Range<Int>] = []
         var a = 0
