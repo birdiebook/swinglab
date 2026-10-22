@@ -270,7 +270,10 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   `NWConnection`, prövat i simulatorn över loopback utan Bonjour. Rollen väljs i
   uppställningen (`roll`: ensam, styr, följ) och sparas i `pass.json`. Meddelandena
   är specens, med `hello` och `recorded` som egna typer och en kvittens (`ack`) för
-  start, stopp och serien (docs/FORMAT.md "Två telefoner").
+  start, stopp och serien (docs/FORMAT.md "Två telefoner"). Följaren binder sig till
+  den styrande vars hello den hört och prövar annars tjänsterna i tur, så att två par i
+  samma rum inte korsas. Den styrande kör också en sökare, bara för att se om lokalt
+  nätverk är nekat.
 
 ## B22 — Klicket är synken, pingen bara ett förhandsvärde
 *2026-10-22 · prövas · S2_SPEC §7.2–7.4 · METOD MS6, MS9, MS10 · S2:s förslag F8*
@@ -288,7 +291,12 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   när följaren säger hello; ett start för en serie som redan startats görs inte om
   (följaren kan ha stoppats för hand). Följaren tar den styrandes pass-id när dess
   eget pass är tomt, så att båda paketen bär samma id; ett pass med serier byter
-  aldrig id. Den styrande skriver `par.json` i sitt pass.
+  aldrig id. Den styrande skriver `par.json` i sitt pass. Parningen bor inte bara i
+  minnet: följarens serie sparas i den styrandes `foljare.json` innan den kvitteras,
+  serien bär den styrandes pass-id (en serie från ett annat pass tas inte emot), och
+  när kameran öppnas igen läses passets egna serier och följarnas, så att en parning
+  som inte hann bli klar görs då. Etiketten på den styrande visar senaste parningen
+  per följare (antal par · median |rest|, osäker i signalfärgen).
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B23 — Klickjakten är Golf SG:s, plus en svingkontroll

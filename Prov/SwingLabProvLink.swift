@@ -109,6 +109,77 @@ final class SwingLabProvLink: XCTestCase {
         XCTAssertNil(store.problem)
     }
 
+    /// Granskningen av S2g: Continue på den styrande innan följarens serie kommit, och
+    /// kameran öppnas igen. Serien paras ändå och hamnar i par.json: den styrandes
+    /// serier läses ur passet, och följarens sparas i foljare.json innan kvittensen.
+    /// BESLUT B22. METOD MS10
+    func testParningenEfterAttVynStangts() throws {
+        let rot = FileManager.default.temporaryDirectory.appending(path: "swinglab-prov/omstart-\(UUID().uuidString)")
+        let store = Store(root: rot, exportFolder: rot.appending(path: "Export"))
+        var pass = store.newPass(setup: PassSetup(view: .dtl, role: .lead))
+        let a1 = PhoneLink(role: .lead, view: .dtl, bonjour: false)
+        a1.attachLead(store: store, pass: pass)
+        a1.start()
+        let port = try XCTUnwrap(väntaPå(10) { a1.port }, "lyssnaren fick ingen port")
+        let nwPort = try XCTUnwrap(NWEndpoint.Port(rawValue: port))
+        let folj = PhoneLink(role: .follow, view: .fo, endpoint: .hostPort(host: "127.0.0.1", port: nwPort), bonjour: false)
+        var starter = 0
+        var stopp = 0
+        folj.onStart = { _, _ in starter += 1 }
+        folj.onStop = { _ in stopp += 1 }
+        folj.start()
+        defer { folj.stop() }
+        XCTAssertTrue(vänta(15) { a1.peers.first?.connected == true }, "ingen anslutning")
+        a1.startSeries(passID: pass.id, series: 1)
+        XCTAssertTrue(vänta(5) { starter == 1 })
+        a1.stopSeries()
+        XCTAssertTrue(vänta(5) { stopp == 1 })
+
+        // Den styrandes serie är läst och sparad i passet.
+        let sl = LinkClock.now()
+        let sf = sl - Self.kand
+        pass.series.append(SeriesRecord(nr: 1, source: .recording, club: "j7", file: "Video/01.mov", start: Date(),
+                                        startHost: sl, duration: 25, bytes: 1,
+                                        timing: FrameTiming.analyze((0..<240).map { Double($0) / 240 }),
+                                        clicks: Self.a.map { Click(time: $0, strength: 30) }, orientation: 6,
+                                        uprightWidth: 1080, uprightHeight: 1920))
+        store.save(pass)
+        a1.ownFinished(LinkSeries(record: pass.series[0], series: 1, passID: pass.id, setup: pass.setup))
+        // Continue: kameran stängs innan följaren läst sin fil.
+        a1.stop()
+        XCTAssertTrue(vänta(8) { folj.peers.first?.connected == false }, "följaren såg inte att den styrande gick")
+        let b = zip(Self.a, Self.jitter).map { Click(time: $0 + Self.kand + $1, strength: 20) }
+        folj.finished(LinkSeries(series: 1, localSeries: 1, passID: pass.id, startHost: sf, frameRate: 240,
+                                 clicks: b, view: .fo, distance: 3))
+        XCTAssertEqual(folj.unacknowledged, 1)
+        XCTAssertNil(store.pairs(pass.id))
+
+        // Kameran öppnas igen, som RecordView gör det: på samma port, så att följaren hittar den.
+        let a2 = PhoneLink(role: .lead, view: .dtl, port: port, bonjour: false)
+        a2.attachLead(store: store, pass: try XCTUnwrap(store.load(pass.id)))
+        a2.start()
+        defer { a2.stop() }
+        XCTAssertTrue(vänta(20) { store.pairs(pass.id)?.entries.isEmpty == false && folj.unacknowledged == 0 },
+                      "serien parades inte efter att kameran öppnats igen")
+        let e = try XCTUnwrap(store.pairs(pass.id)?.entries.first)
+        XCTAssertEqual(e.offset, Self.kand, accuracy: 0.005)
+        XCTAssertEqual(e.pairCount, Self.a.count)
+        XCTAssertEqual(store.followerRecords(pass.id).map(\.series.series), [1])
+        // Etiketten på den styrande: antal par och median |rest|.
+        XCTAssertTrue(vänta(5) { a2.peers.first?.pairs == Self.a.count }, "parningen syns inte på den styrande")
+        XCTAssertEqual(a2.peers.first?.uncertain, false)
+        print(String(format: "PROV: link efter Continue: par %ld, förskjutning %.4f s (känd %.4f), median |rest| %.2f ms",
+                     e.pairCount, e.offset, Self.kand, (e.medianAbsResidual ?? .nan) * 1000))
+
+        // En tredje gång, utan följare: båda serierna läses från disken och paras igen.
+        let a3 = PhoneLink(role: .lead, view: .dtl, bonjour: false)
+        var igen: [PairEntry] = []
+        a3.onPaired = { igen.append($0) }
+        a3.attachLead(store: store, pass: try XCTUnwrap(store.load(pass.id)))
+        XCTAssertEqual(igen.count, 1)
+        XCTAssertEqual(igen.first?.offset ?? 0, Self.kand, accuracy: 0.005)
+    }
+
     /// Följaren tar den styrandes pass-id när dess eget pass är tomt (S2_SPEC §7.4).
     func testFoljarenTarPassetsId() throws {
         let rot = FileManager.default.temporaryDirectory.appending(path: "swinglab-prov/adopt-\(UUID().uuidString)")

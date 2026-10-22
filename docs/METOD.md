@@ -589,8 +589,8 @@ värden i `CaptureTests`.
 - **När (S2g):** en skur om **30** ping med **20 ms** mellanrum när följaren sagt
   hello, vid varje start och efter varje stopp, och däremellan **en ping i
   sekunden** (hjärtslaget). Proven märks med serien: *under* (från start till stopp)
-  och *efter* (efter stopp). Följaren svarar på nätets kö, med t1 och t2 stämplade
-  där, inte på huvudtråden. Är en förbindelse tyst i **4 s** stängs den, och
+  och *efter* (efter stopp). t0 stämplas när pingen lämnar telefonen (nätets kö),
+  och följaren svarar på nätets kö med t1 och t2 stämplade där, inte på huvudtråden. Är en förbindelse tyst i **4 s** stängs den, och
   följaren försöker igen varje **1 s** (flygplansläge stänger inte TCP av sig
   självt). **antagande** (tiderna). `LinkLeader`, App/Link.swift.
 

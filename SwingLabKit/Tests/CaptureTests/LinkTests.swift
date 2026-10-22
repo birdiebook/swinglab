@@ -105,6 +105,7 @@ final class LinkTests: XCTestCase {
         var logg: [LinkFollower.Action] = []
         var parade: [PairEntry] = []
         var stangda: [Int] = []
+        var sparade: [FollowerRecord] = []
 
         init(theta: Double) { self.theta = theta }
 
@@ -127,6 +128,7 @@ final class LinkTests: XCTestCase {
                     }
                 case let .paired(e): parade.append(e)
                 case let .close(p): stangda.append(p)
+                case let .store(r): sparade.append(r)
                 }
             }
         }
@@ -324,11 +326,66 @@ final class LinkTests: XCTestCase {
         // En ping till den gamla förbindelsen finns inte.
         XCTAssertNil(l.ping(peer: 1, now: 0))
         XCTAssertNotNil(l.ping(peer: 2, now: 0))
-        // Ett svar med fel t0 eller från fel förbindelse räknas inte.
+        // Ett svar på en ping som aldrig skickades räknas inte; t0 tas ur svaret.
         _ = l.receive(.pong(id: 2, t0: 0, t1: 1, t2: 1), from: 2, at: 0.01)
         XCTAssertEqual(l.followers["B"]?.sampleCount, 0)
         _ = l.receive(.pong(id: 1, t0: 0, t1: 1, t2: 1), from: 2, at: 0.01)
         XCTAssertEqual(l.followers["B"]?.sampleCount, 1)
+    }
+
+    // MARK: Parningen överlever att vyn stängs (granskningen av S2g)
+
+    func testSerienSparasForeKvittensenOchParasEfterOmstart() throws {
+        let n = Nat(theta: 0.2)
+        n.leader = LinkLeader(hello: Self.lead, passID: Self.pass)
+        n.anslut()
+        n.ledare(n.leader.start(passID: Self.pass, series: 1))
+        n.skur()
+        n.ledare(n.leader.stop())
+        n.skur()
+        let sl = 7000.0, sf = 7000.0 + 0.2 - 0.33
+        let b = Self.foljarensKlick(sl: sl, sf: sf, theta: 0.2, dA: 3, dB: 3)
+        // Följaren fyller i den styrandes pass ur kommandot.
+        let acts = n.follower.finished(LinkSeries(series: 1, localSeries: 2, passID: "eget", startHost: sf,
+                                                  frameRate: 240, clicks: b, view: .fo, distance: 3))
+        guard case let .send(.recorded(skickad))? = acts.first else { return XCTFail("ingen serie skickades") }
+        XCTAssertEqual(skickad.leadPass, Self.pass)
+        // Den styrande sparar först, kvitterar sedan.
+        let svar = n.leader.receive(.recorded(skickad), from: n.peer, at: n.klocka)
+        guard case let .store(r)? = svar.first else { return XCTFail("sparades inte först") }
+        XCTAssertEqual(svar.dropFirst().first, .send(peer: n.peer, .ack(.recorded, series: 1)))
+        XCTAssertEqual(r.series, skickad)
+        XCTAssertFalse(r.after.isEmpty)
+        // Vyn stängdes innan den egna serien var läst: en ny styrande läser följarens serie
+        // från disken och sitt pass, och parar ändå.
+        var inbox = FollowerInbox()
+        inbox.upsert(r)
+        inbox.upsert(r)
+        XCTAssertEqual(inbox.entries.count, 1)
+        let igen = try PassCoding.decoder().decode(FollowerInbox.self, from: try PassCoding.encoder().encode(inbox))
+        XCTAssertEqual(igen, inbox)
+        var ny = LinkLeader(hello: Self.lead, passID: Self.pass)
+        for x in igen.entries { ny.restore(x) }
+        XCTAssertFalse(ny.followers["B"]?.live ?? true)
+        let a = ny.ownFinished(LinkSeries(series: 1, localSeries: 1, passID: Self.pass, startHost: sl, frameRate: 240,
+                                          clicks: Self.a.map { Click(time: $0, strength: 1) }, view: .dtl, distance: 3))
+        guard case let .paired(e)? = a.first else { return XCTFail("parades inte efter omstarten") }
+        XCTAssertEqual(e.offset, sl - sf + 0.2, accuracy: 0.005)
+        XCTAssertEqual(e.clockSource, .after)
+        XCTAssertEqual(e.follower.series, 2)
+        XCTAssertEqual(ny.latestPair(device: "B"), e)
+    }
+
+    func testSerieFranEttAnnatPassTasInteEmot() {
+        var l = LinkLeader(hello: Self.lead, passID: "20261022-090000")
+        _ = l.connected(peer: 1)
+        _ = l.receive(.hello(Self.follow), from: 1, at: 0)
+        var s = Self.serie
+        s.leadPass = "20261021-090000"
+        XCTAssertEqual(l.receive(.recorded(s), from: 1, at: 0), [])
+        s.leadPass = "20261022-090000"
+        XCTAssertEqual(l.receive(.recorded(s), from: 1, at: 0).count, 2)          // sparas och kvitteras
+        XCTAssertTrue(l.followers["B"]?.live ?? false)
     }
 
     // MARK: par.json och rollen

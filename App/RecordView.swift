@@ -219,7 +219,8 @@ struct RecordView: View {
         let l = PhoneLink(role: pass.setup.role, view: pass.setup.view)
         l.onStart = { passID, n in linkStart(passID: passID, series: n) }
         l.onStop = { n in linkStop(n) }
-        l.onPaired = { e in store.savePair(e, passID: pass.id, model: PhoneLink.model(), view: pass.setup.view) }
+        // Den styrande: passets serier och följarnas sparade läses in, och par.json skrivs i passet.
+        if pass.setup.role == .lead { l.attachLead(store: store, pass: pass) }
         l.start()
         link = l
     }
@@ -248,17 +249,12 @@ struct RecordView: View {
     /// Serien är sparad: den styrande parar, följaren skickar klicken (nu eller efter ett tapp).
     private func linkFinished(_ s: SeriesRecord, lead: Int?) {
         guard let link else { return }
-        let rate = s.timing.gridRate > 0 ? s.timing.gridRate : camera.frameRate
         switch pass.setup.role {
         case .lead:
-            link.ownFinished(LinkSeries(series: s.nr, localSeries: s.nr, passID: pass.id, startHost: s.startHost,
-                                        frameRate: rate, clicks: s.clicks, view: pass.setup.view,
-                                        distance: pass.setup.distance))
+            link.ownFinished(LinkSeries(record: s, series: s.nr, passID: pass.id, setup: pass.setup))
         case .follow:
             guard let lead else { return }
-            link.finished(LinkSeries(series: lead, localSeries: s.nr, passID: pass.id, startHost: s.startHost,
-                                     frameRate: rate, clicks: s.clicks, view: pass.setup.view,
-                                     distance: pass.setup.distance))
+            link.finished(LinkSeries(record: s, series: lead, passID: pass.id, setup: pass.setup))
         case .solo:
             break
         }
@@ -361,8 +357,14 @@ struct LinkLabels: View {
                     HStack(spacing: 6) {
                         Text(verbatim: p.view == .dtl ? "DTL" : "FO")
                         Text(p.connected ? (p.recording ? LocalizedStringKey("Recording") : "Connected") : "Lost")
+                            .foregroundStyle(p.connected ? Theme.text : Theme.flag)
+                        // Senaste parningen: antal par · median |rest| (METOD MS10), osäker i signalfärgen.
+                        if let n = p.pairs {
+                            Text(verbatim: "\(n) · \(Taltext.decimal((p.residual ?? 0) * 1000, digits: 1)) ms")
+                                .font(Theme.number(13, weight: .semibold))
+                                .foregroundStyle(p.uncertain ? Theme.flag : Theme.text)
+                        }
                     }
-                    .foregroundStyle(p.connected ? Theme.text : Theme.flag)
                 }
             }
             .font(.system(size: 13, weight: .semibold))

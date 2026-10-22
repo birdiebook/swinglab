@@ -958,6 +958,17 @@
         }
       }
     },
+    "foljare.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "foljare.json could not be saved."
+          }
+        }
+      }
+    },
     "installningar.json could not be saved.": {
       "extractionState": "manual",
       "localizations": {

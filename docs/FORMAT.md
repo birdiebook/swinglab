@@ -221,6 +221,11 @@ para om med samma algoritm ur båda paketens klick.
 Följarens `pass` är den styrandes id när följarens pass var tomt vid första
 starten; annars sitt eget. `serie` är serien i följarens pass.
 
+`foljare.json` (`"format": "swinglab-foljare/1"`) ligger bredvid och bär följarnas
+serier som de kom (`FollowerRecord`: följarens hello, `LinkSeries` med klicken och
+den styrandes pass `leadPass`, och klockans prov före och efter). Den skrivs innan
+serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
+
 **Meddelandena** mellan telefonerna (TCP, `_swinglab._tcp`): fyra bytes längd
 (big-endian) och sedan JSON med `type` (`hello`, `ping`, `pong`, `start`, `stop`,
 `recorded`, `status`, `ack`). Typerna är `LinkMessage` i

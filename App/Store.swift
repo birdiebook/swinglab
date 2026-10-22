@@ -156,6 +156,8 @@ final class Store {
         guard PassID.isValid(id), pass.series.isEmpty else { return nil }
         var ny = load(id) ?? PassState(id: id, created: pass.created, setup: pass.setup)
         ny.setup.role = pass.setup.role
+        // Ljusprovet gjordes på följaren före första starten: det följer med.
+        ny.lightCheck = ny.lightCheck ?? pass.lightCheck
         let folder = passFolder(id)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         Self.createOutsideBackup(folder.appending(path: "Video", directoryHint: .isDirectory))
@@ -182,6 +184,28 @@ final class Store {
     func pairs(_ passID: String) -> PairFile? {
         guard PassID.isValid(passID) else { return nil }
         return read(PairFile.self, at: url("par.json", in: passID), aside: "par")
+    }
+
+    /// Följarnas serier i den styrandes pass (`foljare.json`), tom om filen saknas.
+    func followerRecords(_ passID: String) -> [FollowerRecord] {
+        guard PassID.isValid(passID) else { return [] }
+        return read(FollowerInbox.self, at: url("foljare.json", in: passID), aside: "foljare")?.entries ?? []
+    }
+
+    /// En följares serie till `foljare.json`, innan den kvitteras (BESLUT B22). false =
+    /// gick inte att spara, och då kvitteras den inte.
+    func saveFollower(_ r: FollowerRecord, passID: String) -> Bool {
+        guard PassID.isValid(passID) else { return false }
+        var inbox = read(FollowerInbox.self, at: url("foljare.json", in: passID), aside: "foljare") ?? FollowerInbox()
+        inbox.upsert(r)
+        do {
+            try FileManager.default.createDirectory(at: passFolder(passID), withIntermediateDirectories: true)
+            try PassCoding.encoder().encode(inbox).write(to: url("foljare.json", in: passID), options: .atomic)
+            return true
+        } catch {
+            problem = String(localized: "foljare.json could not be saved.")
+            return false
+        }
     }
 
     /// En parad serie till `par.json`: raden för samma serie och följare ersätts.

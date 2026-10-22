@@ -48,9 +48,12 @@ public struct LinkSeries: Codable, Equatable, Sendable {
     public var view: Vy
     /// Bollen till telefonen, m (ljudets väg, METOD MS6).
     public var distance: Double
+    /// Den styrandes pass, ur kommandot `start`. Den styrande tar inte emot en serie från
+    /// ett annat pass. nil = okänt (följaren fyller i det).
+    public var leadPass: String?
 
     public init(series: Int, localSeries: Int, passID: String, startHost: Double?, frameRate: Double,
-                clicks: [Click], view: Vy, distance: Double) {
+                clicks: [Click], view: Vy, distance: Double, leadPass: String? = nil) {
         self.series = series
         self.localSeries = localSeries
         self.passID = passID
@@ -59,6 +62,15 @@ public struct LinkSeries: Codable, Equatable, Sendable {
         self.clicks = clicks
         self.view = view
         self.distance = distance
+        self.leadPass = leadPass
+    }
+
+    /// En sparad serie i passet som klick på telefonens tidslinje. `series` är den
+    /// styrandes nummer (för den styrande själv: seriens).
+    public init(record r: SeriesRecord, series: Int, passID: String, setup: PassSetup, leadPass: String? = nil) {
+        self.init(series: series, localSeries: r.nr, passID: passID, startHost: r.startHost,
+                  frameRate: r.timing.gridRate, clicks: r.clicks, view: setup.view, distance: setup.distance,
+                  leadPass: leadPass)
     }
 }
 

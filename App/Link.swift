@@ -61,7 +61,14 @@ final class LinkConnection: @unchecked Sendable {
         connection.start(queue: queue)
     }
 
+    /// Bonjour-tjänsten eller adressen förbindelsen gick till.
+    var endpoint: NWEndpoint { connection.endpoint }
+
     func send(_ m: LinkMessage) {
+        var m = m
+        // Pingens t0 stämplas här, när den lämnar telefonen, inte när huvudtråden skapade
+        // den: väntan på kön hamnar då inte i vägen fram. Svaret bär t0 tillbaka. METOD MS9
+        if case let .ping(id, _) = m { m = .ping(id: id, t0: LinkClock.now()) }
         guard let d = try? Wire.frame(m) else { return }
         connection.send(content: d, completion: .contentProcessed { [weak self] error in
             if error != nil { self?.close() }
@@ -144,6 +151,15 @@ final class LinkTransport: @unchecked Sendable {
     private var connections: [Int: LinkConnection] = [:]
     private var connecting = false
     private var endpoints: [NWEndpoint] = []
+    /// Nästa tjänst att pröva när förra inte svarade.
+    private var cursor = 0
+    /// Den styrande vars hello hörts: följaren håller sig till den, så att två par i
+    /// samma rum inte korsas.
+    private var bound: NWEndpoint?
+    private var listenerBlocked = false
+    /// Förbindelserna där den styrandes hello hörts.
+    private var heardHello: Set<Int> = []
+    private var browserBlocked = false
     private var nextID = 1
     private var stopped = false
     private var suspendedUntil = 0.0
@@ -168,6 +184,7 @@ final class LinkTransport: @unchecked Sendable {
         tcp.connectionTimeout = 5
         let p = NWParameters(tls: nil, tcp: tcp)
         p.includePeerToPeer = true
+        p.allowLocalEndpointReuse = true
         if loopback { p.requiredInterfaceType = .loopback }
         return p
     }
@@ -175,7 +192,14 @@ final class LinkTransport: @unchecked Sendable {
     func start() {
         queue.async {
             self.stopped = false
-            if self.role == .lead { self.listen() } else { self.search() }
+            if self.role == .lead {
+                self.listen()
+                // Sökaren bara för att se om lokalt nätverk är nekat (S2_SPEC §7.4):
+                // lyssnaren säger det inte alltid.
+                if self.bonjour { self.search() }
+            } else {
+                self.search()
+            }
         }
     }
 
@@ -220,10 +244,10 @@ final class LinkTransport: @unchecked Sendable {
                 guard let self else { return }
                 switch state {
                 case .ready:
-                    self.onEvent?(.blocked(false))
+                    self.setBlocked(listener: false)
                     if let n = l?.port?.rawValue { self.onEvent?(.listening(n)) }
                 case .waiting:
-                    self.onEvent?(.blocked(true))
+                    self.setBlocked(listener: true)
                 case .failed:
                     self.listener?.cancel()
                     self.listener = nil
@@ -259,17 +283,17 @@ final class LinkTransport: @unchecked Sendable {
         let b = NWBrowser(for: .bonjour(type: Wire.bonjourService, domain: nil), using: Self.parameters())
         b.browseResultsChangedHandler = { [weak self] results, _ in
             guard let self else { return }
-            self.endpoints = results.map(\.endpoint)
+            self.endpoints = results.map(\.endpoint).sorted { "\($0)" < "\($1)" }
             self.connectNext()
         }
         b.stateUpdateHandler = { [weak self] state in
             guard let self else { return }
             switch state {
             case .ready:
-                self.onEvent?(.blocked(false))
+                self.setBlocked(browser: false)
             case .waiting:
                 // Lokalt nätverk nekat (S2_SPEC §7.4).
-                self.onEvent?(.blocked(true))
+                self.setBlocked(browser: true)
             case .failed:
                 self.browser?.cancel()
                 self.browser = nil
@@ -282,14 +306,36 @@ final class LinkTransport: @unchecked Sendable {
         b.start(queue: queue)
     }
 
-    /// Nästa försök att ansluta: till den fasta adressen (provet) eller den första
-    /// styrande som Bonjour visar. Svarar inte den, försöker vi igen om en sekund.
+    /// Nästa försök att ansluta: till den fasta adressen (provet), till den styrande vars
+    /// hello redan hörts, eller annars nästa styrande som Bonjour visar, i tur. Svarar
+    /// den inte, försöker vi igen om en sekund.
     private func connectNext() {
         guard role == .follow, !stopped, !connecting, connections.isEmpty else { return }
         guard LinkClock.now() >= suspendedUntil else { return }
-        guard let e = fixed ?? endpoints.first else { return }
+        let e: NWEndpoint
+        if let fixed {
+            e = fixed
+        } else if let bound {
+            // Samma tjänst (namnet) över vilket gränssnitt som helst; annars den gamla adressen.
+            e = endpoints.first { Self.serviceName($0) != nil && Self.serviceName($0) == Self.serviceName(bound) } ?? bound
+        } else if !endpoints.isEmpty {
+            e = endpoints[cursor % endpoints.count]
+        } else {
+            return
+        }
         connecting = true
         adopt(NWConnection(to: e, using: Self.parameters(loopback: !bonjour)))
+    }
+
+    static func serviceName(_ e: NWEndpoint) -> String? {
+        if case let .service(name, _, _, _) = e { return name }
+        return nil
+    }
+
+    private func setBlocked(listener: Bool? = nil, browser: Bool? = nil) {
+        if let listener { listenerBlocked = listener }
+        if let browser { browserBlocked = browser }
+        onEvent?(.blocked(listenerBlocked || browserBlocked))
     }
 
     private func adopt(_ nw: NWConnection) {
@@ -297,7 +343,15 @@ final class LinkTransport: @unchecked Sendable {
         nextID += 1
         let c = LinkConnection(id: id, connection: nw, queue: queue, answersPings: role == .follow)
         connections[id] = c
-        c.onMessage = { [weak self] m, t in self?.onEvent?(.message(id, m, t)) }
+        c.onMessage = { [weak self] m, t in
+            guard let self else { return }
+            // Följaren binder sig till den styrande som svarat med hello.
+            if self.role == .follow, case let .hello(h) = m, h.role == .lead {
+                self.heardHello.insert(id)
+                if self.bound == nil { self.bound = self.connections[id]?.endpoint }
+            }
+            self.onEvent?(.message(id, m, t))
+        }
         c.onState = { [weak self] up in
             guard let self else { return }
             if up {
@@ -309,6 +363,8 @@ final class LinkTransport: @unchecked Sendable {
             self.connecting = false
             if varUppe { self.onEvent?(.down(id)) }
             if self.role == .follow {
+                // En tjänst som inte svarade med hello: nästa i tur.
+                if self.heardHello.remove(id) == nil, self.bound == nil { self.cursor += 1 }
                 self.queue.asyncAfter(deadline: .now() + Self.retry) { self.connectNext() }
             }
         }
@@ -322,12 +378,16 @@ final class LinkTransport: @unchecked Sendable {
 @MainActor
 @Observable
 final class PhoneLink {
-    /// Den andra telefonen som en etikett (BESLUT B13): vyn och läget.
+    /// Den andra telefonen som en etikett (BESLUT B13): vyn och läget, och hos den
+    /// styrande senaste parningen (antal par och median |rest|, osäker i signalfärgen).
     struct Peer: Identifiable, Equatable {
         let id: String
         let view: Vy
         let connected: Bool
         let recording: Bool
+        var pairs: Int? = nil
+        var residual: Double? = nil
+        var uncertain = false
     }
 
     let role: LinkRole
@@ -351,6 +411,9 @@ final class PhoneLink {
     @ObservationIgnored private var followConnection: Int?
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var lastStatus: LinkMessage?
+    /// Den styrande: passet där följarnas serier och par.json sparas.
+    @ObservationIgnored private var store: Store?
+    @ObservationIgnored private var passID: String?
 
     /// Hjärtslaget: en ping i sekunden till varje följare. METOD MS9
     static let heartbeatInterval = 1.0
@@ -394,6 +457,20 @@ final class PhoneLink {
         guard leader != nil else { return }
         apply(leader?.stop() ?? [])
         for p in leader?.connectedPeers ?? [] { burst(p) }
+    }
+
+    /// Den styrande: passet som parningen gäller. Följarnas serier som redan sparats
+    /// (`foljare.json`) och passets egna inspelade serier läses in, så att en parning som
+    /// inte hann bli klar innan vyn stängdes görs nu; par.json skrivs i passet.
+    func attachLead(store: Store, pass: PassState) {
+        guard leader != nil else { return }
+        self.store = store
+        passID = pass.id
+        leader = LinkLeader(hello: hello, passID: pass.id)
+        for r in store.followerRecords(pass.id) { leader?.restore(r) }
+        for s in pass.series where s.source == .recording {
+            apply(leader?.ownFinished(LinkSeries(record: s, series: s.nr, passID: pass.id, setup: pass.setup)) ?? [])
+        }
     }
 
     /// Den styrandes egen serie är sparad: para med följarna.
@@ -475,11 +552,20 @@ final class PhoneLink {
     }
 
     private func apply(_ a: [LinkLeader.Action]) {
+        // En serie som inte gick att spara kvitteras inte: följaren skickar den igen.
+        var osparade: Set<Int> = []
         for x in a {
             switch x {
-            case let .send(peer, m): transport.send(m, to: peer)
-            case let .close(peer): transport.close(peer)
-            case let .paired(e): onPaired?(e)
+            case let .send(peer, m):
+                if case let .ack(.recorded, n) = m, osparade.contains(n) { continue }
+                transport.send(m, to: peer)
+            case let .close(peer):
+                transport.close(peer)
+            case let .store(r):
+                if let store, let passID, !store.saveFollower(r, passID: passID) { osparade.insert(r.series.series) }
+            case let .paired(e):
+                if let store, let passID { store.savePair(e, passID: passID, model: hello.model, view: hello.view) }
+                onPaired?(e)
             }
         }
         refresh()
@@ -499,8 +585,12 @@ final class PhoneLink {
     private func refresh() {
         let ny: [Peer]
         if let leader {
-            ny = leader.followers.values
-                .map { Peer(id: $0.hello.device, view: $0.hello.view, connected: $0.peer != nil, recording: $0.recording) }
+            ny = leader.followers.values.filter(\.live)
+                .map { f in
+                    let e = leader.latestPair(device: f.hello.device)
+                    return Peer(id: f.hello.device, view: f.hello.view, connected: f.peer != nil, recording: f.recording,
+                                pairs: e?.pairCount, residual: e?.medianAbsResidual, uncertain: e?.uncertain ?? false)
+                }
                 .sorted { ($0.view.rawValue, $0.id) < ($1.view.rawValue, $1.id) }
         } else if let follower, let l = follower.lead {
             ny = [Peer(id: l.device, view: l.view, connected: follower.isConnected, recording: false)]

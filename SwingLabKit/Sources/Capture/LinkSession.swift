@@ -26,6 +26,8 @@ public struct LinkFollower: Sendable {
     public private(set) var started: Set<Int> = []
     /// Serierna som inte kvitterats, efter den styrandes nummer.
     public private(set) var outbox: [Int: LinkSeries] = [:]
+    /// Den styrandes pass för varje serie som startats.
+    public private(set) var leadPasses: [Int: String] = [:]
     public private(set) var isConnected = false
     /// Den styrande telefonen, ur dess hello.
     public private(set) var lead: LinkHello?
@@ -70,6 +72,7 @@ public struct LinkFollower: Sendable {
             if !started.contains(series) {
                 if let r = recording { ut.append(.stopRecording(series: r)) }
                 started.insert(series)
+                leadPasses[series] = pass
                 recording = series
                 ut.append(.startRecording(passID: pass, series: series))
             }
@@ -102,6 +105,8 @@ public struct LinkFollower: Sendable {
     /// Serien är sparad på följaren: den skickas nu om kopplingen är uppe, annars när
     /// den kommer tillbaka.
     public mutating func finished(_ s: LinkSeries) -> [Action] {
+        var s = s
+        if s.leadPass == nil { s.leadPass = leadPasses[s.series] ?? passID }
         outbox[s.series] = s
         return isConnected ? [.send(.recorded(s))] : []
     }
@@ -123,6 +128,9 @@ public struct LinkLeader: Sendable {
         case send(peer: Int, LinkMessage)
         /// En äldre förbindelse till samma telefon: stäng den.
         case close(peer: Int)
+        /// Följarens serie: spara den på disken. Kommer före kvittensen, som inte ska
+        /// skickas om sparningen misslyckas.
+        case store(FollowerRecord)
         /// En serie är parad (ny eller ändrad): skriv par.json.
         case paired(PairEntry)
     }
@@ -138,6 +146,8 @@ public struct LinkLeader: Sendable {
         public var hello: LinkHello
         /// Förbindelsen, nil = tappad.
         public var peer: Int?
+        /// Har sagt hello i den här kopplingen (inte bara läst från disken).
+        public var live = false
         /// Ur följarens senaste status.
         public var recording: Bool = false
         public var freeGB: Double?
@@ -149,6 +159,8 @@ public struct LinkLeader: Sendable {
         /// Antalet prov när serie n startade.
         var startIndex: [Int: Int] = [:]
         var series: [Int: LinkSeries] = [:]
+        /// Proven som sparades med serien (FollowerRecord), för en serie läst från disken.
+        var saved: [Int: (before: [PingSample], after: [PingSample])] = [:]
 
         public init(hello: LinkHello, peer: Int?) {
             self.hello = hello
@@ -156,7 +168,8 @@ public struct LinkLeader: Sendable {
         }
 
         public static func == (a: Follower, b: Follower) -> Bool {
-            a.hello == b.hello && a.peer == b.peer && a.recording == b.recording && a.ackedStart == b.ackedStart
+            a.hello == b.hello && a.peer == b.peer && a.live == b.live && a.recording == b.recording
+                && a.ackedStart == b.ackedStart
                 && a.ackedStop == b.ackedStop && a.samples.count == b.samples.count && a.series == b.series
         }
 
@@ -170,6 +183,22 @@ public struct LinkLeader: Sendable {
             if !under.isEmpty { return under }
             let slut = startIndex[n] ?? samples.count
             return samples.prefix(slut).suffix(LinkLeader.burst).map(\.sample)
+        }
+
+        /// Proven vid start och under serien. METOD MS9
+        public func during(_ n: Int) -> [PingSample] {
+            samples.filter { $0.tag == .during(n) }.map(\.sample)
+        }
+
+        /// Klockans prov för serien: efter stoppet, annars de som sparades med serien,
+        /// annars under serien, annars de sista före. METOD MS9
+        public func clockSamples(_ n: Int) -> (before: [PingSample], after: [PingSample]) {
+            let s = saved[n]
+            let efter = after(n).isEmpty ? (s?.after ?? []) : after(n)
+            var fore = during(n)
+            if fore.isEmpty, let sb = s?.before, !sb.isEmpty { fore = sb }
+            if fore.isEmpty { fore = before(n) }
+            return (fore, efter)
         }
 
         /// Proven efter stoppet. METOD MS9
@@ -189,18 +218,35 @@ public struct LinkLeader: Sendable {
 
     public let hello: LinkHello
     public private(set) var command: Command = .idle
+    /// Passet som den styrande spelar in i. En serie från ett annat pass tas inte emot.
+    public private(set) var passID: String?
     /// Följarna efter id.
     public private(set) var followers: [String: Follower] = [:]
     var peerDevice: [Int: String] = [:]
-    var pending: [Int: (peer: Int, t0: Double, tag: PingTag)] = [:]
+    var pending: [Int: (peer: Int, tag: PingTag)] = [:]
     var nextPing = 1
     /// Den styrande telefonens egna serier.
     public private(set) var own: [Int: LinkSeries] = [:]
     /// Senaste parningen per följare och serie.
     public private(set) var pairs: [String: [Int: PairEntry]] = [:]
 
-    public init(hello: LinkHello) {
+    public init(hello: LinkHello, passID: String? = nil) {
         self.hello = hello
+        self.passID = passID
+    }
+
+    /// En följares serie som sparats på disken (efter att vyn stängts eller appen startats
+    /// om): den paras när den styrandes egen serie finns.
+    public mutating func restore(_ r: FollowerRecord) {
+        var f = followers[r.hello.device] ?? Follower(hello: r.hello, peer: nil)
+        f.series[r.series.series] = r.series
+        f.saved[r.series.series] = (before: r.before, after: r.after)
+        followers[r.hello.device] = f
+    }
+
+    /// Den senaste parningen med följaren (högsta serien), eller nil.
+    public func latestPair(device: String) -> PairEntry? {
+        pairs[device]?.max { $0.key < $1.key }?.value
     }
 
     /// Följarna med en förbindelse.
@@ -234,6 +280,7 @@ public struct LinkLeader: Sendable {
             var f = followers[h.device] ?? Follower(hello: h, peer: peer)
             f.hello = h
             f.peer = peer
+            f.live = true
             followers[h.device] = f
             peerDevice[peer] = h.device
             // Kommandot som gäller nu: ett start eller stopp som tappades når fram nu.
@@ -244,7 +291,8 @@ public struct LinkLeader: Sendable {
             }
             return ut
         case let .pong(id, t0, t1, t2):
-            guard let p = pending.removeValue(forKey: id), p.peer == peer, p.t0 == t0,
+            // t0 stämplas när pingen lämnar telefonen (App, nätets kö) och kommer tillbaka i svaret.
+            guard let p = pending.removeValue(forKey: id), p.peer == peer, t0.isFinite,
                   let dev = peerDevice[peer] else { return [] }
             followers[dev]?.samples.append((tag: p.tag, sample: PingSample(t0: t0, t1: t1, t2: t2, t3: t3)))
             return []
@@ -263,9 +311,16 @@ public struct LinkLeader: Sendable {
             }
             return []
         case let .recorded(s):
-            guard let dev = peerDevice[peer] else { return [] }
-            followers[dev]?.series[s.series] = s
-            var ut: [Action] = [.send(peer: peer, .ack(.recorded, series: s.series))]
+            guard let dev = peerDevice[peer], var f = followers[dev] else { return [] }
+            // En serie från ett annat pass: inte här, och ingen kvittens (följaren skickar
+            // den igen till rätt pass).
+            if let mitt = passID, let dess = s.leadPass, mitt != dess { return [] }
+            let prov = f.clockSamples(s.series)
+            f.series[s.series] = s
+            f.saved[s.series] = prov
+            followers[dev] = f
+            var ut: [Action] = [.store(FollowerRecord(hello: f.hello, series: s, before: prov.before, after: prov.after)),
+                                .send(peer: peer, .ack(.recorded, series: s.series))]
             if let a = pair(dev, s.series) { ut.append(a) }
             return ut
         case .ping, .start, .stop:
@@ -276,6 +331,7 @@ public struct LinkLeader: Sendable {
     /// Start på den styrande: till alla följare.
     public mutating func start(passID: String, series: Int) -> [Action] {
         command = .recording(passID: passID, series: series)
+        self.passID = passID
         for k in Array(followers.keys) {
             guard var f = followers[k] else { continue }
             f.startIndex[series] = f.samples.count
@@ -302,7 +358,7 @@ public struct LinkLeader: Sendable {
         case let .recording(_, n): tag = .during(n)
         case let .stopped(_, n): tag = .after(n)
         }
-        pending[id] = (peer: peer, t0: t0, tag: tag)
+        pending[id] = (peer: peer, tag: tag)
         if pending.count > 4 * Self.burst {                 // svar som aldrig kom
             pending = pending.filter { $0.key > id - 2 * Self.burst }
         }
@@ -328,8 +384,9 @@ public struct LinkLeader: Sendable {
 
     private mutating func pair(_ dev: String, _ n: Int) -> Action? {
         guard let a = own[n], let f = followers[dev], let b = f.series[n] else { return nil }
-        let e = PairEntry.make(lead: a, follower: b, followerModel: f.hello.model, before: f.before(n),
-                               after: f.after(n))
+        let prov = f.clockSamples(n)
+        let e = PairEntry.make(lead: a, follower: b, followerModel: f.hello.model, before: prov.before,
+                               after: prov.after)
         guard pairs[dev]?[n] != e else { return nil }
         pairs[dev, default: [:]][n] = e
         return .paired(e)
@@ -470,5 +527,42 @@ public struct PairFile: Codable, Equatable, Sendable {
         }
         entries.append(e)
         entries.sort { ($0.series, $0.follower.view.rawValue) < ($1.series, $1.follower.view.rawValue) }
+    }
+}
+
+/// En följares serie som den styrande tagit emot, med klockans prov: sparas i
+/// `Pass/<id>/foljare.json` innan den kvitteras, så att parningen överlever att vyn
+/// stängs eller appen startas om (docs/FORMAT.md "Två telefoner"). BESLUT B22
+public struct FollowerRecord: Codable, Equatable, Sendable {
+    public var hello: LinkHello
+    public var series: LinkSeries
+    public var before: [PingSample]
+    public var after: [PingSample]
+
+    public init(hello: LinkHello, series: LinkSeries, before: [PingSample], after: [PingSample]) {
+        self.hello = hello
+        self.series = series
+        self.before = before
+        self.after = after
+    }
+}
+
+/// `foljare.json`: följarnas serier i den styrandes pass.
+public struct FollowerInbox: Codable, Equatable, Sendable {
+    public static let formatName = "swinglab-foljare/1"
+
+    public var format: String
+    public var entries: [FollowerRecord]
+
+    public init(entries: [FollowerRecord] = []) {
+        format = Self.formatName
+        self.entries = entries
+    }
+
+    /// Lägger till eller ersätter samma följares serie (id och den styrandes serie).
+    public mutating func upsert(_ r: FollowerRecord) {
+        entries.removeAll { $0.hello.device == r.hello.device && $0.series.series == r.series.series }
+        entries.append(r)
+        entries.sort { ($0.series.series, $0.hello.device) < ($1.series.series, $1.hello.device) }
     }
 }
