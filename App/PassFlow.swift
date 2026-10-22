@@ -39,8 +39,10 @@ struct PassFlowView: View {
         } else {
             NavigationStack {
                 SetupView(setup: $setup, titel: mode == .record ? "New session" : "Import from Photos",
-                          primary: mode == .record ? "Camera" : "Choose clips") {
-                    pass = store.newPass(setup: setup)
+                          primary: mode == .record ? "Camera" : "Choose clips", roles: mode == .record) {
+                    var s = setup
+                    if mode == .photos { s.role = .solo }       // två telefoner bara i kameran (S2g)
+                    pass = store.newPass(setup: s)
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -67,6 +69,8 @@ struct SetupView: View {
     /// för att kortas vid största textstorleken.
     let titel: LocalizedStringKey
     let primary: LocalizedStringKey
+    /// Rollen med två telefoner (S2g): ensam, styr eller följ. Bara i kameran.
+    var roles = false
     let onConfirm: () -> Void
 
     var body: some View {
@@ -74,6 +78,15 @@ struct SetupView: View {
             Skarmrubrik(titel)
                 .padding(.horizontal, 20)
             Form {
+                if roles {
+                    // Följaren ansluter av sig själv till den styrande (S2_SPEC §7.1). BESLUT B21
+                    Picker("Phone", selection: $setup.role) {
+                        Text("Solo").tag(LinkRole.solo)
+                        Text("Lead").tag(LinkRole.lead)
+                        Text("Follow").tag(LinkRole.follow)
+                    }
+                    .pickerStyle(.segmented)
+                }
                 Picker("View", selection: $setup.view) {
                     Text("DTL").tag(Vy.dtl)
                     Text("FO").tag(Vy.fo)

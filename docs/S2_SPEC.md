@@ -848,6 +848,9 @@ public enum Wire {
 }
 ```
 
+*Byggt i S2g:* `hello` och `recorded` bär egna typer (`LinkHello`, `LinkSeries`), och
+`ack` kvitterar start, stopp och serien. docs/FORMAT.md "Två telefoner" vinner vid krock.
+
 ### 7.2 Klockorna (METOD MS9)
 
 Värdklockan är `CMClock.hostTimeClock.time.seconds` på båda telefonerna (samma

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Swing
 import Capture
 
 /// Passen på telefonen (S2_SPEC §8.1). Allt ligger i appens Application Support och
@@ -142,6 +143,56 @@ final class Store {
             let f = url(rel, in: passID).standardizedFileURL
             guard tillatna.contains(f.deletingLastPathComponent()) else { continue }
             try? FileManager.default.removeItem(at: f)
+        }
+    }
+
+    // MARK: Två telefoner (S2g)
+
+    /// Följaren tar den styrandes pass-id, så att båda paketen bär samma (S2_SPEC §7.4).
+    /// Ett pass med serier byter aldrig id; ett tomt flyttas till det nya id:t, eller
+    /// till passet som redan finns med det id:t. nil = id:t går inte att använda.
+    func adopt(_ pass: PassState, id: String) -> PassState? {
+        guard pass.id != id else { return pass }
+        guard PassID.isValid(id), pass.series.isEmpty else { return nil }
+        var ny = load(id) ?? PassState(id: id, created: pass.created, setup: pass.setup)
+        ny.setup.role = pass.setup.role
+        let folder = passFolder(id)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        Self.createOutsideBackup(folder.appending(path: "Video", directoryHint: .isDirectory))
+        Self.createOutsideBackup(folder.appending(path: "Klipp", directoryHint: .isDirectory))
+        do {
+            try write(ny)
+        } catch {
+            problem = String(localized: "pass.json could not be saved.")
+            return nil
+        }
+        removeEmpty(pass.id)
+        return ny
+    }
+
+    /// Ett pass utan serier tas bort ur listan och från disken; ett med serier rörs aldrig.
+    private func removeEmpty(_ id: String) {
+        guard PassID.isValid(id), let p = load(id), p.series.isEmpty, p.shots.isEmpty else { return }
+        try? FileManager.default.removeItem(at: passFolder(id))
+        index.passes.removeAll { $0.id == id }
+        try? PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
+    }
+
+    /// `par.json` i den styrande telefonens pass (S2_SPEC §7.3, §8.3), eller nil.
+    func pairs(_ passID: String) -> PairFile? {
+        guard PassID.isValid(passID) else { return nil }
+        return read(PairFile.self, at: url("par.json", in: passID), aside: "par")
+    }
+
+    /// En parad serie till `par.json`: raden för samma serie och följare ersätts.
+    func savePair(_ e: PairEntry, passID: String, model: String, view: Vy) {
+        guard PassID.isValid(passID) else { return }
+        var fil = pairs(passID) ?? PairFile(pass: passID, model: model, view: view)
+        fil.upsert(e)
+        do {
+            try PassCoding.encoder().encode(fil).write(to: url("par.json", in: passID), options: .atomic)
+        } catch {
+            problem = String(localized: "par.json could not be saved.")
         }
     }
 

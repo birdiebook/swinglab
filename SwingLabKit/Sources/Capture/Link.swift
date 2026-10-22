@@ -155,6 +155,9 @@ extension LinkMessage: Codable {
 /// (S2_SPEC §7.1). TCP är en ström, så ett meddelande kan komma i bitar eller flera i
 /// samma bit. BESLUT B21
 public enum Wire {
+    /// Bonjour-tjänsten, samma som `NSBonjourServices` i project.yml. BESLUT B21
+    public static let bonjourService = "_swinglab._tcp"
+
     /// Längsta meddelande, byte. En serie med tusen klick är cirka 60 kB.
     public static let maxLength = 1 << 20
 

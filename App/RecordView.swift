@@ -1,4 +1,5 @@
 import SwiftUI
+import Swing
 import Capture
 
 /// Inspelningen (S2_SPEC §2, §12 S2c): förhandsbilden med hjälplinjerna, frekvensen,
@@ -15,8 +16,12 @@ struct RecordView: View {
     @State private var light: LightCheck?
     @State private var receipt: SeriesRecord?
     @State private var working = false
-    /// Serien som spelas in: numret och filen i passet.
-    @State private var current: (nr: Int, file: String)?
+    /// Serien som spelas in: numret och filen i passet, och den styrandes serie när
+    /// följaren startades av den (S2g).
+    @State private var current: (nr: Int, file: String, lead: Int?)?
+    /// Två telefoner (S2g): kopplingen, och en start från den styrande som väntar på kameran.
+    @State private var link: PhoneLink?
+    @State private var pendingStart: Int?
     /// Continue i kvittot: passet öppnas när kvittot har stängts.
     @State private var continueAfterReceipt = false
 
@@ -28,6 +33,7 @@ struct RecordView: View {
 
             VStack(spacing: 10) {
                 topBar
+                if let link { LinkLabels(link: link) }
                 warnings
                 Spacer()
                 if let light {
@@ -43,8 +49,16 @@ struct RecordView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task { await camera.start() }
+        .task {
+            startLink()
+            await camera.start()
+        }
+        .onChange(of: camera.phase) { _, phase in
+            link?.report(recording: phase == .recording, freeBytes: store.availableBytes(), pressure: camera.pressure)
+            startPendingIfReady()
+        }
         .onDisappear {
+            link?.stop()
             // En serie som pågår när vyn försvinner avslutas och sparas i passet:
             // ingen fil utan ägare.
             let cam = camera, pending = current, id = pass.id, club = pass.setup.club, butik = store
@@ -171,16 +185,83 @@ struct RecordView: View {
     private func toggle() {
         if camera.phase == .recording {
             camera.stopSeries()
+            // Stopp på den styrande stoppar följarna; på följaren bara den själv.
+            link?.stopSeries()
+            link?.stoppedLocally()
             return
         }
+        guard let nr = begin(lead: nil) else { return }
+        link?.startSeries(passID: pass.id, series: nr)
+    }
+
+    /// Startar en serie i passet; svarar dess nummer. `lead` är den styrandes serie när
+    /// följaren startas av den.
+    @discardableResult
+    private func begin(lead: Int?) -> Int? {
+        guard camera.phase == .ready else { return nil }
         let nr = pass.nextSeriesNumber
         let file = PassState.videoPath(nr: nr)
         let url = store.url(file, in: pass.id)
         // En fil som inget i passet pekar på (en avbruten start) skrivs över:
         // utgången vägrar annars att börja.
         if !pass.series.contains(where: { $0.file == file }) { try? FileManager.default.removeItem(at: url) }
-        current = (nr, file)
+        current = (nr, file, lead)
         camera.startSeries(to: url, available: store.availableBytes())
+        return nr
+    }
+
+    // MARK: Två telefoner (S2g, S2_SPEC §7.3–7.4)
+
+    /// Kopplingen startas med vyn när rollen är styr eller följ. Varje telefon spelar in
+    /// och sparar själv; kopplingen bär bara start, stopp, ping och klicken. BESLUT B22
+    private func startLink() {
+        guard link == nil, pass.setup.role != .solo else { return }
+        let l = PhoneLink(role: pass.setup.role, view: pass.setup.view)
+        l.onStart = { passID, n in linkStart(passID: passID, series: n) }
+        l.onStop = { n in linkStop(n) }
+        l.onPaired = { e in store.savePair(e, passID: pass.id, model: PhoneLink.model(), view: pass.setup.view) }
+        l.start()
+        link = l
+    }
+
+    /// Följaren: den styrande startade. Ett tomt pass tar den styrandes id.
+    private func linkStart(passID: String, series n: Int) {
+        if pass.id != passID, let p = store.adopt(pass, id: passID) { pass = p }
+        pendingStart = n
+        if camera.phase == .recording { camera.stopSeries() }      // ett missat stopp
+        startPendingIfReady()
+    }
+
+    /// Följaren: den styrande stoppade.
+    private func linkStop(_ n: Int) {
+        if let p = pendingStart, p <= n { pendingStart = nil }
+        if camera.phase == .recording, current?.lead != nil { camera.stopSeries() }
+    }
+
+    /// En väntande start tas när kameran är redo och förra serien är läst.
+    private func startPendingIfReady() {
+        guard let n = pendingStart, camera.phase == .ready, current == nil, camera.finished == nil, !working else { return }
+        pendingStart = nil
+        begin(lead: n)
+    }
+
+    /// Serien är sparad: den styrande parar, följaren skickar klicken (nu eller efter ett tapp).
+    private func linkFinished(_ s: SeriesRecord, lead: Int?) {
+        guard let link else { return }
+        let rate = s.timing.gridRate > 0 ? s.timing.gridRate : camera.frameRate
+        switch pass.setup.role {
+        case .lead:
+            link.ownFinished(LinkSeries(series: s.nr, localSeries: s.nr, passID: pass.id, startHost: s.startHost,
+                                        frameRate: rate, clicks: s.clicks, view: pass.setup.view,
+                                        distance: pass.setup.distance))
+        case .follow:
+            guard let lead else { return }
+            link.finished(LinkSeries(series: lead, localSeries: s.nr, passID: pass.id, startHost: s.startHost,
+                                     frameRate: rate, clicks: s.clicks, view: pass.setup.view,
+                                     distance: pass.setup.distance))
+        case .solo:
+            break
+        }
     }
 
     /// Serien läses ur filen: tiderna, klicken och geometrin, sedan kvittot.
@@ -188,12 +269,17 @@ struct RecordView: View {
         guard let current else { return }
         self.current = nil
         working = true
-        defer { working = false }
+        defer {
+            working = false
+            startPendingIfReady()
+        }
         do {
             if let r = try await Self.save(f, nr: current.nr, file: current.file, passID: pass.id,
                                            club: pass.setup.club, camera: camera, store: store) {
                 pass = r.pass
-                receipt = r.series
+                linkFinished(r.series, lead: current.lead)
+                // Följaren styrs av den styrande: kvittot visas inte mellan serierna.
+                if current.lead == nil { receipt = r.series }
             }
         } catch {
             camera.problem = String(localized: "\(current.file) could not be read.")
@@ -253,6 +339,40 @@ struct ReceiptSheet: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
+    }
+}
+
+/// Två telefoner (S2g): rollen och den andra telefonens läge som etiketter, ingen
+/// förklarande text (BESLUT B13). En tappad telefon i signalfärgen (S2_SPEC §7.4).
+struct LinkLabels: View {
+    let link: PhoneLink
+
+    var body: some View {
+        HStack {
+            HStack(spacing: 10) {
+                Text(link.role == .lead ? LocalizedStringKey("Lead") : "Follow")
+                    .foregroundStyle(Theme.text)
+                if link.blocked {
+                    Text("Local network off").foregroundStyle(Theme.flag)
+                } else if link.peers.isEmpty {
+                    Text("Searching").foregroundStyle(Theme.secondary)
+                }
+                ForEach(link.peers) { p in
+                    HStack(spacing: 6) {
+                        Text(verbatim: p.view == .dtl ? "DTL" : "FO")
+                        Text(p.connected ? (p.recording ? LocalizedStringKey("Recording") : "Connected") : "Lost")
+                    }
+                    .foregroundStyle(p.connected ? Theme.text : Theme.flag)
+                }
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .padding(.horizontal, 14)
+            .frame(minHeight: 32)
+            .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
     }
 }
 

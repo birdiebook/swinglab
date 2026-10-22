@@ -586,6 +586,13 @@ värden i `CaptureTests`.
   en gräns. **antagande** (fjärdedelen). Provat med 30 påhittade ping med 1–20 ms
   osymmetrisk väg: inom osäkerheten och inom 10 ms. Pingen är bara ett
   förhandsvärde; synken är klicket (MS10).
+- **När (S2g):** en skur om **30** ping med **20 ms** mellanrum när följaren sagt
+  hello, vid varje start och efter varje stopp, och däremellan **en ping i
+  sekunden** (hjärtslaget). Proven märks med serien: *under* (från start till stopp)
+  och *efter* (efter stopp). Följaren svarar på nätets kö, med t1 och t2 stämplade
+  där, inte på huvudtråden. Är en förbindelse tyst i **4 s** stängs den, och
+  följaren försöker igen varje **1 s** (flygplansläge stänger inte TCP av sig
+  självt). **antagande** (tiderna). `LinkLeader`, App/Link.swift.
 
 ## MS10 — Parningen
 
@@ -602,6 +609,13 @@ värden i `CaptureTests`.
   bästa d minst **2 · 30 ms** från det valda och hur många det parar. Parningen
   är **osäker** med färre än **3** par utan prior (**1** med), eller när det näst
   bästa parar lika många. **antagande.** Python och Swift ger samma dom.
+- **Två telefoner (S2g):** klockan tas ur proven *efter* stopp, annars ur proven
+  *under* serien, annars de 30 sista före starten. Prior = SL − SF + θ, där SL och SF
+  är filernas start på var sin värdklocka och θ = följarens klocka − den styrandes;
+  förskjutningen är följarens filtid − den styrandes för samma klick. Träffens
+  förskjutning = förskjutningen − (följarens avstånd − den styrandes) / 343 (MS6).
+  Parningen görs när båda serierna finns och görs om efter varje pingskur; en ändring
+  skriver om raden i `par.json` (docs/FORMAT.md "Två telefoner"). `PairEntry.make`.
 - **Avvikelser:** stegen räknas `lo + i·steg` (numpys `arange` gör nästan det),
   och parar inget svaras prior (eller 0), osäker, i stället för sökningens början.
 

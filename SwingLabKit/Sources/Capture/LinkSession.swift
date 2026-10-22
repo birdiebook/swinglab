@@ -276,7 +276,11 @@ public struct LinkLeader: Sendable {
     /// Start på den styrande: till alla följare.
     public mutating func start(passID: String, series: Int) -> [Action] {
         command = .recording(passID: passID, series: series)
-        for k in followers.keys { followers[k]?.startIndex[series] = followers[k]?.samples.count }
+        for k in Array(followers.keys) {
+            guard var f = followers[k] else { continue }
+            f.startIndex[series] = f.samples.count
+            followers[k] = f
+        }
         return connectedPeers.map { .send(peer: $0, .start(passID: passID, series: series)) }
     }
 

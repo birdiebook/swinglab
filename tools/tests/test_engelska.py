@@ -93,6 +93,8 @@ INTE_TEXT = {
     "square.and.arrow.up", "\\(…)", "\\(…) m", "\\(…) · ", "\\(…) · \\(…)", "\\(…): \\(…)",
     "\\(…), \\(…) cm", "pencil", "crop", "play.fill", "pause.fill", "backward.frame.fill",
     "forward.frame.fill", "\\(…)–\\(…) s", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
+    "swinglab.link", "SIMULATOR_MODEL_IDENTIFIER", "CFBundleShortVersionString",
+    "par", "par.json",
 }
 
 

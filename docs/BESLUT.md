@@ -264,6 +264,13 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Kostnad:** frågan om lokalt nätverk visas första gången; nekas den fungerar
   inte kopplingen (men inspelningen gör det).
 - **När:** redan i S2 (etapp S2g), inte i S6 (Johannes 2026-10-22).
+- **Byggt i S2g:** `Link.swift` och `LinkSession.swift` i SwingLabKit (meddelandena,
+  `Wire`, `LinkLeader`, `LinkFollower`, `PairEntry`), prövade på Linux med ett nät i
+  minnet som dras ur; `App/Link.swift` med `NWListener`, `NWBrowser` och
+  `NWConnection`, prövat i simulatorn över loopback utan Bonjour. Rollen väljs i
+  uppställningen (`roll`: ensam, styr, följ) och sparas i `pass.json`. Meddelandena
+  är specens, med `hello` och `recorded` som egna typer och en kvittens (`ack`) för
+  start, stopp och serien (docs/FORMAT.md "Två telefoner").
 
 ## B22 — Klicket är synken, pingen bara ett förhandsvärde
 *2026-10-22 · prövas · S2_SPEC §7.2–7.4 · METOD MS6, MS9, MS10 · S2:s förslag F8*
@@ -276,6 +283,12 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   para med samma algoritm.
 - **Kostnad:** varje telefon måste höra klicket. Finjusteringen på ledernas fart
   görs på PC:n (S6).
+- **Byggt i S2g:** ett tapp förlorar inget. Följaren skickar sin serie tills den
+  kvitterats, och den styrande skickar kommandot som gäller (start eller stopp) igen
+  när följaren säger hello; ett start för en serie som redan startats görs inte om
+  (följaren kan ha stoppats för hand). Följaren tar den styrandes pass-id när dess
+  eget pass är tomt, så att båda paketen bär samma id; ett pass med serier byter
+  aldrig id. Den styrande skriver `par.json` i sitt pass.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
 
 ## B23 — Klickjakten är Golf SG:s, plus en svingkontroll

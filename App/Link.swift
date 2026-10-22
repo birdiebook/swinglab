@@ -1,0 +1,549 @@
+import CoreMedia
+import Foundation
+import Network
+import Observation
+import Swing
+import Capture
+
+// Två telefoner (S2_SPEC §7, S2g): Network.framework med Bonjour, en styrande som
+// lyssnar och en eller flera följare som söker och ansluter av sig själva, igen och
+// igen. Bara kommandon, klick och ping går över kopplingen (BESLUT B21, B22); vad som
+// sägs och när står i SwingLabKit (LinkSession.swift) och är prövat på Linux. Här
+// finns bara nätet och klockan.
+
+/// Värdklockan, samma som filens startPTS räknas om till (Camera, S2_SPEC §7.2). METOD MS9
+enum LinkClock {
+    static func now() -> Double { CMClock.hostTimeClock.time.seconds }
+}
+
+/// En TCP-förbindelse med Wire-ramar. Allt sker på `queue`. Hörs inget på
+/// `silence` sekunder stängs den (flygplansläge stänger inte TCP av sig själv).
+final class LinkConnection: @unchecked Sendable {
+    let id: Int
+    private let connection: NWConnection
+    private let queue: DispatchQueue
+    private let answersPings: Bool
+    private var reader = Wire.Reader()
+    private var lastHeard = LinkClock.now()
+    private var watchdog: DispatchSourceTimer?
+    private var closed = false
+    /// På `queue`: ett meddelande och när det kom (värdklockan).
+    var onMessage: (@Sendable (LinkMessage, Double) -> Void)?
+    /// På `queue`: uppe (true), eller stängd för gott (false, en gång).
+    var onState: (@Sendable (Bool) -> Void)?
+
+    /// Tystnad före stängning, s. Den styrande pingar varje sekund. METOD MS9
+    static let silence = 4.0
+
+    init(id: Int, connection: NWConnection, queue: DispatchQueue, answersPings: Bool) {
+        self.id = id
+        self.connection = connection
+        self.queue = queue
+        self.answersPings = answersPings
+    }
+
+    func start() {
+        connection.stateUpdateHandler = { [weak self] state in
+            guard let self else { return }
+            switch state {
+            case .ready:
+                self.lastHeard = LinkClock.now()
+                self.onState?(true)
+                self.receive()
+                self.startWatchdog()
+            case .failed, .cancelled, .waiting:
+                // .waiting: inget att nå just nu; vi försöker själva igen.
+                self.close()
+            default:
+                break
+            }
+        }
+        connection.start(queue: queue)
+    }
+
+    func send(_ m: LinkMessage) {
+        guard let d = try? Wire.frame(m) else { return }
+        connection.send(content: d, completion: .contentProcessed { [weak self] error in
+            if error != nil { self?.close() }
+        })
+    }
+
+    /// Stänger förbindelsen (från vilken tråd som helst).
+    func cancel() {
+        queue.async { self.close() }
+    }
+
+    private func receive() {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, isComplete, error in
+            guard let self, !self.closed else { return }
+            if let data, !data.isEmpty {
+                let t = LinkClock.now()
+                self.lastHeard = t
+                do {
+                    for m in try self.reader.feed(data) {
+                        // Följaren svarar på pingen direkt, här: t1 och t2 så nära
+                        // nätet som möjligt (METOD MS9).
+                        if self.answersPings, case let .ping(id, t0) = m {
+                            self.send(LinkFollower.pong(id, t0: t0, t1: t, t2: LinkClock.now()))
+                        }
+                        self.onMessage?(m, t)
+                    }
+                } catch {
+                    self.close()
+                    return
+                }
+            }
+            if isComplete || error != nil {
+                self.close()
+                return
+            }
+            self.receive()
+        }
+    }
+
+    private func startWatchdog() {
+        let t = DispatchSource.makeTimerSource(queue: queue)
+        t.schedule(deadline: .now() + 1, repeating: 1)
+        t.setEventHandler { [weak self] in
+            guard let self else { return }
+            if LinkClock.now() - self.lastHeard > Self.silence { self.close() }
+        }
+        t.resume()
+        watchdog = t
+    }
+
+    private func close() {
+        guard !closed else { return }
+        closed = true
+        watchdog?.cancel()
+        watchdog = nil
+        connection.cancel()
+        onState?(false)
+    }
+}
+
+/// Nätet: lyssnaren (styr) eller sökaren (följ), förbindelserna och återanslutningen.
+/// Allt på en egen kö; händelserna lämnas till `onEvent` på den kön.
+final class LinkTransport: @unchecked Sendable {
+    enum Event: Sendable {
+        case up(Int)
+        case down(Int)
+        case message(Int, LinkMessage, Double)
+        case listening(UInt16)
+        /// Lokalt nätverk nekat eller inte tillgängligt (true), eller åter (false).
+        case blocked(Bool)
+    }
+
+    let role: LinkRole
+    private let queue = DispatchQueue(label: "swinglab.link")
+    private let port: UInt16?
+    private let fixed: NWEndpoint?
+    private let bonjour: Bool
+    private var listener: NWListener?
+    private var browser: NWBrowser?
+    private var connections: [Int: LinkConnection] = [:]
+    private var connecting = false
+    private var endpoints: [NWEndpoint] = []
+    private var nextID = 1
+    private var stopped = false
+    private var suspendedUntil = 0.0
+    var onEvent: (@Sendable (Event) -> Void)?
+
+    /// Väntan före nästa försök, s.
+    static let retry = 1.0
+
+    init(role: LinkRole, port: UInt16?, endpoint: NWEndpoint?, bonjour: Bool) {
+        self.role = role
+        self.port = port
+        fixed = endpoint
+        self.bonjour = bonjour
+    }
+
+    /// TCP utan Nagle (pingen väntar inte) och med peer-to-peer, så att telefonerna
+    /// hittar varandra även utan gemensamt wifi (S2_SPEC §7.1). BESLUT B21
+    /// Utan Bonjour (simulatorprovet) bara loopback.
+    static func parameters(loopback: Bool = false) -> NWParameters {
+        let tcp = NWProtocolTCP.Options()
+        tcp.noDelay = true
+        tcp.connectionTimeout = 5
+        let p = NWParameters(tls: nil, tcp: tcp)
+        p.includePeerToPeer = true
+        if loopback { p.requiredInterfaceType = .loopback }
+        return p
+    }
+
+    func start() {
+        queue.async {
+            self.stopped = false
+            if self.role == .lead { self.listen() } else { self.search() }
+        }
+    }
+
+    func stop() {
+        queue.async {
+            self.stopped = true
+            self.listener?.cancel()
+            self.listener = nil
+            self.browser?.cancel()
+            self.browser = nil
+            for c in self.connections.values { c.cancel() }
+        }
+    }
+
+    func send(_ m: LinkMessage, to id: Int) {
+        queue.async { self.connections[id]?.send(m) }
+    }
+
+    func close(_ id: Int) {
+        queue.async { self.connections[id]?.cancel() }
+    }
+
+    /// Kopplingen bort i `seconds` (simulatorprovets flygplansläge): förbindelserna
+    /// stängs och ingen ny tas förrän tiden gått.
+    func suspend(_ seconds: Double) {
+        queue.async {
+            self.suspendedUntil = LinkClock.now() + seconds
+            for c in self.connections.values { c.cancel() }
+            self.queue.asyncAfter(deadline: .now() + seconds + 0.05) { self.connectNext() }
+        }
+    }
+
+    // MARK: Styr
+
+    private func listen() {
+        guard !stopped, listener == nil else { return }
+        do {
+            let p = port.flatMap { NWEndpoint.Port(rawValue: $0) } ?? .any
+            let l = try NWListener(using: Self.parameters(loopback: !bonjour), on: p)
+            if bonjour { l.service = NWListener.Service(name: nil, type: Wire.bonjourService) }
+            l.stateUpdateHandler = { [weak self, weak l] state in
+                guard let self else { return }
+                switch state {
+                case .ready:
+                    self.onEvent?(.blocked(false))
+                    if let n = l?.port?.rawValue { self.onEvent?(.listening(n)) }
+                case .waiting:
+                    self.onEvent?(.blocked(true))
+                case .failed:
+                    self.listener?.cancel()
+                    self.listener = nil
+                    self.queue.asyncAfter(deadline: .now() + Self.retry) { self.listen() }
+                default:
+                    break
+                }
+            }
+            l.newConnectionHandler = { [weak self] c in self?.accept(c) }
+            listener = l
+            l.start(queue: queue)
+        } catch {
+            queue.asyncAfter(deadline: .now() + Self.retry) { self.listen() }
+        }
+    }
+
+    private func accept(_ c: NWConnection) {
+        guard !stopped, LinkClock.now() >= suspendedUntil else {
+            c.cancel()
+            return
+        }
+        adopt(c)
+    }
+
+    // MARK: Följ
+
+    private func search() {
+        if fixed != nil {
+            connectNext()
+            return
+        }
+        guard !stopped, browser == nil else { return }
+        let b = NWBrowser(for: .bonjour(type: Wire.bonjourService, domain: nil), using: Self.parameters())
+        b.browseResultsChangedHandler = { [weak self] results, _ in
+            guard let self else { return }
+            self.endpoints = results.map(\.endpoint)
+            self.connectNext()
+        }
+        b.stateUpdateHandler = { [weak self] state in
+            guard let self else { return }
+            switch state {
+            case .ready:
+                self.onEvent?(.blocked(false))
+            case .waiting:
+                // Lokalt nätverk nekat (S2_SPEC §7.4).
+                self.onEvent?(.blocked(true))
+            case .failed:
+                self.browser?.cancel()
+                self.browser = nil
+                self.queue.asyncAfter(deadline: .now() + Self.retry) { self.search() }
+            default:
+                break
+            }
+        }
+        browser = b
+        b.start(queue: queue)
+    }
+
+    /// Nästa försök att ansluta: till den fasta adressen (provet) eller den första
+    /// styrande som Bonjour visar. Svarar inte den, försöker vi igen om en sekund.
+    private func connectNext() {
+        guard role == .follow, !stopped, !connecting, connections.isEmpty else { return }
+        guard LinkClock.now() >= suspendedUntil else { return }
+        guard let e = fixed ?? endpoints.first else { return }
+        connecting = true
+        adopt(NWConnection(to: e, using: Self.parameters(loopback: !bonjour)))
+    }
+
+    private func adopt(_ nw: NWConnection) {
+        let id = nextID
+        nextID += 1
+        let c = LinkConnection(id: id, connection: nw, queue: queue, answersPings: role == .follow)
+        connections[id] = c
+        c.onMessage = { [weak self] m, t in self?.onEvent?(.message(id, m, t)) }
+        c.onState = { [weak self] up in
+            guard let self else { return }
+            if up {
+                self.connecting = false
+                self.onEvent?(.up(id))
+                return
+            }
+            let varUppe = self.connections.removeValue(forKey: id) != nil
+            self.connecting = false
+            if varUppe { self.onEvent?(.down(id)) }
+            if self.role == .follow {
+                self.queue.asyncAfter(deadline: .now() + Self.retry) { self.connectNext() }
+            }
+        }
+        c.start()
+    }
+}
+
+/// Kopplingen som vyn ser: rollen, den andra telefonens läge, och start, stopp och
+/// klick till och från SwingLabKits logik. Allt här sker på huvudtråden. Heter inte
+/// `Link`, som skulle skugga SwiftUI:s.
+@MainActor
+@Observable
+final class PhoneLink {
+    /// Den andra telefonen som en etikett (BESLUT B13): vyn och läget.
+    struct Peer: Identifiable, Equatable {
+        let id: String
+        let view: Vy
+        let connected: Bool
+        let recording: Bool
+    }
+
+    let role: LinkRole
+    let hello: LinkHello
+    private(set) var peers: [Peer] = []
+    /// Lokalt nätverk nekat (S2_SPEC §7.4).
+    private(set) var blocked = false
+    /// Porten som lyssnaren fick (provet ansluter dit utan Bonjour).
+    private(set) var port: UInt16?
+
+    /// Följaren: den styrande startade eller stoppade serien.
+    @ObservationIgnored var onStart: ((String, Int) -> Void)?
+    @ObservationIgnored var onStop: ((Int) -> Void)?
+    /// Den styrande: en serie är parad.
+    @ObservationIgnored var onPaired: ((PairEntry) -> Void)?
+
+    private let transport: LinkTransport
+    @ObservationIgnored private var leader: LinkLeader?
+    @ObservationIgnored private var follower: LinkFollower?
+    /// Följarens enda förbindelse.
+    @ObservationIgnored private var followConnection: Int?
+    @ObservationIgnored private var heartbeat: Timer?
+    @ObservationIgnored private var lastStatus: LinkMessage?
+
+    /// Hjärtslaget: en ping i sekunden till varje följare. METOD MS9
+    static let heartbeatInterval = 1.0
+
+    /// `port` och `endpoint` utan Bonjour är simulatorprovets loopback (S2_SPEC §10.2 steg 9).
+    init(role: LinkRole, view: Vy, port: UInt16? = nil, endpoint: NWEndpoint? = nil, bonjour: Bool = true) {
+        self.role = role
+        hello = LinkHello(role: role, device: UUID().uuidString, model: Self.model(), app: Self.version(), view: view)
+        transport = LinkTransport(role: role, port: port, endpoint: endpoint, bonjour: bonjour)
+        if role == .lead { leader = LinkLeader(hello: hello) } else { follower = LinkFollower(hello: hello) }
+        transport.onEvent = { [weak self] e in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.handle(e) }
+            }
+        }
+    }
+
+    func start() {
+        transport.start()
+        guard role == .lead, heartbeat == nil else { return }
+        heartbeat = Timer.scheduledTimer(withTimeInterval: Self.heartbeatInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.beat() }
+        }
+    }
+
+    func stop() {
+        heartbeat?.invalidate()
+        heartbeat = nil
+        transport.stop()
+    }
+
+    // MARK: Den styrande
+
+    func startSeries(passID: String, series: Int) {
+        guard leader != nil else { return }
+        apply(leader?.start(passID: passID, series: series) ?? [])
+        for p in leader?.connectedPeers ?? [] { burst(p) }
+    }
+
+    func stopSeries() {
+        guard leader != nil else { return }
+        apply(leader?.stop() ?? [])
+        for p in leader?.connectedPeers ?? [] { burst(p) }
+    }
+
+    /// Den styrandes egen serie är sparad: para med följarna.
+    func ownFinished(_ s: LinkSeries) {
+        apply(leader?.ownFinished(s) ?? [])
+    }
+
+    /// Klockan mot den första följaren just nu (provet).
+    var clock: ClockOffset? {
+        leader?.followers.values.sorted { $0.hello.device < $1.hello.device }.first?.latestClock
+    }
+
+    /// Antalet pingprov från den första följaren (provet).
+    var sampleCount: Int {
+        leader?.followers.values.map(\.sampleCount).max() ?? 0
+    }
+
+    // MARK: Följaren
+
+    /// Följarens serie är sparad: den skickas nu eller när kopplingen kommer tillbaka.
+    func finished(_ s: LinkSeries) {
+        apply(follower?.finished(s) ?? [])
+    }
+
+    /// Stopp för hand på följaren.
+    func stoppedLocally() {
+        follower?.stoppedLocally()
+    }
+
+    /// Serier som inte kvitterats av den styrande (provet).
+    var unacknowledged: Int { follower?.outbox.count ?? 0 }
+
+    /// Följarens läge till den styrande: spelar in, ledigt och trycket.
+    func report(recording: Bool, freeBytes: Int64?, pressure: Pressure) {
+        let m = LinkMessage.status(recording: recording, freeGB: Double(freeBytes ?? 0) / 1e9, pressure: pressure.rawValue)
+        lastStatus = m
+        if let c = followConnection { transport.send(m, to: c) }
+    }
+
+    /// Simulatorprovets flygplansläge.
+    func suspend(_ seconds: Double) {
+        transport.suspend(seconds)
+    }
+
+    // MARK: Händelserna
+
+    private func handle(_ e: LinkTransport.Event) {
+        switch e {
+        case let .up(id):
+            if role == .lead {
+                apply(leader?.connected(peer: id) ?? [])
+            } else {
+                followConnection = id
+                apply(follower?.connected() ?? [])
+                if let s = lastStatus { transport.send(s, to: id) }
+            }
+        case let .down(id):
+            if role == .lead {
+                leader?.disconnected(peer: id)
+            } else if followConnection == id {
+                followConnection = nil
+                follower?.disconnected()
+            }
+        case let .message(id, m, t):
+            if role == .lead {
+                apply(leader?.receive(m, from: id, at: t) ?? [])
+                if case .hello = m { burst(id) }
+            } else if id == followConnection {
+                // Pingen har redan besvarats på nätets kö.
+                if case .ping = m { break }
+                apply(follower?.receive(m, at: t, now: LinkClock.now) ?? [])
+            }
+        case let .listening(p):
+            port = p
+        case let .blocked(b):
+            blocked = b
+        }
+        refresh()
+    }
+
+    private func apply(_ a: [LinkLeader.Action]) {
+        for x in a {
+            switch x {
+            case let .send(peer, m): transport.send(m, to: peer)
+            case let .close(peer): transport.close(peer)
+            case let .paired(e): onPaired?(e)
+            }
+        }
+        refresh()
+    }
+
+    private func apply(_ a: [LinkFollower.Action]) {
+        for x in a {
+            switch x {
+            case let .send(m): if let c = followConnection { transport.send(m, to: c) }
+            case let .startRecording(p, n): onStart?(p, n)
+            case let .stopRecording(n): onStop?(n)
+            }
+        }
+        refresh()
+    }
+
+    private func refresh() {
+        let ny: [Peer]
+        if let leader {
+            ny = leader.followers.values
+                .map { Peer(id: $0.hello.device, view: $0.hello.view, connected: $0.peer != nil, recording: $0.recording) }
+                .sorted { ($0.view.rawValue, $0.id) < ($1.view.rawValue, $1.id) }
+        } else if let follower, let l = follower.lead {
+            ny = [Peer(id: l.device, view: l.view, connected: follower.isConnected, recording: false)]
+        } else {
+            ny = []
+        }
+        if ny != peers { peers = ny }
+    }
+
+    /// 30 ping med 20 ms mellanrum, sedan parning om med de nya proven (S2_SPEC §7.2). METOD MS9
+    private func burst(_ peer: Int) {
+        Task { @MainActor [weak self] in
+            for _ in 0..<LinkLeader.burst {
+                self?.ping(peer)
+                try? await Task.sleep(for: .milliseconds(Int(LinkLeader.burstInterval * 1000)))
+            }
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let self, let a = self.leader?.pairAgain() else { return }
+            self.apply(a)
+        }
+    }
+
+    private func ping(_ peer: Int) {
+        if let m = leader?.ping(peer: peer, now: LinkClock.now()) { transport.send(m, to: peer) }
+    }
+
+    private func beat() {
+        for p in leader?.connectedPeers ?? [] { ping(p) }
+    }
+
+    // MARK: Telefonen
+
+    /// Modellens id ("iPhone18,3"), inget namn.
+    nonisolated static func model() -> String {
+        if let sim = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] { return sim }
+        var u = utsname()
+        uname(&u)
+        return withUnsafeBytes(of: &u.machine) { raw in
+            String(decoding: raw.prefix { $0 != 0 }, as: UTF8.self)
+        }
+    }
+
+    nonisolated static func version() -> String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+}

@@ -189,6 +189,43 @@ filformatet med `t_klick` = träffen (METOD MT1).
 Felen nämner zippen, filen och fältet (`swinglab-…-fo.zip: manifest.json:
 slag[3].klick_s ska vara ett tal`), aldrig värdet.
 
+### Två telefoner: `par.json` och meddelandena (S2g)
+
+`par.json` ligger i den styrande telefonens pass (`Pass/<id>/par.json`) och följer
+med i dess paket (S2_SPEC §8.3). En rad per serie och följare, skriven om när
+parningen ändras (METOD MS9, MS10, BESLUT B22). PC:n läser den inte än; den kan
+para om med samma algoritm ur båda paketens klick.
+
+```json
+{"format": "swinglab-par/1", "pass": "20261024-153012", "modell": "iPhone18,3", "vy": "dtl",
+ "serier": [{"serie": 1, "styr_start_vard_s": 81234.51, "styr_avstand_m": 3.0, "styr_klick": 23,
+             "foljare": {"modell": "iPhone14,5", "vy": "fo", "avstand_m": 3.5, "pass": "20261024-153012",
+                         "serie": 1, "start_vard_s": 90311.02, "hz": 240, "klick": 22},
+             "klocka": {"offset": 9076.68, "uncertainty": 0.0012, "samples": 30}, "klocka_ur": "efter",
+             "prior_s": 0.1312, "fonster_s": 0.25,
+             "forskjutning_s": 0.1327, "traff_forskjutning_s": 0.1312,
+             "antal_par": 22, "oparade_styr": 1, "oparade_folj": 0, "median_rest_s": 0.0011, "osaker": false,
+             "parning": {"offset": 0.1327, "pairs": [{"a": 0, "b": 0, "residual": 0.0004}], "count": 22,
+                         "secondBestCount": 1, "uncertain": false}}]}
+```
+
+| Fält | Innehåll |
+|---|---|
+| `forskjutning_s` | klicken: följarens filtid = den styrandes + den (s i var sin `Video/<serie>.mov`) |
+| `traff_forskjutning_s` | träffen: `forskjutning_s − (foljare.avstand_m − styr_avstand_m) / 343` (METOD MS6) |
+| `klocka`, `klocka_ur` | pingens skattning (följarens klocka − den styrandes) och ur vilka prov: `efter` stopp, `fore` (vid start och under), `ingen` |
+| `prior_s`, `fonster_s` | sökningens mitt och halva bredd; utan `prior_s` söktes ± 10 s |
+| `parning` | `ClickPairing` som den är (index i var sin telefons klick) |
+| `osaker` | för få par eller ett annat förskjutning parar lika många: PC:n parar om |
+
+Följarens `pass` är den styrandes id när följarens pass var tomt vid första
+starten; annars sitt eget. `serie` är serien i följarens pass.
+
+**Meddelandena** mellan telefonerna (TCP, `_swinglab._tcp`): fyra bytes längd
+(big-endian) och sedan JSON med `type` (`hello`, `ping`, `pong`, `start`, `stop`,
+`recorded`, `status`, `ack`). Typerna är `LinkMessage` i
+`SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna.
+
 ## Analysen: `analys.json`
 
 `tools/pc/session.py <paket> [<paket>]` skriver passets analys
