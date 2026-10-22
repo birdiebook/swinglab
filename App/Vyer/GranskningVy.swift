@@ -42,14 +42,14 @@ struct GranskningVy: View {
                 HStack {
                     Button(action: tillbaka) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .medium))
+                            .typsnitt(17, .medium)
                             .foregroundStyle(Theme.secondary)
                             .frame(width: 40, height: 40)
                     }
                     .buttonStyle(.plain)
                     Spacer()
                     Button("Passet", action: passet)
-                        .font(.system(size: 15, weight: .semibold))
+                        .typsnitt(15, .semibold)
                         .foregroundStyle(Theme.text)
                         .buttonStyle(.plain)
                 }
@@ -75,6 +75,18 @@ struct GranskningVy: View {
             Tidslinjen(yta: g.yta, forra: visaForra ? g.forra : nil, t: nu)
                 .aspectRatio(350.0 / 70.0, contentMode: .fit)
                 .padding(.top, 14)
+                // VoiceOver: svep upp och ner för att gå mellan faserna.
+                .accessibilityElement()
+                .accessibilityLabel("\(g.yta.namn), tidslinje")
+                .accessibilityValue("\(g.yta.tidText(nu)), \(Tal.tecken(g.yta.lage(nu)?.matt, decimaler: 1)) cm")
+                .accessibilityAdjustableAction { riktning in
+                    let faser = g.yta.fastider.map { $0.t }
+                    switch riktning {
+                    case .increment: tid = faser.first { $0 > nu + 0.001 } ?? g.yta.till
+                    case .decrement: tid = faser.last { $0 < nu - 0.001 } ?? g.yta.fran
+                    @unknown default: break
+                    }
+                }
                 .overlay {
                     GeometryReader { geo in
                         Color.clear
@@ -94,7 +106,7 @@ struct GranskningVy: View {
                         tid = f.t
                     } label: {
                         Text(Self.fasnamn(f.fas))
-                            .font(.system(size: 13.5, weight: .medium))
+                            .typsnitt(13.5, .medium)
                             .foregroundStyle(vald ? Theme.text : Theme.tertiary)
                             .frame(maxWidth: .infinity, minHeight: 40)
                             .overlay(alignment: .bottom) {
@@ -116,7 +128,7 @@ struct GranskningVy: View {
                     } label: {
                         HStack(spacing: 8) {
                             Circle().stroke(lineWidth: 1.5).frame(width: 10, height: 10)
-                            Text(d).font(.system(size: 13)).monospacedDigit()
+                            Text(d).typsnitt(13, siffror: true)
                         }
                         .foregroundStyle(visaForra ? Theme.text : Theme.tertiary)
                         .frame(minHeight: 32)
@@ -136,10 +148,10 @@ struct GranskningVy: View {
                     } label: {
                         VStack(spacing: 2) {
                             Text(s.nr.map { "\($0)" } ?? "median")
-                                .font(.system(size: 11, weight: .semibold))
+                                .typsnitt(11, .semibold)
                                 .foregroundStyle(Theme.tertiary)
                             Text(s.text)
-                                .font(Theme.number(14))
+                                .typsnitt(14, .medium, siffror: true)
                                 .foregroundStyle(Theme.text)
                         }
                         .padding(.horizontal, 8)
@@ -199,7 +211,7 @@ struct Matytan: View {
             c.linje(CGPoint(x: o.x, y: 84), CGPoint(x: o.x, y: s.height), Theme.secondary, 1, streckad: [4, 4])
 
             guard let l = yta.lage(t) else { return }
-            if let f = forra, let fl = f.lage(t) {
+            if let f = forra, let fl = f.lage(yta.motsvarande(t, i: f)) {
                 c.prick(p(fl.backen), 5, Theme.secondary, ihalig: true)
             }
             let m = p(l.backen)
@@ -238,7 +250,8 @@ struct Tidslinjen: View {
         Canvas { c, s in
             let x0: CGFloat = 4, x1 = s.width - 4
             let kurva = yta.kurva()
-            let gammal = forra?.kurva() ?? []
+            // Förra passet i linje efter faserna: dess tider förs över till den här svingens.
+            let gammal: [(t: Double, v: Double)] = forra.map { f in f.kurva().map { (t: f.motsvarande($0.t, i: yta), v: $0.v) } } ?? []
             let alla = kurva.map { $0.v } + gammal.map { $0.v }
             let lo = min(-6, alla.min() ?? -6), hi = max(8, alla.max() ?? 8)
             func x(_ tc: Double) -> CGFloat { x0 + CGFloat((tc - yta.fran) / (yta.till - yta.fran)) * (x1 - x0) }
@@ -266,6 +279,5 @@ struct Tidslinjen: View {
                 c.prick(CGPoint(x: x(t), y: y(l.matt)), 3.5, Theme.text)
             }
         }
-        .accessibilityHidden(true)
     }
 }

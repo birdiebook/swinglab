@@ -66,6 +66,30 @@ public struct Spann: Equatable, Sendable {
     public let forra: Double?
     /// Talen under linjen: axelns ändar och zonens ändar.
     public let etiketter: [(varde: Double, text: String)]
+    /// Måttets enhet och decimaler, för uppläsningen.
+    public let enhet: String
+    public let decimaler: Int
+    /// Katalogens gräns som den står (nil i en ände = öppen), nil utan gräns.
+    public let grans: (fran: Double?, till: Double?)?
+
+    /// Spannet i ord för VoiceOver: "mål från 0 cm, förra −3,6 cm".
+    public var upplasning: String {
+        func t(_ v: Double) -> String { Tal.medEnhet(Tal.axel(v, decimaler: Swift.max(decimaler, 1)), enhet) }
+        func ta(_ v: Double) -> String { Tal.axel(v, decimaler: Swift.max(decimaler, 1)) }
+        var d: [String] = []
+        if let g = grans {
+            switch (g.fran, g.till) {
+            case let (a?, b?): d.append("mål \(ta(a)) till \(t(b))")
+            case let (a?, nil): d.append("mål från \(t(a))")
+            case let (nil, b?): d.append("mål till \(t(b))")
+            case (nil, nil): break
+            }
+        } else if case let .baslinje(lo, hi)? = zon {
+            d.append("egen baslinje \(ta(lo)) till \(t(hi))")
+        }
+        if let f = forra { d.append("förra \(Tal.medEnhet(Tal.tal(f, decimaler: decimaler), enhet))") }
+        return d.joined(separator: ", ")
+    }
 
     public static func == (a: Spann, b: Spann) -> Bool {
         a.axel == b.axel && a.zon == b.zon && a.nu == b.nu && a.forra == b.forra
@@ -75,7 +99,10 @@ public struct Spann: Equatable, Sendable {
 
     /// `gront` som i katalogen ([lo, hi], nil = öppen ände); utan den används `baslinje`.
     public init(nu: Double, spridning: (lo: Double, hi: Double)?, forra: Double?, gront: [Double?]?,
-                baslinje: (lo: Double, hi: Double)?, decimaler: Int) {
+                baslinje: (lo: Double, hi: Double)?, decimaler: Int, enhet: String = "") {
+        self.enhet = enhet
+        self.decimaler = decimaler
+        if let g = gront, g.count == 2 { grans = (g[0], g[1]) } else { grans = nil }
         var varden = [nu]
         if let s = spridning { varden += [s.lo, s.hi] }
         if let f = forra { varden.append(f) }

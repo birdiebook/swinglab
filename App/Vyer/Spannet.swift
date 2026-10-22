@@ -62,7 +62,8 @@ struct SpannVy: View {
             c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, Theme.text)
         }
         .frame(height: kompakt ? 14 : 40)
-        .accessibilityHidden(true)
+        .accessibilityElement()
+        .accessibilityLabel(spann.upplasning)
     }
 }
 
@@ -113,7 +114,7 @@ struct MattkortVy: View {
                     if let m = kort.markning { MarkningVy(markning: m) }
                 }
                 Text(kort.namn)
-                    .font(.system(size: 16, weight: .medium))
+                    .typsnitt(16, .medium)
                     .foregroundStyle(Theme.text)
                     .padding(.top, 6)
                     .padding(.bottom, 10)
@@ -133,5 +134,7 @@ struct MattkortVy: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(kort.upplasning)
     }
 }

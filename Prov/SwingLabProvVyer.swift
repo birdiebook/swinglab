@@ -34,17 +34,21 @@ final class SwingLabProvVyer: XCTestCase {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
         try rendera(PassetVy(visning: v), namn: "passet")
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl")
+        // Största textstorleken (Dynamisk text): inget klipps, raderna bryts.
+        try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl-stor", textstorlek: .accessibility5)
     }
 
     func testIdag() throws {
         let v = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass,
                             attJobbaPa: Demo.attJobbaPa)
         try rendera(IdagVy(visning: v), namn: "idag")
+        try rendera(IdagVy(visning: v), namn: "idag-stor", textstorlek: .accessibility5)
     }
 
     func testAttJobbaPa() throws {
         let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
         try rendera(AttJobbaPaVy(visning: v), namn: "jobba")
+        try rendera(AttJobbaPaVy(visning: v), namn: "jobba-stor", textstorlek: .accessibility5)
     }
 
     func testUtveckling() throws {
@@ -70,8 +74,9 @@ final class SwingLabProvVyer: XCTestCase {
     // MARK: - Hjälp
 
     /// ImageRenderer: innehållet i full längd, mörkt läge, @3x, och prövat mot formspråket.
-    private func rendera(_ vy: some View, namn: String) throws {
+    private func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large) throws {
         let innehall = vy
+            .environment(\.dynamicTypeSize, textstorlek)
             .padding(.vertical, 16)
             .frame(width: Self.bredd)
             .fixedSize(horizontal: false, vertical: true)

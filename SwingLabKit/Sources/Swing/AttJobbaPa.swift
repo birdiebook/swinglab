@@ -42,6 +42,30 @@ public struct AttJobbaPa: Decodable, Sendable {
             case ordning, fel, namn, vy, matt, enhet, nu, spann, markning, ovning, foljdfel, typ, fysik, block
             case klartNar = "klart_nar"
         }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            // Formen är stängd (docs/FORMAT.md): nu, spann, markning och fysik står med även när de är null.
+            for nyckel in [CodingKeys.nu, .spann, .markning, .fysik] where !c.contains(nyckel) {
+                throw DecodingError.keyNotFound(nyckel, DecodingError.Context(codingPath: c.codingPath,
+                                                                              debugDescription: "saknas"))
+            }
+            ordning = try c.decode(Int.self, forKey: .ordning)
+            fel = try c.decode(String.self, forKey: .fel)
+            namn = try c.decode(String.self, forKey: .namn)
+            vy = try c.decode(String.self, forKey: .vy)
+            matt = try c.decode(String.self, forKey: .matt)
+            enhet = try c.decode(String.self, forKey: .enhet)
+            nu = try c.decodeIfPresent(Double.self, forKey: .nu)
+            spann = try c.decodeIfPresent([Double?].self, forKey: .spann)
+            markning = try c.decodeIfPresent(String.self, forKey: .markning)
+            ovning = try c.decode(Ovning.self, forKey: .ovning)
+            klartNar = try c.decode(KlartNar.self, forKey: .klartNar)
+            foljdfel = try c.decode([Foljdfel].self, forKey: .foljdfel)
+            typ = try c.decode(String.self, forKey: .typ)
+            fysik = try c.decodeIfPresent(Fysik.self, forKey: .fysik)
+            block = try c.decode(Block.self, forKey: .block)
+        }
     }
 
     public struct Ovning: Decodable, Sendable {
@@ -63,6 +87,21 @@ public struct AttJobbaPa: Decodable, Sendable {
         public let vag: [String]
         public let nu: Double?
         public let enhet: String
+
+        enum CodingKeys: String, CodingKey { case fel, namn, vag, nu, enhet }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            guard c.contains(.nu) else {
+                throw DecodingError.keyNotFound(CodingKeys.nu, DecodingError.Context(codingPath: c.codingPath,
+                                                                                    debugDescription: "saknas"))
+            }
+            fel = try c.decode(String.self, forKey: .fel)
+            namn = try c.decode(String.self, forKey: .namn)
+            vag = try c.decode([String].self, forKey: .vag)
+            nu = try c.decodeIfPresent(Double.self, forKey: .nu)
+            enhet = try c.decode(String.self, forKey: .enhet)
+        }
     }
 
     /// Blocket: dagen felet först valdes och veckan i blocket.

@@ -10,12 +10,32 @@ struct IdagVy: View {
     var oppnaPasset: () -> Void = {}
     var oppnaJobba: () -> Void = {}
 
+    private func namn(_ r: Idagvisning.Rad) -> some View {
+        Text(r.namn)
+            .typsnitt(14)
+            .foregroundStyle(Theme.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Talet med enheten direkt efter för grader ("+2,0°").
+    private func tal(_ r: Idagvisning.Rad) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: r.enhet == "°" ? 0 : 2) {
+            Text(r.varde)
+                .typsnitt(14, .medium, siffror: true)
+                .foregroundStyle(Theme.text)
+            Text(r.enhet)
+                .typsnitt(14)
+                .foregroundStyle(Theme.tertiary)
+        }
+        .fixedSize()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Idag")
-                    .font(.system(size: 30, weight: .semibold))
                     .tracking(-0.6)
+                    .typsnitt(30, .semibold)
                     .foregroundStyle(Theme.text)
                 Spacer()
                 Under(text: visning.dag)
@@ -32,25 +52,26 @@ struct IdagVy: View {
                     Sektion(etikett: "Senaste passet", hoger: senaste) {
                         VStack(spacing: 0) {
                             ForEach(visning.rader, id: \.id) { r in
-                                HStack(spacing: 12) {
-                                    Text(r.namn)
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(Theme.secondary)
-                                        .lineLimit(1)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    SpannVy(spann: r.spann, kompakt: true)
-                                        .frame(width: 92)
-                                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                        Text(r.varde)
-                                            .font(Theme.number(14))
-                                            .foregroundStyle(Theme.text)
-                                        Text(r.enhet)
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(Theme.tertiary)
+                                // En rad när den får plats; med stor text namnet över spannet och talet.
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(spacing: 12) {
+                                        namn(r).frame(maxWidth: .infinity, alignment: .leading)
+                                        SpannVy(spann: r.spann, kompakt: true)
+                                            .frame(width: 92)
+                                        tal(r).frame(minWidth: 66, alignment: .trailing)
                                     }
-                                    .frame(width: 66, alignment: .trailing)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        namn(r)
+                                        HStack(spacing: 12) {
+                                            SpannVy(spann: r.spann, kompakt: true)
+                                            tal(r)
+                                        }
+                                    }
+                                    .padding(.vertical, 6)
                                 }
                                 .frame(minHeight: 34)
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(r.upplasning)
                             }
                         }
                     }
@@ -63,22 +84,22 @@ struct IdagVy: View {
                     Sektion(etikett: "Att jobba på") {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(f.namn)
-                                .font(.system(size: 22, weight: .semibold))
+                                .typsnitt(22, .semibold)
                                 .foregroundStyle(Theme.text)
                             Text(f.tanke)
-                                .font(.system(size: 20, weight: .medium))
+                                .typsnitt(20, .medium)
                                 .foregroundStyle(Theme.text)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 6)
-                            HStack(spacing: 8) {
+                            Radbrytning(mellan: 8) {
                                 ForEach(Array(f.kedja.enumerated()), id: \.offset) { i, namn in
                                     if i > 0 {
                                         Image(systemName: "arrow.right")
-                                            .font(.system(size: 10, weight: .semibold))
+                                            .typsnitt(10, .semibold)
                                             .foregroundStyle(Theme.tertiary)
                                     }
                                     Text(namn)
-                                        .font(.system(size: 13))
+                                        .typsnitt(13)
                                         .foregroundStyle(i == 0 ? Theme.text : Theme.secondary)
                                         .lineLimit(1)
                                 }

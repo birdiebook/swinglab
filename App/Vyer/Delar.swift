@@ -6,6 +6,37 @@ import Swing
 // Inga ScrollView eller UIKit-delar här, så att provet kan rita vyerna med
 // ImageRenderer; skärmarna läggs i en ScrollView när de kopplas in i navigeringen.
 
+/// Typsnittet skalas med textstorleken (Dynamisk text): storleken är den vid
+/// standardstorleken, och `relativeTo` väljs efter storleken så att stora tal och
+/// små etiketter växer i samma takt som systemets stilar.
+struct Typsnitt: ViewModifier {
+    @ScaledMetric var storlek: CGFloat
+    let vikt: Font.Weight
+    let siffror: Bool
+
+    init(_ storlek: CGFloat, _ vikt: Font.Weight, siffror: Bool) {
+        _storlek = ScaledMetric(wrappedValue: storlek, relativeTo: Typsnitt.stil(storlek))
+        self.vikt = vikt
+        self.siffror = siffror
+    }
+
+    static func stil(_ storlek: CGFloat) -> Font.TextStyle {
+        storlek >= 28 ? .largeTitle : storlek >= 20 ? .title3 : storlek >= 15 ? .body : storlek >= 13 ? .footnote : .caption
+    }
+
+    func body(content: Content) -> some View {
+        content.font(siffror ? Font.system(size: storlek, weight: vikt).monospacedDigit()
+                             : Font.system(size: storlek, weight: vikt))
+    }
+}
+
+extension View {
+    /// Systemtypsnittet i `storlek` punkter vid standardstorleken, skalat med Dynamisk text.
+    func typsnitt(_ storlek: CGFloat, _ vikt: Font.Weight = .regular, siffror: Bool = false) -> some View {
+        modifier(Typsnitt(storlek, vikt, siffror: siffror))
+    }
+}
+
 /// Liten etikett i versaler: "FO · TOPP", "ÖVNING".
 struct Etikett: View {
     let text: String
@@ -15,11 +46,10 @@ struct Etikett: View {
 
     var body: some View {
         Text(text.uppercased() + efter)
-            .font(.system(size: 11, weight: .semibold))
             .tracking(1.1)
             .monospacedDigit()
+            .typsnitt(11, .semibold)
             .foregroundStyle(farg)
-            .lineLimit(1)
     }
 }
 
@@ -29,10 +59,9 @@ struct Under: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13))
             .monospacedDigit()
+            .typsnitt(13)
             .foregroundStyle(Theme.secondary)
-            .lineLimit(1)
     }
 }
 
@@ -46,18 +75,19 @@ struct StortTal: View {
 
     var body: some View {
         // Gradtecknet sitter vid talet; andra enheter står en bit ifrån.
-        HStack(alignment: .firstTextBaseline, spacing: enhet == "°" ? 1 : 5) {
+        HStack(alignment: .firstTextBaseline, spacing: enhet == "°" ? 0 : 5) {
             Text(varde)
-                .font(Theme.number(storlek))
                 .tracking(-storlek * 0.02)
+                .typsnitt(storlek, .medium, siffror: true)
                 .foregroundStyle(avstangt ? Theme.tertiary : Theme.text)
             if !enhet.isEmpty {
                 Text(enhet)
-                    .font(.system(size: enhetStorlek, weight: .medium))
+                    .typsnitt(enhetStorlek, .medium)
                     .foregroundStyle(Theme.secondary)
             }
         }
         .lineLimit(1)
+        .minimumScaleFactor(0.5)
     }
 }
 
@@ -70,10 +100,17 @@ struct Sektion<Innehall: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if etikett != nil || hoger != nil {
-                HStack(alignment: .firstTextBaseline) {
-                    if let etikett { Etikett(text: etikett) }
-                    Spacer(minLength: 10)
-                    if let hoger { Under(text: hoger) }
+                // Bredvid varandra när de får plats, annars under varandra (stor text).
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        if let etikett { Etikett(text: etikett).fixedSize() }
+                        Spacer(minLength: 10)
+                        if let hoger { Under(text: hoger).fixedSize() }
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let etikett { Etikett(text: etikett) }
+                        if let hoger { Under(text: hoger) }
+                    }
                 }
                 .padding(.bottom, 12)
             }
@@ -96,15 +133,15 @@ struct Navrad<Hoger: View>: View {
     var body: some View {
         ZStack {
             Text(titel)
-                .font(.system(size: 16, weight: .semibold))
                 .monospacedDigit()
+                .typsnitt(16, .semibold)
                 .foregroundStyle(Theme.text)
                 .lineLimit(1)
                 .padding(.horizontal, 56)
             HStack {
                 Button(action: tillbaka) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .medium))
+                        .typsnitt(17, .medium)
                         .foregroundStyle(Theme.secondary)
                         .frame(width: 40, height: 40)
                 }
@@ -130,7 +167,7 @@ struct Segment: View {
                     valt = i
                 } label: {
                     Text(alternativ[i])
-                        .font(.system(size: 13, weight: .semibold))
+                        .typsnitt(13, .semibold)
                         .foregroundStyle(i == valt ? Theme.ground : Theme.secondary)
                         .padding(.horizontal, 13)
                         .frame(minHeight: 30)
@@ -153,7 +190,7 @@ struct Chip: View {
     var body: some View {
         Button(action: action) {
             Text(text)
-                .font(.system(size: 13.5, weight: .medium))
+                .typsnitt(13.5, .medium)
                 .foregroundStyle(vald ? Theme.text : Theme.secondary)
                 .lineLimit(1)
                 .padding(.horizontal, 12)
@@ -201,6 +238,16 @@ struct Flode: Layout {
     }
 }
 
+/// Flode som vy, med avståndet som argument.
+struct Radbrytning<Innehall: View>: View {
+    var mellan: CGFloat = 6
+    @ViewBuilder let innehall: () -> Innehall
+
+    var body: some View {
+        Flode(mellan: mellan).callAsFunction(innehall)
+    }
+}
+
 /// Märkningen: en liten symbol och en kort etikett (regel 5). Streckad ring = B10
 /// (gränsen ej läst i original), ram = egen baslinje, överstruken ring = avstängt.
 struct MarkningVy: View {
@@ -228,7 +275,7 @@ struct MarkningVy: View {
             }
             .frame(width: 11, height: 11)
             Text(markning.etikett)
-                .font(.system(size: 11, weight: .semibold))
+                .typsnitt(11, .semibold)
                 .foregroundStyle(Theme.tertiary)
         }
     }

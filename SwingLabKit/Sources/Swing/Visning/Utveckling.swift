@@ -52,11 +52,12 @@ public struct Utveckling: Sendable {
         }
         varde = Mattkort.text(punkter.last?.pass, e)
         if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
-            skillnad = Tal.medEnhet(Tal.tecken(b.pass - a.pass, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(a.datum)
+            let d = Avrundning.avrunda(fel.matt, b.pass)! - Avrundning.avrunda(fel.matt, a.pass)!
+            skillnad = Tal.medEnhet(Tal.tecken(d, decimaler: e.decimaler), e.enhet) + " mot " + Tal.datum(a.datum)
         } else {
             skillnad = nil
         }
-        if let g = fel.gront {
+        if let g = fel.gront, g.count == 2 {
             band = .grans(lo: g[0] ?? -Double.infinity, hi: g[1] ?? Double.infinity)
         } else if let b = Baslinje.spann(pass.dropLast().flatMap { $0.varden(fel.matt, grupp) }) {
             band = .baslinje(lo: b.lo, hi: b.hi)

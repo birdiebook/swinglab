@@ -41,24 +41,25 @@ public struct Mattetikett: Equatable, Sendable {
 public enum Etiketter {
     /// Måtten som katalogen pekar på (Matt.namnDTL/namnFO), i vyns ord.
     public static let tabell: [String: Mattetikett] = [
-        "backen_sway_topp": Mattetikett("Sway", "cm", 1, "topp", tecken: true, plus: "mål"),
-        "backen_resa_framat": Mattetikett("Resa framåt", "cm", 1, "topp–träff", plus: "mål"),
-        "backen_thrust_traff": Mattetikett("Thrust", "cm", 1, "träff", tecken: true, plus: "boll"),
-        "brost_bojning_tapp": Mattetikett("Böjning", "°", 0, "adress–träff", tecken: true, geometri: .bojning),
-        "tempo": Mattetikett("Tempo", ": 1", 1, "start–topp–träff", vy: "Klick", geometri: .tempo),
-        "sway_gap_traff": Mattetikett("Sway gap", "cm", 1, "träff", tecken: true, plus: "mål"),
-        "axellinje_lutning_traff": Mattetikett("Axellutning", "°", 0, "träff", tecken: true),
-        "sidbojning_topp": Mattetikett("Sidböjning", "°", 0, "topp", tecken: true),
-        "framre_armbage_efter_traff": Mattetikett("Främre armbåge", "°", 0, "efter träff"),
-        "bakre_armbage_topp": Mattetikett("Bakre armbåge", "°", 0, "topp", tecken: true),
-        "handbana": Mattetikett("Handens bana", "cm", 1, "nedsving", tecken: true),
-        "framre_armbage_topp": Mattetikett("Främre arm", "°", 0, "topp"),
+        "backen_sway_topp": Mattetikett("Sway", "cm", Avrundning.decimaler("backen_sway_topp"), "topp", tecken: true, plus: "mål"),
+        "backen_resa_framat": Mattetikett("Resa framåt", "cm", Avrundning.decimaler("backen_resa_framat"), "topp–träff", plus: "mål"),
+        "backen_thrust_traff": Mattetikett("Thrust", "cm", Avrundning.decimaler("backen_thrust_traff"), "träff", tecken: true, plus: "boll"),
+        "brost_bojning_tapp": Mattetikett("Böjning", "°", Avrundning.decimaler("brost_bojning_tapp"), "adress–träff", tecken: true, geometri: .bojning),
+        "tempo": Mattetikett("Tempo", ": 1", Avrundning.decimaler("tempo"), "start–topp–träff", vy: "Klick", geometri: .tempo),
+        "sway_gap_traff": Mattetikett("Sway gap", "cm", Avrundning.decimaler("sway_gap_traff"), "träff", tecken: true, plus: "mål"),
+        "axellinje_lutning_traff": Mattetikett("Axellutning", "°", Avrundning.decimaler("axellinje_lutning_traff"), "träff", tecken: true),
+        "sidbojning_topp": Mattetikett("Sidböjning", "°", Avrundning.decimaler("sidbojning_topp"), "topp", tecken: true),
+        "framre_armbage_efter_traff": Mattetikett("Främre armbåge", "°", Avrundning.decimaler("framre_armbage_efter_traff"), "efter träff"),
+        "bakre_armbage_topp": Mattetikett("Bakre armbåge", "°", Avrundning.decimaler("bakre_armbage_topp"), "topp", tecken: true),
+        "handbana": Mattetikett("Handens bana", "cm", Avrundning.decimaler("handbana"), "nedsving", tecken: true),
+        "framre_armbage_topp": Mattetikett("Främre arm", "°", Avrundning.decimaler("framre_armbage_topp"), "topp"),
     ]
 
     /// Etiketten för ett mått. Ett mått utan rad visas med sitt nyckelnamn, så att
     /// det syns i provet och får en rad.
+    /// Decimalerna följer PC:ns regel (Avrundning); ett okänt mått får enheten ur regeln.
     public static func etikett(_ matt: String) -> Mattetikett {
-        tabell[matt] ?? Mattetikett(matt, "", 1, "")
+        tabell[matt] ?? Mattetikett(matt, Avrundning.enhet(matt), Avrundning.decimaler(matt), "")
     }
 
     /// "FO", "DTL" eller "FO+DTL" ur katalogens vy.

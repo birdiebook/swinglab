@@ -50,6 +50,19 @@ public struct Matyta: Sendable {
          (.finish, (faser.finishFran + faser.finishTill) / 2)]
     }
 
+    /// Ögonblicket i `annan` som motsvarar `tc` här: styckvis linjärt mellan faserna
+    /// (adress, topp, träff, finish), och med samma förskjutning som den närmaste fasen
+    /// utanför dem. Två svingar jämförs fas för fas, inte på samma klipptid.
+    public func motsvarande(_ tc: Double, i annan: Matyta) -> Double {
+        let a = fastider.map { $0.t }, b = annan.fastider.map { $0.t }
+        if tc <= a[0] { return b[0] + (tc - a[0]) }
+        for i in 0..<(a.count - 1) where tc <= a[i + 1] {
+            let u = a[i + 1] > a[i] ? (tc - a[i]) / (a[i + 1] - a[i]) : 0
+            return b[i] + u * (b[i + 1] - b[i])
+        }
+        return b[b.count - 1] + (tc - a[a.count - 1])
+    }
+
     /// Tiden som visas: från klippets början.
     public var start: Double { t.first ?? 0 }
 

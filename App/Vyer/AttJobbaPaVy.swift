@@ -14,6 +14,8 @@ struct AttJobbaPaVy: View {
             ForEach(Array(visning.saker.enumerated()), id: \.offset) { i, s in
                 SakVy(sak: s, antal: visning.saker.count)
                     .padding(.top, i == 0 ? 0 : 28)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(s.upplasningHel)
             }
         }
         .padding(.horizontal, 20)
@@ -27,6 +29,34 @@ struct SakVy: View {
     let sak: AttJobbaPaVisning.Sakvisning
     let antal: Int
 
+    private func vag(_ f: AttJobbaPaVisning.Foljd) -> some View {
+        HStack(spacing: 6) { vagDelar(f) }
+    }
+
+    @ViewBuilder private func vagDelar(_ f: AttJobbaPaVisning.Foljd) -> some View {
+        ForEach(Array(f.vag.enumerated()), id: \.offset) { j, namn in
+            Image(systemName: "arrow.right")
+                .typsnitt(10, .semibold)
+                .foregroundStyle(Theme.tertiary)
+            Text(namn)
+                .typsnitt(14)
+                .foregroundStyle(j == f.vag.count - 1 ? Theme.text : Theme.tertiary)
+        }
+    }
+
+    /// Följdfelets tal, gradtecknet direkt efter.
+    private func tal(_ f: AttJobbaPaVisning.Foljd) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: f.enhet == "°" ? 0 : 3) {
+            Text(f.varde)
+                .typsnitt(15, .medium, siffror: true)
+                .foregroundStyle(Theme.text)
+            Text(f.enhet)
+                .typsnitt(13)
+                .foregroundStyle(Theme.tertiary)
+        }
+        .fixedSize()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
@@ -36,8 +66,8 @@ struct SakVy: View {
             }
             .padding(.top, 8)
             Text(sak.namn)
-                .font(.system(size: 30, weight: .semibold))
                 .tracking(-0.6)
+                .typsnitt(30, .semibold)
                 .foregroundStyle(Theme.text)
                 .padding(.top, 4)
             StortTal(varde: sak.nu, enhet: sak.enhet)
@@ -52,29 +82,23 @@ struct SakVy: View {
                 Sektion {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(sak.foljd.enumerated()), id: \.offset) { _, f in
-                            HStack(spacing: 8) {
-                                HStack(spacing: 6) {
-                                    ForEach(Array(f.vag.enumerated()), id: \.offset) { j, namn in
-                                        Image(systemName: "arrow.right")
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundStyle(Theme.tertiary)
-                                        Text(namn)
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(j == f.vag.count - 1 ? Theme.text : Theme.tertiary)
-                                            .lineLimit(1)
-                                    }
+                            // Vägen bryts i stället för att klippas; talet står till höger
+                            // när det får plats och under vägen med stor text.
+                            ViewThatFits(in: .horizontal) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    vag(f).fixedSize()
+                                    Spacer(minLength: 8)
+                                    tal(f)
                                 }
-                                Spacer(minLength: 8)
-                                HStack(alignment: .firstTextBaseline, spacing: f.enhet == "°" ? 1 : 3) {
-                                    Text(f.varde)
-                                        .font(Theme.number(15))
-                                        .foregroundStyle(Theme.text)
-                                    Text(f.enhet)
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Theme.tertiary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Radbrytning(mellan: 6) { vagDelar(f) }
+                                    tal(f)
                                 }
+                                .padding(.vertical, 4)
                             }
                             .frame(minHeight: 32)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(f.upplasning)
                         }
                     }
                 }
@@ -82,7 +106,7 @@ struct SakVy: View {
 
             Sektion(etikett: "Övning") {
                 Text(sak.ovning)
-                    .font(.system(size: 17, weight: .medium))
+                    .typsnitt(17, .medium)
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(alignment: .top, spacing: 4) {
@@ -93,9 +117,9 @@ struct SakVy: View {
                                 .frame(height: 3)
                                 .clipShape(.rect(cornerRadius: 2))
                             Text(s.namn)
-                                .font(.system(size: 12))
+                                .typsnitt(12)
                                 .foregroundStyle(s.lage == .nu ? Theme.text : Theme.tertiary)
-                                .lineLimit(1)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -107,7 +131,7 @@ struct SakVy: View {
                 Sektion(etikett: "Rörlighet", hoger: r.test) {
                     if let o = r.ovning {
                         Text(o)
-                            .font(.system(size: 17, weight: .medium))
+                            .typsnitt(17, .medium)
                             .foregroundStyle(Theme.text)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -116,8 +140,8 @@ struct SakVy: View {
 
             Sektion(etikett: "Tanke") {
                 Text(sak.tanke)
-                    .font(.system(size: 30, weight: .medium))
                     .tracking(-0.3)
+                    .typsnitt(30, .medium)
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 6)
@@ -125,7 +149,7 @@ struct SakVy: View {
 
             Sektion(etikett: "Klart när") {
                 Text(sak.villkor)
-                    .font(Theme.number(20))
+                    .typsnitt(20, .medium, siffror: true)
                     .foregroundStyle(Theme.text)
                     .padding(.top, 6)
                 Under(text: sak.villkorUnder)

@@ -18,23 +18,33 @@ struct PassetVy: View {
         _filter = State(initialValue: filter)
     }
 
+    private var segment: some View {
+        Segment(alternativ: Passvisning.Filter.allCases.map(\.etikett), valt: Binding(
+            get: { Passvisning.Filter.allCases.firstIndex(of: filter) ?? 0 },
+            set: { filter = Passvisning.Filter.allCases[$0] }))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Navrad(titel: visning.titel, hoger: {
                 Button(action: dela) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 17, weight: .medium))
+                        .typsnitt(17, .medium)
                         .foregroundStyle(Theme.secondary)
                         .frame(width: 40, height: 40)
                 }
                 .buttonStyle(.plain)
             }, tillbaka: tillbaka)
-            HStack {
-                Segment(alternativ: Passvisning.Filter.allCases.map(\.etikett), valt: Binding(
-                    get: { Passvisning.Filter.allCases.firstIndex(of: filter) ?? 0 },
-                    set: { filter = Passvisning.Filter.allCases[$0] }))
-                Spacer()
-                Under(text: visning.undertitel)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    segment
+                    Spacer()
+                    Under(text: visning.undertitel).fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    segment
+                    Under(text: visning.undertitel)
+                }
             }
             .padding(.bottom, 6)
             ForEach(visning.filtrerat(filter)) { kort in
