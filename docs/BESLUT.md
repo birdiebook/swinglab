@@ -69,8 +69,9 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
 *2026-10-22 · gäller · Johannes beslut*
 
 - **Valt:** SwingLab. Hemskärmen visar "SwingLab"; i App Store Connect, där
-  namnet måste vara unikt, ett längre namn som "SwingLab – Golf Swing
-  Analysis". Bundle-id `se.birdiebook.swinglab`, paketet `SwingLabKit`, repot
+  namnet måste vara unikt, "SwingLab - Golf Swing Analysis" (med vanligt
+  bindestreck; formen med tankstreck och kortare former var tagna,
+  2026-10-22). Bundle-id `se.birdiebook.swinglab`, paketet `SwingLabKit`, repot
   `birdiebook/swinglab`.
 - **Bortvalt:** Sving (arbetsnamnet), Coil, Positions, Swingframe.
 

@@ -15,7 +15,7 @@ tränas. Se [PLAN.md](PLAN.md) och [CLAUDE.md](CLAUDE.md).
    developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → +
    → App IDs → App → Explicit `se.birdiebook.swinglab`. Inga capabilities.
 1. **App Store Connect → Appar → +:** ny iOS-app med bundle-id
-   `se.birdiebook.swinglab` ur listan, namnet "SwingLab – Golf Swing Analysis"
+   `se.birdiebook.swinglab` ur listan, namnet "SwingLab - Golf Swing Analysis"
    (måste vara unikt; hemskärmen visar "SwingLab", BESLUT B8), SKU `swinglab`,
    språk svenska. Under TestFlight: en intern testgrupp med automatisk
    distribution. Tryck aldrig "Add for Review".
