@@ -197,5 +197,85 @@ class Slagen(unittest.TestCase):
         self.assertIn("matt", rader[0])
 
 
+
+
+class Redigeringen(unittest.TestCase):
+    """S2i: fönstret och utsnittet ur telefonens redigerare (METOD MS13)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.mapp = Path(cls.tmp.name)
+        cls.fo = GP.paket(cls.mapp, PASS, "fo", n=3, inte_sving=0, serier=1)
+        with zipfile.ZipFile(cls.fo) as z:
+            cls.manifest = json.loads(z.read("manifest.json"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def fel(self, **kw) -> list[str]:
+        dst = _skriv_om(self.fo, self.mapp / "trasig.zip", **kw)
+        with self.assertRaises(P.PaketFel) as e:
+            P.las(dst)
+        return e.exception.fel
+
+    def _med_redigering(self, fonster=None, utsnitt=None) -> dict:
+        m = json.loads(json.dumps(self.manifest))
+        if fonster is not None:
+            m["serier"][0]["fonster"] = fonster
+        if utsnitt is not None:
+            m["serier"][0]["utsnitt"] = utsnitt
+        return m
+
+    def test_fonstret_och_utsnittet_las(self) -> None:
+        klick = sorted(s["klick_s"] for s in self.manifest["slag"])
+        f = {"fran_s": klick[0] - 1.0, "till_s": klick[-1] + 1.0}
+        u = {"x": 0.125, "y": 0.25, "b": 0.5, "h": 0.625}
+        p = P.las(_skriv_om(self.fo, self.mapp / "redigerad.zip", manifest=self._med_redigering(f, u)))
+        s = p.serier[1]
+        self.assertEqual(s.fonster, (klick[0] - 1.0, klick[-1] + 1.0))
+        self.assertEqual(s.utsnitt, (0.125, 0.25, 0.5, 0.625))
+        self.assertEqual(s.klubba, "j7")
+        # Utan redigering: None, hela filen och bilden.
+        p0 = P.las(self.fo)
+        self.assertIsNone(p0.serier[1].fonster)
+        self.assertIsNone(p0.serier[1].utsnitt)
+
+    def test_klick_utanfor_fonstret_ar_fel(self) -> None:
+        klick = sorted(s["klick_s"] for s in self.manifest["slag"])
+        f = {"fran_s": klick[1] - 0.5, "till_s": klick[-1] + 1.0}
+        fel = self.fel(manifest=self._med_redigering(f))
+        self.assertEqual(len(fel), 1)
+        self.assertIn("klick_s ligger utanför seriens fonster", fel[0])
+        self.assertNotIn(str(klick[0]), fel[0], "aldrig värdet")
+
+    def test_fel_fonster_och_utsnitt_namner_faltet_utan_varde(self) -> None:
+        fall = [
+            ({"fran_s": 5.0}, None, "fonster ska ha talen fran_s och till_s"),
+            ({"fran_s": 50.0, "till_s": 40.0}, None, "fonster ska ha 0 <= fran_s < till_s"),
+            (None, {"x": 0.1, "y": 0.1, "b": 0.5}, "utsnitt ska ha talen x, y, b och h"),
+            (None, {"x": 0.7, "y": 0.1, "b": 0.5, "h": 0.5}, "utsnitt ska ligga inom bilden"),
+            (None, {"x": 0.1, "y": 0.1, "b": 0.0, "h": 0.5}, "utsnitt ska ligga inom bilden"),
+        ]
+        for f, u, text in fall:
+            fel = self.fel(manifest=self._med_redigering(f, u))
+            self.assertTrue(any(text in x for x in fel), (text, fel))
+            for x in fel:
+                self.assertNotIn("0.7", x)
+
+    def test_utsnittet_i_pixlar_och_tillbaka(self) -> None:
+        """Samma pixlar som SwingLabKits CropRect.pixels (RedigeringTests), och en punkt
+        i utsnittet (MediaPipe på den utskurna bilden) till hela bildens pixlar."""
+        self.assertEqual(P.utsnitt_px((0.1, 0.25, 0.5, 0.5), 1080, 1920), (108, 480, 540, 960))
+        x, y, b, h = P.utsnitt_px((0.1001, 0.0, 0.3, 1.0), 270, 480)
+        self.assertEqual((x, x + b, h), (27, 109, 480))
+        self.assertEqual(P.utsnitt_px((0.01, 0.2, 0.78, 0.7), 270, 480), (2, 96, 212, 336))
+        self.assertEqual(P.utsnitt_px(None, 1080, 1920), (0, 0, 1080, 1920))
+        u = (0.25, 0.1, 0.5, 0.8)
+        self.assertEqual(P.fran_utsnittet(0.5, 0.5, u, 1080, 1920), (540.0, 960.0))
+        self.assertEqual(P.fran_utsnittet(0.0, 0.0, u, 1080, 1920), (270.0, 192.0))
+        self.assertEqual(P.fran_utsnittet(0.25, 0.75, None, 1080, 1920), (270.0, 1440.0))
+
 if __name__ == "__main__":
     unittest.main()

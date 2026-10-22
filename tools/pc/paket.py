@@ -25,6 +25,7 @@ MATS = ("sving", "osaker")                 # METOD MT1: domarna som mäts; inte_
 PASS_ID = re.compile(r"^\d{8}-\d{6}$")
 SLAG_ID = re.compile(r"^s\d{2,4}$")
 AVSTAND_M = (0.5, 20.0)                    # METOD MT1: rimligt avstånd telefon–boll
+KANT = 1e-6                                # METOD MS13: tolerans för utsnittets kant och fönstrets gränser
 
 
 class PaketFel(ValueError):
@@ -51,6 +52,17 @@ class Slag:
 
 
 @dataclass
+class Serie:
+    """En serie i manifestet. `fonster` (fran_s, till_s) och `utsnitt` (x, y, b, h,
+    normaliserat i den upprätta bilden, origo uppe till vänster) kommer ur telefonens
+    redigerare (S2i); None = hela filen och hela bilden. METOD MS13"""
+    nr: int
+    klubba: str | None
+    fonster: tuple[float, float] | None = None
+    utsnitt: tuple[float, float, float, float] | None = None
+
+
+@dataclass
 class Paket:
     fil: str                   # zippens namn, utan katalog
     manifest: dict
@@ -60,6 +72,7 @@ class Paket:
     avstand_m: float | None
     langd_m: float | None
     slag: list[Slag] = field(default_factory=list)
+    serier: dict[int, Serie] = field(default_factory=dict)
 
 
 def _tal(v) -> bool:
@@ -90,6 +103,7 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
         fel.append(f"{F}: spelarens_langd_m ska vara ett tal mellan {LANGD_M[0]} och {LANGD_M[1]}")
     serier = m.get("serier")
     nr = set()
+    fonster: dict[int, tuple[float, float]] = {}
     if not isinstance(serier, list):
         fel.append(f"{F}: serier ska vara en lista")
     else:
@@ -98,8 +112,11 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
                 fel.append(f"{F}: serier[{i}].nr ska vara ett heltal")
                 continue
             nr.add(s["nr"])
+            if not _kontrollera_redigering(s, "") and isinstance(s.get("fonster"), dict):
+                fonster[s["nr"]] = (s["fonster"]["fran_s"], s["fonster"]["till_s"])
             if s.get("klubba") is not None and not isinstance(s["klubba"], str):
                 fel.append(f"{F}: serier[{i}].klubba ska vara text")
+            fel += _kontrollera_redigering(s, f"{F}: serier[{i}]")
     slag = m.get("slag")
     if not isinstance(slag, list) or not slag:
         fel.append(f"{F}: slag saknas eller är tom")
@@ -120,6 +137,10 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
             fel.append(f"{p}.serie ska vara ett nr i serier")
         if not _tal(s.get("klick_s")):
             fel.append(f"{p}.klick_s ska vara ett tal")
+        elif s.get("serie") in fonster and not (
+                fonster[s["serie"]][0] - KANT <= s["klick_s"] <= fonster[s["serie"]][1] + KANT):
+            # Telefonen räknar bara klicken inom fönstret som slag (METOD MS13).
+            fel.append(f"{p}.klick_s ligger utanför seriens fonster")
         if s.get("traff_s") is not None and not _tal(s["traff_s"]):
             fel.append(f"{p}.traff_s ska vara ett tal")
         if s.get("dom") not in DOMAR:
@@ -136,6 +157,51 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
             if not _tal(s.get("klick_i_klipp_s")):
                 fel.append(f"{p}.klick_i_klipp_s ska vara ett tal när klipp finns")
     return fel
+
+
+def _kontrollera_redigering(s: dict, p: str) -> list[str]:
+    """Seriens `fonster` och `utsnitt` (valfria, S2i): fönstret i filen med
+    0 ≤ fran_s < till_s, och utsnittet inom bilden med positiv bredd och höjd. METOD MS13"""
+    fel = []
+    f = s.get("fonster")
+    if f is not None:
+        if not isinstance(f, dict) or not all(_tal(f.get(k)) for k in ("fran_s", "till_s")):
+            fel.append(f"{p}.fonster ska ha talen fran_s och till_s")
+        elif not 0 <= f["fran_s"] < f["till_s"]:
+            fel.append(f"{p}.fonster ska ha 0 <= fran_s < till_s")
+    u = s.get("utsnitt")
+    if u is not None:
+        if not isinstance(u, dict) or not all(_tal(u.get(k)) for k in ("x", "y", "b", "h")):
+            fel.append(f"{p}.utsnitt ska ha talen x, y, b och h")
+        elif not (u["x"] >= -KANT and u["y"] >= -KANT and u["b"] > 0 and u["h"] > 0
+                  and u["x"] + u["b"] <= 1 + KANT and u["y"] + u["h"] <= 1 + KANT):
+            fel.append(f"{p}.utsnitt ska ligga inom bilden (0–1) med positiv b och h")
+    return fel
+
+
+def utsnitt_px(utsnitt, bredd: int, hojd: int) -> tuple[int, int, int, int]:
+    """Utsnittet i pixlar i den upprätta bilden bredd × hojd (x, y, b, h), avrundat
+    utåt till hela pixlar och inom bilden, som SwingLabKits `CropRect.pixels`. Utan
+    utsnitt hela bilden. METOD MS13"""
+    if utsnitt is None:
+        return 0, 0, bredd, hojd
+    x, y, b, h = utsnitt
+    e = KANT
+    x0 = max(0, min(bredd, math.floor(x * bredd + e)))
+    y0 = max(0, min(hojd, math.floor(y * hojd + e)))
+    x1 = max(x0, min(bredd, math.ceil((x + b) * bredd - e)))
+    y1 = max(y0, min(hojd, math.ceil((y + h) * hojd - e)))
+    return x0, y0, x1 - x0, y1 - y0
+
+
+def fran_utsnittet(u: float, v: float, utsnitt, bredd: int, hojd: int) -> tuple[float, float]:
+    """En punkt normaliserad i utsnittet (origo uppe till vänster, som MediaPipe på en
+    utskuren bild) → pixlar i hela den upprätta bilden, så att cm per px och måtten
+    är desamma som utan utsnitt (telefonen gör samma med Visions punkter). METOD MS13"""
+    if utsnitt is None:
+        return u * bredd, v * hojd
+    x, y, b, h = utsnitt
+    return (x + u * b) * bredd, (y + v * h) * hojd
 
 
 def _led(j, plats: str) -> tuple[list[float] | None, str | None]:
@@ -214,10 +280,16 @@ def las(sokvag, med_leder: bool = True) -> Paket:
         if fel:
             raise PaketFel(fel)
         klubba = {s["nr"]: s.get("klubba") for s in m["serier"]}
+        serier = {}
+        for s in m["serier"]:
+            f, u = s.get("fonster"), s.get("utsnitt")
+            serier[s["nr"]] = Serie(nr=s["nr"], klubba=s.get("klubba"),
+                                    fonster=(float(f["fran_s"]), float(f["till_s"])) if f is not None else None,
+                                    utsnitt=tuple(float(u[k]) for k in ("x", "y", "b", "h")) if u is not None else None)
         ordning = sorted(range(len(m["slag"])), key=lambda i: (m["slag"][i]["serie"], m["slag"][i]["klick_s"]))
         plats = {i: k for k, i in enumerate(ordning)}
         p = Paket(fil=namn, manifest=m, pass_id=m["pass"], vy=m["vy"], spelhand=m["spelhand"],
-                  avstand_m=m.get("avstand_m"), langd_m=m.get("spelarens_langd_m"))
+                  avstand_m=m.get("avstand_m"), langd_m=m.get("spelarens_langd_m"), serier=serier)
         for i in ordning:
             s = m["slag"][i]
             p.slag.append(Slag(id=s["id"], serie=s["serie"], klubba=klubba.get(s["serie"]), dom=s["dom"],

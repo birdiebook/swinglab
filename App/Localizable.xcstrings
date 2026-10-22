@@ -177,6 +177,17 @@
         }
       }
     },
+    "Crop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crop"
+          }
+        }
+      }
+    },
     "DTL": {
       "extractionState": "manual",
       "localizations": {
@@ -199,6 +210,17 @@
         }
       }
     },
+    "Done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
     "Done when": {
       "extractionState": "manual",
       "localizations": {
@@ -217,6 +239,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Drill"
+          }
+        }
+      }
+    },
+    "End": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End"
           }
         }
       }
@@ -408,6 +441,17 @@
         }
       }
     },
+    "Next frame": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next frame"
+          }
+        }
+      }
+    },
     "Next set": {
       "extractionState": "manual",
       "localizations": {
@@ -459,6 +503,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Orientation suspect"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "Play": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play"
+          }
+        }
+      }
+    },
+    "Previous frame": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous frame"
           }
         }
       }
@@ -529,6 +606,17 @@
         }
       }
     },
+    "Sets": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets"
+          }
+        }
+      }
+    },
     "Shot %lld could not be analyzed: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -558,6 +646,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shots"
+          }
+        }
+      }
+    },
+    "Start": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
           }
         }
       }

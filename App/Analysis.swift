@@ -119,7 +119,7 @@ final class Analysis {
                 }
             }.value
             let series = PoseTrack.series(scan.frames, click: shot.click.time, width: serie.uprightWidth,
-                                          height: serie.uprightHeight)
+                                          height: serie.uprightHeight, crop: request.crop)
             var stats = pass.vision ?? VisionStats()
             stats.add(scan, picked: series.frames.filter { $0.confidence >= PoseRules.observationConfidence }.count)
             pass.vision = stats
@@ -131,7 +131,8 @@ final class Analysis {
                 pass.shots[i].orientationSuspect = series.orientationSuspect
             }
         case .clip:
-            guard let w = ShotPlan.window(ShotPlan.clipWindow, click: shot.click.time, duration: serie.duration) else {
+            // Klippet inom seriens fönster ur redigeraren (METOD MS13).
+            guard let w = ShotPlan.window(ShotPlan.clipWindow, click: shot.click.time, series: serie) else {
                 throw AnalysisError.outsideFile
             }
             let rel = ShotRecord.clipPath(shot.id)
@@ -172,10 +173,12 @@ enum Clips {
 /// Miniatyren vid träffen: rutan ur seriens fil (eller klippet, om originalet är borttaget,
 /// BESLUT B26) och de uppmätta linjerna ur lederna (BESLUT B13: ingen figur).
 enum ShotImages {
-    /// Den upprätta rutan vid träffen, högst `maxSize` punkter. nil = ingen fil att läsa.
+    /// Den upprätta rutan vid träffen, skuren till seriens utsnitt (S2i), högst `maxSize`
+    /// punkter. nil = ingen fil att läsa. METOD MS13
     static func impactFrame(pass: PassState, shot: ShotRecord, store: Store,
                             maxSize: CGSize = CGSize(width: 270, height: 480)) async throws -> CGImage? {
         guard let serie = pass.series.first(where: { $0.nr == shot.series }) else { return nil }
+        let crop = serie.activeCrop
         var url = store.url(serie.file, in: pass.id)
         var t = shot.impact
         if !FileManager.default.fileExists(atPath: url.path) {
@@ -188,8 +191,17 @@ enum ShotImages {
         g.appliesPreferredTrackTransform = true
         g.requestedTimeToleranceBefore = .zero
         g.requestedTimeToleranceAfter = .zero
-        g.maximumSize = maxSize
-        return try await g.image(at: CMTime(seconds: max(0, t), preferredTimescale: 48_000)).image
+        // Med utsnitt läses rutan större, så att den skurna delen får samma upplösning.
+        g.maximumSize = crop.map { CGSize(width: maxSize.width / $0.width, height: maxSize.height / $0.height) } ?? maxSize
+        let bild = try await g.image(at: CMTime(seconds: max(0, t), preferredTimescale: 48_000)).image
+        return crop.map { cropped(bild, $0) } ?? bild
+    }
+
+    /// Den upprätta bilden skuren till utsnittet (normaliserat, origo uppe till vänster).
+    static func cropped(_ image: CGImage, _ crop: CropRect) -> CGImage {
+        let px = crop.pixels(width: image.width, height: image.height)
+        let r = CGRect(x: px.x, y: px.y, width: px.width, height: px.height)
+        return image.cropping(to: r) ?? image
     }
 
     /// Träffen i klippets tid: utgår från klicket som mättes i klippet (var passthrough-
@@ -199,9 +211,11 @@ enum ShotImages {
         return shot.clipStart.map { shot.impact - $0 }
     }
 
-    /// Linjerna vid träffen ur slagets leder, eller nil före det täta passet.
+    /// Linjerna vid träffen ur slagets leder, i utsnittets koordinater som miniatyren, eller
+    /// nil före det täta passet. METOD MS13
     static func overlay(shot: ShotRecord, pass: PassState, store: Store) -> ImpactOverlay? {
         guard let rel = shot.joints, let series = store.joints(rel, in: pass.id) else { return nil }
-        return ImpactOverlay.at(series, t: shot.impact - shot.click.time)
+        let crop = pass.series.first { $0.nr == shot.series }?.activeCrop
+        return ImpactOverlay.at(series, t: shot.impact - shot.click.time)?.cropped(crop)
     }
 }

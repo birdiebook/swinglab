@@ -694,6 +694,71 @@ värden i `CaptureTests`.
   fönstrets slut kommer inte med (**mätt**, 240 av 241). **Visions leder själva provas bara på telefonen** (T2, och
   oktobers 41 slag i S2h).
 
+## MS13 — Fönstret och utsnittet (redigeraren, S2i)
+
+- **Icke-destruktivt.** Originalfilen ändras aldrig. Passet sparar per serie
+  (`SeriesRecord.edit`, `Edit.swift`) ett **tidsfönster** i filens tid (s) och
+  ett **utsnitt**, en rektangel normaliserad 0–1 i den **upprätta** bilden med
+  origo uppe till vänster (samma rum som lederna i pixlar, MS7). Saknas
+  redigeringen gäller hela filen och hela bilden. **räkning.**
+- **Fönstret.** Ett klick blir ett slag bara inom fönstret, gränserna
+  inräknade (`countedClicks`). Vision-passen (MS5, MS12) och klippet kapas vid
+  fönstret som vid filens ändar: det som trimmats bort finns inte för
+  analysen. Fönstret är minst **1,0 s** (handtagen går inte förbi varandra;
+  kortare än en baksving gör ingen nytta). **antagande.**
+- **Utsnittet** är minst **0,2** av bildens sida åt båda hållen (216 × 384 px i
+  1080 × 1920), med fria proportioner, och ligger alltid inom bilden. Under
+  det har Vision för lite att se. **antagande.**
+- **Vision bara i rutan.** Rutan blir `regionOfInterest` på
+  `VNDetectHumanBodyPoseRequest`: "normalized to the dimensions of the processed
+  image. Its origin is specified relative to the image's lower-left corner"
+  (Apple, `VNImageBasedRequest.regionOfInterest`, **tillverkare, läst i Apples
+  dokumentation 2026-10-22**), alltså `(x, 1 − y − h, b, h)`. Att "the processed
+  image" är den orienterade (efter EXIF, som lederna antas vara, MS7) och att
+  kroppens punkter då är normaliserade **i rutan** med origo nere till vänster
+  står inte uttryckligen för kroppens leder; att Visions resultat är relativa
+  rutan är vedertaget (Apples egna `VNImagePointForNormalizedPointUsingRegionOfInterest`
+  finns för det). **antagande, prövas på telefonen** (S2i:s "Klart när": lederna
+  ska ligga på spelaren inuti rutan). En punkt (u, v) i rutan blir
+  `x = (x₀ + u·b)·B`, `y = (y₀ + (1 − v)·h)·H` i hela bildens pixlar.
+- **Måtten påverkas inte av utsnittet.** Lederna sparas i **hela den upprätta
+  bildens pixlar** (`JointSeries.width/height` är bildens, inte rutans), så
+  cm per px (M2, ur kroppens längd i px) och varje mått i px räknas som utan
+  utsnitt. Det utsnittet ändrar är vad Vision ser: spelaren större i modellens
+  indata och grannen utanför. Hur mycket det flyttar lederna mäts i S3
+  (Vision mot MediaPipe). **räkning.**
+- **Leder utanför rutan** (Vision kan gissa en led utanför det den såg, och en
+  hand kan lämna rutan efter träffen) sparas som **saknade**: analysen ger bara
+  leder inom rutan. Personvalet i första rutan (MS8) tar den vars höfter ligger
+  närmast **rutans** mitt i x. **antagande.**
+- **Ändras fönstret eller utsnittet** görs seriens slag om: lederna, klippet och
+  domen tas bort (inte Johannes egen dom), slag utanför fönstret försvinner (id:t
+  ges aldrig igen, MS12), filerna i `Leder/` och `Klipp/` tas bort och passet blir
+  inspelat igen, så att Analyze gör om det som saknas. **räkning.**
+- **Bufferten och den upprätta bilden.** En normaliserad punkt (s, t) i den
+  lagrade bufferten (origo uppe till vänster) blir i den upprätta bilden
+  (1 − t, s) för EXIF 6, (t, 1 − s) för 8, (1 − s, 1 − t) för 3 och (s, t) för 1
+  (`Orientation.upright`, `uprightRect`; samma som `preferredTransform`
+  (0, 1, −1, 0, h, 0) gör med pixlarna). **vedertagen avbildning**; **mätt** i
+  simulatorprovet: en vit ruta uppe till vänster i en påhittad films buffert
+  ligger där i den upprätta bilden (uppe till höger), inte där EXIF 8 eller
+  ingen vridning hade lagt den.
+- **Granskningen och miniatyrerna** visar rutan: bilden skärs till utsnittet
+  (avrundat utåt till hela pixlar, samma i Python `utsnitt_px`) och linjerna
+  ritas i rutans koordinater.
+- **Paketet** bär `fonster` och `utsnitt` per serie (docs/FORMAT.md), så att
+  PC:n kan låta MediaPipe se samma ruta och föra punkterna tillbaka med
+  `fran_utsnittet` (origo uppe till vänster, som MediaPipe).
+- **Vad som provas var.** Linux (`RedigeringTests`, `test_paket.py`):
+  handtagen, rutans flytt, nyp och hörn, Visions region och punkter tillbaka,
+  leder utanför rutan, bufferten, klicken utanför fönstret, analysens fönster,
+  att slagen görs om, pass.json och manifestets fält. Simulatorn
+  (`SwingLabProvRedigering`): markören, att redigeringen sparas och överlever en
+  omstart, klicket utanför fönstret, att appens Vision-körning ger rätt
+  `regionOfInterest`, påhittade leder genom rutan och tillbaka, miniatyren i
+  rutan och bilderna av redigeraren. **Visions leder i rutan provas bara på
+  telefonen.**
+
 ---
 
 # Tolkningen (S5)

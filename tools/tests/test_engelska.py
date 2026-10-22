@@ -89,9 +89,10 @@ def nyckel(text: str) -> str:
 # som visas ska i stället stå i katalogen.
 INTE_TEXT = {
     "", "s", "cm", "0 cm", "°", "mov", "pass", "installningar", "pass.json", "installningar.json",
-    "SwingLab", "Export", "Pass", "Video", "Klipp", "swinglab.kamera", "arrow.right", "chevron.left",
+    "SwingLab", "Export", "Pass", "Video", "Klipp", "Leder", "swinglab.kamera", "arrow.right", "chevron.left",
     "square.and.arrow.up", "\\(…)", "\\(…) m", "\\(…) · ", "\\(…) · \\(…)", "\\(…): \\(…)",
-    "\\(…), \\(…) cm", "pencil", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
+    "\\(…), \\(…) cm", "pencil", "crop", "play.fill", "pause.fill", "backward.frame.fill",
+    "forward.frame.fill", "trim", "\\(…)–\\(…) s", "\\(…):\\(…)", "ljusprov-\\(…).mov", "import-\\(…).\\(…)", "\\(…)-unreadable-\\(…).json",
 }
 
 

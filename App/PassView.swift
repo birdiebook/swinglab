@@ -19,6 +19,12 @@ struct PassShotsView: View {
     @State private var job: Task<Void, Never>?
     /// Slaget vars miniatyr visas stor.
     @State private var enlarged: ShotID?
+    /// Serien som öppnats i redigeraren (S2i).
+    @State private var editing: SeriesID?
+
+    struct SeriesID: Identifiable {
+        let id: Int
+    }
 
     struct ShotID: Identifiable {
         let id: String
@@ -29,7 +35,8 @@ struct PassShotsView: View {
             ScrollView {
                 if let pass {
                     ShotsContent(pass: pass, images: images, overlays: overlays, analysis: AnalysisState(analysis),
-                                 onAnalyze: analyze, onVerdict: setVerdict, onThumb: { enlarged = ShotID(id: $0) })
+                                 onAnalyze: analyze, onVerdict: setVerdict, onThumb: { enlarged = ShotID(id: $0) },
+                                 onEdit: { editing = SeriesID(id: $0) })
                         .padding(20)
                 }
             }
@@ -49,6 +56,17 @@ struct PassShotsView: View {
             guard let p else { return }
             pass = p
             Task { await loadImages(p) }
+        }
+        // Redigeraren för en serie: efter Done görs seriens slag om, och miniatyrerna
+        // läses om med det nya utsnittet (METOD MS13).
+        .fullScreenCover(item: $editing) { e in
+            ClipEditorView(passID: passID, seriesNr: e.id) {
+                editing = nil
+                images = [:]
+                overlays = [:]
+                reload()
+            }
+            .environment(store)
         }
         .sheet(item: $enlarged) { s in
             if let pass, let shot = pass.shots.first(where: { $0.id == s.id }) {
@@ -126,6 +144,8 @@ struct ShotsContent: View {
     var onAnalyze: () -> Void = {}
     var onVerdict: (SwingVerdict, String) -> Void = { _, _ in }
     var onThumb: (String) -> Void = { _ in }
+    /// Seriens redigerare (S2i): fönstret och utsnittet.
+    var onEdit: (Int) -> Void = { _ in }
 
     var body: some View {
         let rows = ShotRow.rows(pass)
@@ -167,6 +187,9 @@ struct ShotsContent: View {
                     .typsnitt(13, .semibold)
                     .foregroundStyle(Theme.flag)
             }
+            if !pass.series.isEmpty {
+                SeriesSection(series: pass.series, editable: editable && !analysis.running, onEdit: onEdit)
+            }
             VStack(spacing: 0) {
                 ForEach(rows) { row in
                     ShotRowView(row: row, image: images[row.id], overlay: overlays[row.id], editable: editable,
@@ -183,6 +206,43 @@ struct ShotsContent: View {
                 .typsnitt(13)
                 .foregroundStyle(flag ? Theme.flag : Theme.secondary)
         }
+    }
+}
+
+/// Serierna i passet: numret, fönstret i s och utsnittets symbol; ett tryck öppnar
+/// redigeraren (S2i). B13: bara etiketten, tiden och symbolen. METOD MS13
+struct SeriesSection: View {
+    let series: [SeriesRecord]
+    var editable = true
+    var onEdit: (Int) -> Void = { _ in }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Etikett(text: String(localized: "Sets"))
+                .padding(.bottom, 6)
+            ForEach(series, id: \.nr) { s in
+                Button { onEdit(s.nr) } label: {
+                    HStack(spacing: 10) {
+                        Text(String(localized: "Set \(s.nr)"))
+                        Spacer(minLength: 8)
+                        Text(verbatim: Self.window(s))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.secondary)
+                        Image(systemName: "crop")
+                            .foregroundStyle(s.activeCrop == nil ? Theme.tertiary : Theme.text)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .buttonStyle(RowButtonStyle())
+                .disabled(!editable)
+            }
+        }
+    }
+
+    /// "1.2–4.6 s": fönstret som gäller.
+    static func window(_ s: SeriesRecord) -> String {
+        let w = s.activeWindow
+        return "\(Taltext.decimal(w.start, digits: 1))–\(Taltext.decimal(w.end, digits: 1)) s"
     }
 }
 

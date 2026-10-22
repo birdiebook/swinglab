@@ -121,6 +121,30 @@ final class Store {
         return try? JSONDecoder().decode(JointSeries.self, from: data)
     }
 
+    // MARK: Redigeringen (S2i)
+
+    /// Seriens fönster och utsnitt till passet (`PassState.setEdit`), sparat; lederna och
+    /// klippen som inget längre pekar på tas bort. Originalfilen rörs aldrig. Svarar
+    /// passet som det står på disken. METOD MS13
+    func saveEdit(_ edit: SeriesEdit, series nr: Int, in passID: String) throws -> PassState? {
+        guard var pass = load(passID) else { return nil }
+        let bort = pass.setEdit(edit, series: nr)
+        try write(pass)
+        removeShotFiles(bort, in: passID)
+        return pass
+    }
+
+    /// Tar bort slagens filer (Leder/ och Klipp/) i passet; aldrig något annat.
+    func removeShotFiles(_ files: [String], in passID: String) {
+        let mapp = passFolder(passID).standardizedFileURL
+        let tillatna = ["Leder", "Klipp"].map { mapp.appending(path: $0, directoryHint: .isDirectory).standardizedFileURL }
+        for rel in files {
+            let f = url(rel, in: passID).standardizedFileURL
+            guard tillatna.contains(f.deletingLastPathComponent()) else { continue }
+            try? FileManager.default.removeItem(at: f)
+        }
+    }
+
     // MARK: Originalen (BESLUT B26)
 
     func setKeepOriginals(_ keep: Bool) {

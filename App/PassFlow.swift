@@ -20,14 +20,21 @@ struct PassFlowView: View {
     @State private var pass: PassState?
     /// Efter Continue: passet med slagen.
     @State private var shots = false
+    /// Serierna som ännu inte redigerats, i tur före slagen (S2i).
+    @State private var editQueue: [Int] = []
 
     var body: some View {
         if shots, let pass {
-            PassShotsView(passID: pass.id, onClose: onClose)
+            if let nr = editQueue.first {
+                ClipEditorView(passID: pass.id, seriesNr: nr) { editQueue.removeFirst() }
+                    .id(nr)
+            } else {
+                PassShotsView(passID: pass.id, onClose: onClose)
+            }
         } else if let binding = Binding($pass) {
             switch mode {
-            case .record: RecordView(pass: binding, onClose: onClose, onContinue: { shots = true })
-            case .photos: ImportView(pass: binding, onClose: onClose, onContinue: { shots = true })
+            case .record: RecordView(pass: binding, onClose: onClose, onContinue: proceed)
+            case .photos: ImportView(pass: binding, onClose: onClose, onContinue: proceed)
             }
         } else {
             NavigationStack {
@@ -41,6 +48,15 @@ struct PassFlowView: View {
                 }
             }
         }
+    }
+
+    /// Continue: först redigeraren för varje serie som inte redigerats (fönstret och
+    /// utsnittet, S2i), sedan passet med slagen och Analyze.
+    private func proceed() {
+        if let id = pass?.id {
+            editQueue = store.load(id)?.series.filter { $0.edit == nil }.map(\.nr) ?? []
+        }
+        shots = true
     }
 }
 

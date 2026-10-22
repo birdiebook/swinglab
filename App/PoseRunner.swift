@@ -29,8 +29,10 @@ struct VisionPoseSource: PoseSource {
         .leftHip, .rightHip, .leftKnee, .rightKnee, .leftAnkle, .rightAnkle,
     ]
 
-    /// Visions anrop på en ruta: personerna i den, orienterade så att de står upp.
-    typealias Detect = (CMSampleBuffer, CGImagePropertyOrientation) throws -> [VNHumanBodyPoseObservation]
+    /// Visions anrop på en ruta: personerna i den, orienterade så att de står upp, letade
+    /// bara inom `regionOfInterest` (normaliserad, origo nere till vänster; hela bilden
+    /// utan utsnitt). METOD MS13
+    typealias Detect = (CMSampleBuffer, CGImagePropertyOrientation, CGRect) throws -> [VNHumanBodyPoseObservation]
 
     /// Gör anropet för en körning. Standard är Vision (`vision()`). Simulatorprovet byter
     /// det mot ett som räknar rutorna och svarar inga personer, eftersom Vision inte går
@@ -47,7 +49,8 @@ struct VisionPoseSource: PoseSource {
     static func vision() throws -> Detect {
         let request = VNDetectHumanBodyPoseRequest()
         request.revision = VNDetectHumanBodyPoseRequestRevision1
-        return { sb, orientation in
+        return { sb, orientation, region in
+            request.regionOfInterest = region
             try VNImageRequestHandler(cmSampleBuffer: sb, orientation: orientation, options: [:]).perform([request])
             return request.results ?? []
         }
@@ -68,6 +71,7 @@ struct VisionPoseSource: PoseSource {
         guard reader.startReading() else { throw reader.error ?? PoseError.cannotRead }
 
         let orientation = CGImagePropertyOrientation(rawValue: r.exif) ?? .up
+        let region = Self.region(r.crop)
         let detect = try makeDetect()
         let stride = max(1, r.stride)
         let span = max(r.to - r.from, 1e-6)
@@ -88,7 +92,7 @@ struct VisionPoseSource: PoseSource {
                 defer { k += 1 }
                 guard k % stride == 0 else { return }
                 let v0 = Date()
-                let candidates = try detect(sb, orientation).map { try Self.frame($0, pts: t, r) }
+                let candidates = try detect(sb, orientation, region).map { try Self.frame($0, pts: t, r) }
                 visionSeconds += Date().timeIntervalSince(v0)
                 frames.append(ScannedFrame(pts: t, candidates: candidates))
                 if frames.count % 16 == 0 { progress(min(1, max(0, (t - r.from) / span))) }
@@ -99,8 +103,17 @@ struct VisionPoseSource: PoseSource {
                         wallSeconds: Date().timeIntervalSince(start))
     }
 
+    /// Utsnittet som Visions `regionOfInterest`: rutan i den upprätta bilden med y vänt
+    /// (origo nere till vänster, Apple). Hela bilden utan utsnitt. METOD MS13
+    static func region(_ crop: CropRect?) -> CGRect {
+        guard let c = crop else { return CGRect(x: 0, y: 0, width: 1, height: 1) }
+        let v = c.visionRegion
+        return CGRect(x: v.x, y: v.y, width: v.width, height: v.height)
+    }
+
     /// En observation till värden: punkterna per namn, normaliserade i den orienterade
-    /// bilden, till pixlar i SwingLabKit. Konfidens 0 = ogiltig (Apple), sparas som saknad.
+    /// bilden (i utsnittet när Vision letade där), till pixlar i hela den upprätta bilden i
+    /// SwingLabKit. Konfidens 0 = ogiltig (Apple), sparas som saknad. METOD MS13
     static func frame(_ o: VNHumanBodyPoseObservation, pts: Double, _ r: PoseScanRequest) throws -> PoseFrame {
         let all = try o.recognizedPoints(.all)
         let points = joints.map { name -> PoseJoint? in
@@ -108,6 +121,6 @@ struct VisionPoseSource: PoseSource {
             return PoseJoint(x: Double(p.location.x), y: Double(p.location.y), c: Double(p.confidence))
         }
         return PoseFrame.fromVision(pts: pts, points: points, confidence: Double(o.confidence),
-                                    uprightWidth: r.uprightWidth, uprightHeight: r.uprightHeight)
+                                    uprightWidth: r.uprightWidth, uprightHeight: r.uprightHeight, crop: r.crop)
     }
 }

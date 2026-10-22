@@ -147,8 +147,28 @@ står). PC:n (`tools/pc/paket.py`) läser och kräver:
 | `spelhand` | `"hoger"` eller `"vanster"` (blir svingens `hand`) |
 | `avstand_m` | valfri, 0,5–20; ger träffen när `traff_s` saknas (METOD MT1) |
 | `spelarens_langd_m` | **valfri, nytt i S5**: 1,0–2,5. Saknas den tas längden ur `--langd` eller historiken |
-| `serier[]` | `nr` heltal, `klubba` valfri text |
+| `serier[]` | `nr` heltal, `klubba` valfri text, `fonster` och `utsnitt` valfria (nedan) |
 | `slag[]` | `id` (`s01`…), `serie` (ett `nr`), `klick_s`, `traff_s` (valfri), `dom` (`sving`, `inte_sving`, `osaker`), `leder` (fil i zippen), `klipp` (valfri fil i zippen) med `klick_i_klipp_s` |
+
+**Fönstret och utsnittet** (S2i, redigeraren på telefonen, METOD MS13, BESLUT B34),
+per serie och valfria; saknas de gäller hela filen och hela bilden:
+
+```json
+"serier": [{"nr": 1, "klubba": "j7",
+            "fonster": {"fran_s": 1.25, "till_s": 6.5},
+            "utsnitt": {"x": 0.125, "y": 0.25, "b": 0.5, "h": 0.625}}]
+```
+
+| Fält | Krav |
+|---|---|
+| `fonster.fran_s`, `fonster.till_s` | tal, s i seriens fil, `0 <= fran_s < till_s`. Varje slags `klick_s` ligger i fönstret (telefonen räknar bara de klicken). |
+| `utsnitt.x`, `y`, `b`, `h` | tal, normaliserade i den **upprätta** bilden med origo uppe till vänster (som lederna), inom 0–1, `b` och `h` positiva |
+
+Lederna i `slag/s01.json` står alltid i **hela** den upprätta bildens pixlar, även
+med utsnitt: telefonen för Visions punkter ur rutan tillbaka. PC:n kan låta
+MediaPipe se samma ruta (`paket.utsnitt_px`) och föra punkterna tillbaka med
+`paket.fran_utsnittet`. Klippen är passthrough och inte beskurna; de är kapade vid
+fönstret.
 
 Övriga fält (`telefon`, `enhet.json`, `ljusprov.json`, `par.json`, `vision`)
 läses inte än. Sökvägarna får inte börja med `/` eller innehålla `..`.

@@ -7,7 +7,7 @@ import Foundation
 // bilden. Klick utanför fönstret blir inga slag, Vision letar bara inom utsnittet
 // (`regionOfInterest`), och lederna förs tillbaka till hela bildens pixlar så att
 // måtten inte ändras. Allt här är värden och prövas på Linux; App/ClipEditor.swift
-// ritar redigeraren och App/PoseRunner.swift ger Vision rutan. METOD MS13
+// ritar redigeraren och App/PoseRunner.swift ger Vision rutan. METOD MS13, BESLUT B34
 
 /// Tidsfönstret i seriens fil, s (filens egen tidslinje, samma som klicken). Ett klick
 /// räknas som ett slag bara inom fönstret, gränserna inräknade. METOD MS13

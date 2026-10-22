@@ -84,6 +84,15 @@ Analyze. B13: bara handtagen, rutan och tiden, ingen förklarande text.
 sätts, och analysen ger leder bara inom rutan; simulatorprovet bevisar
 fönstret och utsnittet på en påhittad film.
 
+**Byggt (grenen `s2i`).** SwingLabKit `Capture/Edit.swift` (`TimeWindow`,
+`CropRect`, `SeriesEdit`, `PassState.setEdit`, Visions region och punkter,
+bufferten mot den upprätta bilden, `TrimTimeline`) med `RedigeringTests`; App
+`ClipEditor.swift` (redigeraren), Continue → redigeraren för varje ny serie →
+passet, och raden per serie i passet öppnar den igen. Paketets `fonster` och
+`utsnitt` i `docs/FORMAT.md` och `tools/pc/paket.py`. METOD MS13, BESLUT B34.
+Simulatorprovet: `Prov/SwingLabProvRedigering.swift` (bilderna `redigerare-hel`,
+`redigerare`, `redigering-slag`, `redigering-traff`).
+
 ## S3 — Facit: Vision mot MediaPipe
 
 PC:n kör MediaPipe heavy på samma klipp och jämför per led, fas och vy. Måtten

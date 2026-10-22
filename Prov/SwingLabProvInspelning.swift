@@ -32,8 +32,10 @@ enum SyntheticMovie {
     /// Klicken och de vita rutorna, s.
     static let flashes = [1.000, 2.200]
 
+    /// `marker`: en vit ruta i den lagrade bufferten (px, origo uppe till vänster), så att
+    /// redigerarens prov ser var den hamnar i den upprätta bilden (S2i, METOD MS13).
     static func write(to url: URL, sound: Sound, rate: Int = 240, dropEveryThird: Bool = true,
-                      seconds: Double = 3.2) async throws {
+                      seconds: Double = 3.2, marker: (x: Int, y: Int, width: Int, height: Int)? = nil) async throws {
         try? FileManager.default.removeItem(at: url)
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let w = 480, h = 270
@@ -87,6 +89,7 @@ enum SyntheticMovie {
             var pb: CVPixelBuffer?
             guard CVPixelBufferPoolCreatePixelBuffer(nil, pool, &pb) == kCVReturnSuccess, let pb else { return false }
             fill(pb, value: vita.contains(i) ? 255 : 128)
+            if let marker { fill(pb, value: 255, rect: marker) }
             let ok = adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: CMTimeScale(rate)))
             i += 1
             return ok
@@ -162,6 +165,21 @@ enum SyntheticMovie {
         guard let base = CVPixelBufferGetBaseAddress(pb) else { return }
         let bytes = CVPixelBufferGetBytesPerRow(pb) * CVPixelBufferGetHeight(pb)
         memset(base, Int32(value), bytes)
+    }
+
+    /// Fyller en rektangel i en BGRA-ruta (px, origo uppe till vänster) med en grå nivå.
+    static func fill(_ pb: CVPixelBuffer, value: UInt8, rect r: (x: Int, y: Int, width: Int, height: Int)) {
+        CVPixelBufferLockBaseAddress(pb, [])
+        defer { CVPixelBufferUnlockBaseAddress(pb, []) }
+        guard let base = CVPixelBufferGetBaseAddress(pb) else { return }
+        let rad = CVPixelBufferGetBytesPerRow(pb)
+        let w = CVPixelBufferGetWidth(pb), h = CVPixelBufferGetHeight(pb)
+        let x0 = max(0, r.x), x1 = min(w, r.x + r.width)
+        let y0 = max(0, r.y), y1 = min(h, r.y + r.height)
+        guard x1 > x0, y1 > y0 else { return }
+        for y in y0..<y1 {
+            memset(base + y * rad + 4 * x0, Int32(value), 4 * (x1 - x0))
+        }
     }
 
     /// Matar en ingång tills `next` svarar false, sedan markAsFinished.
