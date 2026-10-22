@@ -1,20 +1,20 @@
-27964d279d7f19365550e9cfbfd2afd8ab10c775 main 2026-10-22T11:55:43Z run 39774162543
+6a1b5f4f29efda6757450cc5bd13b4e2da77d5c5 s2b 2026-10-22T12:00:10Z run 39774718987
 == swift-release
-GRÖNT: 26 test, 0 fel, 0 s i testerna, bygget 15 s
-Långsammast (av 26):
-      0.1 s  SessionTests.testPercentilenOchMedianen
-      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+GRÖNT: 66 test, 0 fel, 3 s i testerna, bygget 17 s
+Långsammast (av 66):
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  SessionTests.testSammanfattningenSomPython
+      0.1 s  KlickTests.testEnImpulsGerAnsatsen47ProvFore
+      0.1 s  KatalogTests.testEttFaltSomSaknasFalls
+      0.1 s  VardenaTests.testExponeringenDomarna
       0.1 s  FormatTests.testFixturernaGarAttLasa
       0.0 s  MattTests.testDePahittadeFormerna
+      0.0 s  KlickTests.testTvaKlickNaraBlirEtt
       0.0 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
       0.0 s  MattTests.testKortBaksvingGerIngenStartOchKonfidensensGrans
       0.0 s  MattTests.testVansterspelarenRaknasSomHoger
       0.0 s  MattTests.testLangLuckaTarBortMattenIFasen
-      0.0 s  SessionTests.testJamforelsenSomPython
-      0.0 s  SessionTests.testSammanfattningenSomPython
-      0.0 s  KatalogTests.testKontrollernaSomPython
-      0.0 s  KatalogTests.testBedomningenSomPython
-      0.0 s  FormatTests.testFelenNamnerFaltet
-      0.0 s  KatalogTests.testEttFaltSomSaknasFalls
-      0.0 s  KatalogTests.testBaslinjen
 
