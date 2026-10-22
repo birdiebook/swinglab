@@ -355,3 +355,17 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Om S1:s `docs/FORMAT.md` säger annat** vinner FORMAT.md, och den här raden
   skrivs om.
 - **Omprövas:** efter telefonproven (S2_SPEC §11.3) i den etapp som bygger det.
+
+## B30 — Appen är på engelska
+*2026-10-22 · gäller · Johannes beslut*
+
+- **Valt:** allt som syns i appen är engelska: vyerna, kvittot, ljusprovet,
+  felmeddelandena, måttens namn och katalogens övningar och tankar. Det som
+  kommer från PC:n (`att_jobba_pa.json`, skillen `svinganalys`) skrivs också på
+  engelska, och kontrollen av värdeord får en engelsk lista. Tal och datum
+  skrivs på engelskt sätt ("−2.4 cm", "Jan 9"). Texterna samlas i en String
+  Catalog med engelska som grundspråk, så att fler språk kan läggas till utan
+  ombyggnad.
+- **Behålls på svenska:** kod, kommentarer, planer, beslut och metod i repot,
+  som i de andra apparna.
+- **Genomförs:** i ett eget spår efter att S2c/S2d och S4-grunden landat.
