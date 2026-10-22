@@ -706,10 +706,10 @@ const PM = [
   { p: 'P1', id: 'shline', name: 'Axellinje', view: 'FO', unit: '°', d: 0, v: 8, min: 0, max: 20, base: [6, 10], status: 'egen', draw: 'shline' },
   { p: 'P1', id: 'hipline', name: 'Höftlinje', view: 'FO', unit: '°', d: 0, v: 1, min: -5, max: 10, base: [0, 3], status: 'egen', draw: 'hipline' },
   { p: 'P3', id: 'sway3', fam: 'sway', name: 'Sway', view: 'FO', unit: 'cm', d: 1, v: -1.6, k: .65, min: -12, max: 6, span: [0, 6], status: 'b10', signed: 1, draw: 'sway' },
-  { p: 'P3', id: 'lead3', name: 'Vänsterarm', view: 'FO', unit: '°', d: 0, v: 172, min: 140, max: 185, base: [168, 178], status: 'egen', draw: 'lead' },
+  { p: 'P3', id: 'lead3', name: 'Vänsterarm, böjning', view: 'FO', unit: '°', d: 0, v: 8, min: 0, max: 40, base: [4, 12], status: 'egen', draw: 'lead' },
   { p: 'P4', id: 'sway4', fam: 'sway', name: 'Sway', view: 'FO', unit: 'cm', d: 1, v: -2.4, k: 1, min: -12, max: 6, span: [0, 6], status: 'b10', signed: 1, draw: 'sway' },
   { p: 'P4', id: 'side', name: 'Sidböjning', view: 'FO', unit: '°', d: 0, v: 34, min: 15, max: 50, base: [31, 36], status: 'egen', draw: 'torso' },
-  { p: 'P4', id: 'lead4', name: 'Vänsterarm', view: 'FO', unit: '°', d: 0, v: 168, min: 140, max: 185, base: [165, 175], status: 'egen', draw: 'lead' },
+  { p: 'P4', id: 'lead4', name: 'Vänsterarm, böjning', view: 'FO', unit: '°', d: 0, v: 12, min: 0, max: 40, base: [6, 15], status: 'egen', draw: 'lead' },
   { p: 'P4', id: 'trail', name: 'Bakre armbåge', view: 'DTL', unit: '°', d: 0, v: 94, min: 60, max: 130, base: [88, 100], status: 'egen', draw: 'trail' },
   { p: 'P4', id: 'pelv', name: 'Bäckenvridning', view: '2', unit: '°', d: 0, v: 41, min: 20, max: 60, span: [35, 45], status: 'b10' },
   { p: 'P5', id: 'hand', name: 'Handens bana', view: 'DTL', unit: 'cm', d: 1, v: 3.1, min: -6, max: 10, base: [1, 4], status: 'egen', signed: 1, draw: 'hand' },
@@ -719,7 +719,7 @@ const PM = [
   { p: 'P7', id: 'tilt7', name: 'Axellutning', view: 'FO', unit: '°', off: true, status: 'av', draw: 'tilt' },
   { p: 'P7', id: 'ahead', name: 'Händer före bollen', view: 'FO', unit: 'cm', d: 1, v: 4.1, min: -4, max: 12, base: [2, 5], status: 'egen', signed: 1, draw: 'ahead' },
   { p: 'P7', id: 'hips7', fam: 'hofter', name: 'Höfter öppna', view: '2', unit: '°', d: 0, v: 36, min: 15, max: 55, span: [35, 45], status: 'b10' },
-  { p: 'P9', id: 'chicken', name: 'Chicken wing', view: 'FO', unit: '°', d: 0, v: 148, min: 120, max: 180, base: [145, 155], status: 'egen', draw: 'lead' },
+  { p: 'P9', id: 'chicken', name: 'Chicken wing (efter träff)', view: 'FO', unit: '°', d: 0, v: 32, min: 0, max: 60, base: [25, 35], status: 'egen', draw: 'lead' },
   { p: 'P10', id: 'balance', name: 'Huvud–bäcken', view: 'FO', unit: 'cm', d: 1, v: 3.4, min: -6, max: 12, base: [2, 5], status: 'egen', signed: 1, draw: 'balance' },
 ];
 const JOINTS = Object.keys(POSES.fo.address).filter(k => k !== 'club');
