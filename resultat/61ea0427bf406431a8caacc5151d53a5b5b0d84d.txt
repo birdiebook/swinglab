@@ -1,0 +1,20 @@
+61ea0427bf406431a8caacc5151d53a5b5b0d84d positioner 2026-10-22T15:35:41Z run 39806096736
+== swift-release
+GRÖNT: 114 test, 0 fel, 5 s i testerna, bygget 33 s
+Långsammast (av 114):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  InspelningTests.testImportenVagrarEnOmraknadFil
+      0.1 s  FormatTests.testRutornaSorterasPaTiden
+      0.1 s  FormatTests.testLagKonfidensArSaknad
+      0.1 s  FormatTests.testFeletVisarAldrigVardet
+      0.1 s  MattTests.testPositionernaIOrdning
+      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.0 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.0 s  KatalogTests.testKontrollernaSomPython
+      0.0 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
+
