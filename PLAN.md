@@ -71,6 +71,19 @@ JSON, plus de korta klippen kring slagen.
 **Klart när:** ett pass inspelat i appen och oktobers klipp (17/10) har körts
 på telefonen, och paketet ligger på PC:n.
 
+## S2i — Trimma och utsnitt (Johannes 2026-10-22, efter första telefonprovet)
+
+Efter en import eller inspelning: videon med två handtag för start och slut
+(originalfilen ändras aldrig, bara passets tidsfönster) och en ruta för
+utsnittet som dras och nyps runt spelaren. Utsnittet gäller alla slag i
+klippet: Vision letar bara inom rutan (`regionOfInterest`), så att spelaren blir
+större i bilden, och granskningen visar videon med samma utsnitt. Därefter
+Analyze. B13: bara handtagen, rutan och tiden, ingen förklarande text.
+
+**Klart när:** på telefonen: ett klipp på 9 s trimmas till svingen, utsnittet
+sätts, och analysen ger leder bara inom rutan; simulatorprovet bevisar
+fönstret och utsnittet på en påhittad film.
+
 ## S3 — Facit: Vision mot MediaPipe
 
 PC:n kör MediaPipe heavy på samma klipp och jämför per led, fas och vy. Måtten
