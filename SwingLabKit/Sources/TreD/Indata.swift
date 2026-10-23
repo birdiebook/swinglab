@@ -213,6 +213,13 @@ extension TreDPaket {
                     fonster[n] = (f["fran_s"]!.tal!, f["till_s"]!.tal!)
                 }
                 if let k = s["klubba"], k != .null, k.text == nil { fel.append("\(F): serier[\(i)].klubba ska vara text") }
+                if let rp = s["riktpinne"], rp != .null {
+                    // Riktpinnen (S7a, METOD M48): två punkter [x, y].
+                    let ok = rp.lista.map { l in
+                        l.count == 2 && l.allSatisfy { q in q.lista.map { $0.count == 2 && $0.allSatisfy { $0.tal != nil } } ?? false }
+                    } ?? false
+                    if !ok { fel.append("\(F): serier[\(i)].riktpinne ska vara två punkter [x, y]") }
+                }
                 fel += redigering(s, "\(F): serier[\(i)]")
             }
         } else {

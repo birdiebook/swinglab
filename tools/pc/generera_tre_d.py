@@ -215,6 +215,8 @@ def _manifest_fel() -> list[tuple[str, object]]:
         ("serie_nr_decimal", serie("nr", 1.5)),
         ("serie_nr_bool", serie("nr", True)),
         ("klubba_tal", serie("klubba", 7)),
+        ("riktpinne_en_punkt", serie("riktpinne", [[1.0, 2.0]])),
+        ("riktpinne_bool", serie("riktpinne", [[1.0, True], [3.0, 4.0]])),
         ("fonster_baklanges", serie("fonster", {"fran_s": 5.0, "till_s": 2.0})),
         ("fonster_utan_slagen", serie("fonster", {"fran_s": 0.0, "till_s": 1.0})),
         ("utsnitt_utanfor", serie("utsnitt", {"x": 0.5, "y": 0.0, "b": 0.7, "h": 1.0})),
