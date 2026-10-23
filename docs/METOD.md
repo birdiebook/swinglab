@@ -967,7 +967,8 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   vidgat med **15 %** per sida (som MF6), ett tryck sätter greppet och nästa hoseln, ett
   tryck inom **5 %** av ytans bredd från en satt punkt flyttar den, och ett tryck närmare
   ytans kant än **3 %** (eller utanför bilden) blir ingen punkt. Förstoringsglaset visar
-  **3 ×** kring fingret med ett hårkors. Ångra tar tillbaka det senaste (en punkt, en flytt,
+  **3 ×** kring fingret med ett hårkors och de satta punkterna, bredvid fingret där det inte
+  täcker en satt punkt (greppet ligger ofta rakt ovanför hoseln). Ångra tar tillbaka det senaste (en punkt, en flytt,
   en klar eller hoppad position). **antagande** (gränserna, valda för ett finger på en
   telefon; oprövade på telefonen).
 - **Tryck per sving:** två punkter och "Next" per position, alltså **30** för P1–P10, och
