@@ -45,8 +45,11 @@ public enum Positionsmatt {
             ut.append(r)
         }
         for m in k.matt where m.vy == vy.rawValue && m.positioner.contains(position) {
-            // Ett mått per position (skaftets vinkel, METOD M46) har positionens värde.
+            // Ett mått per position (skaftets vinkel, METOD M46) har positionens värde. Klubbans
+            // mått visas bara på ett slag där klubban är markerad (S7a): inget "—" på alla andra.
             let nyckel = Klubba.nyckel(m.matt, position)
+            let klubba = Vy(rawValue: m.vy).map { Klubba.katalognamn($0).contains(m.matt) } ?? false
+            if klubba && varden[nyckel] == nil { continue }
             var r = rad(nyckel, etikett: m.matt, varden: varden, gront: nil, aktiv: true, markning: Markning.fran(m),
                         baslinje: baslinje[nyckel] ?? [], under: nil)
             r.ovas = m.fel.map { ovas.contains($0) } ?? false

@@ -130,8 +130,24 @@ public struct ShotReview: Sendable {
     }
 
     /// Positionerna P1–P10 i svingens ordning med rutan närmast var och en; nil när
-    /// positionen saknas (METOD M28) eller slaget inte är mätt.
+    /// positionen saknas (METOD M28), slaget inte är mätt, eller (P2, P6, P8) klubban inte är
+    /// markerad där (METOD M45).
     public func positions(_ m: ShotMeasure?) -> [(name: String, index: Int?)] {
-        Positioner.namn.map { p in (name: p, index: m?.positions[p].flatMap { index(nearestT: $0) }) }
+        Klubba.positioner.map { p in (name: p, index: m?.positions[p].flatMap { index(nearestT: $0) }) }
     }
+
+    /// Skaftet som Johannes markerade i ruta k (PLAN S7a): greppet och hoseln i ytans
+    /// koordinater (0–1 i utsnittet), när en markering har rutans tid; nil annars. Visas som
+    /// en tunn linje mellan punkterna (B13). METOD M45
+    public func shaft(_ k: Int, marks: [KlubbMarkering]?) -> (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? {
+        guard frames.indices.contains(k), width > 0, height > 0,
+              let m = marks?.first(where: { $0.markerad && abs($0.t - frames[k].t) < Self.sameFrame }),
+              let g = m.grepp, let h = m.hosel else { return nil }
+        let w = Double(width), hh = Double(height)
+        return (crop.local(x: g.x / w, y: g.y / hh), crop.local(x: h.x / w, y: h.y / hh))
+    }
+
+    /// En markering hör till rutan när tiderna skiljer mindre än så, s (lederna avrundas till
+    /// 0,1 ms). METOD M45
+    public static let sameFrame = 1e-4
 }

@@ -299,7 +299,7 @@ final class MatningTests: XCTestCase {
         XCTAssertNil(r.seekTime(9))
         let m = ShotMeasure(heightM: 1.8, heightAssumed: false, positions: ["P4": -0.019, "P7": 0.001])
         let pos = r.positions(m)
-        XCTAssertEqual(pos.map(\.name), Positioner.namn)
+        XCTAssertEqual(pos.map(\.name), Klubba.positioner)          // P2, P6, P8 för klubban (S7a)
         XCTAssertEqual(pos.first { $0.name == "P4" }?.index, 0)
         XCTAssertEqual(pos.first { $0.name == "P7" }?.index, 2)
         XCTAssertNil(pos.first { $0.name == "P3" }?.index ?? nil, "saknad position")

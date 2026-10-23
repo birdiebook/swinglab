@@ -69,10 +69,13 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "stans_bredd" }.map { Markning.fran($0) }, .egen)
         for m in k.matt {
             let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
-            XCTAssertTrue(Matt.namn(vy).contains(m.matt), m.matt)
+            XCTAssertTrue((Matt.namn(vy) + Klubba.katalognamn(vy)).contains(m.matt), m.matt)
         }
-        let alla = Set(k.fel.flatMap { $0.positioner } + k.matt.flatMap { $0.positioner })
+        // Kroppens mått vid kroppens positioner; P2, P6 och P8 bara för klubbans (S7a, METOD M45).
+        let klubba = Set(Klubba.katalognamn(.dtl) + Klubba.katalognamn(.fo))
+        let alla = Set(k.fel.flatMap { $0.positioner } + k.matt.filter { !klubba.contains($0.matt) }.flatMap { $0.positioner })
         XCTAssertEqual(alla, Set(Positioner.namn))
+        XCTAssertEqual(Set(k.matt.filter { klubba.contains($0.matt) }.flatMap { $0.positioner }), Set(Klubba.positioner))
     }
 
     /// Katalogen med en ändring (första förekomsten).

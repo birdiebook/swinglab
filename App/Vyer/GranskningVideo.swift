@@ -10,7 +10,9 @@ import Capture
 /// dess linjer streckade), en växel som döljer dem, positionsraden P1–P10 som hoppar dit,
 /// och under videon slagets mått vid positionen. Menyn märker slaget "Detection wrong"
 /// (räknas inte i passets mått, går att ångra). B13: ingen figur, ingen förklarande text.
-/// Klubban finns inte förrän S7 och visas inte. METOD MS14, MS15
+/// Menyn öppnar också "Mark club" (S7a, bakifrån): klubban markeras för hand per position
+/// (`ClubMarkContent`), och det som är markerat syns som en tunn linje i rutan. METOD MS14,
+/// MS15, M45
 struct ShotReviewView: View {
     let passID: String
     let shotID: String
@@ -32,12 +34,28 @@ struct ShotReviewView: View {
     @State private var ovas: Set<String> = []
     @State private var seeking = false
     @State private var pendingFrame: Int?
+    /// Märkningen av klubban (S7a); nil = granskningen.
+    @State private var marking: ClubMarking?
+    @State private var touch: (u: Double, v: Double)?
+    @State private var dragging: ClubMarking.Point?
+    @State private var series: JointSeries?
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
     var body: some View {
         Group {
-            if let pass, let shot, let review {
+            if let shot, let review, let m = marking {
+                ScrollView {
+                    ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) }, marking: m,
+                                    time: timeText(review, shot), touch: touch, onTouch: touchMoved,
+                                    onRelease: touchEnded, onStep: step, onUndo: { change { $0.undo() } },
+                                    onSkip: { change { $0.skip(t: review.frames[frame].t) } },
+                                    onNext: { change { $0.confirm(t: review.frames[frame].t) } },
+                                    onPosition: { p in change { $0.go(to: p) } }, onClose: closeMarking)
+                        .padding(.vertical, 8)
+                }
+                .scrollDisabled(touch != nil)
+            } else if let pass, let shot, let review {
                 ScrollView {
                     ReviewContent(surface: CroppedPlayerSurface(player: player, crop: review.crop), review: review,
                                   number: ShotRecord.number(shot.id) ?? 0, frame: frame, overlayOn: overlayOn,
@@ -45,8 +63,10 @@ struct ShotReviewView: View {
                                   rows: ReviewRows.rows(pass: pass, shot: shot, position: position, baseline: baseline,
                                                         ovas: ovas),
                                   detectionWrong: shot.detectionWrong == true, impact: shot.impact - shot.click.time,
+                                  shaft: review.shaft(frame, marks: shot.klubba),
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
-                                  onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong)
+                                  onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
+                                  onMarkClub: pass.setup.view == .dtl ? startMarking : nil)
                         .padding(.vertical, 8)
                 }
             } else {
@@ -72,6 +92,7 @@ struct ShotReviewView: View {
               let rel = s.joints, let series = store.joints(rel, in: passID),
               let serie = p.series.first(where: { $0.nr == s.series }) else { return }
         pass = p
+        self.series = series
         ovas = store.focus?.ovas ?? []
         let r = ShotReview(series: series, crop: serie.activeCrop)
         review = r
@@ -183,6 +204,73 @@ struct ShotReviewView: View {
         pause()
         onClose()
     }
+
+    // MARK: klubban (S7a)
+
+    private func timeText(_ r: ShotReview, _ s: ShotRecord) -> String {
+        guard r.frames.indices.contains(frame) else { return "" }
+        return Tal.tecken(r.frames[frame].t - (s.impact - s.click.time), decimaler: 3) + " s"
+    }
+
+    /// "Mark club": märkningen börjar på den första positionen utan markering. METOD M45
+    private func startMarking() {
+        guard let review, let shot else { return }
+        pause()
+        let serie = pass?.series.first { $0.nr == shot.series }
+        marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
+                              crop: serie?.activeCrop)
+        seekToPosition()
+    }
+
+    /// Rutan för positionen som märks: markeringens, annars förslaget ur kroppens tider.
+    private func seekToPosition() {
+        guard let m = marking, !m.done, let review, let shot else { return }
+        let t = ClubMarking.suggestedTime(m.position, measure: shot.measure, existing: m.result,
+                                          impact: shot.impact - shot.click.time)
+        seek(review.index(nearestT: t) ?? frame)
+    }
+
+    /// En ändring i märkningen; sparas i passet när positionen bytts eller ångrats, och
+    /// rutan följer positionen.
+    private func change(_ f: (inout ClubMarking) -> Void) {
+        guard var m = marking else { return }
+        let fore = m.position
+        let foreMarks = m.result
+        f(&m)
+        marking = m
+        if m.result != foreMarks { saveMarks(m.result) }
+        if m.position != fore || m.done { seekToPosition() }
+    }
+
+    private func saveMarks(_ marks: [KlubbMarkering]) {
+        guard var p = pass, let series else { return }
+        p.setClubMarks(marks, shot: shotID, joints: series)
+        store.save(p)
+        pass = p
+    }
+
+    private func touchMoved(_ u: Double, _ v: Double) {
+        if touch == nil { dragging = marking?.grab(u: u, v: v) }
+        touch = (u, v)
+    }
+
+    /// Fingret släpptes: en dragen punkt flyttas dit, annars sätter trycket nästa punkt (inget
+    /// nära kanten, METOD M45).
+    private func touchEnded(_ u: Double, _ v: Double) {
+        if let d = dragging {
+            change { $0.move(d, u: u, v: v) }
+        } else {
+            change { $0.tap(u: u, v: v) }
+        }
+        touch = nil
+        dragging = nil
+    }
+
+    private func closeMarking() {
+        if let m = marking { saveMarks(m.result) }
+        marking = nil
+        touch = nil
+    }
 }
 
 /// Måtten under videon: slagets vid positionen, i slagets vy (METOD M29, MS15). `ovas` =
@@ -211,6 +299,8 @@ struct ReviewContent<Surface: View>: View {
     var detectionWrong = false
     /// Träffen i s relativt klicket: tiden i hörnet räknas från den.
     let impact: Double
+    /// Skaftet som är markerat i rutan (S7a), i ytans koordinater; nil = inget.
+    var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
     /// Menyn är en UIKit-del som provets ImageRenderer inte ritar; utan den bara symbolen.
     var editable = true
     var onClose: () -> Void = {}
@@ -220,6 +310,8 @@ struct ReviewContent<Surface: View>: View {
     var onPosition: (String) -> Void = { _ in }
     var onOverlay: () -> Void = {}
     var onDetectionWrong: (Bool) -> Void = { _ in }
+    /// "Mark club" i menyn (S7a); nil = inte i den här vyn (framifrån väntar, PLAN S7a).
+    var onMarkClub: (() -> Void)? = nil
 
     /// Videons höjd i punkter; bredden följer utsnittets proportioner.
     static var stageHeight: CGFloat { 440 }
@@ -261,6 +353,9 @@ struct ReviewContent<Surface: View>: View {
                     if editable {
                         Menu {
                             Toggle("Detection wrong", isOn: Binding(get: { detectionWrong }, set: onDetectionWrong))
+                            if let onMarkClub {
+                                Button("Mark club", action: onMarkClub)
+                            }
                         } label: {
                             meny
                         }
@@ -275,7 +370,8 @@ struct ReviewContent<Surface: View>: View {
                     .padding(.bottom, 8)
             }
 
-            ReviewStage(surface: surface, overlay: review.overlay(frame), overlayOn: overlayOn, time: timeText)
+            ReviewStage(surface: surface, overlay: review.overlay(frame), overlayOn: overlayOn, time: timeText,
+                        shaft: shaft)
                 .aspectRatio(CGFloat(review.aspect), contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.stageHeight)
@@ -363,11 +459,14 @@ struct ReviewStage<Surface: View>: View {
     let overlay: ShotReview.Overlay
     var overlayOn = true
     var time: String = ""
+    /// Skaftet som är markerat i rutan (S7a): en tunn linje mellan greppet och hoseln.
+    var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             surface
             if overlayOn { LedOverlay(overlay: overlay) }
+            if overlayOn { ShaftOverlay(shaft: shaft) }
             if !time.isEmpty {
                 Text(verbatim: time)
                     .typsnitt(11, .medium, siffror: true)

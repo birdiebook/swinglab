@@ -408,6 +408,17 @@
         }
       }
     },
+    "Grip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grip"
+          }
+        }
+      }
+    },
     "Hand": {
       "extractionState": "manual",
       "localizations": {
@@ -426,6 +437,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Height"
+          }
+        }
+      }
+    },
+    "Hosel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hosel"
           }
         }
       }
@@ -562,6 +584,17 @@
         }
       }
     },
+    "Mark club": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark club"
+          }
+        }
+      }
+    },
     "Me": {
       "extractionState": "manual",
       "localizations": {
@@ -602,6 +635,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "New session"
+          }
+        }
+      }
+    },
+    "Next": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
           }
         }
       }
@@ -657,6 +701,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not analyzed"
+          }
+        }
+      }
+    },
+    "Not visible": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not visible"
           }
         }
       }
@@ -1097,6 +1152,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uncertain"
+          }
+        }
+      }
+    },
+    "Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
           }
         }
       }

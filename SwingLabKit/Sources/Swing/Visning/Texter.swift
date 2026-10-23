@@ -71,7 +71,7 @@ public enum Texter {
             // Klubban ur markeringarna (PLAN S7a, METOD M46–M49).
             "skaft_vinkel": "Shaft angle", "skaftplan_p1": "Shaft plane", "skaft_mot_plan_p2": "Shaft to plane",
             "skaft_riktning_topp": "Shaft across the line", "skaft_plan_p6": "Clubhead to plane",
-            "skaft_topp": "Shaft at top", "skaft_arm_p5": "Lead arm to shaft", "skaft_arm_p6": "Lead arm to shaft",
+            "skaft_topp": "Shaft to level", "skaft_arm_p5": "Lead arm to shaft", "skaft_arm_p6": "Lead arm to shaft",
             "skaft_lutning_traff": "Shaft lean",
         ]
         // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37), ett namn per fas.
