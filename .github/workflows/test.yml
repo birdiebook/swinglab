@@ -73,9 +73,19 @@ jobs:
       - run: python3 tools/kolla_metod.py
       # OpenCV och ffmpeg: S3:s prov med en riktig film (vriden, förskjuten) och kontaktarket.
       - run: python3 -m pip install --quiet numpy opencv-python-headless
+      # En statisk ffmpeg och ffprobe från GitHub (BtbN): apt-spegeln tog en gång över
+      # 6 minuter för 63 MB. apt finns kvar som reserv.
       - name: ffmpeg
-        timeout-minutes: 6
+        timeout-minutes: 10
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg)
+        run: |
+          if ! command -v ffprobe >/dev/null; then
+            u=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz
+            if curl -fsSL --retry 3 --max-time 180 -o /tmp/ff.tar.xz "$u" && tar -xJf /tmp/ff.tar.xz -C /tmp; then
+              echo /tmp/ffmpeg-master-latest-linux64-gpl/bin >> "$GITHUB_PATH"
+            else
+              sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+            fi
+          fi
       - run: python3 -m unittest discover -s tools/tests -v
