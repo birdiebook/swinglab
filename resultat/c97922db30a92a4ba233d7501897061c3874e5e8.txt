@@ -1,0 +1,7 @@
+c97922db30a92a4ba233d7501897061c3874e5e8 s7a 2026-10-23T09:43:05Z run 39933737618
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/Capture/KlubbMarkering.swift:63:39: error: variable 'self.index' captured by a closure before being initialized
+|                                       `- error: variable 'self.index' captured by a closure before being initialized
+error: fatalError
+
