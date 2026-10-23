@@ -56,12 +56,14 @@ HALVBREDD_VINKEL = 0.03        # METOD MK5: vinkelkurvorna före måtten
 RUTNAT_S = 1 / 240             # METOD MK5: den gemensamma tidsaxeln
 KANT_S = 0.05                  # METOD MK5: så mycket av varje ände av slagets tid lämnas utanför
 MIN_RUTOR = 10                 # METOD MK5: färre rutor i en vy (eller på den gemensamma axeln) = slaget hoppas över
+MAX_SPANN_S = 30.0             # METOD M51: ett slags leder som spänner längre (eller inte är ändliga) mäts inte
+URVAL_STEG = 0.6180339887498949  # METOD M50, BESLUT B48: urvalets steg, andel av antalet par (gyllene snittet)
 MIN_SLAG = 10                  # METOD MK7, BESLUT B14: passets median kräver minst 10 slag
 # METOD MK7: en skillnad mellan två pass är tydlig först över √2 × passmedianens SD
 # för kedjan på paketen (typiskt brus, 24 påhittade pass, S6_FELBUDGET §6.7), eftersom
 # kamerornas läge, kalibreringen och posemodellens fasta avvikelse byts mellan passen. Grader.
-TREND_GOLV = {"backen_vrid_topp": 15.7, "brost_vrid_topp": 13.6, "xfaktor_topp": 19.2, "xfaktor_stretch": 8.1,
-              "hofter_oppna_traff": 8.3}
+TREND_GOLV = {"backen_vrid_topp": 15.7, "brost_vrid_topp": 13.7, "xfaktor_topp": 19.2, "xfaktor_stretch": 8.1,
+              "hofter_oppna_traff": 8.5}
 SNABBA = [I["v_handled"], I["h_handled"], I["v_armbage"], I["h_armbage"]]
 
 # Måttens namn i analysen och katalogen (katalog_3d.json) ← tre_d/matt.py. METOD MK6
@@ -104,6 +106,8 @@ def para_slag(dtl: Paket, fo: Paket) -> tuple[list[tuple[Slag, Slag]], dict]:
     """Slagen som båda telefonerna filmat: [(DTL-slaget, FO-slaget)] och hur de
     paras. Ur `par.json` (den styrande telefonens) när den gäller paret, annars ur
     klicken, serie mot serie. METOD MK1"""
+    if dtl.vy != "dtl" or fo.vy != "fo":
+        raise TreDFel("parningen: paketen ska vara ett DTL- och ett FO-paket")
     styr = next((p for p in (dtl, fo) if p.par is not None and p.par["vy"] == p.vy), None)
     folj = None if styr is None else (fo if styr is dtl else dtl)
     par: list[tuple[Slag, Slag]] = []
@@ -233,10 +237,16 @@ def _normera(uv: np.ndarray, K: np.ndarray) -> np.ndarray:
 
 
 def urval(n: int, k: int) -> np.ndarray:
-    """k av n punktpar, jämnt spridda: index ⌊i · n / k⌋ för i = 0 … k − 1. Heltal, så att
-    SwingLabKit väljer exakt samma par (numpys slumptal går inte att räkna om i Swift).
+    """k av n punktpar: index (i · P) mod n för i = 0 … k − 1, där P är det första heltalet
+    från ⌊n · 0,618…⌋ som saknar gemensam faktor med n. Det är en permutation (varje par
+    högst en gång) som sprider sig jämnt över slagen, tiderna och lederna utan att gå i
+    takt med ledernas period, som ett jämnt steg n/k kan göra. Heltal, så att SwingLabKit
+    väljer exakt samma par (numpys slumptal går inte att räkna om i Swift).
     METOD M50, BESLUT B48"""
-    return (np.arange(k, dtype=np.int64) * n) // k
+    steg = max(1, int(n * URVAL_STEG))
+    while math.gcd(steg, n) != 1:
+        steg += 1
+    return (np.arange(k, dtype=np.int64) * steg) % n
 
 
 def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
@@ -273,8 +283,9 @@ def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
             # Skyddet (B39): manifestets uppåt mot kamerornas vågräta. Vinkeln skrivs alltid
             # och är mätningen för B39:s omprövning; över gränsen används de vågräta. METOD MK3
             avvik = math.degrees(math.acos(float(np.clip(upp @ vagrata / np.linalg.norm(upp), -1, 1))))
-            extra["lodlinje_mot_vagrata"] = round(avvik, 1)
-            if avvik > LODLINJE_MOT_VAGRATA_MAX:
+            if math.isfinite(avvik):
+                extra["lodlinje_mot_vagrata"] = round(avvik, 1)
+            if not avvik <= LODLINJE_MOT_VAGRATA_MAX:   # även NaN (summan noll): de vågräta
                 upp, kalla = None, "kamerornas_vagrata"
                 extra["lodlinje_fel"] = [f"lodlinjen i manifestet avviker mer än {LODLINJE_MOT_VAGRATA_MAX:.0f}° "
                                          "från kamerornas vågräta"]
@@ -287,7 +298,10 @@ def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
     fa, fb = kamA.R[2].copy(), kamB.R[2].copy()
     fa[2] = fb[2] = 0.0
     vinkel = math.degrees(math.acos(float(np.clip(fa @ fb / (np.linalg.norm(fa) * np.linalg.norm(fb)), -1, 1))))
-    info = {"lodlinje": kalla, "sampson_px": round(samp * f_px * 1920.0 / lang, 2),
+    samp_px = samp * f_px * 1920.0 / lang
+    if not (math.isfinite(samp_px) and math.isfinite(vinkel)):   # inget NaN i analysen. METOD M51
+        raise TreDFel("kalibreringen: kamerornas läge gick inte att räkna")
+    info = {"lodlinje": kalla, "sampson_px": round(samp_px, 2),
             "vinkel_mellan_kamerorna": round(vinkel, 1), "vinkel_ok": VINKEL_OK[0] <= vinkel <= VINKEL_OK[1],
             **extra}
     return R, t, upp, info
@@ -303,10 +317,11 @@ def synka(kamA, kamB, d: dict, mitt: float = 0.0, sok: float = SYNK_SOK_S) -> fl
     återprojektionsfel för handlederna och armbågarna i nedsvingen, sökt ± `sok`
     kring `mitt`. METOD MK4"""
     try:
-        return mitt + float(tri.synk_reprojektion([kamA, kamB], d["tA"], d["uvA"], d["kA"], d["tB"] - mitt, d["uvB"],
-                                                  d["kB"], SNABBA, SYNK_FONSTER, sok, SYNK_STEG_S, SYNK_HALVBREDD))
+        v = float(tri.synk_reprojektion([kamA, kamB], d["tA"], d["uvA"], d["kA"], d["tB"] - mitt, d["uvB"],
+                                        d["kB"], SNABBA, SYNK_FONSTER, sok, SYNK_STEG_S, SYNK_HALVBREDD))
     except ValueError:                 # inget i fönstret: förra värdet får stå
         return mitt
+    return mitt + v if math.isfinite(v) else mitt       # METOD M51
 
 
 def triangulera(kamA, kamB, d: dict, forsk: float):
@@ -381,7 +396,7 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict, inre: lis
     info.update(k)
     if fel_k:
         info["lodlinje_fel"] = info.get("lodlinje_fel", []) + fel_k
-    if k["sampson_px"] > SAMPSON_MAX_PX:
+    if not k["sampson_px"] <= SAMPSON_MAX_PX:
         info["hoppat"] = "kalibreringen: Sampson-felet är över spärren"
         return info, []
     ut = []
@@ -404,25 +419,61 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict, inre: lis
     return info, ut
 
 
-def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None) -> dict:
+def _spar_och_vikter(p: Paket, s: Slag, minne: dict | None):
+    """spar() och de robusta vikterna (MK5), en gång per slag och träff när `minne` ges
+    (fixturernas varianter av ett pass delar leder; minnet gäller bara ett pass). Vikterna
+    beror inte på synken."""
+    nyckel = (p.vy, s.id, traff_i_serien(p, s))
+    if minne is not None and nyckel in minne:
+        return minne[nyckel]
+    t, uv, k = spar(p, s)
+    v = tri.robusta_vikter(t, uv, k, HALVBREDD_2D) if len(t) else None
+    if minne is not None:
+        minne[nyckel] = (t, uv, k, v)
+    return t, uv, k, v
+
+
+def utelamnat(t: np.ndarray) -> str | None:
+    """Skälet till att ett spår inte går att mäta, eller None. METOD MK5, M51"""
+    if len(t) < MIN_RUTOR:
+        return "för få rutor"
+    if not t[-1] - t[0] <= MAX_SPANN_S:           # även NaN och oändligt
+        return "ledernas tider spänner orimligt långt"
+    return None
+
+
+def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None, minne: dict | None = None) -> dict:
     """3D för passet: parningen, en kalibrering per uppställning (serie mot serie),
     måtten per slag och passets trend. `rader` är 2D-analysens slag
-    (analys.mat_paket) för båda paketen. `inre`: se _uppstallning. METOD MK1–MK7"""
+    (analys.mat_paket) för båda paketen. `inre`: se _uppstallning; `minne`: se
+    _spar_och_vikter. Ett parat slag som inte mäts står i `utelamnade` med skälet.
+    METOD MK1–MK7, M51"""
     par, parning = para_slag(dtl, fo)
     rad = {(r["vy"], r["id"]): r for r in rader}
     grupper: dict[tuple[int, int], list[dict]] = {}
+    utelamnade = []
     for sd, sf in par:
-        if sd.dom not in MATS or sf.dom not in MATS or sd.detection_wrong or sf.detection_wrong \
-                or sd.lederna is None or sf.lederna is None:
-            continue
-        tA, uvA, kA = spar(fo, sf)
-        tB, uvB, kB = spar(dtl, sd)
-        if min(len(tA), len(tB), len(_rutnat(tA, tB))) < MIN_RUTOR:
+        skal = None
+        if sd.dom not in MATS or sf.dom not in MATS:
+            skal = "domen är inte sving"
+        elif sd.detection_wrong or sf.detection_wrong:
+            skal = "lederna är märkta fel (Detection wrong)"
+        elif sd.lederna is None or sf.lederna is None:
+            skal = "lederna saknas"
+        else:
+            tA, uvA, kA, vA = _spar_och_vikter(fo, sf, minne)
+            tB, uvB, kB, vB = _spar_och_vikter(dtl, sd, minne)
+            skal = utelamnat(tA) or utelamnat(tB)
+            if skal is None and len(_rutnat(tA, tB)) < MIN_RUTOR:
+                skal = "för få rutor"
+        if skal is not None:
+            utelamnade.append({"dtl": sd.id, "fo": sf.id, "skal": skal})
             continue
         (KA, fKA), (KB, fKB) = K_for(fo, sf), K_for(dtl, sd)
         grupper.setdefault((sd.serie, sf.serie), []).append(
             {"dtl": sd, "fo": sf, "tA": tA, "uvA": uvA, "kA": kA, "tB": tB, "uvB": uvB, "kB": kB, "KA": KA, "KB": KB,
-             "fKA": fKA, "fKB": fKB, "traffA": traff_i_serien(fo, sf), "traffB": traff_i_serien(dtl, sd)})
+             "fKA": fKA, "fKB": fKB, "traffA": traff_i_serien(fo, sf), "traffB": traff_i_serien(dtl, sd),
+             "vA": vA, "vB": vB})
     if not grupper:
         raise TreDFel("parningen: inga slag som båda telefonerna filmat och som går att mäta")
     kalib, ut_slag, osaker = [], [], []
@@ -441,7 +492,7 @@ def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None
     sammanf = S.sammanfatta(matta)
     n = {m: sum(1 for x in matta if m in x) for m in MATT}
     return {"lage": LAGE, "min_slag": MIN_SLAG, "matt": list(MATT), "parning": parning, "kalibrering": kalib,
-            "osaker": osaker, "slag": ut_slag, "n": n,
+            "osaker": osaker, "slag": ut_slag, "utelamnade": utelamnade, "n": n,
             "session": {m: v for m, v in sammanf.items() if v["n"] >= MIN_SLAG}}
 
 

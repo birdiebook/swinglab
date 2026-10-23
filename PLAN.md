@@ -404,9 +404,16 @@ telefonen med `TreD`, ett kort i passet visar talen, Progress visar "3D · no ma
 som trend utan gränser (B14, B37), och uppställningen visar om telefonen lutar (B39,
 lodlinjen).
 
+`TvaKameror.analysera` (eller `treD`) tar några sekunder och ska köras i `Task.detached`,
+aldrig på huvudtråden.
+
 **Klart när:** S6c-1: TreDTests gröna i Actions mot Pythons tal och mot sanningen, och
-tiden per pass uppmätt och skattad för telefonen (M50). S6c-2: ett pass med två telefoner
-ger samma `tre_d` på telefonen som på PC:n inom M50:s tolerans.
+tiden per pass uppmätt och skattad för telefonen (M50). S6c-2: ett riktigt pass med två
+telefoner ger samma `tre_d` på telefonen som på PC:n: samma parning, uppställningar,
+skäl (`osaker`, `hoppat`, `utelamnade`) och avrundade fält, och varje mått per slag inom
+**0,05°**. Riktiga leder är inte fixturernas: skiljer något mer, redovisas vilka grenar
+som slog om (en jämförelse vid en gräns, t.ex. spärren, skyddet mot de vågräta,
+parabelns topp eller synkens minimum) och med hur mycket, innan toleransen ändras.
 
 ## S7 — Klubban
 

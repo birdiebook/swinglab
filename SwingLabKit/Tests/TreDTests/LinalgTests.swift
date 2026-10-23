@@ -109,8 +109,12 @@ final class LinalgTests: XCTestCase {
         XCTAssertEqual(a.r[6], 1)
     }
 
-    func testUrvaletArJamntOchHeltal() {
-        XCTAssertEqual(TvaKameror.urval(10, 4), [0, 2, 5, 7])
-        XCTAssertEqual(TvaKameror.urval(18_731, 5000).last, 18_727)
+    func testUrvaletArEnPermutationSomPythons() {
+        // Samma index som tools/pc/tva_kameror.urval (test_tre_d_fixturer.py). METOD M50, BESLUT B48
+        XCTAssertEqual(TvaKameror.urval(10, 4), [0, 7, 4, 1])
+        let v = TvaKameror.urval(18_731, 5000)
+        XCTAssertEqual(Array(v.prefix(3)), [0, 11_576, 4_421])
+        XCTAssertEqual(Set(v).count, 5000)
+        XCTAssertEqual(TvaKameror.urval(26, 26).sorted(), Array(0..<26))
     }
 }

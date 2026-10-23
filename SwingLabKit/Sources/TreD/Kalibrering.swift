@@ -6,6 +6,10 @@ import Foundation
 enum Kalibrering {
     struct ForFa: Error {}
 
+    /// Åttapunktsmetoden kräver minst nio punktpar (med åtta är nollrummet inte bestämt
+    /// som Python räknar det). METOD M51
+    static let minPunktpar = 9
+
     /// Levenberg–Marquardt med numerisk Jacobian, som `lm`. fun(p) → residualerna.
     static func lm(_ fun: ([Double]) -> [Double], _ p0: [Double], iter: Int = 40, eps: Double = 1e-6) throws -> [Double] {
         var p = p0
@@ -133,14 +137,15 @@ enum Kalibrering {
         let u3 = [u[2], u[5], u[8]]
         var bast: ([Double], [Double]) = (LA.enhet3, [0, 0, 1])
         var flest = -1
-        var a = [Double](repeating: 0, count: 16)
+        var a = [Double](repeating: 0, count: 16), v = a
         for r in [LA.mul3(LA.mul3(u, w), vtr), LA.mul3(LA.mul3(u, LA.transp(w, 3, 3)), vtr)] {
             for t in [u3, u3.map { -$0 }] {
+                let p2: [Double] = [r[0], r[1], r[2], t[0], r[3], r[4], r[5], t[1], r[6], r[7], r[8], t[2]]
                 var fram = 0
                 for i in 0..<n {
-                    let x = triangulerPar(r, t, x1, x2, i, &a)
-                    let z2 = r[6] * x[0] + r[7] * x[1] + r[8] * x[2] + t[2]
-                    if x[2] > 0 && z2 > 0 { fram += 1 }
+                    let x = triangulerPar(p2, x1, x2, i, &a, &v)
+                    let z2 = r[6] * x.0 + r[7] * x.1 + r[8] * x.2 + t[2]
+                    if x.2 > 0 && z2 > 0 { fram += 1 }
                 }
                 if fram > flest {
                     bast = (r, t)
@@ -151,11 +156,13 @@ enum Kalibrering {
         return bast
     }
 
-    /// Ett punktpar trianguleras med P1 = [I | 0], P2 = [R | t], som `_triangulera_par`.
-    static func triangulerPar(_ r: [Double], _ t: [Double], _ x1: [Double], _ x2: [Double], _ i: Int,
-                              _ a: inout [Double]) -> [Double] {
-        let p1: [Double] = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]
-        let p2: [Double] = [r[0], r[1], r[2], t[0], r[3], r[4], r[5], t[1], r[6], r[7], r[8], t[2]]
+    static let p1: [Double] = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]
+
+    /// Ett punktpar trianguleras med P1 = [I | 0], P2 = [R | t] (p2, 3×4 radvis), som
+    /// `_triangulera_par`. a och v är arbetsytor om 16 tal.
+    static func triangulerPar(_ p2: [Double], _ x1: [Double], _ x2: [Double], _ i: Int,
+                              _ a: inout [Double], _ v: inout [Double]) -> (Double, Double, Double) {
+        let p1 = Kalibrering.p1
         let a0 = x1[i * 3], a1 = x1[i * 3 + 1], b0 = x2[i * 3], b1 = x2[i * 3 + 1]
         for k in 0..<4 {
             a[k * 4] = a0 * p1[8 + k] - p1[k]
@@ -163,8 +170,8 @@ enum Kalibrering {
             a[k * 4 + 2] = b0 * p2[8 + k] - p2[k]
             a[k * 4 + 3] = b1 * p2[8 + k] - p2[4 + k]
         }
-        let x = LA.nollvektor(&a, 4, 4)
-        return [x[0] / x[3], x[1] / x[3], x[2] / x[3]]
+        let j = LA.nollkolumn(&a, 4, 4, &v) * 4
+        return (v[j] / v[j + 3], v[j + 1] / v[j + 3], v[j + 2] / v[j + 3])
     }
 
     static func paramT(_ a0: Double, _ a1: Double) -> [Double] {
@@ -219,7 +226,7 @@ enum Kalibrering {
     static func relativUrNormerade(_ x1: [Double], _ x2: [Double], _ w: [Double], fPx: Double) throws
         -> (r: [Double], t: [Double], sampson: Double) {
         let n = w.count
-        guard n >= 8 else { throw ForFa() }
+        guard n >= minPunktpar else { throw ForFa() }
         let (r, t) = try relativOrientering(x1, x2, w, n, fPx: fPx)
         let s = sampson(LA.mul3(LA.skev(t), r), x1, x2, n).map { abs($0) }
         return (r, t, LA.median(s))

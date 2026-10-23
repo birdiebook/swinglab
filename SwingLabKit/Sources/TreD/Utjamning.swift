@@ -41,6 +41,10 @@ enum Utjamning {
         var idx: [Int]
         var d: [Double]
         var kv: [Double]
+        /// d², d³ och d⁴ per bandets plats, en gång per band (inte per led).
+        var d2: [Double]
+        var d3: [Double]
+        var d4: [Double]
 
         init(_ tIn: [Double], _ tUt: [Double], _ h: Double) {
             m = tUt.count
@@ -55,6 +59,9 @@ enum Utjamning {
             idx = [Int](repeating: 0, count: m * bredd)
             d = [Double](repeating: 0, count: m * bredd)
             kv = [Double](repeating: 0, count: m * bredd)
+            d2 = kv
+            d3 = kv
+            d4 = kv
             let sista = tIn.count - 1
             for i in 0..<m {
                 for k in 0..<bredd {
@@ -65,6 +72,9 @@ enum Utjamning {
                         d[e] = (tIn[idx[e]] - tUt[i]) / h
                         kv[e] = Utjamning.trikub(d[e])
                     }
+                    d2[e] = d[e] * d[e]
+                    d3[e] = pow(d[e], 3)
+                    d4[e] = pow(d[e], 4)
                 }
             }
         }
@@ -93,8 +103,7 @@ enum Utjamning {
                     let ok = yx.isFinite && yy.isFinite
                     let wv = band.kv[e] * w[i * j + l] * (ok ? 1.0 : 0.0)
                     if wv > 0 { bar += 1 }
-                    let d = band.d[e]
-                    let d2 = d * d, d3 = pow(d, 3), d4 = pow(d, 4)
+                    let d = band.d[e], d2 = band.d2[e], d3 = band.d3[e], d4 = band.d4[e]
                     s0 += wv
                     s1 += wv * d
                     s2 += wv * d2

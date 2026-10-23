@@ -158,13 +158,19 @@ def _joint_series(t_rel: np.ndarray, klick_s: float, obs: np.ndarray, konf: np.n
 def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "typiskt", hand: str = "hoger",
               par_json: bool = True, lodlinje: bool = False, langd_m: float = 1.80, synkfel_ms: float = 7.0,
               bara_fo: int = 1, klubba: str = "j7", f_px: float | None = None, synfalt: bool = True,
-              styr: str = "dtl") -> tuple[Path, Path, dict]:
+              styr: str = "dtl", serier: list[dict] | None = None) -> tuple[Path, Path, dict]:
     """Två paket från samma pass och facit:
     (dtl.zip, fo.zip, {"slag": [{"dtl", "fo", "sant"}], "median": {mått: median av de sanna}}).
     `bara_fo` slag filmas bara av FO (de ska inte paras). `f_px` är kamerornas sanna
     brännvidd (standard 1444 px), och `synfalt` skriver den som seriens synfält i
     manifestet. `styr` är telefonen som skriver par.json. En vänsterspelare filmas med
-    uppställningen spegelvänd: DTL bakom spelaren (x > 0). METOD MK1–MK8"""
+    uppställningen spegelvänd: DTL bakom spelaren (x > 0).
+
+    `serier` (valfri) är en uppställning per serie: {"n", "vinkel" (grader mellan
+    kamerorna), "brus", "traff" (False: slagen saknar traff_s, så att träffen tas ur
+    avstand_m), "jamna_klick" (True: slagen med exakt 7,3 s mellanrum, så att klicken
+    paras tvetydigt utan par.json)}. Utan den är det en serie med `n` och `brus`, som
+    förut och med samma slumptal. METOD MK1–MK8"""
     from dataclasses import replace
 
     from . import tva_kameror as TK
@@ -177,62 +183,79 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
     ut_mapp = Path(ut_mapp)
     ut_mapp.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
-    u = replace(FB.Uppstallning(), brus=brus, kalib="perfekt", f_px=f_px or KM.F_PX,
-                vinkel=90.0 if hand == "hoger" else -90.0)
-    pas = FB.nytt_pass(u, rng)
-    kam = {"fo": pas["A"], "dtl": pas["B"]}
-    fast = {"fo": pas["fastA"], "dtl": pas["fastB"]}
-    avst = {v: float(np.linalg.norm(k.centrum - np.array(BOLLEN))) for v, k in kam.items()}
+    grund = 90.0 if hand == "hoger" else -90.0
+    serier = serier or [{"n": n}]
     folj = "fo" if styr == "dtl" else "dtl"
     filstart = {styr: 0.0, folj: FOLJ_FORSKJUTNING_S}
     filer = {"dtl": {}, "fo": {}}
     slag = {"dtl": [], "fo": []}
     facit = []
-    for i in range(n + bara_fo):
-        sv = slumpa_sving(rng)
-        sv.langd, sv.t_start, sv.efter = langd_m, T_START_3D, EFTER_3D
-        sv.__post_init__()
-        filmad = sv if hand == "hoger" else _Spegel(sv)
-        T0 = 10.0 + 7.3 * i + float(rng.uniform(0, 1))       # svingens t = 0 på en gemensam klocka
-        synk = {"dtl": float(rng.uniform(-1, 1)) * synkfel_ms / 1000, "fo": 0.0}
-        vyer = ("dtl", "fo") if i < n else ("fo",)
-        ids = {}
-        for vy in vyer:
-            t = KM.bildtider(sv.t_slut, rng)
-            obs, konf = FB._observera(kam[vy], filmad, t, u, rng, fast[vy])
-            klick_lokal = sv.t_traff + avst[vy] / LJUDETS_FART + synk[vy]
-            klick_s = round(T0 + klick_lokal + filstart[vy], 4)
-            sid = f"s{len(slag[vy]) + 1:02d}"
-            ids[vy] = sid
-            filer[vy][f"slag/{sid}.json"] = json.dumps(_joint_series(t - klick_lokal, klick_s, obs, konf),
-                                                       separators=(",", ":"))
-            slag[vy].append({"id": sid, "serie": 1, "klick_s": klick_s, "styrka": 80.0,
-                             "traff_s": round(klick_s - round(avst[vy], 2) / LJUDETS_FART, 4), "dom": "sving",
-                             "andrad_av_johannes": False, "leder": f"slag/{sid}.json"})
-        if i < n:
-            t_s = np.arange(0.05, sv.t_slut - 0.05, 0.001)
-            adress = (sv.t_start + F_ADRESS[0], sv.t_start + F_ADRESS[1])
-            m = M3.svingmatt(sv.leder(t_s), t_s, sv.t_start, sv.t_traff, adress)
-            # synk_ms: hur mycket DTL:s klocka går före FO:s efter klicket (det synken ska hitta)
-            facit.append({"dtl": ids["dtl"], "fo": ids["fo"], "sant": {k: m[v] for k, v in TK.MATT.items()},
-                          "synk_ms": -synk["dtl"] * 1000})
+    upp_serie = []              # per serie: (u, kameror, avstånd)
+    g = 0                       # slagets plats i passet (tiden)
+    for nr, cfg in enumerate(serier, 1):
+        vinkel = cfg.get("vinkel", 90.0) * (1 if hand == "hoger" else -1) if "vinkel" in cfg else grund
+        u = replace(FB.Uppstallning(), brus=cfg.get("brus", brus), kalib="perfekt", f_px=f_px or KM.F_PX,
+                    vinkel=vinkel)
+        pas = FB.nytt_pass(u, rng)
+        kam = {"fo": pas["A"], "dtl": pas["B"]}
+        fast = {"fo": pas["fastA"], "dtl": pas["fastB"]}
+        avst = {v: float(np.linalg.norm(k.centrum - np.array(BOLLEN))) for v, k in kam.items()}
+        upp_serie.append((u, kam, avst))
+        n_s = cfg.get("n", n)
+        for i in range(n_s + bara_fo):
+            sv = slumpa_sving(rng)
+            sv.langd, sv.t_start, sv.efter = langd_m, T_START_3D, EFTER_3D
+            sv.__post_init__()
+            filmad = sv if hand == "hoger" else _Spegel(sv)
+            # svingens t = 0 på en gemensam klocka; med jamna_klick ligger träffarna exakt 7,3 s isär
+            T0 = 10.0 + 7.3 * g + (-sv.t_traff if cfg.get("jamna_klick") else float(rng.uniform(0, 1)))
+            g += 1
+            synk = {"dtl": float(rng.uniform(-1, 1)) * synkfel_ms / 1000, "fo": 0.0}
+            vyer = ("dtl", "fo") if i < n_s else ("fo",)
+            ids = {}
+            for vy in vyer:
+                t = KM.bildtider(sv.t_slut, rng)
+                obs, konf = FB._observera(kam[vy], filmad, t, u, rng, fast[vy])
+                klick_lokal = sv.t_traff + avst[vy] / LJUDETS_FART + synk[vy]
+                klick_s = round(T0 + klick_lokal + filstart[vy], 4)
+                sid = f"s{len(slag[vy]) + 1:02d}"
+                ids[vy] = sid
+                filer[vy][f"slag/{sid}.json"] = json.dumps(_joint_series(t - klick_lokal, klick_s, obs, konf),
+                                                           separators=(",", ":"))
+                rad = {"id": sid, "serie": nr, "klick_s": klick_s, "styrka": 80.0,
+                       "traff_s": round(klick_s - round(avst[vy], 2) / LJUDETS_FART, 4), "dom": "sving",
+                       "andrad_av_johannes": False, "leder": f"slag/{sid}.json"}
+                if cfg.get("traff") is False:
+                    del rad["traff_s"]
+                slag[vy].append(rad)
+            if i < n_s:
+                t_s = np.arange(0.05, sv.t_slut - 0.05, 0.001)
+                adress = (sv.t_start + F_ADRESS[0], sv.t_start + F_ADRESS[1])
+                m = M3.svingmatt(sv.leder(t_s), t_s, sv.t_start, sv.t_traff, adress)
+                # synk_ms: hur mycket DTL:s klocka går före FO:s efter klicket (det synken ska hitta)
+                facit.append({"dtl": ids["dtl"], "fo": ids["fo"], "serie": nr,
+                              "sant": {k: m[v] for k, v in TK.MATT.items()}, "synk_ms": -synk["dtl"] * 1000})
     roll = {styr: "styrande", folj: "foljare"}
+    avst0 = upp_serie[0][2]
     ut = {}
     for vy in ("dtl", "fo"):
-        serie = {"nr": 1, "kalla": "inspelning", "klubba": klubba}
-        if lodlinje:
-            upp = KAL.slumprotation(FB.Uppstallning().grav_deg, rng) @ (kam[vy].R @ np.array([0.0, 0.0, 1.0]))
-            serie["lodlinje"] = [round(float(x), 4) for x in upp]
-        if synfalt:
-            fov = float(np.degrees(2 * np.arctan(KM.HOJD / 2 / u.f_px)))
-            serie["format"] = {"index": 0, "bredd": KM.HOJD, "hojd": KM.BREDD, "synfalt": round(fov, 3),
-                               "binnat": False}
+        mserier = []
+        for nr, (u, kam, _) in enumerate(upp_serie, 1):
+            serie = {"nr": nr, "kalla": "inspelning", "klubba": klubba}
+            if lodlinje:
+                upp = KAL.slumprotation(FB.Uppstallning().grav_deg, rng) @ (kam[vy].R @ np.array([0.0, 0.0, 1.0]))
+                serie["lodlinje"] = [round(float(x), 4) for x in upp]
+            if synfalt:
+                fov = float(np.degrees(2 * np.arctan(KM.HOJD / 2 / u.f_px)))
+                serie["format"] = {"index": 0, "bredd": KM.HOJD, "hojd": KM.BREDD, "synfalt": round(fov, 3),
+                                   "binnat": False}
+            mserier.append(serie)
         manifest = {
             "format": FORMAT, "skapad": f"{pass_id[:4]}-{pass_id[4:6]}-{pass_id[6:8]}T20:00:00+01:00",
             "app": {"version": "0.0.0", "bygge": "pahittat"}, "pass": pass_id,
             "telefon": {"modell": "pahittad", "ios": "18.2", "roll": roll[vy]}, "vy": vy,
-            "avstand_m": round(avst[vy], 2), "spelhand": hand, "spelarens_langd_m": langd_m,
-            "serier": [serie], "slag": slag[vy],
+            "avstand_m": round(avst0[vy], 2), "spelhand": hand, "spelarens_langd_m": langd_m,
+            "serier": mserier, "slag": slag[vy],
             "vision": {"revision": 1, "ms_per_ruta": 18.0, "glest_steg": 8, "tatt_steg": 1}, "matt": None}
         fil = ut_mapp / f"swinglab-{pass_id}-{vy}.zip"
         with zipfile.ZipFile(fil, "w", zipfile.ZIP_STORED) as z:
@@ -240,23 +263,29 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
             for namn, text in filer[vy].items():
                 z.writestr(namn, text)
             if vy == styr and par_json:
-                dd, df = round(avst[styr], 2), round(avst[folj], 2)
-                forsk = FOLJ_FORSKJUTNING_S + (df - dd) / LJUDETS_FART
-                z.writestr("par.json", json.dumps({
-                    "format": "swinglab-par/1", "pass": pass_id, "modell": "pahittad", "vy": styr,
-                    "serier": [{"serie": 1, "styr_avstand_m": dd, "styr_klick": len(slag[styr]),
-                                "foljare": {"modell": "pahittad", "vy": folj, "avstand_m": df, "pass": pass_id,
-                                            "serie": 1, "hz": 240, "klick": len(slag[folj])},
-                                "forskjutning_s": round(forsk, 4), "traff_forskjutning_s": FOLJ_FORSKJUTNING_S,
-                                "antal_par": n, "median_rest_s": 0.001,
-                                "osaker": False}]}, indent=1))
+                rader = []
+                for nr, ((_, _, avst), cfg) in enumerate(zip(upp_serie, serier), 1):
+                    dd, df = round(avst[styr], 2), round(avst[folj], 2)
+                    forsk = FOLJ_FORSKJUTNING_S + (df - dd) / LJUDETS_FART
+                    n_s = cfg.get("n", n)
+                    rader.append({"serie": nr, "styr_avstand_m": dd,
+                                  "styr_klick": sum(1 for x in slag[styr] if x["serie"] == nr),
+                                  "foljare": {"modell": "pahittad", "vy": folj, "avstand_m": df, "pass": pass_id,
+                                              "serie": nr, "hz": 240,
+                                              "klick": sum(1 for x in slag[folj] if x["serie"] == nr)},
+                                  "forskjutning_s": round(forsk, 4), "traff_forskjutning_s": FOLJ_FORSKJUTNING_S,
+                                  "antal_par": n_s, "median_rest_s": 0.001, "osaker": False})
+                z.writestr("par.json", json.dumps({"format": "swinglab-par/1", "pass": pass_id, "modell": "pahittad",
+                                                   "vy": styr, "serier": rader}, indent=1))
         ut[vy] = fil
     median = {k: float(np.median([f["sant"][k] for f in facit])) for k in TK.MATT}
-    fa, fb = kam["fo"].R[2].copy(), kam["dtl"].R[2].copy()
-    fa[2] = fb[2] = 0.0
-    vinkel = float(np.degrees(np.arccos(fa @ fb / (np.linalg.norm(fa) * np.linalg.norm(fb)))))
+    vinklar = []
+    for _, kam, _ in upp_serie:
+        fa, fb = kam["fo"].R[2].copy(), kam["dtl"].R[2].copy()
+        fa[2] = fb[2] = 0.0
+        vinklar.append(float(np.degrees(np.arccos(fa @ fb / (np.linalg.norm(fa) * np.linalg.norm(fb))))))
     return ut["dtl"], ut["fo"], {"pass": pass_id, "slag": facit, "median": median,
-                                 "vinkel_mellan_kamerorna": vinkel}
+                                 "vinkel_mellan_kamerorna": vinklar[0], "vinklar": vinklar}
 
 
 def main(argv=None) -> int:

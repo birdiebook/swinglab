@@ -1,0 +1,456 @@
+{
+ "om": "PÅHITTAT (CLAUDE.md, Dataregeln). Genererad av tools/pc/generera_tre_d.py; ändra inte för hand.",
+ "indata": "tva_serier",
+ "varianter": {
+  "grund": {
+   "andra": {},
+   "python": {
+    "lage": "utan_markorer",
+    "min_slag": 10,
+    "matt": [
+     "backen_vrid_topp",
+     "brost_vrid_topp",
+     "xfaktor_topp",
+     "xfaktor_stretch",
+     "hofter_oppna_traff"
+    ],
+    "parning": {
+     "kalla": "par.json",
+     "serier": [
+      {
+       "dtl": 1,
+       "fo": 1,
+       "kalla": "par.json",
+       "par": 4
+      },
+      {
+       "dtl": 2,
+       "fo": 2,
+       "kalla": "par.json",
+       "par": 4
+      }
+     ],
+     "par": 8,
+     "oparade": {
+      "dtl": 0,
+      "fo": 2
+     }
+    },
+    "kalibrering": [
+     {
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "slag": 4,
+      "f_kalla": {
+       "dtl": "serien",
+       "fo": "serien"
+      },
+      "lodlinje": "kamerornas_vagrata",
+      "sampson_px": 4.09,
+      "vinkel_mellan_kamerorna": 90.4,
+      "vinkel_ok": true
+     },
+     {
+      "serie": {
+       "dtl": 2,
+       "fo": 2
+      },
+      "slag": 4,
+      "f_kalla": {
+       "dtl": "serien",
+       "fo": "serien"
+      },
+      "lodlinje": "kamerornas_vagrata",
+      "sampson_px": 4.37,
+      "vinkel_mellan_kamerorna": 51.3,
+      "vinkel_ok": false
+     }
+    ],
+    "osaker": [
+     "serie 2 (DTL) mot 2 (FO): vinkeln mellan kamerorna utanför 60–120°"
+    ],
+    "slag": [
+     {
+      "dtl": "s01",
+      "fo": "s01",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": 4.3,
+      "aterprojektion_px": 2.8,
+      "matt": {
+       "backen_vrid_topp": 47.68671930271418,
+       "brost_vrid_topp": 96.66266962630584,
+       "xfaktor_topp": 48.97595032359166,
+       "xfaktor_stretch": 9.599211864040328,
+       "hofter_oppna_traff": 42.842375612422394
+      }
+     },
+     {
+      "dtl": "s02",
+      "fo": "s02",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": -8.3,
+      "aterprojektion_px": 2.9,
+      "fel": "adressen eller träffen ligger utanför slagets tid"
+     },
+     {
+      "dtl": "s03",
+      "fo": "s03",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": -2.1,
+      "fel": "faserna saknas i båda vyerna"
+     },
+     {
+      "dtl": "s04",
+      "fo": "s04",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": 0.5,
+      "aterprojektion_px": 2.7,
+      "matt": {
+       "backen_vrid_topp": 37.18945697280581,
+       "brost_vrid_topp": 95.51372985723602,
+       "xfaktor_topp": 58.3242728844302,
+       "xfaktor_stretch": 6.493137767381825,
+       "hofter_oppna_traff": 23.221543761915214
+      }
+     },
+     {
+      "dtl": "s05",
+      "fo": "s06",
+      "serie": {
+       "dtl": 2,
+       "fo": 2
+      },
+      "synk_ms": 5.5,
+      "aterprojektion_px": 3.4,
+      "matt": {
+       "backen_vrid_topp": 26.95094454271113,
+       "brost_vrid_topp": 94.30011657154054,
+       "xfaktor_topp": 67.34917202882941,
+       "xfaktor_stretch": 11.778851046213035,
+       "hofter_oppna_traff": 40.900195165268904
+      }
+     },
+     {
+      "dtl": "s06",
+      "fo": "s07",
+      "serie": {
+       "dtl": 2,
+       "fo": 2
+      },
+      "synk_ms": 5.3,
+      "aterprojektion_px": 3.1,
+      "matt": {
+       "backen_vrid_topp": 55.22434242628173,
+       "brost_vrid_topp": 92.31774854921407,
+       "xfaktor_topp": 37.09340612293234,
+       "xfaktor_stretch": 33.88112687678851,
+       "hofter_oppna_traff": 34.25160537633215
+      }
+     },
+     {
+      "dtl": "s07",
+      "fo": "s08",
+      "serie": {
+       "dtl": 2,
+       "fo": 2
+      },
+      "synk_ms": -0.7,
+      "aterprojektion_px": 3.0,
+      "matt": {
+       "backen_vrid_topp": 32.51194954992145,
+       "brost_vrid_topp": 81.64767105284304,
+       "xfaktor_topp": 49.13572150292159,
+       "xfaktor_stretch": 6.424131281182142,
+       "hofter_oppna_traff": 48.853595174843896
+      }
+     },
+     {
+      "dtl": "s08",
+      "fo": "s09",
+      "serie": {
+       "dtl": 2,
+       "fo": 2
+      },
+      "synk_ms": -4.3,
+      "aterprojektion_px": 2.9,
+      "matt": {
+       "backen_vrid_topp": 30.468885165035626,
+       "brost_vrid_topp": 93.0959447861,
+       "xfaktor_topp": 62.62705962106439,
+       "xfaktor_stretch": 0.02396350209893683,
+       "hofter_oppna_traff": 35.71269362913197
+      }
+     }
+    ],
+    "utelamnade": [],
+    "n": {
+     "backen_vrid_topp": 6,
+     "brost_vrid_topp": 6,
+     "xfaktor_topp": 6,
+     "xfaktor_stretch": 6,
+     "hofter_oppna_traff": 6
+    },
+    "session": {}
+   },
+   "inre": [
+    {
+     "R": [
+      [
+       -0.006903117680948381,
+       -0.0028277344430973333,
+       -0.9999721750549871
+      ],
+      [
+       -0.000956028938025026,
+       0.999995563407468,
+       -0.0028212008170845023
+      ],
+      [
+       0.9999757161926247,
+       0.0009365272553305168,
+       -0.006905790450584948
+      ]
+     ],
+     "t": [
+      0.7050800345494682,
+      0.002336452368741072,
+      0.709123886122904
+     ],
+     "upp": [
+      -0.0,
+      -0.9999960017604389,
+      0.002827801820567779
+     ],
+     "forsk": [
+      0.004347158163796315,
+      -0.008325297331386084,
+      -0.002093972695367933,
+      0.0005229285887215529
+     ],
+     "aterprojektion": [
+      2.7727558262514984,
+      2.877246984010001,
+      null,
+      2.739690286195936
+     ]
+    },
+    {
+     "R": [
+      [
+       0.6247571810305288,
+       0.008070002392999924,
+       -0.7807773945319909
+      ],
+      [
+       -0.002472317212057014,
+       0.9999620218658137,
+       0.00835718096226215
+      ],
+      [
+       0.7808151845336967,
+       -0.003290879428058513,
+       0.6247534055242916
+      ]
+     ],
+     "t": [
+      0.9035071643654303,
+      -0.009692383463879684,
+      0.4284633725805839
+     ],
+     "upp": [
+      0.0,
+      -0.9999465893240305,
+      -0.010335303538794248
+     ],
+     "forsk": [
+      0.005543888383826375,
+      0.005335763474766983,
+      -0.0007422592055450886,
+      -0.004298545088099124
+     ],
+     "aterprojektion": [
+      3.4386709995336187,
+      3.1319371550481905,
+      3.019129029755537,
+      2.8784730078245193
+     ]
+    }
+   ]
+  },
+  "utan_par": {
+   "andra": {
+    "dtl": {
+     "par": null
+    }
+   },
+   "python": {
+    "lage": "utan_markorer",
+    "min_slag": 10,
+    "matt": [
+     "backen_vrid_topp",
+     "brost_vrid_topp",
+     "xfaktor_topp",
+     "xfaktor_stretch",
+     "hofter_oppna_traff"
+    ],
+    "parning": {
+     "kalla": "klicken",
+     "serier": [
+      {
+       "dtl": 1,
+       "fo": 1,
+       "kalla": "klicken",
+       "par": 4
+      }
+     ],
+     "par": 4,
+     "oparade": {
+      "dtl": 4,
+      "fo": 6
+     }
+    },
+    "kalibrering": [
+     {
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "slag": 4,
+      "f_kalla": {
+       "dtl": "serien",
+       "fo": "serien"
+      },
+      "lodlinje": "kamerornas_vagrata",
+      "sampson_px": 4.09,
+      "vinkel_mellan_kamerorna": 90.4,
+      "vinkel_ok": true
+     }
+    ],
+    "osaker": [],
+    "slag": [
+     {
+      "dtl": "s01",
+      "fo": "s01",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": 4.3,
+      "aterprojektion_px": 2.8,
+      "matt": {
+       "backen_vrid_topp": 47.68671930271418,
+       "brost_vrid_topp": 96.66266962630584,
+       "xfaktor_topp": 48.97595032359166,
+       "xfaktor_stretch": 9.599211864040328,
+       "hofter_oppna_traff": 42.842375612422394
+      }
+     },
+     {
+      "dtl": "s02",
+      "fo": "s02",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": -8.3,
+      "aterprojektion_px": 2.9,
+      "fel": "adressen eller träffen ligger utanför slagets tid"
+     },
+     {
+      "dtl": "s03",
+      "fo": "s03",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": -2.1,
+      "fel": "faserna saknas i båda vyerna"
+     },
+     {
+      "dtl": "s04",
+      "fo": "s04",
+      "serie": {
+       "dtl": 1,
+       "fo": 1
+      },
+      "synk_ms": 0.5,
+      "aterprojektion_px": 2.7,
+      "matt": {
+       "backen_vrid_topp": 37.18945697280581,
+       "brost_vrid_topp": 95.51372985723602,
+       "xfaktor_topp": 58.3242728844302,
+       "xfaktor_stretch": 6.493137767381825,
+       "hofter_oppna_traff": 23.221543761915214
+      }
+     }
+    ],
+    "utelamnade": [],
+    "n": {
+     "backen_vrid_topp": 2,
+     "brost_vrid_topp": 2,
+     "xfaktor_topp": 2,
+     "xfaktor_stretch": 2,
+     "hofter_oppna_traff": 2
+    },
+    "session": {}
+   },
+   "inre": [
+    {
+     "R": [
+      [
+       -0.006903117680948381,
+       -0.0028277344430973333,
+       -0.9999721750549871
+      ],
+      [
+       -0.000956028938025026,
+       0.999995563407468,
+       -0.0028212008170845023
+      ],
+      [
+       0.9999757161926247,
+       0.0009365272553305168,
+       -0.006905790450584948
+      ]
+     ],
+     "t": [
+      0.7050800345494682,
+      0.002336452368741072,
+      0.709123886122904
+     ],
+     "upp": [
+      -0.0,
+      -0.9999960017604389,
+      0.002827801820567779
+     ],
+     "forsk": [
+      0.004347158163796315,
+      -0.008325297331386084,
+      -0.002093972695367933,
+      0.0005229285887215529
+     ],
+     "aterprojektion": [
+      2.7727558262514984,
+      2.877246984010001,
+      null,
+      2.739690286195936
+     ]
+    }
+   ]
+  }
+ }
+}

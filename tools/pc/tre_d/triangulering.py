@@ -149,7 +149,7 @@ def _parabel_topp(x: np.ndarray, y: np.ndarray, i: int) -> float:
     if 0 < i < len(y) - 1:
         y0, y1, y2 = y[i - 1], y[i], y[i + 1]
         den = y0 - 2 * y1 + y2
-        if den != 0:
+        if den != 0 and np.isfinite(den):          # en granne utan värde: toppen själv (METOD M51)
             return float(x[i] + 0.5 * (y0 - y2) / den * (x[1] - x[0]))
     return float(x[i])
 

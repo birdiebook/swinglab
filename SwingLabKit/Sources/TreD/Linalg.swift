@@ -65,7 +65,9 @@ enum LA {
     /// a + i·((a + steg) − a), som numpys fill gör. METOD M50
     static func arange(_ a: Double, _ b: Double, _ steg: Double) -> [Double] {
         let langd = ((b - a) / steg).rounded(.up)
-        guard langd > 0 else { return [] }
+        // Ett orimligt långt intervall ger ingen axel (aldrig en trap eller ett minne som tar
+        // slut); kedjan stoppar sådana slag före (METOD M51).
+        guard langd > 0, langd < 1e7 else { return [] }
         let n = Int(langd)
         var ut = [Double](repeating: a, count: n)
         if n > 1 { ut[1] = a + steg }
@@ -303,6 +305,13 @@ enum LA {
     /// (m × n, kolumnvis; skrivs över). Tecknet är godtyckligt, som i numpy.
     static func nollvektor(_ a: inout [Double], _ m: Int, _ n: Int) -> [Double] {
         var v = [Double](repeating: 0, count: n * n)
+        let j = nollkolumn(&a, m, n, &v)
+        return Array(v[(j * n)..<(j * n + n)])
+    }
+
+    /// Som `nollvektor`, utan allokering: v (n · n, kolumnvis) är arbetsytan, och svaret är
+    /// kolumnen i v som är nollvektorn (v[j·n ..< j·n + n]).
+    static func nollkolumn(_ a: inout [Double], _ m: Int, _ n: Int, _ v: inout [Double]) -> Int {
         jacobi(&a, m, n, &v)
         var minst = 0
         var minstS = Double.infinity
@@ -314,7 +323,7 @@ enum LA {
                 minst = j
             }
         }
-        return Array(v[(minst * n)..<(minst * n + n)])
+        return minst
     }
 
     /// SVD av en 3×3 (radvis): U, singulärvärden (fallande) och V, båda radvisa med

@@ -21,6 +21,10 @@ import numpy as np
 
 from .kamera import Kamera, K_matris
 
+# METOD M51: åttapunktsmetoden kräver minst nio punktpar. Med exakt åtta ger numpys svd
+# (full_matrices=False) bara åtta högra singulärvektorer, och Vh[-1] är då inte nollrummet.
+MIN_PUNKTPAR = 9
+
 
 # --------------------------------------------------------------------------
 # Rotationer och optimering
@@ -294,7 +298,7 @@ def relativ_ur_leder(KA, uvA, kA, KB, uvB, kB, min_konf: float = 0.5, max_par: i
     ok = np.isfinite(uvA).all(-1) & np.isfinite(uvB).all(-1) & (kA > min_konf) & (kB > min_konf)
     a, b = uvA[ok], uvB[ok]
     w = np.sqrt(kA[ok] * kB[ok])
-    if len(a) < 8:
+    if len(a) < MIN_PUNKTPAR:
         raise ValueError("för få punktpar för självkalibreringen")
     if len(a) > max_par:
         rng = rng or np.random.default_rng(0)
@@ -310,7 +314,7 @@ def relativ_ur_normerade(x1, x2, w, f_px: float):
     """Som relativ_ur_leder, men på punktpar som redan är normerade med var sin
     kameras K (när K skiljer mellan slagen). Svarar R, t och Sampson-felets median i
     normerade enheter."""
-    if len(x1) < 8:
+    if len(x1) < MIN_PUNKTPAR:
         raise ValueError("för få punktpar för självkalibreringen")
     R, t = relativ_orientering(x1, x2, w, f_px=f_px)
     return R, t, float(np.median(np.abs(_sampson(_skev(t) @ R, x1, x2))))

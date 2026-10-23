@@ -336,6 +336,7 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `kalibrering[]` | en per uppställning (DTL-serie mot FO-serie): `serie` (`dtl`, `fo`), `slag`, `f_kalla` per vy (`serien`, `enhet.json` eller `specifikationen`), `lodlinje_fel` när fältet inte gick att använda, `lodlinje_mot_vagrata` (grader mellan manifestets uppåt och kamerornas vågräta, när manifestet bar fältet; över 15° används de vågräta), och antingen `hoppat` (skälet: kalibreringen gick inte eller Sampson-felet är över spärren) eller `lodlinje` (`manifest` eller `kamerornas_vagrata`), `sampson_px` (på 1920 px långsida), `vinkel_mellan_kamerorna` (grader) och `vinkel_ok` (60–120°) (MK3) |
 | `osaker` | skälen till att talen är osäkrare: vinkeln utanför 60–120°, lodlinjen i manifestet användes inte (MK3) |
 | `slag[]` | per par: `dtl` och `fo` (slagens id), `serie` per vy, `synk_ms` (DTL:s klocka före FO:s efter klicket, MK4), `aterprojektion_px`, och `matt` eller `fel` |
+| `utelamnade[]` | parade slag som inte mäts: `dtl`, `fo` och `skal` (domen är inte sving, Detection wrong, lederna saknas, för få rutor, ledernas tider spänner orimligt långt; METOD MK1, MK5, M51) |
 | `n` | antal slag med måttet |
 | `session` | M25:s sammanfattning per mått, bara mått med minst `min_slag` slag |
 | `mot_forra` | `null`, eller `pass` och `jamforelse` per mått: `skillnad`, `spridning`, `golv`, `tydlig` (MK7) |
@@ -346,16 +347,21 @@ sak i `att_jobba_pa.json` (B14).
 
 ### Facit för 3D på telefonen (S6c-1)
 
-`tools/tests/fixturer/tre_d/*.json` (BESLUT B48, METOD M50), skrivna av
-`tools/pc/generera_tre_d.py`, PÅHITTADE. Ett pass: `paket` per vy (`manifest` som
-objekt, `par` och `enhet` som text eller `null`, `leder` per slag-id:
-`{width, height, t, j}` där `t` är tiderna som int32 i 1e-4 s och `j` lederna som int16
-[x, y, c] per led i 0,1 px och 0,001, c = 0 för en saknad led, båda base64 i little
-endian), `rader` (2D-fasernas `start` och `topp` per `vy` och `id`), `sant` (MK8:s
-facit) och `varianter` (`andra`: filerna som byts per vy; `python`: `tre_d`; `inre`:
-R, t, uppåt, synken i s och återprojektionen per uppställning, oavrundade).
-`parning.json` bär bara manifesten och `para_slag`:s svar, `komponenter.json` delstegen
-för ett slag.
+`tools/tests/fixturer/tre_d/` (BESLUT B48, METOD M50), skrivna av
+`tools/pc/generera_tre_d.py`, PÅHITTADE, med radbrytningar så att en ändring ger en liten
+diff:
+
+- `indata/<pass>.json`: `paket` per vy (`manifest`, `par` och `enhet` som text eller
+  `null`, `filer`: paketets filnamn, och `leder` per slag-id: `{width, height, t, j}` där
+  `t` är tiderna som int32 i 1e-4 s och `j` lederna som int16 [x, y, c] per led i 0,1 px
+  och 0,001, c = 0 för en saknad led, båda base64 i little endian), `rader`
+  (2D-fasernas `start` och `topp` per `vy` och `id`) och `sant` (MK8:s facit).
+- `<facit>.json`: `indata` (passet) och `varianter` per namn: `andra` (filerna som byts,
+  per vy), `python` (`tre_d`, eller `{"hoppat": skäl}`) och `inre` (R, t, uppåt, synken i
+  s och återprojektionen per uppställning, oavrundade).
+- `parning.json`: manifesten utan leder och `para_slag`:s svar per variant;
+  `manifest_fel.json`: trasiga manifest och `paket._kontrollera_manifest`:s fel;
+  `komponenter.json`: delstegen för ett slag.
 
 ## 3D-katalogen: `katalog_3d.json`
 

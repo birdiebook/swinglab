@@ -82,6 +82,9 @@ targets:
       # Påhittade pass och svingar för vyernas bilder (S4); appen länkar inte in det.
       - package: SwingLabKit
         product: SwingDemo
+      # 3D på telefonen (S6c-1): byggs och körs på Darwin redan nu, före appen (S6c-2).
+      - package: SwingLabKit
+        product: TreD
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.prov

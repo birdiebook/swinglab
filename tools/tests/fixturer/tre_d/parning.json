@@ -1,1 +1,276 @@
-{"om":"PÅHITTAT (CLAUDE.md, Dataregeln). Genererad av tools/pc/generera_tre_d.py.","pass":{"dtl_styr":{"om":"PÅHITTAT (CLAUDE.md, Dataregeln). Genererad av tools/pc/generera_tre_d.py; ändra inte för hand.","namn":"dtl_styr","kalla":{"brus":"inget","seed":3,"n":4},"langd_m":1.8,"paket":{"dtl":{"manifest":{"format":"swinglab-paket/1","skapad":"2026-11-03T20:00:00+01:00","app":{"version":"0.0.0","bygge":"pahittat"},"pass":"20261103-180000","telefon":{"modell":"pahittad","ios":"18.2","roll":"styrande"},"vy":"dtl","avstand_m":3.29,"spelhand":"hoger","spelarens_langd_m":1.8,"serier":[{"nr":1,"kalla":"inspelning","klubba":"j7","format":{"index":0,"bredd":1920,"hojd":1080,"synfalt":67.234,"binnat":false}}],"slag":[{"id":"s01","serie":1,"klick_s":12.8152,"styrka":80.0,"traff_s":12.8056,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s01.json"},{"id":"s02","serie":1,"klick_s":19.806,"styrka":80.0,"traff_s":19.7964,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s02.json"},{"id":"s03","serie":1,"klick_s":26.9091,"styrka":80.0,"traff_s":26.8995,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s03.json"},{"id":"s04","serie":1,"klick_s":34.0702,"styrka":80.0,"traff_s":34.0606,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s04.json"}],"vision":{"revision":1,"ms_per_ruta":18.0,"glest_steg":8,"tatt_steg":1},"matt":null},"par":"{\n \"format\": \"swinglab-par/1\",\n \"pass\": \"20261103-180000\",\n \"modell\": \"pahittad\",\n \"vy\": \"dtl\",\n \"serier\": [\n  {\n   \"serie\": 1,\n   \"styr_avstand_m\": 3.29,\n   \"styr_klick\": 4,\n   \"foljare\": {\n    \"modell\": \"pahittad\",\n    \"vy\": \"fo\",\n    \"avstand_m\": 2.75,\n    \"pass\": \"20261103-180000\",\n    \"serie\": 1,\n    \"hz\": 240,\n    \"klick\": 5\n   },\n   \"forskjutning_s\": 12.3434,\n   \"traff_forskjutning_s\": 12.345,\n   \"antal_par\": 4,\n   \"median_rest_s\": 0.001,\n   \"osaker\": false\n  }\n ]\n}","enhet":null},"fo":{"manifest":{"format":"swinglab-paket/1","skapad":"2026-11-03T20:00:00+01:00","app":{"version":"0.0.0","bygge":"pahittat"},"pass":"20261103-180000","telefon":{"modell":"pahittad","ios":"18.2","roll":"foljare"},"vy":"fo","avstand_m":2.75,"spelhand":"hoger","spelarens_langd_m":1.8,"serier":[{"nr":1,"kalla":"inspelning","klubba":"j7","format":{"index":0,"bredd":1920,"hojd":1080,"synfalt":67.234,"binnat":false}}],"slag":[{"id":"s01","serie":1,"klick_s":25.1627,"styrka":80.0,"traff_s":25.1547,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s01.json"},{"id":"s02","serie":1,"klick_s":32.1482,"styrka":80.0,"traff_s":32.1402,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s02.json"},{"id":"s03","serie":1,"klick_s":39.248,"styrka":80.0,"traff_s":39.24,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s03.json"},{"id":"s04","serie":1,"klick_s":46.4173,"styrka":80.0,"traff_s":46.4093,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s04.json"},{"id":"s05","serie":1,"klick_s":53.839,"styrka":80.0,"traff_s":53.831,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s05.json"}],"vision":{"revision":1,"ms_per_ruta":18.0,"glest_steg":8,"tatt_steg":1},"matt":null},"par":null,"enhet":null}},"varianter":{"grund":{"andra":{},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"par.json","serier":[{"dtl":1,"fo":1,"kalla":"par.json","par":4}],"par":4,"oparade":{"dtl":0,"fo":1}}},"osaker":{"andra":{"dtl":{"par":"{\"format\": \"swinglab-par/1\", \"pass\": \"20261103-180000\", \"modell\": \"pahittad\", \"vy\": \"dtl\", \"serier\": [{\"serie\": 1, \"styr_avstand_m\": 3.29, \"styr_klick\": 4, \"foljare\": {\"modell\": \"pahittad\", \"vy\": \"fo\", \"avstand_m\": 2.75, \"pass\": \"20261103-180000\", \"serie\": 1, \"hz\": 240, \"klick\": 5}, \"forskjutning_s\": 15.3434, \"traff_forskjutning_s\": 12.345, \"antal_par\": 4, \"median_rest_s\": 0.001, \"osaker\": true}]}"}},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"par.json","serier":[{"dtl":1,"fo":1,"kalla":"klicken","par":4}],"par":4,"oparade":{"dtl":0,"fo":1}}},"annat_pass":{"andra":{"dtl":{"par":"{\"format\": \"swinglab-par/1\", \"pass\": \"20261103-180000\", \"modell\": \"pahittad\", \"vy\": \"dtl\", \"serier\": [{\"serie\": 1, \"styr_avstand_m\": 3.29, \"styr_klick\": 4, \"foljare\": {\"modell\": \"pahittad\", \"vy\": \"fo\", \"avstand_m\": 2.75, \"pass\": \"20261103-170000\", \"serie\": 1, \"hz\": 240, \"klick\": 5}, \"forskjutning_s\": 12.3434, \"traff_forskjutning_s\": 12.345, \"antal_par\": 4, \"median_rest_s\": 0.001, \"osaker\": false}]}"}},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"par.json","serier":[{"dtl":1,"fo":1,"kalla":"klicken","par":4}],"par":4,"oparade":{"dtl":0,"fo":1}}},"trasig":{"andra":{"dtl":{"par":"{\"format\": \"swinglab-par/1\""}},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"klicken","serier":[{"dtl":1,"fo":1,"kalla":"klicken","par":4}],"par":4,"oparade":{"dtl":0,"fo":1},"par_json_fel":"par.json är inte giltig JSON"}},"utan":{"andra":{"dtl":{"par":null}},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"klicken","serier":[{"dtl":1,"fo":1,"kalla":"klicken","par":4}],"par":4,"oparade":{"dtl":0,"fo":1}}}}},"fo_styr":{"om":"PÅHITTAT (CLAUDE.md, Dataregeln). Genererad av tools/pc/generera_tre_d.py; ändra inte för hand.","namn":"fo_styr","kalla":{"brus":"inget","seed":3,"styr":"fo","n":4},"langd_m":1.8,"paket":{"dtl":{"manifest":{"format":"swinglab-paket/1","skapad":"2026-11-03T20:00:00+01:00","app":{"version":"0.0.0","bygge":"pahittat"},"pass":"20261103-180000","telefon":{"modell":"pahittad","ios":"18.2","roll":"foljare"},"vy":"dtl","avstand_m":3.29,"spelhand":"hoger","spelarens_langd_m":1.8,"serier":[{"nr":1,"kalla":"inspelning","klubba":"j7","format":{"index":0,"bredd":1920,"hojd":1080,"synfalt":67.234,"binnat":false}}],"slag":[{"id":"s01","serie":1,"klick_s":25.1602,"styrka":80.0,"traff_s":25.1506,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s01.json"},{"id":"s02","serie":1,"klick_s":32.151,"styrka":80.0,"traff_s":32.1414,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s02.json"},{"id":"s03","serie":1,"klick_s":39.2541,"styrka":80.0,"traff_s":39.2445,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s03.json"},{"id":"s04","serie":1,"klick_s":46.4152,"styrka":80.0,"traff_s":46.4056,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s04.json"}],"vision":{"revision":1,"ms_per_ruta":18.0,"glest_steg":8,"tatt_steg":1},"matt":null},"par":null,"enhet":null},"fo":{"manifest":{"format":"swinglab-paket/1","skapad":"2026-11-03T20:00:00+01:00","app":{"version":"0.0.0","bygge":"pahittat"},"pass":"20261103-180000","telefon":{"modell":"pahittad","ios":"18.2","roll":"styrande"},"vy":"fo","avstand_m":2.75,"spelhand":"hoger","spelarens_langd_m":1.8,"serier":[{"nr":1,"kalla":"inspelning","klubba":"j7","format":{"index":0,"bredd":1920,"hojd":1080,"synfalt":67.234,"binnat":false}}],"slag":[{"id":"s01","serie":1,"klick_s":12.8177,"styrka":80.0,"traff_s":12.8097,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s01.json"},{"id":"s02","serie":1,"klick_s":19.8032,"styrka":80.0,"traff_s":19.7952,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s02.json"},{"id":"s03","serie":1,"klick_s":26.903,"styrka":80.0,"traff_s":26.895,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s03.json"},{"id":"s04","serie":1,"klick_s":34.0723,"styrka":80.0,"traff_s":34.0643,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s04.json"},{"id":"s05","serie":1,"klick_s":41.494,"styrka":80.0,"traff_s":41.486,"dom":"sving","andrad_av_johannes":false,"leder":"slag/s05.json"}],"vision":{"revision":1,"ms_per_ruta":18.0,"glest_steg":8,"tatt_steg":1},"matt":null},"par":"{\n \"format\": \"swinglab-par/1\",\n \"pass\": \"20261103-180000\",\n \"modell\": \"pahittad\",\n \"vy\": \"fo\",\n \"serier\": [\n  {\n   \"serie\": 1,\n   \"styr_avstand_m\": 2.75,\n   \"styr_klick\": 5,\n   \"foljare\": {\n    \"modell\": \"pahittad\",\n    \"vy\": \"dtl\",\n    \"avstand_m\": 3.29,\n    \"pass\": \"20261103-180000\",\n    \"serie\": 1,\n    \"hz\": 240,\n    \"klick\": 4\n   },\n   \"forskjutning_s\": 12.3466,\n   \"traff_forskjutning_s\": 12.345,\n   \"antal_par\": 4,\n   \"median_rest_s\": 0.001,\n   \"osaker\": false\n  }\n ]\n}","enhet":null}},"varianter":{"grund":{"andra":{},"par":[["s01","s01"],["s02","s02"],["s03","s03"],["s04","s04"]],"info":{"kalla":"par.json","serier":[{"dtl":1,"fo":1,"kalla":"par.json","par":4}],"par":4,"oparade":{"dtl":0,"fo":1}}}}}}}
+{
+ "om": "PÅHITTAT (CLAUDE.md, Dataregeln). Genererad av tools/pc/generera_tre_d.py; ändra inte för hand.",
+ "pass": {
+  "dtl_styr": {
+   "paket": {
+    "dtl": {
+     "manifest": "{\"format\": \"swinglab-paket/1\", \"skapad\": \"2026-11-03T20:00:00+01:00\", \"app\": {\"version\": \"0.0.0\", \"bygge\": \"pahittat\"}, \"pass\": \"20261103-180000\", \"telefon\": {\"modell\": \"pahittad\", \"ios\": \"18.2\", \"roll\": \"styrande\"}, \"vy\": \"dtl\", \"avstand_m\": 3.29, \"spelhand\": \"hoger\", \"spelarens_langd_m\": 1.8, \"serier\": [{\"nr\": 1, \"kalla\": \"inspelning\", \"klubba\": \"j7\", \"format\": {\"index\": 0, \"bredd\": 1920, \"hojd\": 1080, \"synfalt\": 67.234, \"binnat\": false}}], \"slag\": [{\"id\": \"s01\", \"serie\": 1, \"klick_s\": 12.8152, \"styrka\": 80.0, \"traff_s\": 12.8056, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s01.json\"}, {\"id\": \"s02\", \"serie\": 1, \"klick_s\": 19.806, \"styrka\": 80.0, \"traff_s\": 19.7964, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s02.json\"}, {\"id\": \"s03\", \"serie\": 1, \"klick_s\": 26.9091, \"styrka\": 80.0, \"traff_s\": 26.8995, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s03.json\"}, {\"id\": \"s04\", \"serie\": 1, \"klick_s\": 34.0702, \"styrka\": 80.0, \"traff_s\": 34.0606, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s04.json\"}], \"vision\": {\"revision\": 1, \"ms_per_ruta\": 18.0, \"glest_steg\": 8, \"tatt_steg\": 1}, \"matt\": null}",
+     "par": "{\n \"format\": \"swinglab-par/1\",\n \"pass\": \"20261103-180000\",\n \"modell\": \"pahittad\",\n \"vy\": \"dtl\",\n \"serier\": [\n  {\n   \"serie\": 1,\n   \"styr_avstand_m\": 3.29,\n   \"styr_klick\": 4,\n   \"foljare\": {\n    \"modell\": \"pahittad\",\n    \"vy\": \"fo\",\n    \"avstand_m\": 2.75,\n    \"pass\": \"20261103-180000\",\n    \"serie\": 1,\n    \"hz\": 240,\n    \"klick\": 5\n   },\n   \"forskjutning_s\": 12.3434,\n   \"traff_forskjutning_s\": 12.345,\n   \"antal_par\": 4,\n   \"median_rest_s\": 0.001,\n   \"osaker\": false\n  }\n ]\n}",
+     "enhet": null
+    },
+    "fo": {
+     "manifest": "{\"format\": \"swinglab-paket/1\", \"skapad\": \"2026-11-03T20:00:00+01:00\", \"app\": {\"version\": \"0.0.0\", \"bygge\": \"pahittat\"}, \"pass\": \"20261103-180000\", \"telefon\": {\"modell\": \"pahittad\", \"ios\": \"18.2\", \"roll\": \"foljare\"}, \"vy\": \"fo\", \"avstand_m\": 2.75, \"spelhand\": \"hoger\", \"spelarens_langd_m\": 1.8, \"serier\": [{\"nr\": 1, \"kalla\": \"inspelning\", \"klubba\": \"j7\", \"format\": {\"index\": 0, \"bredd\": 1920, \"hojd\": 1080, \"synfalt\": 67.234, \"binnat\": false}}], \"slag\": [{\"id\": \"s01\", \"serie\": 1, \"klick_s\": 25.1627, \"styrka\": 80.0, \"traff_s\": 25.1547, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s01.json\"}, {\"id\": \"s02\", \"serie\": 1, \"klick_s\": 32.1482, \"styrka\": 80.0, \"traff_s\": 32.1402, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s02.json\"}, {\"id\": \"s03\", \"serie\": 1, \"klick_s\": 39.248, \"styrka\": 80.0, \"traff_s\": 39.24, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s03.json\"}, {\"id\": \"s04\", \"serie\": 1, \"klick_s\": 46.4173, \"styrka\": 80.0, \"traff_s\": 46.4093, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s04.json\"}, {\"id\": \"s05\", \"serie\": 1, \"klick_s\": 53.839, \"styrka\": 80.0, \"traff_s\": 53.831, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s05.json\"}], \"vision\": {\"revision\": 1, \"ms_per_ruta\": 18.0, \"glest_steg\": 8, \"tatt_steg\": 1}, \"matt\": null}",
+     "par": null,
+     "enhet": null
+    }
+   },
+   "varianter": {
+    "grund": {
+     "andra": {},
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "par.json",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "par.json",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      }
+     }
+    },
+    "osaker": {
+     "andra": {
+      "dtl": {
+       "par": "{\"format\": \"swinglab-par/1\", \"pass\": \"20261103-180000\", \"modell\": \"pahittad\", \"vy\": \"dtl\", \"serier\": [{\"serie\": 1, \"styr_avstand_m\": 3.29, \"styr_klick\": 4, \"foljare\": {\"modell\": \"pahittad\", \"vy\": \"fo\", \"avstand_m\": 2.75, \"pass\": \"20261103-180000\", \"serie\": 1, \"hz\": 240, \"klick\": 5}, \"forskjutning_s\": 15.3434, \"traff_forskjutning_s\": 12.345, \"antal_par\": 4, \"median_rest_s\": 0.001, \"osaker\": true}]}"
+      }
+     },
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "par.json",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "klicken",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      }
+     }
+    },
+    "annat_pass": {
+     "andra": {
+      "dtl": {
+       "par": "{\"format\": \"swinglab-par/1\", \"pass\": \"20261103-180000\", \"modell\": \"pahittad\", \"vy\": \"dtl\", \"serier\": [{\"serie\": 1, \"styr_avstand_m\": 3.29, \"styr_klick\": 4, \"foljare\": {\"modell\": \"pahittad\", \"vy\": \"fo\", \"avstand_m\": 2.75, \"pass\": \"20261103-170000\", \"serie\": 1, \"hz\": 240, \"klick\": 5}, \"forskjutning_s\": 12.3434, \"traff_forskjutning_s\": 12.345, \"antal_par\": 4, \"median_rest_s\": 0.001, \"osaker\": false}]}"
+      }
+     },
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "par.json",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "klicken",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      }
+     }
+    },
+    "trasig": {
+     "andra": {
+      "dtl": {
+       "par": "{\"format\": \"swinglab-par/1\""
+      }
+     },
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "klicken",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "klicken",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      },
+      "par_json_fel": "par.json är inte giltig JSON"
+     }
+    },
+    "utan": {
+     "andra": {
+      "dtl": {
+       "par": null
+      }
+     },
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "klicken",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "klicken",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      }
+     }
+    }
+   }
+  },
+  "fo_styr": {
+   "paket": {
+    "dtl": {
+     "manifest": "{\"format\": \"swinglab-paket/1\", \"skapad\": \"2026-11-03T20:00:00+01:00\", \"app\": {\"version\": \"0.0.0\", \"bygge\": \"pahittat\"}, \"pass\": \"20261103-180000\", \"telefon\": {\"modell\": \"pahittad\", \"ios\": \"18.2\", \"roll\": \"foljare\"}, \"vy\": \"dtl\", \"avstand_m\": 3.29, \"spelhand\": \"hoger\", \"spelarens_langd_m\": 1.8, \"serier\": [{\"nr\": 1, \"kalla\": \"inspelning\", \"klubba\": \"j7\", \"format\": {\"index\": 0, \"bredd\": 1920, \"hojd\": 1080, \"synfalt\": 67.234, \"binnat\": false}}], \"slag\": [{\"id\": \"s01\", \"serie\": 1, \"klick_s\": 25.1602, \"styrka\": 80.0, \"traff_s\": 25.1506, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s01.json\"}, {\"id\": \"s02\", \"serie\": 1, \"klick_s\": 32.151, \"styrka\": 80.0, \"traff_s\": 32.1414, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s02.json\"}, {\"id\": \"s03\", \"serie\": 1, \"klick_s\": 39.2541, \"styrka\": 80.0, \"traff_s\": 39.2445, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s03.json\"}, {\"id\": \"s04\", \"serie\": 1, \"klick_s\": 46.4152, \"styrka\": 80.0, \"traff_s\": 46.4056, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s04.json\"}], \"vision\": {\"revision\": 1, \"ms_per_ruta\": 18.0, \"glest_steg\": 8, \"tatt_steg\": 1}, \"matt\": null}",
+     "par": null,
+     "enhet": null
+    },
+    "fo": {
+     "manifest": "{\"format\": \"swinglab-paket/1\", \"skapad\": \"2026-11-03T20:00:00+01:00\", \"app\": {\"version\": \"0.0.0\", \"bygge\": \"pahittat\"}, \"pass\": \"20261103-180000\", \"telefon\": {\"modell\": \"pahittad\", \"ios\": \"18.2\", \"roll\": \"styrande\"}, \"vy\": \"fo\", \"avstand_m\": 2.75, \"spelhand\": \"hoger\", \"spelarens_langd_m\": 1.8, \"serier\": [{\"nr\": 1, \"kalla\": \"inspelning\", \"klubba\": \"j7\", \"format\": {\"index\": 0, \"bredd\": 1920, \"hojd\": 1080, \"synfalt\": 67.234, \"binnat\": false}}], \"slag\": [{\"id\": \"s01\", \"serie\": 1, \"klick_s\": 12.8177, \"styrka\": 80.0, \"traff_s\": 12.8097, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s01.json\"}, {\"id\": \"s02\", \"serie\": 1, \"klick_s\": 19.8032, \"styrka\": 80.0, \"traff_s\": 19.7952, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s02.json\"}, {\"id\": \"s03\", \"serie\": 1, \"klick_s\": 26.903, \"styrka\": 80.0, \"traff_s\": 26.895, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s03.json\"}, {\"id\": \"s04\", \"serie\": 1, \"klick_s\": 34.0723, \"styrka\": 80.0, \"traff_s\": 34.0643, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s04.json\"}, {\"id\": \"s05\", \"serie\": 1, \"klick_s\": 41.494, \"styrka\": 80.0, \"traff_s\": 41.486, \"dom\": \"sving\", \"andrad_av_johannes\": false, \"leder\": \"slag/s05.json\"}], \"vision\": {\"revision\": 1, \"ms_per_ruta\": 18.0, \"glest_steg\": 8, \"tatt_steg\": 1}, \"matt\": null}",
+     "par": "{\n \"format\": \"swinglab-par/1\",\n \"pass\": \"20261103-180000\",\n \"modell\": \"pahittad\",\n \"vy\": \"fo\",\n \"serier\": [\n  {\n   \"serie\": 1,\n   \"styr_avstand_m\": 2.75,\n   \"styr_klick\": 5,\n   \"foljare\": {\n    \"modell\": \"pahittad\",\n    \"vy\": \"dtl\",\n    \"avstand_m\": 3.29,\n    \"pass\": \"20261103-180000\",\n    \"serie\": 1,\n    \"hz\": 240,\n    \"klick\": 4\n   },\n   \"forskjutning_s\": 12.3466,\n   \"traff_forskjutning_s\": 12.345,\n   \"antal_par\": 4,\n   \"median_rest_s\": 0.001,\n   \"osaker\": false\n  }\n ]\n}",
+     "enhet": null
+    }
+   },
+   "varianter": {
+    "grund": {
+     "andra": {},
+     "par": [
+      [
+       "s01",
+       "s01"
+      ],
+      [
+       "s02",
+       "s02"
+      ],
+      [
+       "s03",
+       "s03"
+      ],
+      [
+       "s04",
+       "s04"
+      ]
+     ],
+     "info": {
+      "kalla": "par.json",
+      "serier": [
+       {
+        "dtl": 1,
+        "fo": 1,
+        "kalla": "par.json",
+        "par": 4
+       }
+      ],
+      "par": 4,
+      "oparade": {
+       "dtl": 0,
+       "fo": 1
+      }
+     }
+    }
+   }
+  }
+ }
+}

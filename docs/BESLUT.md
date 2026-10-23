@@ -960,20 +960,31 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   till `tools/tests/fixturer/tre_d/`, och Swift ska ge dem inom METOD M50:s tolerans.
 - **Ändrat i Python:** kalibreringens högst 5 000 punktpar valdes med numpys slumptal
   (`default_rng(0).choice`), som Swift inte kan räkna om utan att skriva av PCG64 och
-  numpys urvalsalgoritm. Nu tas de jämnt spridda, index ⌊i · n / 5 000⌋, i båda.
-  **Prövat mot S6a:s facit** (S6_FELBUDGET §6.7, samma 56 pass, frö 100–123):
-  utan brus oförändrat (max 0,3°); med bra och typiskt brus samma bias inom 0,1° och
-  samma eller lägre SD (bra: bäckenet 5,9 → 5,8°, bröstet 5,7 → 5,6, X-factor 7,8 → 7,7,
-  stretchen 3,5 → 3,4; typiskt: bröstet 9,6 → 9,6, stretchen 5,7 → 5,6), synken och
-  Sampson-felet oförändrade.
+  numpys urvalsalgoritm. Nu väljs de som en permutation, index (i · P) mod n med P det
+  första heltalet från ⌊n · 0,618…⌋ utan gemensam faktor med n (METOD M50), i båda
+  språken. Ett jämnt steg ⌊i · n / 5 000⌋ (granskningens första version) kan gå i takt
+  med ledernas period 13 per ruta och välja samma leder; permutationen gör det inte.
+  **Prövat mot S6a:s facit** med `python3 tools/pc/kedjans_facit.py` (S6_FELBUDGET
+  §6.7, samma 56 pass, frö 100–123): utan brus oförändrat (max 0,3°); med bra och
+  typiskt brus samma bias inom 0,1° och samma SD inom 0,1° (bra: bäckenet 5,9, bröstet
+  5,7, X-factor 7,8, stretchen 3,5, höfterna 3,5; typiskt: bröstet 9,6 → 9,7, höfterna
+  5,9 → 6,0), synken och Sampson-felet oförändrade. MK7:s golv följer tabellen: bröstet
+  13,6 → 13,7°, höfterna 8,3 → 8,5°.
+- **Också ändrat i Python (METOD M51):** kalibreringen kräver nio punktpar i stället för
+  åtta (med åtta räknade numpy fel nollrum), NaN stoppas före analysen (`hoppat` med
+  skäl, spärrarna räknar NaN som över), ett slag med orimliga tider mäts inte, parade
+  slag som inte mäts står i `tre_d.utelamnade` med skälet, och paketen måste komma i
+  ordningen DTL, FO.
 - **Varför:** Johannes mål (2026-10-23) är att så mycket som möjligt görs på telefonen.
   En port som ger Pythons tal kan prövas mot samma facit som S6a, och PC:n kan jämföra
   telefonens 3D med sin egen.
 - **Bortvalt:** Accelerate (finns inte på Linux, där SwingLabKit testas); en annan
   algoritm i Swift (t.ex. SVD ur AᵀA:s egenvektorer, eller en färdig optimerare), som
   inte går att pröva mot Python tal för tal; att skriva av numpys slumptal.
-- **Kostnad:** kedjan finns två gånger. Fixturerna är 3,2 MB JSON (lederna kompakt
-  som int16 i base64), och Python-testet räknar om dem (cirka 30 s). TreDTests tar cirka 15 s i Actions.
+- **Kostnad:** kedjan finns två gånger. Fixturerna är 3,8 MB JSON, nästan allt passens
+  leder (kompakt som int16 i base64, `indata/`); facit per variant står i egna små filer
+  och lodlinjens varianter återanvänder ett annat pass leder. Python-testet räknar om
+  allt parallellt (METOD M50 har tiden), och TreDTests tar cirka 15 s i Actions.
 - **Omprövas:** när kedjan ändras i Python (fixturerna skrivs om, B12), eller om
   telefonen blir för långsam (METOD M50:s tid).
 

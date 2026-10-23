@@ -37,6 +37,7 @@ enum Triangulering {
         var ut = [Double](repeating: .nan, count: antal * 3)
         let rader = 2 * c
         var a = [Double](repeating: 0, count: rader * 4)       // kolumnvis
+        var v = [Double](repeating: 0, count: 16)
         for p in 0..<antal {
             var giltig = 0
             for i in 0..<a.count { a[i] = 0 }
@@ -56,10 +57,10 @@ enum Triangulering {
                 }
             }
             guard giltig >= 2 else { continue }
-            let x = LA.nollvektor(&a, rader, 4)
-            ut[p * 3] = x[0] / x[3]
-            ut[p * 3 + 1] = x[1] / x[3]
-            ut[p * 3 + 2] = x[2] / x[3]
+            let j = LA.nollkolumn(&a, rader, 4, &v) * 4
+            ut[p * 3] = v[j] / v[j + 3]
+            ut[p * 3 + 1] = v[j + 1] / v[j + 3]
+            ut[p * 3 + 2] = v[j + 2] / v[j + 3]
         }
         return ut
     }
@@ -80,7 +81,7 @@ enum Triangulering {
         if 0 < i && i < y.count - 1 {
             let y0 = y[i - 1], y1 = y[i], y2 = y[i + 1]
             let den = y0 - 2 * y1 + y2
-            if den != 0 {
+            if den != 0 && den.isFinite {                       // en granne utan värde: toppen själv (M51)
                 return x[i] + 0.5 * (y0 - y2) / den * (x[1] - x[0])
             }
         }

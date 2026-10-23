@@ -106,6 +106,7 @@ public struct TreDResultat: Equatable, Sendable, Codable {
     public var kalibrering: [TreDUppstallning]
     public var osaker: [String]
     public var slag: [TreDSlagRad]
+    public var utelamnade: [TreDUtelamnat]
     public var n: [String: Int]
     public var session: [String: TreDSammanfattning]
     /// De oavrundade talen per uppställning (nil för en som hoppades över före
@@ -113,9 +114,24 @@ public struct TreDResultat: Equatable, Sendable, Codable {
     public var inre: [TreDInre?] = []
 
     enum CodingKeys: String, CodingKey {
-        case lage, matt, parning, kalibrering, osaker, slag, n, session
+        case lage, matt, parning, kalibrering, osaker, slag, utelamnade, n, session
         case minSlag = "min_slag"
     }
+}
+
+/// Ett parat slag som inte mäts, och skälet (domen, Detection wrong, lederna, för få
+/// rutor eller orimliga tider). METOD MK1, MK5, M51
+public struct TreDUtelamnat: Equatable, Sendable, Codable {
+    public var dtl: String
+    public var fo: String
+    public var skal: String
+}
+
+/// 3D för passet eller skälet till att det inte gick (analys.json `tre_d` eller
+/// `{"hoppat": skäl}`).
+public enum TreDUt: Equatable, Sendable {
+    case resultat(TreDResultat)
+    case hoppat(String)
 }
 
 /// Uppställningens kameror och slagens synk, oavrundade.
@@ -160,10 +176,14 @@ public enum TvaKameror {
     static let rutnatS = 1.0 / 240                     // METOD MK5
     static let kantS = 0.05                            // METOD MK5
     static let minRutor = 10                           // METOD MK5
+    /// Ett slags leder som spänner längre (eller inte är ändliga) mäts inte. METOD M51
+    static let maxSpannS = 30.0
+    /// Urvalets steg som andel av antalet par (gyllene snittet). METOD M50, BESLUT B48
+    static let urvalSteg = 0.6180339887498949
     public static let minSlag = 10                     // METOD MK7, BESLUT B14
     /// Golvet för en tydlig skillnad mellan två pass, grader. METOD MK7
-    public static let trendGolv = ["backen_vrid_topp": 15.7, "brost_vrid_topp": 13.6, "xfaktor_topp": 19.2,
-                                   "xfaktor_stretch": 8.1, "hofter_oppna_traff": 8.3]
+    public static let trendGolv = ["backen_vrid_topp": 15.7, "brost_vrid_topp": 13.7, "xfaktor_topp": 19.2,
+                                   "xfaktor_stretch": 8.1, "hofter_oppna_traff": 8.5]
     static let snabba = [Matt3D.vHandled, Matt3D.hHandled, Matt3D.vArmbage, Matt3D.hArmbage]
     /// Måttens namn i tre_d, i analysens ordning. METOD MK6
     public static let matt = ["backen_vrid_topp", "brost_vrid_topp", "xfaktor_topp", "xfaktor_stretch",
@@ -203,7 +223,9 @@ public enum TvaKameror {
     static func spar(_ p: TreDPaket, _ s: TreDSlag) -> Spar2D {
         guard let js = s.lederna else { return Spar2D(t: [], uv: [], k: [], j: Matt3D.antalLeder) }
         let traff = traffISerien(p, s)
-        let ordning = js.frames.indices.sorted { (js.frames[$0].t, $0) < (js.frames[$1].t, $1) }
+        // Tider som inte är ändliga sorteras inte (utelamnat() stoppar slaget, METOD M51).
+        let ordning = js.frames.allSatisfy { $0.t.isFinite }
+            ? js.frames.indices.sorted { (js.frames[$0].t, $0) < (js.frames[$1].t, $1) } : Array(js.frames.indices)
         let j = Matt3D.antalLeder
         var t: [Double] = [], uv: [Double] = [], k: [Double] = []
         for i in ordning {
@@ -212,7 +234,7 @@ public enum TvaKameror {
             if let sista = t.last, sista == ti { continue }          // två rutor på samma tid: den första
             t.append(ti)
             for l in 0..<j {
-                if l < r.joints.count, let led = r.joints[l], led.c >= minKonf {
+                if l < r.joints.count, let led = r.joints[l], led.c >= minKonf, led.x.isFinite, led.y.isFinite {
                     uv.append(led.x)
                     uv.append(led.y)
                     k.append(led.c)
@@ -259,9 +281,20 @@ public enum TvaKameror {
         return (tg, a, ka, b, kb)
     }
 
-    /// k av n punktpar, jämnt spridda: ⌊i · n / k⌋. METOD M50, BESLUT B48
+    /// k av n punktpar: (i · P) mod n, där P är det första heltalet från ⌊n · 0,618…⌋ utan
+    /// gemensam faktor med n (en permutation som inte går i takt med ledernas period).
+    /// METOD M50, BESLUT B48
     public static func urval(_ n: Int, _ k: Int) -> [Int] {
-        (0..<k).map { $0 * n / k }
+        guard n > 0 else { return [] }
+        var steg = max(1, Int(Double(n) * urvalSteg))
+        while gcd(steg, n) != 1 { steg += 1 }
+        return (0..<k).map { ($0 * steg) % n }
+    }
+
+    static func gcd(_ a: Int, _ b: Int) -> Int {
+        var (x, y) = (a, b)
+        while y != 0 { (x, y) = (y, x % y) }
+        return x
     }
 
     // MARK: - Kalibreringen
@@ -327,8 +360,8 @@ public enum TvaKameror {
             if let vagrata {
                 let c = min(max(LA.dot3(u, vagrata) / LA.norm3(u), -1), 1)
                 let avvik = Matt3D.grader(acos(c))
-                motVagrata = LA.avrunda(avvik, 1)
-                if avvik > lodlinjeMotVagrataMax {
+                if avvik.isFinite { motVagrata = LA.avrunda(avvik, 1) }
+                if !(avvik <= lodlinjeMotVagrataMax) {       // även NaN (summan noll): de vågräta
                     upp = nil
                     kalla = "kamerornas_vagrata"
                     fel.append("lodlinjen i manifestet avviker mer än 15° från kamerornas vågräta")
@@ -343,7 +376,11 @@ public enum TvaKameror {
         let fa = [kamA.r[6], kamA.r[7], 0.0], fb = [kamB.r[6], kamB.r[7], 0.0]
         let c = min(max(LA.dot3(fa, fb) / (LA.norm3(fa) * LA.norm3(fb)), -1), 1)
         let vinkel = Matt3D.grader(acos(c))
-        return Kalib(r: r, t: t, upp: upp!, kalla: kalla, sampsonPx: rel.sampson * fPx * 1920.0 / lang,
+        let sampsonPx = rel.sampson * fPx * 1920.0 / lang
+        guard sampsonPx.isFinite, vinkel.isFinite else {            // inget NaN i analysen. METOD M51
+            throw TreDFel(skal: "kalibreringen: kamerornas läge gick inte att räkna")
+        }
+        return Kalib(r: r, t: t, upp: upp!, kalla: kalla, sampsonPx: sampsonPx,
                      vinkel: vinkel, motVagrata: motVagrata, lodlinjeFel: fel)
     }
 
@@ -354,8 +391,8 @@ public enum TvaKameror {
     /// DTL:s klocka före FO:s efter klicket (s), på minsta återprojektionsfel. METOD MK4
     static func synka(_ kam: (Kamera3D, Kamera3D), _ d: SlagData, _ mitt: Double, _ sok: Double) -> Double {
         guard let v = Triangulering.synkReprojektion([kam.0, kam.1], d.a, d.b.flyttat(mitt), snabba, synkFonster, sok,
-                                                     synkStegS, synkHalvbredd) else { return mitt }
-        return mitt + v
+                                                     synkStegS, synkHalvbredd), v.isFinite else { return mitt }
+        return mitt + v                                        // METOD M51
     }
 
     /// Slagets 3D-leder på den gemensamma tidsaxeln och återprojektionens median. METOD MK5
@@ -429,7 +466,7 @@ public enum TvaKameror {
         info.vinkelOk = vinkelOk.contains(k.vinkel)
         info.lodlinjeMotVagrata = k.motVagrata
         if !k.lodlinjeFel.isEmpty { info.lodlinjeFel = (info.lodlinjeFel ?? []) + k.lodlinjeFel }
-        if info.sampsonPx! > sampsonMaxPx {
+        if !(info.sampsonPx! <= sampsonMaxPx) {
             info.hoppat = "kalibreringen: Sampson-felet är över spärren"
             return (info, [], inre)
         }
@@ -455,6 +492,39 @@ public enum TvaKameror {
         return (info, ut, inre)
     }
 
+    /// Skälet till att ett spår inte går att mäta, eller nil. METOD MK5, M51
+    static func utelamnat(_ t: [Double]) -> String? {
+        if t.count < minRutor { return "för få rutor" }
+        guard t.allSatisfy(\.isFinite), t[t.count - 1] - t[0] <= maxSpannS else {
+            return "ledernas tider spänner orimligt långt"
+        }
+        return nil
+    }
+
+    /// 3D ur två telefoners paketfiler, med varje fel som `hoppat` och skälet (aldrig ett
+    /// värde): formfel i ett paket, paketen i fel ordning, parningen, kalibreringen.
+    /// `filer`: paketets filnamn, när de är kända. Tung: kör den utanför huvudtråden
+    /// (PLAN S6c-2). METOD MK1–MK7, M51
+    public static func treD(dtl: (manifest: Data, lederna: [String: JointSeries], filer: Set<String>?, par: Data?,
+                                  enhet: Data?),
+                            fo: (manifest: Data, lederna: [String: JointSeries], filer: Set<String>?, par: Data?,
+                                 enhet: Data?),
+                            faser: [String: Faser2D]) -> TreDUt {
+        do {
+            let d = try TreDPaket.las(manifest: dtl.manifest, lederna: dtl.lederna, filer: dtl.filer, par: dtl.par,
+                                      enhet: dtl.enhet)
+            let f = try TreDPaket.las(manifest: fo.manifest, lederna: fo.lederna, filer: fo.filer, par: fo.par,
+                                      enhet: fo.enhet)
+            return .resultat(try analysera(dtl: d, fo: f, faser: faser))
+        } catch let e as TreDPaketFel {
+            return .hoppat(e.skal)
+        } catch let e as TreDFel {
+            return .hoppat(e.skal)
+        } catch {
+            return .hoppat("3D gick inte (\(type(of: error)))")
+        }
+    }
+
     static func enhetsvektor(_ v: [Double]?) -> [Double]? {
         guard let v else { return nil }
         let n = LA.norm3(v)
@@ -465,14 +535,29 @@ public enum TvaKameror {
     /// (nyckel "dtl/s01", "fo/s01"). Kastar TreDFel när 3D inte går (skälet i
     /// `tre_d.hoppat`). METOD MK1–MK7
     public static func analysera(dtl: TreDPaket, fo: TreDPaket, faser: [String: Faser2D]) throws -> TreDResultat {
-        let (par, parning) = Parning.paraSlag(dtl, fo)
+        let (par, parning) = try Parning.paraSlag(dtl, fo)
         var grupper: [String: [SlagData]] = [:]
         var nycklar: [(Int, Int)] = []
+        var utelamnade: [TreDUtelamnat] = []
         for (sd, sf) in par {
-            guard mats.contains(sd.dom), mats.contains(sf.dom), !sd.detectionWrong, !sf.detectionWrong,
-                  sd.lederna != nil, sf.lederna != nil else { continue }
-            let a = spar(fo, sf), b = spar(dtl, sd)
-            if min(a.n, b.n, rutnat(a.t, b.t).count) < minRutor { continue }
+            var skal: String?
+            var a = Spar2D(t: [], uv: [], k: [], j: Matt3D.antalLeder), b = a
+            if !mats.contains(sd.dom) || !mats.contains(sf.dom) {
+                skal = "domen är inte sving"
+            } else if sd.detectionWrong || sf.detectionWrong {
+                skal = "lederna är märkta fel (Detection wrong)"
+            } else if sd.lederna == nil || sf.lederna == nil {
+                skal = "lederna saknas"
+            } else {
+                a = spar(fo, sf)
+                b = spar(dtl, sd)
+                skal = utelamnat(a.t) ?? utelamnat(b.t)
+                if skal == nil && rutnat(a.t, b.t).count < minRutor { skal = "för få rutor" }
+            }
+            if let skal {
+                utelamnade.append(TreDUtelamnat(dtl: sd.id, fo: sf.id, skal: skal))
+                continue
+            }
             let (ka, fKa) = kFor(fo, sf), (kb, fKb) = kFor(dtl, sd)
             let d = SlagData(dtl: sd, fo: sf, a: a, b: b, ka: ka, kb: kb, fKa: fKa, fKb: fKb,
                              traffA: traffISerien(fo, sf), traffB: traffISerien(dtl, sd),
@@ -505,7 +590,7 @@ public enum TvaKameror {
         var session: [String: TreDSammanfattning] = [:]
         for (k, v) in sammanf where v.n >= minSlag { session[k] = TreDSammanfattning(v) }
         var r = TreDResultat(lage: lage, minSlag: minSlag, matt: matt, parning: parning, kalibrering: kalib,
-                             osaker: osaker, slag: utSlag, n: n, session: session)
+                             osaker: osaker, slag: utSlag, utelamnade: utelamnade, n: n, session: session)
         r.inre = inre
         return r
     }

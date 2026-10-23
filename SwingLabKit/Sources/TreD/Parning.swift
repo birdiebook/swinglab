@@ -57,8 +57,12 @@ public enum Parning {
 
     /// Slagen som båda telefonerna filmat: [(DTL-slaget, FO-slaget)] och hur de paras. Ur
     /// den styrande telefonens par.json när den gäller paret, annars ur klicken, serie mot
-    /// serie, flest par först. METOD MK1
-    public static func paraSlag(_ dtl: TreDPaket, _ fo: TreDPaket) -> (par: [(TreDSlag, TreDSlag)], info: TreDParning) {
+    /// serie, flest par först. Paketen i fel ordning (eller två av samma vy) är ett fel.
+    /// METOD MK1, BESLUT B48
+    public static func paraSlag(_ dtl: TreDPaket, _ fo: TreDPaket) throws -> (par: [(TreDSlag, TreDSlag)], info: TreDParning) {
+        guard dtl.vy == .dtl, fo.vy == .fo else {
+            throw TreDFel(skal: "parningen: paketen ska vara ett DTL- och ett FO-paket")
+        }
         let styr = [dtl, fo].first { $0.par != nil && $0.par?.vy == $0.vy }
         let styrArDtl = styr?.vy == .dtl
         var par: [(TreDSlag, TreDSlag)] = []

@@ -107,55 +107,54 @@ public struct TreDPaket: Equatable, Sendable {
     }
 }
 
-/// Formfel i manifestet (3D läser inte ett paket som PC:n inte heller läser). Nämner
-/// fältet, aldrig värdet.
-public struct TreDPaketFel: Error, Equatable {
-    public var skal: String
+/// Formfel i ett paket: varje rad nämner filen och fältet, aldrig värdet (CLAUDE.md,
+/// Dataregeln). Blir `tre_d.hoppat` (TvaKameror.treD). METOD M51
+public struct TreDPaketFel: Error, Equatable, Sendable {
+    public var fel: [String]
+    public var skal: String { fel.joined(separator: "; ") }
+
+    public init(_ fel: [String]) {
+        self.fel = fel
+    }
 }
 
 extension TreDPaket {
     /// Lodlinjens längd i g (accelerometern i vila). METOD MK3, BESLUT B39
     public static let lodlinjeG = 0.8...1.2
+    /// paket.py: formatet, domarna och de rimliga talen. METOD MT1, MS13
+    public static let format = "swinglab-paket/1"
+    public static let domar = ["sving", "inte_sving", "osaker"]
+    public static let avstandM = 0.5...20.0
+    public static let langdM = 1.0...2.5
+    static let kant = 1e-6
 
-    /// Paketet ur dess filer: manifest.json, par.json och enhet.json (valfria) och
-    /// lederna per slag-id. Lodlinjen, synfältet och par.json läses som paket.py gör:
-    /// det som inte går att använda blir ett skäl, inte ett stopp. METOD MK1, MK3
-    public static func las(manifest: Data, lederna: [String: JointSeries], par: Data? = nil,
-                           enhet: Data? = nil) throws -> TreDPaket {
-        guard let m = try? JSONSerialization.jsonObject(with: manifest) as? [String: Any] else {
-            throw TreDPaketFel(skal: "manifest.json är inte ett JSON-objekt")
-        }
-        return try las(manifest: m, lederna: lederna, par: par, enhet: enhet)
-    }
-
-    /// Som `las(manifest:…)` med manifestet redan läst som JSON-objekt.
-    public static func las(manifest m: [String: Any], lederna: [String: JointSeries], par: Data? = nil,
-                           enhet: Data? = nil) throws -> TreDPaket {
-        guard let pass = m["pass"] as? String, let vy = (m["vy"] as? String).flatMap(Vy.init(rawValue:)),
-              let hand = (m["spelhand"] as? String).flatMap(Hand.init(rawValue:)),
-              let serier = m["serier"] as? [[String: Any]], let slag = m["slag"] as? [[String: Any]] else {
-            throw TreDPaketFel(skal: "manifest.json saknar pass, vy, spelhand, serier eller slag")
-        }
+    /// Paketet ur dess filer: manifest.json, par.json och enhet.json (valfria), lederna
+    /// per slag-id och, när de är kända, paketets filnamn (`filer`; då prövas att slagens
+    /// filer finns). Manifestet kontrolleras som paket.py (`kontrollera`): ett formfel
+    /// kastar TreDPaketFel. Lodlinjen, synfältet och par.json läses som paket.py gör: det
+    /// som inte går att använda blir ett skäl, inte ett stopp. METOD MK1, MK3, M51
+    public static func las(manifest: Data, lederna: [String: JointSeries], filer: Set<String>? = nil,
+                           par: Data? = nil, enhet: Data? = nil) throws -> TreDPaket {
+        guard let m = try? JSONVarde.las(manifest) else { throw TreDPaketFel(["manifest.json är inte giltig JSON"]) }
+        let fel = kontrollera(m, filer: filer)
+        guard fel.isEmpty, let o = m.objekt else { throw TreDPaketFel(fel) }
         var ut: [Int: TreDSerie] = [:]
-        for s in serier {
-            guard let nr = heltal(s["nr"]) else { throw TreDPaketFel(skal: "manifest.json: serier[].nr") }
-            let (lod, fel) = lodlinjen(s["lodlinje"], nr)
-            ut[nr] = TreDSerie(nr: nr, lodlinje: lod, lodlinjeFel: fel, synfalt: synfalt(s["format"]))
+        for s in o["serier"]?.lista ?? [] {
+            guard let nr = s["nr"]?.heltal else { continue }
+            let (lod, lodFel) = lodlinjen(s["lodlinje"], nr)
+            ut[nr] = TreDSerie(nr: nr, lodlinje: lod, lodlinjeFel: lodFel, synfalt: synfalt(s["format"]))
         }
         var lista: [TreDSlag] = []
-        for s in slag {
-            guard let id = s["id"] as? String, let serie = heltal(s["serie"]), let dom = s["dom"] as? String,
-                  let klick = tal(s["klick_s"]) else {
-                throw TreDPaketFel(skal: "manifest.json: slag[] saknar id, serie, dom eller klick_s")
-            }
-            lista.append(TreDSlag(id: id, serie: serie, dom: dom, klickS: klick, traffS: tal(s["traff_s"]),
-                                  detectionWrong: (s["detection_wrong"] as? Bool) == true, lederna: lederna[id]))
+        for s in o["slag"]?.lista ?? [] {
+            guard let id = s["id"]?.text, let serie = s["serie"]?.heltal, let dom = s["dom"]?.text,
+                  let klick = s["klick_s"]?.tal else { continue }
+            lista.append(TreDSlag(id: id, serie: serie, dom: dom, klickS: klick, traffS: s["traff_s"]?.tal,
+                                  detectionWrong: s["detection_wrong"] == .bool(true), lederna: lederna[id]))
         }
         var enhetSF: Synfalt?
-        if let enhet, let e = try? JSONSerialization.jsonObject(with: enhet) as? [String: Any],
-           let format = e["format"] as? [[String: Any]] {
-            let valt = heltal(e["valt_index"])
-            if let f = format.first(where: { heltal($0["index"]) == valt && valt != nil }) {
+        if let enhet, let e = try? JSONVarde.las(enhet), let eo = e.objekt, let format = eo["format"]?.lista {
+            // Som paket.py: formatet vars index är valt_index (== i Python, även None == None).
+            if let f = format.first(where: { $0.objekt != nil && JSONVarde.pyLika($0["index"], eo["valt_index"]) }) {
                 enhetSF = synfalt(f)
             }
         }
@@ -167,38 +166,142 @@ extension TreDPaket {
             case .failure(let f): parFel = f.skal
             }
         }
-        return TreDPaket(passID: pass, vy: vy, spelhand: hand, avstandM: tal(m["avstand_m"]), serier: ut,
-                         slag: lista, par: parFil, parFel: parFel, enhetSynfalt: enhetSF)
+        return TreDPaket(passID: o["pass"]!.text!, vy: Vy(rawValue: o["vy"]!.text!)!,
+                         spelhand: Hand(rawValue: o["spelhand"]!.text!)!, avstandM: o["avstand_m"]?.tal,
+                         serier: ut, slag: lista, par: parFil, parFel: parFel, enhetSynfalt: enhetSF)
     }
 
-    /// Ett ändligt tal.
-    static func tal(_ v: Any?) -> Double? {
-        guard let v, !(v is NSNull), !(v is String) else { return nil }
-        let d: Double
-        if let x = v as? Double {
-            d = x
-        } else if let x = v as? Int {
-            d = Double(x)
-        } else if let x = v as? NSNumber {
-            d = x.doubleValue
-        } else {
-            return nil
+    static func sakertNamn(_ v: JSONVarde?) -> Bool {
+        guard let s = v?.text, !s.isEmpty, !s.hasPrefix("/") else { return false }
+        return !s.split(separator: "/", omittingEmptySubsequences: false).contains("..")
+    }
+
+    static func arSlagID(_ s: String) -> Bool {
+        let c = Array(s.utf8)
+        guard c.count >= 3, c.count <= 5, c[0] == UInt8(ascii: "s") else { return false }
+        return c.dropFirst().allSatisfy { $0 >= 0x30 && $0 <= 0x39 }
+    }
+
+    /// Manifestets formfel, rad för rad som paket._kontrollera_manifest (samma text).
+    /// `filer` nil: att slagens filer finns prövas inte. METOD MT1, MS13, M51
+    public static func kontrollera(_ m: JSONVarde, filer: Set<String>?) -> [String] {
+        let F = "manifest.json"
+        guard m.objekt != nil else { return ["\(F): ska vara ett JSON-objekt"] }
+        var fel: [String] = []
+        if m["format"] != .strang(format) { fel.append("\(F): format ska vara \(format)") }
+        if m["pass"]?.text.map(arPassID) != true { fel.append("\(F): pass ska vara yyyyMMdd-HHmmss") }
+        if !["dtl", "fo"].contains(m["vy"]?.text ?? "") { fel.append("\(F): vy ska vara dtl eller fo") }
+        if !["hoger", "vanster"].contains(m["spelhand"]?.text ?? "") {
+            fel.append("\(F): spelhand ska vara hoger eller vanster")
         }
-        return d.isFinite ? d : nil
+        if let a = m["avstand_m"], a != .null, !(a.tal.map(avstandM.contains) ?? false) {
+            fel.append("\(F): avstand_m ska vara ett tal mellan \(avstandM.lowerBound) och \(avstandM.upperBound)")
+        }
+        if let a = m["spelarens_langd_m"], a != .null, !(a.tal.map(langdM.contains) ?? false) {
+            fel.append("\(F): spelarens_langd_m ska vara ett tal mellan \(langdM.lowerBound) och \(langdM.upperBound)")
+        }
+        var nr = Set<Int>()
+        var fonster: [Int: (Double, Double)] = [:]
+        if let serier = m["serier"]?.lista {
+            for (i, s) in serier.enumerated() {
+                guard s.objekt != nil, let n = s["nr"]?.heltal else {
+                    fel.append("\(F): serier[\(i)].nr ska vara ett heltal")
+                    continue
+                }
+                nr.insert(n)
+                if redigering(s, "").isEmpty, let f = s["fonster"], f.objekt != nil {
+                    fonster[n] = (f["fran_s"]!.tal!, f["till_s"]!.tal!)
+                }
+                if let k = s["klubba"], k != .null, k.text == nil { fel.append("\(F): serier[\(i)].klubba ska vara text") }
+                fel += redigering(s, "\(F): serier[\(i)]")
+            }
+        } else {
+            fel.append("\(F): serier ska vara en lista")
+        }
+        guard let slag = m["slag"]?.lista, !slag.isEmpty else {
+            fel.append("\(F): slag saknas eller är tom")
+            return fel
+        }
+        var sedda = Set<String>()
+        for (i, s) in slag.enumerated() {
+            let p = "\(F): slag[\(i)]"
+            guard s.objekt != nil else {
+                fel.append("\(p): ska vara ett objekt")
+                continue
+            }
+            if let id = s["id"]?.text, arSlagID(id) {
+                if sedda.contains(id) { fel.append("\(p).id finns två gånger") }
+                sedda.insert(id)
+            } else {
+                fel.append("\(p).id ska vara s och siffror")
+            }
+            let serie = s["serie"]?.heltal
+            if serie.map(nr.contains) != true { fel.append("\(p).serie ska vara ett nr i serier") }
+            if let klick = s["klick_s"]?.tal {
+                if let serie, let f = fonster[serie], !(f.0 - kant <= klick && klick <= f.1 + kant) {
+                    fel.append("\(p).klick_s ligger utanför seriens fonster")
+                }
+            } else {
+                fel.append("\(p).klick_s ska vara ett tal")
+            }
+            if let t = s["traff_s"], t != .null, t.tal == nil { fel.append("\(p).traff_s ska vara ett tal") }
+            if let d = s["detection_wrong"], d != .null, !(d == .bool(true) || d == .bool(false)) {
+                fel.append("\(p).detection_wrong ska vara true eller false")
+            }
+            if !domar.contains(s["dom"]?.text ?? "") {
+                fel.append("\(p).dom ska vara en av \(domar.joined(separator: ", "))")
+            }
+            if !sakertNamn(s["leder"]) {
+                fel.append("\(p).leder ska vara en sökväg i paketet")
+            } else if let filer, !filer.contains(s["leder"]!.text!) {
+                fel.append("\(p).leder: filen saknas i paketet")
+            }
+            if let k = s["klipp"], k != .null {
+                if !sakertNamn(k) {
+                    fel.append("\(p).klipp ska vara en sökväg i paketet")
+                } else if let filer, !filer.contains(k.text!) {
+                    fel.append("\(p).klipp: filen saknas i paketet")
+                }
+                if s["klick_i_klipp_s"]?.tal == nil { fel.append("\(p).klick_i_klipp_s ska vara ett tal när klipp finns") }
+                if let l = s["klipp_langd_s"], l != .null, !((l.tal ?? 0) > 0) {
+                    fel.append("\(p).klipp_langd_s ska vara ett positivt tal")
+                }
+            }
+        }
+        return fel
     }
 
-    static func heltal(_ v: Any?) -> Int? {
-        guard let d = tal(v), d == d.rounded(), abs(d) < 1e15 else { return nil }
-        return Int(d)
+    /// Seriens `fonster` och `utsnitt` (valfria, S2i), som paket._kontrollera_redigering. METOD MS13
+    static func redigering(_ s: JSONVarde, _ p: String) -> [String] {
+        var fel: [String] = []
+        if let f = s["fonster"], f != .null {
+            if f.objekt == nil || f["fran_s"]?.tal == nil || f["till_s"]?.tal == nil {
+                fel.append("\(p).fonster ska ha talen fran_s och till_s")
+            } else if !(0 <= f["fran_s"]!.tal! && f["fran_s"]!.tal! < f["till_s"]!.tal!) {
+                fel.append("\(p).fonster ska ha 0 <= fran_s < till_s")
+            }
+        }
+        if let u = s["utsnitt"], u != .null {
+            let v = ["x", "y", "b", "h"].map { u[$0]?.tal }
+            if u.objekt == nil || v.contains(where: { $0 == nil }) {
+                fel.append("\(p).utsnitt ska ha talen x, y, b och h")
+            } else {
+                let x = v[0]!, y = v[1]!, b = v[2]!, h = v[3]!
+                if !(x >= -kant && y >= -kant && b > 0 && h > 0 && x + b <= 1 + kant && y + h <= 1 + kant) {
+                    fel.append("\(p).utsnitt ska ligga inom bilden (0–1) med positiv b och h")
+                }
+            }
+        }
+        return fel
     }
 
     /// Seriens `lodlinje`: tre tal, längd 0,8–1,2 g och uppåt mot bildens överkant
     /// (y < 0). Annars nil och skälet utan värden, som paket.lodlinjen. METOD MK3, BESLUT B39
-    static func lodlinjen(_ v: Any?, _ nr: Int) -> ([Double]?, String?) {
-        guard let v, !(v is NSNull) else { return (nil, nil) }
+    static func lodlinjen(_ v: JSONVarde?, _ nr: Int) -> ([Double]?, String?) {
+        guard let v, v != .null else { return (nil, nil) }
         let p = "serie \(nr): lodlinje"
-        guard let lista = v as? [Any], lista.count == 3 else { return (nil, "\(p) ska vara tre tal") }
-        let x = lista.compactMap { tal($0) }
+        guard let lista = v.lista, lista.count == 3 else { return (nil, "\(p) ska vara tre tal") }
+        let x = lista.compactMap(\.tal)
         guard x.count == 3 else { return (nil, "\(p) ska vara tre tal") }
         let langd = (x[0] * x[0] + x[1] * x[1] + x[2] * x[2]).squareRoot()
         guard lodlinjeG.contains(langd) else {
@@ -210,60 +313,58 @@ extension TreDPaket {
 
     /// Ett kameraformat {bredd, hojd, synfalt} eller {width, height, fieldOfView}, som
     /// paket._synfalt. METOD MK3
-    static func synfalt(_ f: Any?) -> Synfalt? {
-        guard let f = f as? [String: Any] else { return nil }
-        guard let b = heltal(f["bredd"] ?? f["width"]), let h = heltal(f["hojd"] ?? f["height"]), b > 0, h > 0,
-              let v = tal(f["synfalt"] ?? f["fieldOfView"]), Synfalt.tillatet.contains(v) else { return nil }
+    static func synfalt(_ f: JSONVarde?) -> Synfalt? {
+        guard let f, f.objekt != nil else { return nil }
+        let bv = f["bredd"] ?? f["width"], hv = f["hojd"] ?? f["height"]
+        guard let b = bv?.heltal, let h = hv?.heltal, b > 0, h > 0,
+              let v = (f["synfalt"] ?? f["fieldOfView"])?.tal, Synfalt.tillatet.contains(v) else { return nil }
         return Synfalt(bredd: b, hojd: h, grader: v)
     }
 
-    /// par.json med paket.kontrollera_par:s krav. METOD MK1
+    /// par.json med paket.kontrollera_par:s krav och text. METOD MK1
     static func lasPar(_ data: Data) -> Result<ParFil, TreDPaketFel> {
         let F = "par.json"
-        guard let o = try? JSONSerialization.jsonObject(with: data) else {
-            return .failure(TreDPaketFel(skal: "\(F) är inte giltig JSON"))
-        }
-        guard let d = o as? [String: Any] else { return .failure(TreDPaketFel(skal: "\(F): ska vara ett JSON-objekt")) }
+        guard let d = try? JSONVarde.las(data) else { return .failure(TreDPaketFel(["\(F) är inte giltig JSON"])) }
+        guard d.objekt != nil else { return .failure(TreDPaketFel(["\(F): ska vara ett JSON-objekt"])) }
         var fel: [String] = []
-        if d["format"] as? String != "swinglab-par/1" { fel.append("\(F): format ska vara swinglab-par/1") }
-        let pass = d["pass"] as? String
-        if pass.map(arPassID) != true { fel.append("\(F): pass ska vara yyyyMMdd-HHmmss") }
-        let vy = (d["vy"] as? String).flatMap(Vy.init(rawValue:))
+        if d["format"] != .strang("swinglab-par/1") { fel.append("\(F): format ska vara swinglab-par/1") }
+        if d["pass"]?.text.map(arPassID) != true { fel.append("\(F): pass ska vara yyyyMMdd-HHmmss") }
+        let vy = d["vy"]?.text.flatMap(Vy.init(rawValue:))
         if vy == nil { fel.append("\(F): vy ska vara dtl eller fo") }
-        guard let serier = d["serier"] as? [Any] else {
-            return .failure(TreDPaketFel(skal: (fel + ["\(F): serier ska vara en lista"]).joined(separator: "; ")))
+        guard let serier = d["serier"]?.lista else {
+            return .failure(TreDPaketFel(fel + ["\(F): serier ska vara en lista"]))
         }
         var rader: [ParFil.Rad] = []
         for (i, r) in serier.enumerated() {
             let p = "\(F): serier[\(i)]"
-            guard let r = r as? [String: Any] else {
+            guard r.objekt != nil else {
                 fel.append("\(p) ska vara ett objekt")
                 continue
             }
-            let serie = heltal(r["serie"])
+            let serie = r["serie"]?.heltal
             if serie == nil { fel.append("\(p).serie ska vara ett heltal") }
-            let forsk = tal(r["forskjutning_s"])
+            let forsk = r["forskjutning_s"]?.tal
             if forsk == nil { fel.append("\(p).forskjutning_s ska vara ett tal") }
             let osaker = r["osaker"]
-            if let osaker, !(osaker is NSNull), !(osaker is Bool) {
+            if let osaker, osaker != .null, !(osaker == .bool(true) || osaker == .bool(false)) {
                 fel.append("\(p).osaker ska vara true eller false")
             }
-            guard let f = r["foljare"] as? [String: Any] else {
+            guard let f = r["foljare"], f.objekt != nil else {
                 fel.append("\(p).foljare ska vara ett objekt")
                 continue
             }
-            let fvy = (f["vy"] as? String).flatMap(Vy.init(rawValue:))
+            let fvy = f["vy"]?.text.flatMap(Vy.init(rawValue:))
             if fvy == nil { fel.append("\(p).foljare.vy ska vara dtl eller fo") }
-            let fpass = f["pass"] as? String
+            let fpass = f["pass"]?.text
             if fpass.map(arPassID) != true { fel.append("\(p).foljare.pass ska vara yyyyMMdd-HHmmss") }
-            let fserie = heltal(f["serie"])
+            let fserie = f["serie"]?.heltal
             if fserie == nil { fel.append("\(p).foljare.serie ska vara ett heltal") }
             if let serie, let forsk, let fvy, let fpass, let fserie {
-                rader.append(ParFil.Rad(serie: serie, forskjutningS: forsk, osaker: (osaker as? Bool) == true,
+                rader.append(ParFil.Rad(serie: serie, forskjutningS: forsk, osaker: osaker == .bool(true),
                                         foljareVy: fvy, foljarePass: fpass, foljareSerie: fserie))
             }
         }
-        guard fel.isEmpty, let pass, let vy else { return .failure(TreDPaketFel(skal: fel.joined(separator: "; "))) }
+        guard fel.isEmpty, let pass = d["pass"]?.text, let vy else { return .failure(TreDPaketFel(fel)) }
         return .success(ParFil(vy: vy, pass: pass, serier: rader))
     }
 

@@ -1894,7 +1894,7 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   (stativen kan flyttas mellan serierna), och dess slag kalibrerar ihop. Båda
   vyerna jämnas (MK5) på en tidsaxel i steg om **1/60 s**, punktpar med konfidens
   över **0,5** i båda vyerna, normerade med varje slags K, högst **5 000** par
-  (jämnt spridda, index ⌊i · n / 5 000⌋, M50). Viktad normaliserad åttapunktsmetod med robusta varv och
+  (en permutation, M50). Viktad normaliserad åttapunktsmetod med robusta varv och
   förfining på Sampson-felet (Hartley 1997, `tre_d/kalibrering.py`).
   **standard** (metoden), **antagande** (talen). Skalan är okänd: vinklar behöver
   ingen.
@@ -1942,8 +1942,8 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Två varv:** kalibrera på klicket → synka varje slag → kalibrera om med synken
   → synka igen, nu ± **3 ms** kring det första varvets värde → kalibrera en sista
   gång. **antagande.** Uppmätt på facit:
-  synkens rest under 0,1 ms utan brus, RMS 1,5 ms med bra brus och 2,4 ms med
-  typiskt (24 pass).
+  synkens rest 0,1 ms utan brus, RMS 1,2 ms med bra brus och 2,1 ms med
+  typiskt (24 pass, `tools/pc/kedjans_facit.py`, S6_FELBUDGET §6.7).
 
 ## MK5 — Trianguleringen och utjämningen
 
@@ -1991,8 +1991,8 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Mot förra passet:** skillnaden i median (M26). Den är **tydlig** först när den
   är större än både förra passets spridning (M26) och ett **golv** per mått: √2 ×
   passmedianens SD för kedjan med typiskt brus (24 påhittade pass, S6_FELBUDGET
-  §6.7): bäckenet **15,7°**, bröstet **13,6°**, X-factor **19,2°**, stretchen
-  **8,1°**, höfterna vid träffen **8,3°**. Kamerornas läge, kalibreringen och
+  §6.7): bäckenet **15,7°**, bröstet **13,7°**, X-factor **19,2°**, stretchen
+  **8,1°**, höfterna vid träffen **8,5°**. Kamerornas läge, kalibreringen och
   posemodellens fasta avvikelse byts mellan pass, så två pass skiljer sig redan av
   det. **antagande** tills S3 mätt bruset; med "bra" brus blir golvet ungefär hälften.
 - Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en sak i
@@ -2036,8 +2036,12 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   fill (a + i·((a + steg) − a)) och Pythons `round` via printf (lika till jämnt på det
   binära talet). **standard** (Golub & Van Loan kap. 8.6, ej läst i original),
   **räkning** (numpys källkod).
-- **Urvalet till kalibreringen** är jämnt spritt, index ⌊i · n / 5 000⌋, i både Python
-  och Swift (BESLUT B48), i stället för numpys slumpade urval med frö 0.
+- **Urvalet till kalibreringen** (högst 5 000 av n punktpar) är index (i · P) mod n för
+  i = 0, 1, …, där P är det första heltalet från ⌊n · **0,6180339887498949**⌋ (gyllene
+  snittet) utan gemensam faktor med n, i både Python och Swift (BESLUT B48), i stället
+  för numpys slumpade urval med frö 0. Det är en permutation (inget par två gånger) och
+  sprids jämnt över slagen, tiderna och lederna; ett jämnt steg n/5 000 kan gå i takt med
+  ledernas period (13 per ruta) och välja samma leder. **räkning** (Weyls följd, standard).
 - **Toleransen mot Python** (TreDTests, fixturerna ur `tools/pc/generera_tre_d.py`):
   kalibreringens R, t och uppåt inom **1e-8**, synken inom **1e-9 s**, återprojektionen
   inom **1e-7 px**, måtten per slag och passets sammanfattning inom **1e-6°**, delstegen
@@ -2065,6 +2069,35 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Mot sanningen** gäller MK8:s gränser i Swift också: utan brus varje slag inom 1°
   och passets median inom 0,5°, med bra brus inom felbudgetens |bias| + 3 SD.
 
+
+## M51 — 3D: vakterna mot trasiga paket och tal (S6c-1)
+
+Samma vakter i Python (`tools/pc/tva_kameror.py`, `paket.py`) och Swift (`TreD`), så att
+ett trasigt paket eller en kurva utan värde ger ett skäl och aldrig en krasch, ett minne
+som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (resten).
+
+- **Paketets form:** Swift kontrollerar manifestet som `paket._kontrollera_manifest`
+  (format, `pass`, vy, spelhand, `avstand_m` **0,5–20 m**, längden, serierna med
+  `fonster` och `utsnitt`, slagens id (dubbla), serie, klick inom fönstret, `traff_s`,
+  `detection_wrong`, domen, filerna) med samma text, och läser paketets JSON med en egen
+  läsare som skiljer på tal och sant/falskt och på heltal och decimaltal som Pythons
+  json. Ett formfel blir `tre_d.hoppat` (`TvaKameror.treD`). `enhet.json` utan
+  `valt_index` väljer som Python (formatet utan `index`).
+- **Vyerna:** parningen kräver ett DTL- och ett FO-paket i den ordningen, annars ett fel.
+- **Ledernas tider:** ett slag vars spår (efter rutorna med samma tid) spänner över
+  **30 s**, eller har en tid som inte är ett ändligt tal, mäts inte
+  (`tre_d.utelamnade`, skälet "ledernas tider spänner orimligt långt"). Ett slag är
+  några sekunder; 30 s är en fil som inte är ett slag. `np.arange`/`LA.arange` ger dessutom
+  ingen axel över 10⁷ steg. Övriga parade slag som inte mäts står där med sitt skäl
+  (domen, Detection wrong, lederna saknas, för få rutor).
+- **Kalibreringen** kräver minst **9** punktpar: med exakt 8 ger numpys
+  `svd(full_matrices=False)` bara 8 högra singulärvektorer, och `Vh[-1]` är då inte
+  nollrummet. Ett Sampson-fel eller en vinkel mellan kamerorna som inte är ett tal ger
+  `hoppat` ("kamerornas läge gick inte att räkna"); spärren och skyddet mot de vågräta
+  är skrivna så att NaN räknas som över gränsen.
+- **Synken:** en parabel med en granne utan värde ger toppen själv, och en synk som inte
+  är ett tal ger förra värdet. `synk_ms`, `sampson_px`, vinkeln och
+  `lodlinje_mot_vagrata` blir aldrig NaN (den sista står bara med när den är ett tal).
 ---
 
 # Facit (S3 och S7)
