@@ -462,6 +462,8 @@ minus de sanna svingarnas median (bias / SD, och största |fel|):
 | Typiskt (24) | -0,1 / 11,1, max 30,6 | +1,2 / 9,6, max 21,1 | +0,9 / 13,6, max 27,1 | +4,7 / 5,7, max 17,6 | +0,9 / 5,9, max 14,7 |
 | Typiskt, sanna kameror (24) | -0,3 / 10,4 | +0,6 / 6,4 | +0,6 / 13,1 | +4,4 / 5,5 | +1,4 / 5,9 |
 
+Raderna är räknade med kalibreringens slumpade urval av punktpar. Med det jämna urvalet (BESLUT B48, S6c, samma 56 pass) blir bias och SD desamma inom 0,1° (största |fel| inom 0,6°), och MK7:s golv står kvar.
+
 Kedjan ligger inom felbudgetens grundrader ovan (alla 48 pass inom |bias| + 3 SD), med
 två skillnader. Höfterna vid träffen blir bättre (3,6–5,9 mot 5,5–11,7°), eftersom
 utjämningen är ±40 ms (§6.6). Bröstet blir sämre med självkalibrering än med sanna

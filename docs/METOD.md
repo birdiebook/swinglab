@@ -1894,7 +1894,7 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   (stativen kan flyttas mellan serierna), och dess slag kalibrerar ihop. Båda
   vyerna jämnas (MK5) på en tidsaxel i steg om **1/60 s**, punktpar med konfidens
   över **0,5** i båda vyerna, normerade med varje slags K, högst **5 000** par
-  (slumpade med frö 0). Viktad normaliserad åttapunktsmetod med robusta varv och
+  (jämnt spridda, index ⌊i · n / 5 000⌋, M50). Viktad normaliserad åttapunktsmetod med robusta varv och
   förfining på Sampson-felet (Hartley 1997, `tre_d/kalibrering.py`).
   **standard** (metoden), **antagande** (talen). Skalan är okänd: vinklar behöver
   ingen.

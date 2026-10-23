@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S7a · S7b · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S6c · S7 · S7a · S7b · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -381,6 +381,32 @@ eller bättre med fältet än med kamerornas vågräta (B39 omprövas på
 `lodlinje_mot_vagrata`).
 
 **Återstår (S6b-2):** trendvyn med läget, och visa i uppställningen om telefonen lutar.
+
+### S6c — 3D på telefonen (2026-10-23, Johannes mål: så mycket som möjligt på mobilen)
+
+**S6c-1, logiken i SwingLabKit (grenen `s6c`):** målet `TreD` räknar S6a:s kedja rad för rad
+som `tools/pc/tva_kameror.py`: parningen (par.json eller klicken), spåren på träffens tid,
+självkalibreringen per uppställning med K ur synfältet, lodlinjen med riktningskontroll och
+reserv på kamerornas vågräta, spärrarna (Sampson-felet, vinkeln mellan kamerorna), synken
+på klicket med finjustering på återprojektionen, trianguleringen, 3D-måtten med MK6:s
+tidsaxel och luckregler, passets median över minst 10 slag, `osaker` och `hoppat` med
+skäl. Linjär algebra utan Accelerate (ensidig Jacobi, LU, Levenberg–Marquardt). Indata är
+paketens värden (`TreDPaket`, lederna som Captures `JointSeries`) och 2D-fasernas start och
+topp; utdata är `TreDResultat`, samma form som `analys.json`:s `tre_d`. Python är facit:
+`tools/pc/generera_tre_d.py` skriver påhittade pass (utan brus, bra brus med vänsterspelare,
+lodlinje och utan par.json, lodlinjens och brännviddens vägar, spärren, parningens fall) och
+Pythons tal, och TreDTests kräver dem inom METOD M50:s tolerans. Kalibreringens urval av
+punktpar är nu jämnt spritt i båda språken (BESLUT B48). METOD M50, BESLUT B48.
+
+**S6c-2, appen (annan gren):** lederna per slag förs över mellan telefonerna med
+PhoneLink (följaren skickar sina slag till den styrande efter serien), 3D räknas på
+telefonen med `TreD`, ett kort i passet visar talen, Progress visar "3D · no markers"
+som trend utan gränser (B14, B37), och uppställningen visar om telefonen lutar (B39,
+lodlinjen).
+
+**Klart när:** S6c-1: TreDTests gröna i Actions mot Pythons tal och mot sanningen, och
+tiden per pass uppmätt och skattad för telefonen (M50). S6c-2: ett pass med två telefoner
+ger samma `tre_d` på telefonen som på PC:n inom M50:s tolerans.
 
 ## S7 — Klubban
 

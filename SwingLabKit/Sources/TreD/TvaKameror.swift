@@ -381,7 +381,7 @@ public enum TvaKameror {
     }
 
     /// Måtten ur 3D-lederna, eller skälet. En vänsterspelare speglas. METOD MK6
-    static func matt(_ t: [Double], _ p: [Double], _ tStart: Double, _ hand: Hand) -> Result<[String: Double], TreDFel> {
+    static func mattUr(_ t: [Double], _ p: [Double], _ tStart: Double, _ hand: Hand) -> Result<[String: Double], TreDFel> {
         let adr = (tStart + adress.fran, tStart + adress.till)
         guard let f = t.first, let l = t.last, f <= adr.0, l >= 0.0 else {
             return .failure(TreDFel(skal: "adressen eller träffen ligger utanför slagets tid"))
@@ -446,7 +446,7 @@ public enum TvaKameror {
             let (tg, p, rep) = triangulera(kameror(d, k), d, f)
             inre.aterprojektion.append(rep)
             r.aterprojektionPx = rep.isFinite ? LA.avrunda(rep, 1) : nil
-            switch matt(tg, p, tStart, dtl.spelhand) {
+            switch mattUr(tg, p, tStart, dtl.spelhand) {
             case .success(let m): r.matt = m
             case .failure(let e): r.fel = e.skal
             }

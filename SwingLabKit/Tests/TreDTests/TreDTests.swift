@@ -17,11 +17,11 @@ enum Fixtur {
     }
 
     static func tal(_ x: Any?) -> Double? {
-        (x as? NSNumber)?.doubleValue
+        TreDPaket.tal(x)
     }
 
     static func heltal(_ x: Any?) -> Int {
-        (x as! NSNumber).intValue
+        Int(TreDPaket.tal(x)!)
     }
 
     static func lista(_ x: Any?) -> [Double] {
@@ -107,10 +107,10 @@ final class Avvikelser {
 
 final class TreDTests: XCTestCase {
     /// Toleranserna mot Python, METOD M50.
-    static let tolKamera = 1e-6        // R, t, uppåt (enhetslösa)
-    static let tolSynk = 1e-6          // s
-    static let tolRep = 1e-4           // px
-    static let tolMatt = 1e-4          // grader, per slag och passets sammanfattning
+    static let tolKamera = 1e-8        // R, t, uppåt (enhetslösa); uppmätt högst 4e-11
+    static let tolSynk = 1e-9          // s; uppmätt högst 1e-11
+    static let tolRep = 1e-7           // px; uppmätt högst 5e-10
+    static let tolMatt = 1e-6          // grader, per slag och passets sammanfattning; uppmätt högst 4e-9
 
     /// Jämför Swifts resultat med Pythons för en variant och svarar avvikelserna.
     func jamfor(_ r: TreDResultat, _ py: [String: Any], _ inre: [Any], _ namn: String, _ a: Avvikelser) {
@@ -444,11 +444,64 @@ final class TreDTests: XCTestCase {
         }
         av.skriv("komponenter")
         for (namn, v) in av.storst {
-            XCTAssertLessThanOrEqual(v, namn.hasPrefix("vikter") ? 1e-6 : 1e-4, namn)
+            XCTAssertLessThanOrEqual(v, 1e-6, namn)
         }
     }
 
     // MARK: - Tiden
+
+    /// Tiden för 20 slag i två uppställningar (passets tio slag en gång till som serie 2, parad
+    /// på klicken), och var den går. För METOD M50:s skattning på telefonen.
+    func testTidenFor20SlagOchVarDenGar() throws {
+        let fx = try Fixtur.las("bra_brus_vanster")
+        var (dtl, fo) = try Fixtur.paket(fx, "grund")
+        var faser = Fixtur.faser(fx)
+        for vy in [Vy.dtl, Vy.fo] {
+            var p = vy == .dtl ? dtl : fo
+            let extra = p.slag.map { s -> TreDSlag in
+                var x = s
+                x.id = "s1" + s.id.dropFirst()
+                x.serie = 2
+                faser["\(vy.rawValue)/\(x.id)"] = faser["\(vy.rawValue)/\(s.id)"]
+                return x
+            }
+            p.serier[2] = TreDSerie(nr: 2, lodlinje: p.serier[1]?.lodlinje, synfalt: p.serier[1]?.synfalt)
+            p = TreDPaket(passID: p.passID, vy: p.vy, spelhand: p.spelhand, avstandM: p.avstandM, serier: p.serier,
+                          slag: p.slag + extra, par: p.par, parFel: p.parFel, enhetSynfalt: p.enhetSynfalt)
+            if vy == .dtl { dtl = p } else { fo = p }
+        }
+        let start = Date()
+        let r = try TvaKameror.analysera(dtl: dtl, fo: fo, faser: faser)
+        let tid = Date().timeIntervalSince(start)
+        print("TRED-TID 20 slag \(r.parning.par) par, \(r.kalibrering.count) uppställningar, \(tid) s")
+        XCTAssertEqual(r.parning.par, 20)
+        XCTAssertEqual(r.slag.filter { $0.matt != nil }.count, 20)
+
+        // Var tiden går, för en uppställning om tio slag (som `uppstallning`).
+        let (par, _) = Parning.paraSlag(dtl, fo)
+        var t0 = Date()
+        var grupp: [TvaKameror.SlagData] = []
+        for (sd, sf) in par where sd.serie == 1 {
+            let a = TvaKameror.spar(fo, sf), b = TvaKameror.spar(dtl, sd)
+            let (ka, fKa) = TvaKameror.kFor(fo, sf), (kb, fKb) = TvaKameror.kFor(dtl, sd)
+            grupp.append(TvaKameror.SlagData(dtl: sd, fo: sf, a: a, b: b, ka: ka, kb: kb, fKa: fKa, fKb: fKb,
+                                             traffA: TvaKameror.traffISerien(fo, sf), traffB: TvaKameror.traffISerien(dtl, sd),
+                                             vA: Utjamning.robustaVikter(a, 0.04), vB: Utjamning.robustaVikter(b, 0.04)))
+        }
+        let tSpar = Date().timeIntervalSince(t0)
+        t0 = Date()
+        let kal = try TvaKameror.kalibrera(grupp, [Double](repeating: 0, count: grupp.count), nil, nil)
+        let tKalib = Date().timeIntervalSince(t0)
+        t0 = Date()
+        let forsk = grupp.map { TvaKameror.synka(TvaKameror.kameror($0, kal), $0, 0, 0.0105) }
+        let tSynk = Date().timeIntervalSince(t0)
+        t0 = Date()
+        for (d, f) in zip(grupp, forsk) { _ = TvaKameror.triangulera(TvaKameror.kameror(d, kal), d, f) }
+        let tTri = Date().timeIntervalSince(t0)
+        print("TRED-TID delar (10 slag): spår och robusta vikter \(tSpar) s, en kalibrering \(tKalib) s, " +
+              "ett synkvarv \(tSynk) s, triangulering \(tTri) s")
+        XCTAssertLessThan(tid, 30)
+    }
 
     /// Tiden för ett pass om 10 slag (release, Linux), för METOD M50:s skattning på telefonen.
     func testTidenForEttPass() throws {

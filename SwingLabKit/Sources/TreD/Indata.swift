@@ -173,8 +173,17 @@ extension TreDPaket {
 
     /// Ett ändligt tal.
     static func tal(_ v: Any?) -> Double? {
-        guard let n = v as? NSNumber else { return nil }
-        let d = n.doubleValue
+        guard let v, !(v is NSNull), !(v is String) else { return nil }
+        let d: Double
+        if let x = v as? Double {
+            d = x
+        } else if let x = v as? Int {
+            d = Double(x)
+        } else if let x = v as? NSNumber {
+            d = x.doubleValue
+        } else {
+            return nil
+        }
         return d.isFinite ? d : nil
     }
 

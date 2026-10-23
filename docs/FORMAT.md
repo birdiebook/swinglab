@@ -344,6 +344,19 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 Trenden är det skillen läser och rapporterar. Inget i `tre_d` bedöms eller blir en
 sak i `att_jobba_pa.json` (B14).
 
+### Facit för 3D på telefonen (S6c-1)
+
+`tools/tests/fixturer/tre_d/*.json` (BESLUT B48, METOD M50), skrivna av
+`tools/pc/generera_tre_d.py`, PÅHITTADE. Ett pass: `paket` per vy (`manifest` som
+objekt, `par` och `enhet` som text eller `null`, `leder` per slag-id:
+`{width, height, t, j}` där `t` är tiderna som int32 i 1e-4 s och `j` lederna som int16
+[x, y, c] per led i 0,1 px och 0,001, c = 0 för en saknad led, båda base64 i little
+endian), `rader` (2D-fasernas `start` och `topp` per `vy` och `id`), `sant` (MK8:s
+facit) och `varianter` (`andra`: filerna som byts per vy; `python`: `tre_d`; `inre`:
+R, t, uppåt, synken i s och återprojektionen per uppställning, oavrundade).
+`parning.json` bär bara manifesten och `para_slag`:s svar, `komponenter.json` delstegen
+för ett slag.
+
 ## 3D-katalogen: `katalog_3d.json`
 
 I repots rot (BESLUT B37). Bara PC:n läser den (`tools/pc/katalog.py` `las_3d`); appens
