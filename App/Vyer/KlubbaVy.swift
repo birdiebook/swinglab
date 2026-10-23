@@ -74,7 +74,7 @@ struct ClubMarkContent<Surface: View>: View {
                     .typsnitt(15, .semibold, siffror: true)
                     .foregroundStyle(Theme.text)
                 if let n = marking.next, !marking.done {
-                    Text(n == .grip ? "Grip" : "Hosel")
+                    Text(n == .grip ? LocalizedStringKey("Grip") : LocalizedStringKey("Hosel"))
                         .typsnitt(13, .medium)
                         .foregroundStyle(Theme.secondary)
                         .padding(.leading, 6)
@@ -97,7 +97,7 @@ struct ClubMarkContent<Surface: View>: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!marking.canUndo)
-                Button(marking.done ? "Done" : "Next", action: marking.done ? onClose : onNext)
+                Button(marking.done ? LocalizedStringKey("Done") : LocalizedStringKey("Next"), action: marking.done ? onClose : onNext)
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(!marking.done && marking.next != nil)
             }
