@@ -198,6 +198,11 @@ från S1 räknas på båda. Väntat ur researchen: MediaPipe är tydligt bättre
 **Klart när:** tabellen över skillnaden per mått finns, och beslutet är taget:
 räcker Vision i telefonen, eller ska MediaPipe in i appen (BESLUT B5).
 
+**Förberett:** verktyget `python tools/pc/s3_facit.py <paket.zip> [fler]` (BESLUT B40,
+METOD MF1–MF4): MediaPipe heavy på klippens rutor i telefonens utsnitt, lederna per led,
+fas och vy, S1:s mått på båda källorna, det som avgör B5 överst och kontaktark, till
+`~/swinglab-s3/<pass>/`. Provat med en påhittad modell; väntar på riktiga paket med klipp.
+
 ## S4 — Vyn
 
 Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,
@@ -390,6 +395,11 @@ line och laid off, och skaftlutningen vid träffen.
 
 **Klart när:** skaftets vinkel ligger inom 5° från handmärkta rutor i adress,
 topp och tidig nedsving, i båda vyerna.
+
+**Förberett:** verktyget `python tools/pc/markera_klubba.py <paket.zip|video.mov>`
+(BESLUT B41, METOD MF5–MF6): rutorna väljs ur faserna (adress, topp, tidig nedsving och
+några jämna, båda vyerna), Johannes klickar grepp, skaftets mitt och hoseln på en lokal
+sida, och märkningen sparas bredvid paketet (`swinglab-klubba/1`, FORMAT.md).
 
 ## S8 — Bollen vid adressen
 
