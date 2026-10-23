@@ -2,8 +2,8 @@ import Foundation
 import Swing
 
 /// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B56, METOD M45), bakifrån och
-/// framifrån: Johannes går igenom P1–P10 i ordning, trycker på greppet (eller på ringen ur handlederna) och sedan på hoseln,
-/// och positionen sparas av sig själv med rutans tid från första trycket. Han kan flytta en
+/// framifrån: Johannes går igenom P1–P10 i ordning, trycker på greppet (eller på ringen ur
+/// handlederna) och sedan på hoseln, och positionen sparas av sig själv med rutans tid från första trycket. Han kan flytta en
 /// punkt, ångra eller hoppa över en position där klubban inte syns. Allt som avgör vad ett
 /// tryck blir bor här och prövas på Linux; App/ ritar ytan och förstoringsglaset.
 /// Koordinaterna på ytan är 0–1 i det visade utsnittet (`shownCrop`), punkterna sparas i
@@ -316,7 +316,6 @@ public struct ClubMarking: Equatable, Sendable {
         marks?.compactMap(\.andrad).max()
     }
 }
-
 
 /// P2, P6 och P8 bakifrån ur FO-slaget med två parade telefoner (S2g, METOD M45): framifrån
 /// syns "parallellt med marken" direkt, så DTL-markeringens förslag är FO-markeringens tid,

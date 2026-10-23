@@ -3,12 +3,12 @@ import Swing
 import Capture
 
 /// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B56, METOD M45), bakifrån och
-/// framifrån: rutan för positionen, ett tryck på greppet (eller på ringen ur handlederna) och sedan på hoseln, och
-/// positionen sparas av sig själv; förstoringsglaset under fingret, en punkt flyttas genom att
-/// dra den mer än 4 pt, ångra, hoppa över en position där klubban inte syns, och P1–P10 i
-/// ordning. Riktpinnen (valfri, en gång per serie, bara bakifrån) sätts med två tryck. B13: svartvitt, bara
-/// punkterna och linjen mellan dem. Allt som avgör vad ett tryck blir står i `ClubMarking`
-/// (SwingLabKit). Innehållet tar sina värden utifrån, så att provet kan rita det med en
+/// framifrån: rutan för positionen, ett tryck på greppet (eller på ringen ur handlederna) och
+/// sedan på hoseln, och positionen sparas av sig själv; förstoringsglaset under fingret, en
+/// punkt flyttas genom att dra den mer än 4 pt, ångra, hoppa över en position där klubban inte
+/// syns, och P1–P10 i ordning. Riktpinnen (valfri, en gång per serie, bara bakifrån) sätts med
+/// två tryck. B13: svartvitt, bara punkterna och linjen mellan dem. Allt som avgör vad ett
+/// tryck blir står i `ClubMarking` (SwingLabKit). Innehållet tar sina värden utifrån, så att provet kan rita det med en
 /// stillbild och ett finger på ytan.
 struct ClubMarkContent<Surface: View, Loupe: View>: View {
     /// Ytan för ett utsnitt: videon i appen, en stillbild i provet.
