@@ -302,8 +302,8 @@ struct ShotReviewView: View {
         guard var p = pass, let shot, let series else { return }
         stickMode = false
         stickPoints = []
-        let id = shotID, nr = shot.series
-        p.setRiktpinne(pinne, series: nr) { s in s.id == id ? series : store.joints(s.joints ?? "", in: p.id) }
+        let id = shotID, nr = shot.series, passID = p.id
+        p.setRiktpinne(pinne, series: nr) { s in s.id == id ? series : store.joints(s.joints ?? "", in: passID) }
         store.save(p)
         pass = p
     }
