@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S7a · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S7a · S7b · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -441,6 +441,31 @@ med median och n. Prov: `tools/tests/test_klubba.py`, `KlubbaTests`, `KlubbaMark
 `klubba-markera-utan-finger`, `klubba-passet`), och paketprovet bär markeringar som PC:n
 läser (`test_appens_paket.py`). Mätversionen är oförändrad (B47). **Kvar:** telefonen
 (trycken, glaset, gränserna 3 % och 5 %), och FO-läget i appen.
+
+### S7b — Klubbhuvudets bana mellan ankarna (Johannes ja 2026-10-23)
+
+Johannes tryck vid P1–P10 (S7a) blir **ankare**. Mellan två ankare spåras klubbhuvudet
+mekaniskt med rörelsedifferens: pixlar som skiljer sig från rutan t−2 och t+2, kroppen
+maskerad ut ur Visions leder, och sökningen begränsad till en korridor mellan ankarnas
+punkter och längs den förväntade bågen. Där spårningen tappar (bakom kroppen, mot en mörk
+bakgrund) interpoleras banan till nästa ankare, och rutan märks interpolerad.
+
+Det ger klubbhuvudets hela bana, och därmed svingplanet och "över eller under planet"
+genom hela nedsvingen (Morrison, research 5 §5 punkt 11); ett spår i granskningen, som
+spökbilder av klubbhuvudet i stil med Willett-klippet; och fler rutor till S7:s träning,
+där varje spårad ruta mellan ankarna godkänns eller rättas med ett tryck.
+
+**Förebild:** sessionen "Range session video effect" (2026-10-20). Rörelsedifferensen
+spårade 317 rutor i ett DTL-klipp men behövde 22 handrättningar och en hårdkodad mask;
+koden sparades inte. Ankarna och kroppsmasken ur lederna ska ta bort handpåläggningen.
+
+**Plats i S7a:s datamodell:** varje punkt bär sin källa (`kalla`, i dag bara `klick`), så
+att en spårad eller interpolerad punkt blir en ny källa i samma format
+(`swinglab-klubba/2`, FORMAT.md) och en ruta mellan ankarna en ruta med en annan `val`;
+klubbmåtten tar i dag bara tryckta punkter. Inget av S7b är byggt.
+
+**Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
+rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.
 
 ## S8 — Bollen vid adressen
 
