@@ -31,7 +31,7 @@ final class SwingLabProvKlubba: XCTestCase {
     /// bilden 270 × 480. P8 hoppas över (klubban syns inte).
     static let satta: [String: (Double, Double)] = [
         "P1": (-60, 100), "P2": (-35, 90), "P3": (100, 90), "P4": (-75, 90), "P5": (95, 90),
-        "P6": (-40, 90), "P7": (-58, 95), "P9": (110, 90), "P10": (170, 80)]
+        "P6": (60, 110), "P7": (-58, 95), "P9": (110, 90), "P10": (170, 80)]
 
     func tmp(_ namn: String) throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appending(path: "swinglab-prov", directoryHint: .isDirectory)
