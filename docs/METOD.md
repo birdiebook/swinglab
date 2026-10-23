@@ -1865,15 +1865,28 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
 - **Förskjutningen δ skattas per klipp ur lederna** (`para_tider`): kandidaterna är
   rutnätet kring δ = 0, **±3** rutor (r för klippets rutor kring Visions mittersta ruta).
   För varje kandidat paras rutorna inom **2 ms** (halva steget vid 240 bilder/s,
-  4,17 ms, så att grannrutan aldrig tas), och handledernas medelavstånd Vision–MediaPipe
-  mäts från toppen − **0,3 s** till träffen + **0,3 s**, där händerna rör sig så mycket
-  att en ruta fel syns. Den minsta vinner. **Tvetydigt** och slaget jämförs inte: färre
-  än **20** rutor med handlederna i båda, den näst bästa inom **10 %** av den bästa, eller
-  den bästa vid sökningens kant. δ, rutorna, kvoten och medianen av resten (r − e − δ)
-  skrivs per slag i `s3.json`. **antagande** (±3, 10 %, 20, fönstret); provat med en
-  förskjutning på 0,6 ruta, där närmaste rutan är fel. Förskjutningen ur `ffprobe`
-  (`start_time` och redigeringslistan) används inte: ffprobe finns inte alltid på
-  hemdatorn, och vad telefonens `AVAsset` räknar som nolla är inte prövat.
+  4,17 ms, så att grannrutan aldrig tas). Modellernas fasta skillnad per handled (olika
+  leddefinition) dras bort först: medianvektorn av Vision − MediaPipe per handled och
+  kandidat. Sedan mäts handledernas medelavstånd från toppen − **0,3 s** till träffen +
+  **0,3 s**, där händerna rör sig så mycket att en ruta fel syns. Den minsta vinner.
+  **Tvetydigt** och slaget jämförs inte: färre än **20** rutor med handlederna i båda,
+  den näst bästa inom **10 %** av den bästa, eller den bästa vid sökningens kant. δ,
+  rutorna, kvoten och medianen av resten (r − e − δ) skrivs per slag i `s3.json`.
+  **antagande** (±3, 10 %, 20, fönstret); provat med en förskjutning på 0,6 och 0,7 ruta,
+  där närmaste rutan är fel, och med 0–40 px fast skillnad mellan handlederna.
+- **IMAGE-läget för tidsparningen.** VIDEO-läget spårar och jämnar ut mellan rutorna och
+  kan släpa efter i snabba rörelser; då låses δ en ruta fel utan att spärrarna märker det.
+  Rutorna i fönstret ± **50 ms** körs därför också i IMAGE-läget (varje ruta för sig), och
+  δ skattas på dem. Jämförelsen av lederna och måtten görs på VIDEO-läget, som oktobers
+  mätning (MediaPipes eftersläpning blir då en del av avvikelsen). **antagande**: att
+  IMAGE-läget inte släpar; MediaPipes egen eftersläpning är inte mätt (det kräver en
+  riktig sving). Kostnad: cirka 150 rutor till per slag.
+- **δ hör till behållaren** och ska vara densamma i passets klipp: ett slag mer än **2 ms**
+  från passets median blir tvetydigt, och medianen och spridningen skrivs per paket.
+  **antagande** (telefonen skriver alla klipp likadant).
+- **ffprobe som kontroll:** finns ffprobe skrivs klippets `start_time`, och en varning när
+  δ inte är −start_time inom 2 ms. Den avgör inget: vad telefonens `AVAsset` räknar som
+  nolla är inte prövat (i filmprovet är δ = −start_time).
 - **Samma utsnitt.** MediaPipe ser seriens utsnitt i hela pixlar
   (`paket.utsnitt_px`, avrundat utåt som telefonens `CropRect.pixels`; i klippets
   upplösning om den skiljer, `klipp.skala_ruta`), och punkterna förs tillbaka med
@@ -1881,13 +1894,17 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
   En punkt utanför utsnittet sparas som saknad, som på telefonen (MS13). **räkning.**
 - **Bilden upprätt:** OpenCV vrider klippet med `CAP_PROP_ORIENTATION_AUTO`. Har bilden
   inte samma stående eller liggande form som lederna stoppar verktyget (`klipp.VridenFel`)
-  i stället för att gissa vridningen; samma kontroll gör `kontaktark.las_ruta`. **räkning.**
+  i stället för att gissa vridningen; samma kontroll gör `kontaktark.las_ruta`, som också
+  frågar ffmpeg och OpenCV från t − **2 ms** så att rutan närmast t kommer (de ger första
+  rutan från tiden). Passets kontaktark (MT7) tar Visions ruta närmast fasen och läser
+  klippet med S3:s δ när `~/swinglab-s3/<pass>/s3.json` finns, annars utan. **räkning.**
 - **Lederna:** de 13 i filens ordning ur MediaPipes index (FORMAT.md, Lederna),
   synligheten som konfidens; under **0,3** saknad (M1), så att måtten räknas med samma
   kod och samma gräns för båda källorna. M1:s gräns gäller Vision; om MediaPipes
   synlighet ska skäras som Golf SG:s 0,5 avgörs av S3:s tabell. **antagande.**
-- MediaPipes leder sparas per slag i utmappens `mediapipe/` med klippets egna tider och
-  läses nästa gång bara när utsnittet, bildens storlek och modellfilen är desamma; annars
+- MediaPipes leder (VIDEO, och IMAGE i fönstret) sparas per slag i utmappens
+  `mediapipe/` med klippets egna tider och läses nästa gång bara när formen, utsnittet,
+  bildens storlek, modellfilen och klippet (CRC och storlek ur zippen) är desamma; annars
   körs MediaPipe om (`--om` alltid). **räkning.**
 
 ## MF2 — Jämförelsen av lederna
@@ -1926,18 +1943,24 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
   på "typiskt" och MediaPipe på "bra" blivit "dåligt"). Felbudgetens kedja
   (`tre_d.kamera.observera` med uppställningen i `felbudget.Uppstallning`: skymda leder
   med 2,5 × bruset och låg konfidens, oskärpan vid 1/1000 s, utliggarna, en fast avvikelse
-  per led och vy för passet) körs två gånger på samma påhittade svingar och kameror:
-  **Vision** på nivån (bra, typiskt, dåligt) och **MediaPipe på "bra"** (antagande, ur
-  Googles mätning där heavy ligger klart över Vision, research 2 §1). Skillnaden går genom
-  samma statistik som passet (MF2), i % av kroppen i bild, och tröskeln är medianen över
-  **5** pass om **10** slag och båda vyerna, för hela svingen och för nedsvingen.
-  **antagande** (felbudgetens brus och MediaPipes nivå), **räkning** (simuleringen).
-  Simuleringen tar cirka 10 s och görs vid varje körning (`nivaer`), med trösklarna i
-  `s3.json`.
-- **Nivån** = den bästa där både den fasta och den rörliga delen håller. **Utliggarna**
-  visas bredvid simuleringens väntade andel men avgör inte: de räknas mot den robusta
-  sd:n och blir därför färre när bruset växer. Felbudgeten visar att trenden utan markörer
-  bär med "typiskt" (BESLUT B14, S6_FELBUDGET §6.7).
+  per led och vy för passet) körs på samma påhittade svingar, kameror och rutor:
+  **MediaPipe på "bra"** (antagande, ur Googles mätning där heavy ligger klart över
+  Vision, research 2 §1) och **Vision** på var och en av nivåerna bra, typiskt och dåligt.
+  Skillnaden går genom samma statistik som passet (MF2), i % av kroppen i bild, över
+  **5** pass om **10** slag och båda vyerna, för hela svingen och för nedsvingen
+  (`simulera`, `nivaer`, cirka 4 s per körning). **antagande** (felbudgetens brus och
+  MediaPipes nivå), **räkning** (simuleringen).
+- **Gränserna** mellan nivåerna, för den fasta och den rörliga delen: mellan två nivåer
+  det **geometriska medlet** av deras medianer; över "dåligt" dess median gånger roten ur
+  kvoten mot "typiskt" (lika långt uppåt i log). **Nivån** = den bästa där båda delarna
+  ligger under gränsen. Med nivåns egen median som gräns hade bara 18, 35 och 35 % av
+  passen på sann nivå bra, typiskt och dåligt klassats rätt (granskningen); med gränserna
+  **88, 91 och 94 %** (uppmätt 2026-10-23: 8 nya pass med nytt frö, båda vyerna och
+  faserna). Provet kräver minst 75 % per nivå på en mindre simulering.
+- **Utliggarna** och de **grova avvikelserna** (avståndet över **5 %** av kroppslängden,
+  cirka 9 cm; felbudgetens utliggare är 50 px ≈ 5,8 % vid 3 m) visas bredvid
+  simuleringens väntade andel men avgör inte. Utliggarna räknas mot den robusta sd:n och
+  blir därför färre när bruset växer; de grova följer nivån. **antagande** (5 %).
 - **Vision saknar leden där MediaPipe ser den** och **förväxlade sidor:** ingen
   tröskel; **ingen källa**.
 - **Måtten (S1):** varje mått i vyn (`matt.MATT`) räknas med `matt.mat` på Visions och
@@ -1973,14 +1996,17 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
   **2 ms** (MF1), så att bilden, tiden och ledtråden hör till Visions ruta. **antagande**
   (1/3, antalet jämna).
 - **En video utan paket** har inga leder: **24** rutor jämnt över klippet, var och en
-  rutan närmast tiden (inom en halv ruta), med rutans egen tid sparad. **antagande.**
+  rutan närmast den valda tiden (inom en halv ruta). Den valda tiden står kvar i `t_klipp`
+  och rutans egen tid sparas i `t_ruta`, så att en återupptagen märkning hittar rutan.
+  **antagande.**
 - **Greppets ledtråd:** handledernas mitt i rutan, eller den som syns (greppregeln, M1,
   konfidens ≥ 0,3). Handlederna ligger 5–8 cm från skaftet (cirka 4° på skaftets vinkel),
   så ledtråden visas bara som en ring och greppet kräver ett klick: varje sparad punkt är
   ett klick (`kalla: "klick"`). Skaftet och klubbhuvudet har ingen ledtråd förrän en
   detektor finns. **antagande** (avståndet: handledens led mot greppets mitt).
-- **En tidigare märkning** behålls ruta för ruta när id, fil och tid stämmer (inom
-  **0,1 ms**); en gammal ruta som inte stämmer ligger kvar sist, oförändrad. **räkning.**
+- **En tidigare märkning** behålls ruta för ruta när id, fil, förskjutning och tid
+  stämmer (inom **0,1 ms**; Visions tid, för en video den valda tiden); en gammal ruta
+  som inte stämmer ligger kvar sist, oförändrad. **räkning.**
 
 ## MF6 — Märksidan och servern
 

@@ -10,6 +10,7 @@ import contextlib
 import functools
 import io
 import json
+import os
 import shutil
 import struct
 import subprocess
@@ -35,6 +36,7 @@ HANDLED_V, HOFT_V, KNA_V, KNA_H = (LEDER_FIL.index(n) for n in ("handled_v", "ho
 FPS = 240.0
 SKIFT = 2.5 + GP.AVSTAND_M / P.LJUDETS_FART      # Visions t = k/240 − SKIFT i de påhittade paketen
 OFF = 0.0025                                      # klippets första ruta ligger 2,5 ms efter klippets nolla
+FILM_OFF = 0.003                                  # filmen: -itsoffset 3 ms (närmaste rutan är fel)
 FILM_B, FILM_H = 108, 192                         # filmen i en tiondel av ledernas storlek
 KOD_Y, KOD_X0, KOD_BIT, KOD_BITAR = 90, 15, 8, 10
 
@@ -132,11 +134,13 @@ class Rutor:
 class PahittadModell:
     """Läser rutans nummer ur bilden, tar Visions leder (sanningen) för den rutan på
     filmens egen tid och lägger på känt brus: en fast förskjutning per led, vitt brus och
-    knäna förväxlade i var `byt_var`:e ruta. Svarar normerat i utsnittet som MediaPipe."""
+    knäna förväxlade i var `byt_var`:e ruta. VIDEO-läget (`kor`) kan släpa `lag` rutor
+    efter; IMAGE-läget (`kor_bild`) släpar aldrig. Svarar normerat i utsnittet som MediaPipe."""
 
     def __init__(self, sanning: dict, fast: dict | None = None, sd: float = 0.0, byt_var: int = 0,
-                 off: float = OFF, seed: int = 1):
+                 off: float = OFF, seed: int = 1, lag: int = 0):
         self.sanning, self.fast, self.sd, self.byt_var, self.off = sanning, fast or {}, sd, byt_var, off
+        self.lag = lag
         self.rng = np.random.default_rng(seed)
         self.info, self.n = None, 0
         self._cache = {}
@@ -150,8 +154,14 @@ class PahittadModell:
         return self._cache[id(facit)]
 
     def kor(self, bild, t):
+        return self._svar(bild, self.lag, True)
+
+    def kor_bild(self, bild):
+        return self._svar(bild, 0, False)
+
+    def _svar(self, bild, lag, video):
         rx, ry, rb, rh = self.info.ruta
-        n = las_kod(bild, rx, ry, bild.shape[1] / rb)
+        n = las_kod(bild, rx, ry, bild.shape[1] / rb) - lag
         facit, klick = self.sanning[(self.info.fil, self.info.slag)]
         nycklar = self._nycklar(facit)
         t_v = n / FPS + self.off - klick
@@ -164,8 +174,9 @@ class PahittadModell:
             L[j, :2] += (dx, dy)
         if self.sd:
             L[:, :2] += self.rng.normal(0.0, self.sd, (13, 2))
-        self.n += 1
-        if self.byt_var and self.n % self.byt_var == 0:
+        if video:
+            self.n += 1
+        if video and self.byt_var and self.n % self.byt_var == 0:
             L[[KNA_V, KNA_H]] = L[[KNA_H, KNA_V]]
         ut = np.zeros((33, 3))
         for j, k in enumerate(S3.MP_INDEX):
@@ -183,7 +194,7 @@ def _png_storlek(fil: Path) -> tuple[int, int]:
 
 
 def nivaer_sma() -> dict:
-    return S3.nivaer(1, 3)
+    return S3.nivaer(2, 4)
 
 
 class Jamforelsen(unittest.TestCase):
@@ -291,6 +302,9 @@ class Jamforelsen(unittest.TestCase):
         self.assertTrue(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), S3.MODELL_FIL))
         self.assertFalse(S3._cache_giltig(d, 1080, 1920, (0, 0, 1080, 1920), S3.MODELL_FIL))
         self.assertFalse(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), "pose_landmarker_full.task"))
+        klipp = (d["klipp_crc"], d["klipp_storlek"])
+        self.assertTrue(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), S3.MODELL_FIL, klipp))
+        self.assertFalse(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), S3.MODELL_FIL, (klipp[0] ^ 1, klipp[1])))
         with self.assertRaises(S3.S3Fel):
             S3.kor(self.filer[1:], ut, None, None, None, modell_namn="annan.task", niv=nivaer_sma())
 
@@ -323,19 +337,69 @@ class Delarna(unittest.TestCase):
         self.assertIsNone(ut[1])
         self.assertEqual(S3.till_leder(None, (0, 0, 1, 1), 1, 1), [None] * 13)
 
-    def test_nivaerna_simuleras_med_bada_kallornas_brus(self) -> None:
+    def test_nivaerna_klassar_simulerade_pass(self) -> None:
         n = nivaer_sma()
         self.assertEqual(n["mediapipe"], S3.MP_ANTAGEN)
         for fas in S3.B5_FASER:
             for k in S3.NIVA_DELAR:
-                self.assertLess(n[fas]["bra"][k], n[fas]["typiskt"][k])
-                self.assertLess(n[fas]["typiskt"][k], n[fas]["daligt"][k])
+                g = [n[fas][x]["grans"][k] for x in S3.NIVAER]
+                m = [n[fas][x]["median"][k] for x in S3.NIVAER]
+                self.assertTrue(m[0] < g[0] < m[1] < g[1] < m[2] < g[2])
         # Skillnaden bär MediaPipes brus också: över en enda källas fasta del (5 px av 866).
-        self.assertGreater(n["alla"]["typiskt"]["fast"], 100 * 5 / 866.4)
-        v = dict(n["alla"]["typiskt"])
-        self.assertEqual(S3.niva_for(v, n["alla"]), "typiskt")
-        v["rorligt"] = n["alla"]["daligt"]["rorligt"] * 2
+        self.assertGreater(n["alla"]["typiskt"]["median"]["fast"], 100 * 5 / 866.4)
+        # Nya pass (nytt frö) på känd nivå ska klassas rätt i minst 75 %.
+        sim = S3.simulera(3, 4, 1000)
+        for sann in S3.NIVAER:
+            for fas in S3.B5_FASER:
+                d = sim[sann][fas]
+                ratt = [S3.niva_for({k: d[k][i] for k in S3.SIM_DELAR}, n[fas]) == sann
+                        for i in range(len(d["fast"]))]
+                self.assertGreaterEqual(sum(ratt) / len(ratt), 0.75, (sann, fas, ratt))
+        v = dict(n["alla"]["daligt"]["median"])
+        v["rorligt"] = n["alla"]["daligt"]["grans"]["rorligt"] * 1.5
         self.assertEqual(S3.niva_for(v, n["alla"]), "samre_an_daligt")
+
+    def test_tidsparningen_tal_fast_skillnad_mellan_modellerna(self) -> None:
+        from pc.tre_d import felbudget as FB
+        from pc.tre_d.sving import slumpa_sving
+        rng = np.random.default_rng(5)
+        u = FB.Uppstallning()
+        for b_px in (0.0, 20.0, 40.0):
+            for _ in range(3):
+                kam = FB.nytt_pass(u, rng)["A"]
+                sv = slumpa_sving(rng)
+                delta = -rng.uniform(0, 1) / FPS
+                r = np.arange(int(sv.t_slut * FPS)) / FPS
+                e_alla = r - delta
+                e = e_alla[rng.uniform(size=len(r)) > 0.36]
+                V = np.full((len(e), 13, 3), 0.9)
+                V[..., :2] = kam.projicera(sv.leder(np.clip(e, 0, sv.t_slut))) + 3 * rng.standard_normal((len(e), 13, 2))
+                M = np.full((len(r), 13, 3), 0.9)
+                M[..., :2] = (kam.projicera(sv.leder(np.clip(e_alla, 0, sv.t_slut)))
+                              + 3 * rng.standard_normal((len(r), 13, 2)) + [b_px, 0.0])
+                pt = S3.para_tider(e, V, r, M, (e >= sv.t_topp - .3) & (e <= sv.t_traff + .3))
+                self.assertIsNone(pt["tvetydig"], b_px)
+                self.assertAlmostEqual(pt["forskjutning_ms"] / 1000, delta, delta=1e-4)
+
+    def test_forskjutningen_ska_stamma_i_passet(self) -> None:
+        pts = [{"forskjutning_ms": d, "tvetydig": None} for d in (-2.5, -2.5, -2.5, -2.4, -2.5 + 1000 / FPS)]
+        pts.append({"forskjutning_ms": 9.0, "tvetydig": "redan"})
+        r = S3.kontrollera_passet(pts)
+        self.assertAlmostEqual(r["forskjutning_median_ms"], -2.5)
+        self.assertAlmostEqual(r["forskjutning_spridning_ms"], 1000 / FPS, places=2)
+        self.assertEqual([p["tvetydig"] for p in pts[:4]], [None] * 4)
+        self.assertEqual(pts[4]["tvetydig"], "förskjutningen avviker från passets median")
+        self.assertEqual(pts[5]["tvetydig"], "redan")
+        self.assertEqual(S3.kontrollera_passet([]), {})
+
+    def test_ppm(self) -> None:
+        bild = b"P6\n# ffmpeg\n2 1\n255\n" + bytes(range(6))
+        self.assertEqual(KA._ppm(bild).tolist(), [[[0, 1, 2], [3, 4, 5]]])
+        for trasig, skal in ((b"P6\n2 1", "avhugget"), (b"P6 # utan radslut", "radslut"),
+                             (b"P6\n2 1\n255\n" + bytes(3), "för lite"), (b"P5\n2 1\n255\n" + bytes(2), "PPM")):
+            with self.assertRaises(KA.PpmFel) as e:
+                KA._ppm(trasig)
+            self.assertIn(skal, str(e.exception))
 
     def test_kommandot(self) -> None:
         filer = paketen()[0]
@@ -352,6 +416,24 @@ class Delarna(unittest.TestCase):
         self.assertIn(S3.MODELL_FIL, buf.getvalue())
 
 
+class Eftersläpning(unittest.TestCase):
+    """VIDEO-läget släpar en ruta och handlederna skiljer 20 px mellan modellerna:
+    tidsparningen på IMAGE-lederna ska ändå ge rätt förskjutning."""
+
+    def test_image_laget_bar_tidsparningen(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "swinglab-lag-dtl.zip"
+            shutil.copy(paketen()[0][1], f)
+            sanning = med_klipp(f, slag=1)
+            modell = PahittadModell(sanning, fast={S3.HANDLEDER[0]: (20.0, 0.0), S3.HANDLEDER[1]: (20.0, 0.0)}, lag=1)
+            res = S3.kor([f], Path(tmp) / "ut", None, modell, Rutor(), min_slag=3, bootstrap=0, niv=nivaer_sma(),
+                         kontakt_slag=0)
+        s = next(x for x in res["slag"] if "tidsparning" in x)
+        self.assertNotIn("hoppat", s)
+        self.assertEqual(s["tidsparning"]["rutor"], -1)
+        self.assertAlmostEqual(s["tidsparning"]["forskjutning_ms"], -OFF * 1000, delta=0.1)
+
+
 def _har_cv2() -> bool:
     try:
         import cv2  # noqa: F401
@@ -360,7 +442,10 @@ def _har_cv2() -> bool:
         return False
 
 
-@unittest.skipUnless(_har_cv2() and shutil.which("ffmpeg") and shutil.which("ffprobe"), "OpenCV eller ffmpeg saknas")
+_FILM_OK = _har_cv2() and bool(shutil.which("ffmpeg")) and bool(shutil.which("ffprobe"))
+
+
+@unittest.skipUnless(_FILM_OK or os.environ.get("CI"), "OpenCV eller ffmpeg saknas")
 class Filmen(unittest.TestCase):
     """En riktig film: lagrad liggande med vridningen i metadata (som iPhones), och med
     första rutan efter 0 (`-itsoffset`). KlippRutor ska vrida den upprätt och parningen
@@ -368,6 +453,8 @@ class Filmen(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        if not _FILM_OK:
+            raise RuntimeError("CI ska ha OpenCV, ffmpeg och ffprobe för filmprovet")
         import cv2
         cls.tmp = tempfile.TemporaryDirectory()
         rot = Path(cls.tmp.name)
@@ -376,8 +463,9 @@ class Filmen(unittest.TestCase):
             vw.write(cv2.rotate(rita_kod(n), cv2.ROTATE_90_CLOCKWISE))      # liggande i filen
         vw.release()
         cls.film = rot / "film.mov"
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-display_rotation", "90", "-itsoffset", str(OFF),
-                        "-i", str(rot / "in.mp4"), "-c", "copy", str(cls.film)], check=True, timeout=60)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-display_rotation", "90", "-itsoffset", str(FILM_OFF),
+                        "-i", str(rot / "in.mp4"), "-c", "copy", "-video_track_timescale", "48000",
+                        str(cls.film)], check=True, timeout=60)
         start = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries",
                                 "stream=start_time", "-of", "csv=p=0", str(cls.film)],
                                capture_output=True, text=True, check=True).stdout.strip().rstrip(",")
@@ -400,6 +488,9 @@ class Filmen(unittest.TestCase):
         for s in jamforda:
             self.assertNotIn("hoppat", s)
             self.assertAlmostEqual(s["tidsparning"]["forskjutning_ms"], -self.off * 1000, delta=0.2)
+            self.assertEqual(s["tidsparning"]["rutor"], -1)
+            self.assertAlmostEqual(s["tidsparning"]["ffprobe_start_ms"], self.off * 1000, delta=0.01)
+            self.assertNotIn("varning", s)
         alla = next(r for r in res["leder"] if r["led"] == "alla" and r["fas"] == "alla")
         self.assertLess(alla["px"]["medel"], 0.1)
         self.assertIn("fil", res["kontaktark"]["dtl"])

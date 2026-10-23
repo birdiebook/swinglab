@@ -140,6 +140,7 @@ def main(argv=None) -> int:
     from . import historik as H
     from . import kontaktark as KA
     from . import paket as P
+    from . import s3_facit as S3F
 
     ap = argparse.ArgumentParser(description="Paketen från telefonen → analys.json och kontaktark.")
     ap.add_argument("paket", nargs="+", help="swinglab-<pass>-<vy>.zip, ett per vy")
@@ -189,7 +190,10 @@ def main(argv=None) -> int:
     else:
         try:
             for fil, p in zip(a.paket, paket):
-                analys["kontaktark"][p.vy] = KA.bygg(Path(fil), p, [r for r in analys["slag"] if r["vy"] == p.vy], ut)
+                # S3:s förskjutning när den finns, så att bilden är Visions ruta (METOD MF1).
+                fsk = {k[1]: v for k, v in S3F.las_forskjutningar(p.pass_id).items() if k[0] == p.fil}
+                analys["kontaktark"][p.vy] = KA.bygg(Path(fil), p, [r for r in analys["slag"] if r["vy"] == p.vy], ut,
+                                                     forskjutning_ms=fsk)
         except P.PaketFel as e:
             print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
             return 1

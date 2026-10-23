@@ -75,3 +75,18 @@ def skala_ruta(ruta: tuple[int, int, int, int], w: int, h: int, bredd: int, hojd
     x1 = min(w, int(np.ceil((ruta[0] + ruta[2]) * sx)))
     y1 = min(h, int(np.ceil((ruta[1] + ruta[3]) * sy)))
     return x0, y0, x1 - x0, y1 - y0
+
+
+def start_tid(fil: Path) -> float | None:
+    """Videoströmmens start_time ur ffprobe (s), eller None när ffprobe saknas eller inte
+    svarar. Bara en kontroll av förskjutningen (METOD MF1)."""
+    import shutil
+    import subprocess
+    if not shutil.which("ffprobe"):
+        return None
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=start_time",
+                            "-of", "csv=p=0", str(fil)], capture_output=True, text=True, timeout=30)
+        return float(r.stdout.strip().split("\n")[0].rstrip(","))
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None

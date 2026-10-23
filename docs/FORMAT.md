@@ -503,36 +503,38 @@ analys har en äldre `matversion` (METOD M40), som ska köras om med session.py.
 `tools/pc/s3_facit.py` skriver i `~/swinglab-s3/<pass>/` (BESLUT B43, METOD MF1–MF4):
 `s3.md` (tabellen att läsa), `s3.json` (samma tal), `kontaktark-s3-<vy>.png` och
 `mediapipe/<paket>-<slag>.json`: MediaPipes leder för varje ruta i klippet, i hela
-bildens pixlar, med `"source": "mediapipe-pose-heavy"`, `modell`, `width`, `height`,
-`utsnitt_px` och `frames[]` med `tk` (rutans tid enligt OpenCV, s) och `joints`.
+bildens pixlar, med `version` (3), `"source": "mediapipe-pose-heavy"`, `modell`, `width`,
+`height`, `utsnitt_px`, `klipp_crc`, `klipp_storlek` och `frames[]` med `tk` (rutans tid
+enligt OpenCV, s), `joints` (VIDEO-läget) och, i tidsparningens fönster, `joints_bild`
+(IMAGE-läget).
 `s3.json` har `"format": "swinglab-s3/2"`:
 
 | Fält | Innehåll |
 |---|---|
 | `pass`, `skapad`, `modell` | passen, tiden, modellfilen och läget (`VIDEO`) |
 | `min_slag`, `bootstrap` | slagen som krävs för B5 och måtten (5), dragningarna för intervallen (100) (MF2) |
-| `paket[]` | `fil`, `vy`, `slag`, `matbara`, `med_klipp`, `korda`, `jamforda`, `rutor` (Visions), `rutor_parade` |
-| `nivaer` | trösklarna ur simuleringen: `mediapipe` (antagen nivå), `pass`, `slag`, och per `alla` och `nedsving` per nivå `fast`, `rorligt` (% av kroppslängden per axel), `utliggare` (andel) (MF3) |
-| `beslut_b5` | per vy: `slag`, och per `alla` och `nedsving` antingen `null` (under `min_slag`) eller `fast`, `rorligt`, `utliggare`, `slag`, `intervall` (per del `[2,5 %, 97,5 %]`) och `niva` (`bra`, `typiskt`, `daligt`, `samre_an_daligt`); dessutom `vision_saknar_mp_ser`, `sidbyten`, `matt_tydliga` av `matt_provade` |
+| `paket[]` | `fil`, `vy`, `slag`, `matbara`, `med_klipp`, `korda`, `jamforda`, `rutor` (Visions), `rutor_parade`, och `forskjutning_median_ms`, `forskjutning_spridning_ms` (MF1) |
+| `nivaer` | trösklarna ur simuleringen: `mediapipe` (antagen nivå), `pass`, `slag`, `grov_procent`, och per `alla` och `nedsving` per nivå `median` (`fast`, `rorligt` i % av kroppslängden per axel, `utliggare`, `grova` som andel) och `grans` (`fast`, `rorligt`: nivåns övre gräns) (MF3) |
+| `beslut_b5` | per vy: `slag`, och per `alla` och `nedsving` antingen `null` (under `min_slag`) eller `fast`, `rorligt`, `utliggare`, `grova`, `slag`, `intervall` (per del `[2,5 %, 97,5 %]`) och `niva` (`bra`, `typiskt`, `daligt`, `samre_an_daligt`); dessutom `vision_saknar_mp_ser`, `sidbyten`, `matt_tydliga` av `matt_provade` |
 | `leder[]` | per `vy`, `led` (filens namn eller `alla`) och `fas` (`adress`, `baksving`, `nedsving`, `efter_traff`, `alla`): `rutor`, `n`, `slag`, `px` och `procent` (`medel`, `spridning`, `fast`, `rorligt`), `utliggare`, `vision_saknar`, `mediapipe_saknar`, `vision_saknar_mp_ser` (MF2) |
 | `sidbyten[]` | `vy`, `par`, `n`, `andel` |
 | `matt[]` | per vy och mått: `enhet`, `n` (slag), och från `min_slag` slag `vision_median`, `mediapipe_median`, `skillnad`, `intervall`, `skillnad_medel`, `skillnad_sd`, `abs_medel`, `mediapipe_spridning`, `tydlig` (annars `null`) (MF3) |
 | `faser[]` | `start` och `topp` i ms (Vision − MediaPipe), och `skalan` som kvot av cm per px |
-| `slag[]` | per slag: `fil`, `id`, `vy`; med klipp `tidsparning` (`forskjutning_ms`, `rutor`, `kvot`, `rest_ms_median`, MF1) och `rutor_parade`; och `vision_fel`, `mediapipe_fel` eller `hoppat` (inget klipp, eller tidsparningen tvetydig med skälet) |
+| `slag[]` | per slag: `fil`, `id`, `vy`; med klipp `tidsparning` (`forskjutning_ms`, `rutor`, `kvot`, `rest_ms_median`, och `ffprobe_start_ms` när ffprobe finns, MF1) och `rutor_parade`; `varning` när δ inte stämmer med start_time; och `vision_fel`, `mediapipe_fel` eller `hoppat` (inget klipp, eller tidsparningen tvetydig eller avvikande, med skälet) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` |
 
 ## Klubbans märkning: `swinglab-<pass>-klubba.json` (utanför repot)
 
 `tools/pc/markera_klubba.py` skriver den bredvid paketet (en video: `<video>-klubba.json`),
 efter varje ruta (BESLUT B44, METOD MF5–MF6). Samma fil läses när verktyget körs igen;
-en ruta med samma id, fil och tid behåller sin märkning.
+en ruta med samma id, fil, förskjutning och tid behåller sin märkning.
 
 ```json
 {"format": "swinglab-klubba/1", "pass": "20261103-180000",
  "kalla": ["swinglab-20261103-180000-dtl.zip", "swinglab-20261103-180000-fo.zip"],
  "punkter": ["grepp", "skaft_mitt", "klubbhuvud"], "andrad": "2026-11-03T21:15:00+01:00",
  "rutor": [{"id": "fo-s03-topp", "fil": "swinglab-20261103-180000-fo.zip", "vy": "fo", "slag": "s03",
-            "val": "topp", "t": -0.3125, "t_klipp": 2.1913, "forskjutning_ms": -2.0,
+            "val": "topp", "t": -0.3125, "t_klipp": 2.1913, "forskjutning_ms": -2.0, "t_ruta": 2.189292,
             "bredd": 1080, "hojd": 1920, "visad": [54, 0, 972, 1920], "status": "markerad",
             "punkter": {"grepp": {"x": 512.3, "y": 640.0, "kalla": "klick"},
                         "skaft_mitt": {"x": 600.1, "y": 560.4, "kalla": "klick"},
@@ -551,8 +553,9 @@ en ruta med samma id, fil och tid behåller sin märkning.
 | `fil`, `vy`, `slag` | paketets (eller videons) namn, `"dtl"`/`"fo"`/`null`, slagets id eller `null` |
 | `val` | `adress`, `topp`, `tidig_nedsving` eller `jamn` (MF5) |
 | `t` | Visions tid, s relativt klicket (`null` för en video) |
-| `t_klipp` | rutans tid i klippet, s: `t + klick_i_klipp_s` för ett paket, rutans egen tid (OpenCV) för en video |
+| `t_klipp` | den valda tiden i klippet, s: `t + klick_i_klipp_s` för ett paket, tiden jämnt över klippet för en video |
 | `forskjutning_ms` | S3:s förskjutning för slaget (MF1): rutan läses på OpenCV:s tid `t_klipp + forskjutning_ms / 1000`; 0 för en video |
+| `t_ruta` | rutans egen tid enligt OpenCV (s), eller `null` innan den lästs |
 | `bredd`, `hojd` | hela den upprätta bilden i px |
 | `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
 | `status` | `omarkerad`, `markerad` (alla tre punkterna satta) eller `hoppad` |

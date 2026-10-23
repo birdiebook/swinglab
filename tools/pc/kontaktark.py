@@ -25,6 +25,7 @@ from .paket import i_klippet, las_ur_zip
 BREDD = 180                # METOD MT7: px per ruta i arket
 MAX_RADER = 12             # METOD MT7: högst så många slag per ark (de första i passet)
 MELLANRUM = 2              # px svart mellan rutorna
+NARMAST_S = 0.002          # METOD MF1: läs från t − 2 ms så att rutan närmast t kommer
 KOLUMNER = ("adress", "topp", "traff", "finish")
 # Linjerna mellan lederna (index i filen, docs/FORMAT.md).
 BEN = ((1, 2), (1, 3), (3, 5), (2, 4), (4, 6), (7, 8), (1, 7), (2, 8), (7, 9), (9, 11), (8, 10), (10, 12))
@@ -41,38 +42,52 @@ def verktyg() -> str | None:
         return None
 
 
-def _ppm(b: bytes) -> np.ndarray | None:
-    """En binär PPM (P6, 8 bitar) → (h, w, 3) uint8, eller None."""
+class PpmFel(ValueError):
+    """ffmpeg gav en bild som inte går att läsa."""
+
+
+def _ppm(b: bytes) -> np.ndarray:
+    """En binär PPM (P6, 8 bitar) → (h, w, 3) uint8. Ett trasigt huvud eller för lite
+    data kastar PpmFel."""
     delar, pos = [], 0
     while len(delar) < 4:
         while pos < len(b) and b[pos:pos + 1].isspace():
             pos += 1
+        if pos >= len(b):
+            raise PpmFel("ffmpeg gav en bild med avhugget huvud")
         if b[pos:pos + 1] == b"#":
-            pos = b.find(b"\n", pos) + 1
+            slut = b.find(b"\n", pos)
+            if slut < 0:
+                raise PpmFel("ffmpeg gav en bild med en kommentar utan radslut")
+            pos = slut + 1
             continue
         slut = pos
         while slut < len(b) and not b[slut:slut + 1].isspace():
             slut += 1
         delar.append(b[pos:slut])
         pos = slut
-    if delar[0] != b"P6" or delar[3] != b"255":
-        return None
+    if delar[0] != b"P6" or delar[3] != b"255" or not (delar[1].isdigit() and delar[2].isdigit()):
+        raise PpmFel("ffmpeg gav inte en 8-bitars PPM")
     w, h = int(delar[1]), int(delar[2])
     data = b[pos + 1:pos + 1 + w * h * 3]
-    return np.frombuffer(data, np.uint8).reshape(h, w, 3).copy() if len(data) == w * h * 3 else None
+    if len(data) != w * h * 3:
+        raise PpmFel("ffmpeg gav en bild med för lite data")
+    return np.frombuffer(data, np.uint8).reshape(h, w, 3).copy()
 
 
 def las_ruta(klipp: Path, t: float, bredd: int, hojd: int, satt: str) -> np.ndarray | None:
-    """Rutan vid t (s i klippet) som (hojd, bredd, 3) uint8, eller None. Bilden ska stå
-    upprätt som lederna: ligger den ner kastas klipp.VridenFel (METOD MF1)."""
+    """Rutan närmast t (s i läsarens tid) som (hojd, bredd, 3) uint8, eller None: ffmpeg
+    och OpenCV ger första rutan från tiden, så de frågas från t − 2 ms (halva steget vid
+    240 bilder/s). Bilden ska stå upprätt som lederna: ligger den ner kastas
+    klipp.VridenFel (METOD MF1); en bild som ffmpeg gav trasig kastar PpmFel."""
     from .klipp import kontrollera_upprat
-    t = max(0.0, t)
+    t = max(0.0, t - NARMAST_S)
     if satt == "ffmpeg":
         r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.4f}", "-i", str(klipp), "-frames:v", "1",
                             "-f", "image2pipe", "-vcodec", "ppm", "pipe:"], capture_output=True, timeout=60)
-        img = _ppm(r.stdout) if r.returncode == 0 and r.stdout else None
-        if img is None:
+        if r.returncode != 0 or not r.stdout:
             return None
+        img = _ppm(r.stdout)
     else:
         import cv2
         v = cv2.VideoCapture(str(klipp))
@@ -138,9 +153,12 @@ def tider(faser: dict) -> dict[str, float]:
             "finish": faser["traff"] + sum(FINISH) / 2}
 
 
-def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | None = None) -> dict:
+def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | None = None,
+         forskjutning_ms: dict[str, float] | None = None) -> dict:
     """Arket för ett paket. Svarar {"fil", "rader", "kolumner"} eller {"hoppat": skäl}.
-    Ett skadat klipp i zippen kastar paket.PaketFel."""
+    Varje kolumn tar Visions ruta närmast fasens tid och läser klippets ruta på samma
+    tid, flyttad med S3:s förskjutning för slaget (`forskjutning_ms`, slagets id → ms;
+    0 utan S3, METOD MF1). Ett skadat klipp i zippen kastar paket.PaketFel."""
     satt = satt or verktyg()
     if satt is None:
         return {"hoppat": "varken ffmpeg eller OpenCV finns"}
@@ -158,16 +176,17 @@ def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | N
             klipp.write_bytes(las_ur_zip(z, paket.fil, s.klipp))
             rutor = s.lederna["frames"]
             sx, sy = BREDD / s.lederna["width"], hojd / s.lederna["height"]
+            d_s = (forskjutning_ms or {}).get(s.id, 0.0) / 1000.0
             for k, (fas, t) in enumerate(tider(matta[s.id]["faser"]).items()):
-                tk = t + float(s.klick_i_klipp_s)
+                narmast = min(rutor, key=lambda r: abs(r["t"] - t))
+                tk = float(narmast["t"]) + float(s.klick_i_klipp_s)
                 # Bara klippets rutor i [0; längd), inte de som följer med efter (METOD MS12).
                 try:
-                    img = las_ruta(klipp, tk, BREDD, hojd, satt) if i_klippet(s, tk) else None
-                except VridenFel as e:
+                    img = las_ruta(klipp, tk + d_s, BREDD, hojd, satt) if i_klippet(s, tk) else None
+                except (VridenFel, PpmFel) as e:
                     return {"hoppat": str(e)}
                 if img is None:
                     img = np.zeros((hojd, BREDD, 3), np.uint8)
-                narmast = min(rutor, key=lambda r: abs(r["t"] - t))
                 rita_leder(img, narmast["joints"], sx, sy)
                 y, x = i * (hojd + MELLANRUM), k * (BREDD + MELLANRUM)
                 ark[y:y + hojd, x:x + BREDD] = img

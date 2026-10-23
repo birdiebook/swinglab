@@ -750,11 +750,14 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
 - **Valt:** `python tools/pc/s3_facit.py <paket.zip> [fler]` kör MediaPipe Pose heavy
   (VIDEO-läge, som Golf SG i oktober) på varje ruta i paketets klipp, i seriens utsnitt
   (B34), och för punkterna tillbaka till hela bildens pixlar. Klippets tider (OpenCV) och
-  Visions skiljer sig med en förskjutning per klipp, som skattas ur handledernas banor;
-  ett slag där den är tvetydig jämförs inte. Lederna jämförs per led, fas och vy, S1:s mått
+  Visions skiljer sig med en förskjutning per klipp, som skattas ur handledernas banor i
+  MediaPipes IMAGE-läge (utan VIDEO-lägets utjämning, och med modellernas fasta skillnad
+  bortdragen) och ska vara densamma i passets klipp; ett slag där den är tvetydig eller
+  avviker jämförs inte, och ffprobes start_time skrivs som kontroll. Lederna jämförs per led, fas och vy, S1:s mått
   räknas med samma kod på båda källorna, parade per slag, och överst står det som avgör B5
-  för hela svingen och nedsvingen, med trösklar ur en simulering av felbudgetens brus i
-  båda källorna, intervall ur bootstrap av slagen och "–" under 5 slag. Tabellen
+  för hela svingen och nedsvingen, med nivågränser ur en simulering av felbudgetens brus i
+  båda källorna (geometriska medlet mellan nivåernas medianer), de grova avvikelserna,
+  intervall ur bootstrap av slagen och "–" under 5 slag. Tabellen
   (`s3.md`, `s3.json`), kontaktarken och MediaPipes leder skrivs till
   `~/swinglab-s3/<pass>/`; verktyget vägrar en mapp i repot. Modellen hämtas till
   `~/.cache/swinglab/mediapipe/` (eller tas ur Golf SG:s cache); saknas `mediapipe` eller
@@ -764,7 +767,9 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   fel i tid ger cirka 2 % av kroppslängden i nedsvingen, mer än nivåerna själva, därför
   skattas förskjutningen i stället för att litas på OpenCV:s tid. Skillnaden mellan två
   modeller bär båda modellernas fel, därför simuleras trösklarna i stället för att
-  felbudgetens nivåer för en källa används rakt. Modellen och klippet bakom gränssnitt gör
+  felbudgetens nivåer för en källa används rakt, och gränsen ligger mellan nivåerna, inte
+  på nivåns egen median (som klassade de flesta pass en nivå för dåligt). Modellen och
+  klippet bakom gränssnitt gör
   att jämförelsen provas på Linux utan MediaPipe, med en påhittad modell som läser rutans
   nummer ur bilden.
 - **Bortvalt:** MediaPipe på hela bilden (då blandas utsnittets effekt in; B34 omprövas
@@ -774,8 +779,9 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   måtten saknar källa), och tabellen i `data/historik/` (den hör till S3, inte till
   passens historik).
 - **Kostnad:** MediaPipe heavy på CPU tar cirka 45 ms per ruta (uppmätt i molnet på en
-  påhittad film), alltså cirka 45 s per slag med 960 rutor; lederna sparas så att en
-  ny körning går fort. Simuleringen av trösklarna tar cirka 10 s per körning. Avvikelsen är
+  påhittad film), alltså cirka 45 s per slag med 960 rutor, plus cirka 150 rutor i
+  IMAGE-läget för tidsparningen; lederna sparas så att en ny körning går fort.
+  Simuleringen av trösklarna tar cirka 4 s per körning. Avvikelsen är
   mot MediaPipe, inte mot sanningen, och trösklarna vilar på antagandet att MediaPipe
   heavy ligger på felbudgetens nivå "bra".
 - **Omprövas:** när tabellen finns för ett riktigt pass i båda vyerna; då tas B5.

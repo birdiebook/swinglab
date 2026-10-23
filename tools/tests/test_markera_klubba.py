@@ -103,6 +103,8 @@ class Rutvalet(unittest.TestCase):
         self.assertEqual(tol, MK.TID_TOL_S)
         self.assertEqual(sorted(tider), sorted(x["t_klipp"] + DELTA_MS / 1000 for x in rutor))
         self.assertEqual([x["t_klipp"] for x in rutor], [x["t_klipp"] for x in self.rutor[:5]])
+        for x in rutor:                                       # rutans egen tid, för sig
+            self.assertAlmostEqual(x["t_ruta"], x["t_klipp"] + DELTA_MS / 1000 + 0.0001, places=6)
 
     def test_utan_s3_sager_kommandot_vad_som_saknas(self) -> None:
         buf = io.StringIO()
@@ -153,6 +155,31 @@ class Formatet(unittest.TestCase):
         self.assertTrue(any("punkter.grepp" in f for f in MK.kontrollera(d)))
         self.assertNotIn('kalla: "forslag"', MK.SKRIPT)
 
+    def test_video_ateruppttagen_hittar_rutorna(self) -> None:
+        # Läsaren ger rutan närmast den valda tiden, upp till en halv ruta bort.
+        def las_vid(klipp, tider, b, h, tol):
+            return {t: (t + 0.4 / 240, np.zeros((4, 3, 3), np.uint8)) for t in tider}
+
+        forsta = _markering(24)
+        MK.bilder(forsta["rutor"], {"x.mov": Path("x.mov")}, las_vid, rapport=None, tol_video=0.5 / 240)
+        for r in forsta["rutor"]:
+            r["status"] = "hoppad"
+        andra = _markering(24)
+        MK.bilder(andra["rutor"], {"x.mov": Path("x.mov")}, las_vid, rapport=None, tol_video=0.5 / 240)
+        ny = MK.sla_ihop(andra, forsta)
+        self.assertEqual(len(ny["rutor"]), 24)
+        self.assertTrue(all(r["status"] == "hoppad" for r in ny["rutor"]))
+
+    def test_ny_forskjutning_ar_en_ny_ruta(self) -> None:
+        gammal = _markering(2)
+        gammal["rutor"][0]["status"] = "hoppad"
+        ny = _markering(2)
+        ny["rutor"][0]["forskjutning_ms"] = 4.2
+        ihop = MK.sla_ihop(ny, gammal)
+        self.assertEqual(ihop["rutor"][0]["status"], "omarkerad")
+        self.assertEqual(ihop["rutor"][-1]["status"], "hoppad")
+        self.assertEqual(len(ihop["rutor"]), 3)
+
     def test_tidigare_markering_behalls(self) -> None:
         gammal = _markering(3)
         gammal["rutor"][1]["status"] = "hoppad"
@@ -197,7 +224,7 @@ class Servern(unittest.TestCase):
         self.fil = Path(self.tmp.name) / "m.json"
         self.srv = MK.server("<html></html>", self.fil)
         self.port = self.srv.server_address[1]
-        self.tr = threading.Thread(target=self.srv.serve_forever, daemon=True)
+        self.tr = threading.Thread(target=self.srv.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True)
         self.tr.start()
 
     def tearDown(self) -> None:

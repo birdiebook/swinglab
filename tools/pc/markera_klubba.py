@@ -68,7 +68,6 @@ MARGINAL = 0.15              # METOD MF6: sidan visar utsnittet + 15 % per sida 
 ZOOM = 3.0                   # METOD MF6: Z förstorar så mycket kring musen
 JPEG_KVALITET = 88           # METOD MF6
 LANGD_FASER_M = 1.80         # faserna beror inte på längden; den behövs bara för att mäta
-S3_ROT = Path.home() / "swinglab-s3"
 
 
 class MarkFel(RuntimeError):
@@ -111,11 +110,7 @@ def valj_slag(n_slag: int, n: int) -> list[int]:
     return sorted(set(np.round(np.linspace(0, n_slag - 1, min(n, n_slag))).astype(int).tolist()))
 
 
-def forskjutningar(s3: dict) -> dict[tuple[str, str], float]:
-    """S3:s förskjutning per (paket, slag) i ms, bara för slag där den inte var
-    tvetydig (s3.json, METOD MF1)."""
-    return {(r["fil"], r["id"]): float(r["tidsparning"]["forskjutning_ms"]) for r in s3.get("slag", [])
-            if "hoppat" not in r and (r.get("tidsparning") or {}).get("forskjutning_ms") is not None}
+forskjutningar = S3F.forskjutningar
 
 
 def valj_rutor(paket: list[tuple[Path, P.Paket]], forskjutning: dict[tuple[str, str], float],
@@ -157,7 +152,7 @@ def valj_rutor(paket: list[tuple[Path, P.Paket]], forskjutning: dict[tuple[str, 
                 sedda.add(rr["t"])
                 ut.append({"id": f"{p.vy}-{s.id}-{namn}", "fil": p.fil, "vy": p.vy, "slag": s.id,
                            "val": namn.split("-")[0], "t": round(float(rr["t"]), 4), "t_klipp": round(tk, 6),
-                           "forskjutning_ms": forskjutning[(p.fil, s.id)],
+                           "forskjutning_ms": forskjutning[(p.fil, s.id)], "t_ruta": None,
                            "bredd": bredd, "hojd": hojd, "visad": visad, "status": "omarkerad",
                            "punkter": {n: None for n in PUNKTER}, "forslag": forslag(rr["joints"])})
     return ut
@@ -166,7 +161,8 @@ def valj_rutor(paket: list[tuple[Path, P.Paket]], forskjutning: dict[tuple[str, 
 def valj_video(fil: Path, langd_s: float, bredd: int, hojd: int, vy: str | None, n: int = JAMNA_VIDEO) -> list[dict]:
     """En video utan paket: n rutor jämnt över klippet (inga leder, inga faser). METOD MF5"""
     return [{"id": f"video-{k + 1:02d}", "fil": fil.name, "vy": vy, "slag": None, "val": "jamn", "t": None,
-             "t_klipp": round((k + 0.5) / n * langd_s, 6), "forskjutning_ms": 0.0, "bredd": bredd, "hojd": hojd,
+             "t_klipp": round((k + 0.5) / n * langd_s, 6), "forskjutning_ms": 0.0, "t_ruta": None,
+             "bredd": bredd, "hojd": hojd,
              "visad": [0, 0, bredd, hojd], "status": "omarkerad", "punkter": {p: None for p in PUNKTER},
              "forslag": {}} for k in range(n)]
 
@@ -182,9 +178,11 @@ SAMMA_T_S = 1e-4             # METOD MF5: samma ruta = samma tid inom 0,1 ms
 
 
 def _samma(a: dict, b: dict) -> bool:
-    """Samma ruta: samma id och fil, och samma tid inom 0,1 ms (Visions tid, för en
-    video klippets)."""
+    """Samma ruta: samma id och fil, samma förskjutning och samma tid inom 0,1 ms
+    (Visions tid; för en video den valda tiden i klippet, inte rutans egen). METOD MF5"""
     if a["id"] != b["id"] or a["fil"] != b["fil"]:
+        return False
+    if abs(a.get("forskjutning_ms", 0.0) - b.get("forskjutning_ms", 0.0)) > SAMMA_T_S * 1000:
         return False
     ta, tb = (a["t"], b["t"]) if a["t"] is not None and b["t"] is not None else (a["t_klipp"], b["t_klipp"])
     return ta is not None and tb is not None and abs(ta - tb) <= SAMMA_T_S
@@ -266,6 +264,8 @@ def kontrollera(d) -> list[str]:
             fel.append(f"{p}.t_klipp ska vara ett tal ≥ 0")
         if not _tal(r.get("forskjutning_ms")):
             fel.append(f"{p}.forskjutning_ms ska vara ett tal")
+        if r.get("t_ruta") is not None and not (_tal(r["t_ruta"]) and r["t_ruta"] >= 0):
+            fel.append(f"{p}.t_ruta ska vara ett tal ≥ 0 eller null")
         bh = (r.get("bredd"), r.get("hojd"))
         if not all(_heltal(v) and v > 0 for v in bh):
             fel.append(f"{p}.bredd och hojd ska vara positiva heltal")
@@ -361,8 +361,8 @@ def bilder(rutor: list[dict], kallor: dict[str, Path], las_vid: LasVid = KL.rama
            rapport=print, tol_video: float = TID_TOL_S) -> dict[str, str]:
     """Varje rutas bild (den visade delen) som data-URL. Rutan läses i läsarens tid
     t_klipp + förskjutningen (S3, METOD MF1) och tas bara om en ruta finns inom
-    TID_TOL_S; för en video sätts t_klipp till rutans egen tid. Ett klipp läses en
-    gång. `kallor`: paketets eller videons namn → filen. METOD MF6"""
+    TID_TOL_S; rutans egen tid (läsarens) sparas i t_ruta, och t_klipp står kvar som
+    vald tid, så att en återupptagen märkning hittar rutan. Ett klipp läses en gång. `kallor`: paketets eller videons namn → filen. METOD MF6"""
     ut: dict[str, str] = {}
     grupper: dict[tuple[str, str | None], list[dict]] = {}
     for r in rutor:
@@ -389,8 +389,7 @@ def bilder(rutor: list[dict], kallor: dict[str, Path], las_vid: LasVid = KL.rama
                 if onskat[r["id"]] not in fatt:
                     continue
                 tid, img = fatt[onskat[r["id"]]]
-                if r["t"] is None:
-                    r["t_klipp"] = round(float(tid), 6)
+                r["t_ruta"] = round(float(tid), 6)
                 h, w = img.shape[:2]
                 x, y, b, hh = KL.skala_ruta(tuple(r["visad"]), w, h, r["bredd"], r["hojd"])
                 ut[r["id"]] = koda(img[y:y + hh, x:x + b])
@@ -757,15 +756,12 @@ def main(argv=None) -> int:
         if zippar:
             paket = [(f, P.las(f)) for f in zippar]
             pass_id = paket[0][1].pass_id
-            s3 = Path(a.s3).expanduser() if a.s3 else S3_ROT / pass_id / "s3.json"
+            s3 = Path(a.s3).expanduser() if a.s3 else S3F.UT_ROT / pass_id / "s3.json"
             if not s3.is_file():
                 raise MarkFel(f"S3:s tabell saknas ({s3}). Kör S3 först: den mäter klippens tidsförskjutning, "
                               "så att bilden blir samma ruta som Visions leder:\n  python tools/pc/s3_facit.py "
                               + " ".join(str(f) for f in zippar))
-            try:
-                fsk = forskjutningar(json.loads(s3.read_text(encoding="utf-8")))
-            except (OSError, json.JSONDecodeError, AttributeError, KeyError, TypeError):
-                raise MarkFel(f"{s3.name}: går inte att läsa") from None
+            fsk = S3F.las_forskjutningar(pass_id, s3)
             rutor = valj_rutor(paket, fsk, a.slag, JAMNA_PER_SLAG if a.jamna is None else a.jamna)
             standard = zippar[0].parent / f"swinglab-{pass_id}-klubba.json"
         else:
