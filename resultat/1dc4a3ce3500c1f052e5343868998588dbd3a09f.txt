@@ -1,0 +1,20 @@
+1dc4a3ce3500c1f052e5343868998588dbd3a09f s3verktyg 2026-10-23T06:37:50Z run 39912525052
+== swift-release
+GRÖNT: 197 test, 0 fel, 6 s i testerna, bygget 34 s
+Långsammast (av 197):
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  MatningTests.testSammaSomFilformatet
+      0.1 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.1 s  VisningTests.testIdagVisarDenForstaSaken
+      0.1 s  VisningTests.testPasset
+      0.1 s  LinkTests.testSerienSparasForeKvittensenOchParasEfterOmstart
+      0.1 s  VisningTests.testS5sExempelGarAttLasa
+      0.1 s  VisningTests.testAttJobbaPa
+      0.1 s  SlagTests.testVisionsKonfidensSyns
+
