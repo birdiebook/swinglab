@@ -23,11 +23,17 @@ public struct Katalog: Decodable, Sendable {
         public let fel: String?
         /// "oprovad" = oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11), eller nil.
         public let status: String?
-        /// Fält utöver matt, vy, positioner, fel och status; kontrollen fäller dem, som Python.
+        /// Infobladet (BESLUT B41): vad som mäts, varför det spelar roll och tecknet, på engelska.
+        public let vad: String
+        public let varfor: String
+        public let tecken: String
+        /// Fält utöver matt, vy, positioner, infobladets, fel och status; kontrollen fäller dem,
+        /// och ett av infobladets fält som saknas, som Python.
         let andraFalt: [String]
+        let saknasInfo: Bool
 
         enum CodingKeys: String, CodingKey, CaseIterable {
-            case matt, vy, positioner, fel, status
+            case matt, vy, positioner, fel, status, vad, varfor, tecken
         }
 
         struct Nyckel: CodingKey {
@@ -44,6 +50,13 @@ public struct Katalog: Decodable, Sendable {
             positioner = try c.decode([String].self, forKey: .positioner)
             fel = try c.decodeIfPresent(String.self, forKey: .fel)
             status = try c.decodeIfPresent(String.self, forKey: .status)
+            let v = try c.decodeIfPresent(String.self, forKey: .vad)
+            let w = try c.decodeIfPresent(String.self, forKey: .varfor)
+            let t = try c.decodeIfPresent(String.self, forKey: .tecken)
+            vad = v ?? ""
+            varfor = w ?? ""
+            tecken = t ?? ""
+            saknasInfo = v == nil || w == nil || t == nil
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
             andraFalt = try decoder.container(keyedBy: Nyckel.self).allKeys.map { $0.stringValue }
                 .filter { !kanda.contains($0) }
@@ -85,10 +98,14 @@ public struct Katalog: Decodable, Sendable {
         public let notering: String?
         /// P-positionerna där granskningen visar felets mått (BESLUT B32); tom = hela svingen.
         public let positioner: [String]
+        /// Infobladet (BESLUT B41): vad som mäts, varför det spelar roll och tecknet, på engelska.
+        public let vad: String
+        public let varfor: String
+        public let tecken: String
 
         enum CodingKeys: String, CodingKey {
             case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
-            case positioner
+            case positioner, vad, varfor, tecken
             case ovningId = "ovning_id"
         }
 
@@ -116,7 +133,17 @@ public struct Katalog: Decodable, Sendable {
             tanke = try c.decode(String.self, forKey: .tanke)
             notering = try c.decodeIfPresent(String.self, forKey: .notering)
             positioner = try c.decode([String].self, forKey: .positioner)
+            vad = try c.decode(String.self, forKey: .vad)
+            varfor = try c.decode(String.self, forKey: .varfor)
+            tecken = try c.decode(String.self, forKey: .tecken)
         }
+    }
+
+    /// Infobladets tre fält: text, inte tom (BESLUT B41), som `_info` i Python.
+    static func info(_ namn: String, vad: String, varfor: String, tecken: String) -> [String] {
+        [("vad", vad), ("varfor", varfor), ("tecken", tecken)]
+            .filter { $0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { "\(namn): \($0.0) ska vara en text" }
     }
 
     /// Katalogens form, som `kontrollera` i tools/pc/katalog.py. Felen nämner felets id
@@ -151,15 +178,17 @@ public struct Katalog: Decodable, Sendable {
             }
             if e.gront == nil && e.gult != nil { fel.append("\(e.id): gult utan gront") }
             if !positionernaOK(e.positioner, tom: true) { fel.append("\(e.id): \(positionerFel)") }
+            fel += info(e.id, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
             for vy in e.vy == "bada" ? ["dtl", "fo"] : [e.vy] { visade.insert("\(vy)/\(e.matt)") }
         }
         let felen = Set(k.fel.map { $0.id })
         for e in k.matt {
             let namn = "matt \(e.matt)"
-            if !e.andraFalt.isEmpty {
-                fel.append("\(namn): ska ha matt, vy och positioner, och får ha fel och status")
+            if !e.andraFalt.isEmpty || e.saknasInfo {
+                fel.append("\(namn): ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel och status")
                 continue
             }
+            fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
             if let s = e.status, s != "oprovad" { fel.append("\(namn): status ska vara oprovad") }
             if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
             if let vy = Vy(rawValue: e.vy) {

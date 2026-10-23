@@ -69,6 +69,20 @@ class Formen(unittest.TestCase):
             self.assertFalse(f["kontrollerad"], f["id"])
             self.assertTrue(f["kalla"].startswith("https://"), f["id"])
 
+    def test_infobladet_finns_overallt(self) -> None:
+        """BESLUT B41: varje fel och varje mått har vad, varfor och tecken, korta och
+        på engelska (test_engelska fäller svenska tecken), vad och varfor som en mening."""
+        k = K.las()
+        for e in k["fel"] + k["matt"]:
+            namn = e.get("id", e["matt"])
+            for f in K.INFO:
+                with self.subTest(post=namn, falt=f):
+                    self.assertIsInstance(e[f], str)
+                    self.assertTrue(e[f].strip())
+                    self.assertLessEqual(len(e[f]), 120)
+            self.assertTrue(e["vad"].endswith(".") and e["varfor"].endswith("."), namn)
+        self.assertEqual(len(k["fel"]) + len(k["matt"]), 47)
+
     def test_axellutningen_ar_avstangd_utan_grans(self) -> None:
         f = _fel("axellutning")
         self.assertFalse(f["aktiv"])
@@ -93,11 +107,17 @@ class Formen(unittest.TestCase):
         ('{"matt": "stans_bredd", "vy": "fo"', '{"matt": "stans_bredd", "vy": "bada"', "matt stans_bredd: vy ska vara"),
         ('"fel": "sway_topp"}', '"fel": "finns_inte"}', "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
         ('{"matt": "stans_bredd", "vy": "fo",', '{"matt": "stans_bredd", "x": 1, "vy": "fo",',
-         "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
+         "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
+        # Infobladet (BESLUT B41).
+        ('"vad": "Ankle width', '"vadd": "Ankle width',
+         "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
+        ('"tecken": "1.0 = as wide as the shoulders"', '"tecken": " "', "matt stans_bredd: tecken ska vara en text"),
+        ('"varfor": "Sliding away', '"varfor": "", "x": "Sliding away', "sway_topp: varfor ska vara en text"),
         ('"status": "oprovad"}', '"status": "provad"}', "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),
+        ('"vad": "Backswing time', '"vadd": "Backswing time', "tempo: vad saknas"),
         ('"matt": [\n', '"mått": [\n', "katalogen: listan matt saknas"),
     ]
 

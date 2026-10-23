@@ -85,10 +85,30 @@ final class KatalogTests: XCTestCase {
          "matt stans_bredd: vy ska vara"),
         ("\"fel\": \"sway_topp\"}", "\"fel\": \"finns_inte\"}", "matt backen_sway_p3: fel ska vara ett fel i katalogen"),
         ("{\"matt\": \"stans_bredd\", \"vy\": \"fo\",", "{\"matt\": \"stans_bredd\", \"x\": 1, \"vy\": \"fo\",",
-         "matt stans_bredd: ska ha matt, vy och positioner, och får ha fel"),
+         "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
+        // Infobladet (BESLUT B41).
+        ("\"vad\": \"Ankle width", "\"vadd\": \"Ankle width",
+         "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
+        ("\"tecken\": \"1.0 = as wide as the shoulders\"", "\"tecken\": \" \"", "matt stans_bredd: tecken ska vara en text"),
+        ("\"varfor\": \"Sliding away", "\"varfor\": \"\", \"x\": \"Sliding away", "sway_topp: varfor ska vara en text"),
         ("\"status\": \"oprovad\"}", "\"status\": \"provad\"}",
          "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
     ]
+
+    /// BESLUT B41: varje fel och varje mått har infobladets tre fält, som test_katalog.py.
+    func testInfobladetFinnsOveralt() throws {
+        let k = try katalog()
+        let poster = k.fel.map { ($0.id, $0.vad, $0.varfor, $0.tecken) } + k.matt.map { ($0.matt, $0.vad, $0.varfor, $0.tecken) }
+        XCTAssertEqual(poster.count, 47)
+        for (namn, vad, varfor, tecken) in poster {
+            for t in [vad, varfor, tecken] {
+                XCTAssertFalse(t.trimmingCharacters(in: .whitespaces).isEmpty, namn)
+                XCTAssertLessThanOrEqual(t.count, 120, namn)
+                XCTAssertNil(t.range(of: "[åäöÅÄÖ]", options: .regularExpression), namn)
+            }
+            XCTAssertTrue(vad.hasSuffix(".") && varfor.hasSuffix("."), namn)
+        }
+    }
 
     func testKontrollernaSomPython() throws {
         let hel = try katalog()
@@ -111,6 +131,9 @@ final class KatalogTests: XCTestCase {
         }
         XCTAssertThrowsError(try Katalog.las(json: andrad("\"positioner\": [\"P4\"],", ""))) { e in
             XCTAssertTrue("\(e)".contains("positioner"), "\(e)")
+        }
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"vad\": \"Backswing time", "\"vadd\": \"Backswing time"))) { e in
+            XCTAssertTrue("\(e)".contains("vad"), "\(e)")                       // BESLUT B41
         }
         XCTAssertThrowsError(try Katalog.las(json: andrad("\"matt\": [\n", "\"mått\": [\n"))) { e in
             XCTAssertTrue("\(e)".contains("matt"), "\(e)")

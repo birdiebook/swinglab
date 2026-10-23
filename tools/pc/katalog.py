@@ -25,8 +25,10 @@ VYER = ("dtl", "fo", "bada")
 STATUS = ("tillverkare", "forskning", "tranare", "antagande")
 SAMRE = ("+", "-", None)
 FALT = ("id", "namn", "vy", "matt", "fas", "gront", "gult", "kalla", "status", "kontrollerad",
-        "aktiv", "samre", "ovning_id", "ovning", "tanke", "positioner")
-MATT_FALT = ("matt", "vy", "positioner")       # och valfritt fel: felet vars accent måttet följer (B31)
+        "aktiv", "samre", "ovning_id", "ovning", "tanke", "positioner", "vad", "varfor", "tecken")
+# Infobladet (BESLUT B41): vad som mäts, varför det spelar roll och tecknet, på engelska.
+INFO = ("vad", "varfor", "tecken")
+MATT_FALT = ("matt", "vy", "positioner") + INFO   # och valfritt fel: felet vars accent måttet följer (B31)
 MATT_VALFRIA = ("fel", "status")               # status: "oprovad" = oprövat på telefonen (METOD M35–M37)
 MATT_STATUS = ("oprovad",)
 POSITIONER_FEL = "positioner ska vara en lista av " + ", ".join(POSITIONER) + " i svingens ordning"
@@ -49,6 +51,12 @@ def positionerna_ok(p, tom: bool) -> bool:
         return False
     i = [POSITIONER.index(x) for x in p]
     return (tom or len(p) > 0) and i == sorted(set(i))
+
+
+def _info(namn: str, e: dict) -> list[str]:
+    """Infobladets tre fält: text, inte tom (BESLUT B41)."""
+    return [f"{namn}: {f} ska vara en text" for f in INFO
+            if f in e and not (isinstance(e[f], str) and e[f].strip())]
 
 
 def kontrollera(k: dict) -> list[str]:
@@ -89,13 +97,15 @@ def kontrollera(k: dict) -> list[str]:
             fel.append(f"{namn}: kontrollerad och aktiv ska vara true/false")
         if "positioner" in e and not positionerna_ok(e["positioner"], tom=True):
             fel.append(f"{namn}: {POSITIONER_FEL}")
+        fel += _info(namn, e)
         for vy in (("dtl", "fo") if e.get("vy") == "bada" else (e.get("vy"),)):
             visade.add((vy, e.get("matt")))
     for i, e in enumerate(k["matt"]):
         namn = f"matt {e.get('matt', i) if isinstance(e, dict) else i}"
         if not isinstance(e, dict) or not set(MATT_FALT) <= set(e) <= set(MATT_FALT) | set(MATT_VALFRIA):
-            fel.append(f"{namn}: ska ha matt, vy och positioner, och får ha fel och status")
+            fel.append(f"{namn}: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel och status")
             continue
+        fel += _info(namn, e)
         if "status" in e and e["status"] not in MATT_STATUS:
             fel.append(f"{namn}: status ska vara oprovad")
         if "fel" in e and e["fel"] not in sedda:
