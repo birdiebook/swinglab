@@ -1,20 +1,20 @@
-7d50acfba23591dd5015ba27ea6694685ef8913d s5b 2026-10-23T13:20:00Z run 39960079038
+4695b938a240ae5ce50e7e18aff455ec5b304484 s7afo 2026-10-23T13:21:43Z run 39960200067
 == swift-release
-GRÖNT: 241 test, 0 fel, 8 s i testerna, bygget 48 s
-Långsammast (av 241):
-      1.1 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
+GRÖNT: 233 test, 0 fel, 9 s i testerna, bygget 59 s
+Långsammast (av 233):
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  KatalogTests.testKontrollernaSomPython
       0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  ClaudeKontextTests.testUnderlagetOchSvaretTillbaka
-      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  FlikarTests.testPassetMatsMedSinEgenLangd
-      0.2 s  KatalogTests.testKontrollernaSomPython
-      0.1 s  MatningTests.testPassetsMattOchDetectionWrong
-      0.1 s  FlikarTests.testIdagOchUtvecklingTarRattPass
-      0.1 s  VisningTests.testSpridningen
-      0.1 s  ClaudeTests.testTextenArPythons
-      0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  KatalogTests.testKatalogenPekarPaMattSomFinns
+      0.2 s  MatningTests.testSlagSomInteGarAttMata
+      0.2 s  LederTests.testNamnenArFormatets
+      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.2 s  PaketTests.testEnLitenOchEnStorFilTurOchRetur
+      0.2 s  FlikarTests.testGamlaOmattaPassTarMesLangd
+      0.2 s  MattTests.testPositionernaIOrdning
+      0.1 s  PaketTests.testPaketetUrPassetsMapp
+      0.1 s  VisningTests.testMatytanGerMattetsTal
 
