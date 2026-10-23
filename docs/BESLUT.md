@@ -984,7 +984,7 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
 - **Kostnad:** kedjan finns två gånger. Fixturerna är 3,8 MB JSON, nästan allt passens
   leder (kompakt som int16 i base64, `indata/`); facit per variant står i egna små filer
   och lodlinjens varianter återanvänder ett annat pass leder. Python-testet räknar om
-  allt parallellt (METOD M50 har tiden), och TreDTests tar cirka 15 s i Actions.
+  allt parallellt på 15 s i Actions, och TreDTests tar cirka 12 s.
 - **Omprövas:** när kedjan ändras i Python (fixturerna skrivs om, B12), eller om
   telefonen blir för långsam (METOD M50:s tid).
 

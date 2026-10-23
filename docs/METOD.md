@@ -2071,9 +2071,11 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Python-facit** räknas om parallellt (fyra processer, de längsta först, ett pass spår
   och robusta vikter en gång per process) i `tools/tests/test_tre_d_fixturer.py`, och
   talen jämförs inom **1e-6** relativt eller **1e-5** absolut: numpy och OpenBLAS ger
-  olika sista bitar på olika processorer (Actions byter maskin mellan körningar; en
-  körning skilde utöver 1e-9), och skillnaden växer som mellan Swift och Python. Testet
-  skriver den största skillnaden per variant ("TRED-PY").
+  olika sista bitar på olika processorer (Actions byter maskin mellan körningar), och
+  skillnaden växer som mellan Swift och Python. Testet skriver den största skillnaden
+  per variant ("TRED-PY"): uppmätt Python mot Python på en annan dator högst 7,4e-7
+  (bra brus), 1e-8 för typiskt brus i fyra slag och under 5e-9 utan brus. Omräkningen
+  tar 15 s i Actions.
 - **Mot sanningen** gäller MK8:s gränser i Swift också: utan brus varje slag inom 1°
   och passets median inom 0,5°, med bra brus inom felbudgetens |bias| + 3 SD.
 
