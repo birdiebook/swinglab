@@ -53,7 +53,8 @@ från `birdiebook/arbetssatt`: ändra där och synka, aldrig i kopian.
   status. Koden hänvisar med `// METOD M3` och `// BESLUT B2`;
   `tools/kolla_metod.py` (i Actions) fäller en hänvisning utan rubrik.
 - **`docs/research/`** — underlaget från 2026-10-22. Siffrorna där är "ej läst
-  i original" tills de kontrollerats (BESLUT B10).
+  i original" tills de kontrollerats (BESLUT B10). Kontrollen i original
+  (2026-10-23) står i `5_matt_i_original.md`, med underlaget i 5a–5d.
 
 ## Planen
 

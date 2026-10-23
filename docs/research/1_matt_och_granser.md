@@ -2,6 +2,9 @@
 
 Research 2026-10-22. Svenska, korta meningar.
 
+**Kontrollerad i original 2026-10-23:** [5_matt_i_original.md](5_matt_i_original.md).
+§2 där listar raderna här som var fel. Läs den innan ett tal härifrån används.
+
 ## Läs detta först: hur källorna är lästa
 
 - **Inget är läst i original.** Sidhämtning var blockerad i miljön (DNS och proxy nekade alla domäner). Allt nedan kommer från sökmotorns sammanfattningar av sidorna, med URL. Därför står **"ej läst i original"** i princip på varje rad. Siffror ska kontrolleras mot källan innan de blir en gräns i koden.

@@ -7,6 +7,11 @@ väljer bort. Underlag för etappen S1b och för S6/S7 i [PLAN.md](../../PLAN.md
 Sportsbox hjälpcenter är läst via sökmotorns sammanfattningar, **ej läst i
 original**.
 
+**Kontrollerad i original 2026-10-23:** [5_matt_i_original.md](5_matt_i_original.md)
+§2 rättar raderna här: vinklarna nollas inte vid adressen, Pelvis Bend och Lead
+Arm Angle finns inte, och alla ◐ är bekräftade. Tour-talen och tecknen står i
+[5a](5a_sportsbox_i_original.md).
+
 - ✔ = bekräftat av Sportsbox hjälpcenter (ej läst i original).
 - ◐ = från Johannes lista (2026-10-22), inte bekräftat av någon källa.
 
