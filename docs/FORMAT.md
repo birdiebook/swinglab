@@ -197,6 +197,11 @@ per serie och valfria; saknas de gäller hela filen och hela bilden:
 grader över den liggande bildens långsida) för brännvidden i 3D, och annars det valda
 formatet i `enhet.json`; ett synfält utanför 10–170° räknas som saknat (METOD MK3).
 
+**Riktpinnen** (S7a, BESLUT B47, METOD M48), per serie och valfri: `"riktpinne": [[x, y],
+[x, y]]`, två tryck i hela den upprätta bildens pixlar på en pinne på marken, parallell med
+mållinjen, bakifrån. PC:n tar flyktpunkten ur den (`klubba.flyktpunkt`); utan den är
+flyktpunkten bildens mitt och analysens slag säger `klubba_flyktpunkt: "bildens_mitt"`.
+
 **Lodlinjen** (S6a, BESLUT B39, METOD MK3), per serie och valfri:
 `"lodlinje": [x, y, z]`, uppåt (−gravitationen) i g i kamerans ram i den **upprätta**
 bilden: x åt höger, y nedåt, z framåt ur linsen. Längden ska vara 0,8–1,2 (telefonen i
@@ -219,7 +224,8 @@ fönstret.
 Telefonen skriver en ruta per markerad eller hoppad position: `id` `<vy>-<slag>-<P>`, `fil`
 = paketets namn, `val` = positionen, `t` = Visions tid, `t_klipp` = `t + klick_i_klipp_s`
 när klippet följer med och rutan ligger i det, [0; `klipp_langd_s`) (annars null), `forskjutning_ms` och `t_ruta` null, `visad` =
-utsnittet som märkningen visade, `skaft_mitt` null och `forslag` tom. PC:n
+utsnittet som märkningen visade, `skaft_mitt` null och `forslag` tom. Filens `andrad` är när
+markeringarna senast ändrades (varje markering bär sin tid i `pass.json`). PC:n
 (`paket.py`) läser den till varje slags markeringar; en fil som inte går att läsa stoppar
 inte paketet (`Paket.klubba_fel`, i analysen `klubba.fel`).
 
@@ -580,12 +586,12 @@ båda och skriver version 2, och SwingLabKit (`KlubbFil.las`) läser båda. Form
 | `val` | `adress`, `topp`, `tidig_nedsving` eller `jamn` (PC:ns rutval, MF5), eller `P1` … `P10` (telefonens markering, M45; bara version 2) |
 | `t` | Visions tid, s relativt klicket (`null` för en video) |
 | `t_klipp` | den valda tiden i klippet, s: `t + klick_i_klipp_s` för ett paket, tiden jämnt över klippet för en video; `null` (version 2) när paketet inte har klippet |
-| `forskjutning_ms` | S3:s förskjutning för slaget (MF1): rutan läses på OpenCV:s tid `t_klipp + forskjutning_ms / 1000`; 0 för en video; `null` (version 2) när den inte är känd (telefonen) |
+| `forskjutning_ms` | S3:s förskjutning för slaget (MF1): rutan läses på OpenCV:s tid `t_klipp + forskjutning_ms / 1000`; 0 för en video; `null` (version 2) när den inte är känd (telefonen). **null betyder inte 0:** den som läser bilden ur klippet måste hämta S3:s δ för slaget (`s3.json`, MF1), annars kan rutan bli en annan än Visions |
 | `t_ruta` | rutans egen tid enligt OpenCV (s), eller `null` innan den lästs |
 | `bredd`, `hojd` | hela den upprätta bilden i px |
 | `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
 | `status` | `omarkerad`, `markerad` (alla tre punkterna satta; i version 2 räcker `grepp` och `klubbhuvud`) eller `hoppad` |
-| `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla": "klick"}` i hela bildens pixlar, eller `{"syns_inte": true}` |
+| `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla"}` i hela bildens pixlar, eller `{"syns_inte": true}`. `kalla` är `klick` (ett tryck) eller, i version 2, `handlederna_bekraftad` för greppet: ringen ur handlederna som Johannes bekräftade med ett tryck (B47), så att träningsdatan kan skilja den från ett fritt tryck |
 | `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`); de blir aldrig en punkt av sig själva |
 
 **Punkterna** (B44): **grepp** = skaftet mitt mellan händerna; **skaftets mitt** = mitt

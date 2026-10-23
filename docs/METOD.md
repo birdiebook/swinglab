@@ -952,30 +952,54 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
 
 - **P1, P3, P4, P5, P7, P9 och P10** föreslås där kroppen ger dem (M28): rutan närmast
   positionens tid. **P2, P6 och P8** definieras av skaftet parallellt med marken
-  (P-systemet, **tränare**; Sportsbox BCH, DCH och FCH, research 5a, se M28). Appen
-  föreslår rutan mitt emellan kroppens tider: P2 mitt mellan baksvingens start (annars P1)
-  och P3 (annars P4), P6 mitt mellan P5 (annars P4) och P7, P8 mitt mellan P7 och P9
-  (annars P10) (`klubba.forslag_tid`, `Klubba.forslagTid`). Johannes stegar ruta för ruta
-  framåt och bakåt tills skaftet ser parallellt ut och trycker; rutan han valde blir P2, P6
-  eller P8 för den svingen (`positioner` i analysen och slagets mått). **antagande**
-  (mittpunkten är bara en start; parallellt bedöms för ögat i 2D).
+  (P-systemet, **tränare**; Sportsbox BCH, DCH och FCH, research 5a, se M28), och det syns
+  olika i vyerna:
+  - **Bakifrån (DTL)** pekar ett skaft parallellt med marken och mållinjen mot kameran,
+    alltså mot flyktpunkten (M48), och är då **kortast i bild**. Rutan är den där skaftet är
+    kortast och pekar mot flyktpunkten. **räkning** (perspektivet), **antagande** (att
+    skaftet är parallellt med mållinjen där det är parallellt med marken).
+  - **Framifrån (FO)** syns "parallellt med marken" direkt: skaftet vågrätt i bild.
+  - **Med två parade telefoner** (S2g) tas tiden ur FO-serien, där parallellt syns, och
+    DTL:s ruta är den närmast samma tid (parningen, MT9). Inte byggt än: appens FO-läge
+    kommer i nästa steg.
+- **Förslaget:** P2 mitt mellan P1 och P3 (annars P4), P6 mitt mellan P5 (annars P4) och P7,
+  P8 mitt mellan P7 och P9 (annars P10) (`klubba.forslag_tid`, `Klubba.forslagTid`). Bara
+  positionerna, inte baksvingens start, så att telefonen och PC:n föreslår samma ruta också
+  för slag mätta före S7a. Johannes stegar därifrån; rutan han markerar blir P2, P6 eller P8
+  för den svingen (`positioner` i analysen och slagets mått). **antagande** (mittpunkten
+  är bara en start).
 - **Markeringen** (`KlubbMarkering`): positionen, rutans tid (s relativt klicket, Visions
-  rutor), greppet och hoseln i hela bildens pixlar och källan `klick`; en position där
-  klubban inte syns hoppas över (`hoppad`) och har inga punkter. Sparas i `pass.json`
-  (`slag[].klubba`) och i paketet som `klubba.json` (`swinglab-klubba/2`, FORMAT.md).
+  rutor), greppet och hoseln i hela bildens pixlar, källan (`klick`, eller greppet
+  `handlederna_bekraftad`), när den ändrades (`andrad`), och `hoppad` för en position där
+  klubban inte syns (inga punkter). Sparas i `pass.json` (`slag[].klubba`) och i paketet som
+  `klubba.json` (`swinglab-klubba/2`, FORMAT.md).
+- **Rutans tid** är rutan där första punkten sattes (`ClubMarking.frameT`): den följer med
+  i ångra och är den som sparas och som videon söks till, också efter ett ångra. Ett steg
+  till en annan ruta med en punkt satt frågar först ("Clear the points?") och tömmer dem;
+  ett tryck på en annan ruta än den första punktens blir ingen punkt.
 - **Märkningen på telefonen** (`ClubMarking`, DTL först): ytan visar seriens utsnitt
-  vidgat med **15 %** per sida (som MF6), ett tryck sätter greppet och nästa hoseln, ett
-  tryck inom **5 %** av ytans bredd från en satt punkt flyttar den, och ett tryck närmare
-  ytans kant än **3 %** (eller utanför bilden) blir ingen punkt. Förstoringsglaset visar
-  **3 ×** kring fingret med ett hårkors och de satta punkterna, bredvid fingret där det inte
-  täcker en satt punkt (greppet ligger ofta rakt ovanför hoseln). Ångra tar tillbaka det senaste (en punkt, en flytt,
-  en klar eller hoppad position). **antagande** (gränserna, valda för ett finger på en
-  telefon; oprövade på telefonen).
-- **Tryck per sving:** två punkter och "Next" per position, alltså **30** för P1–P10, och
-  för P2, P6 och P8 några steg till (förslaget ligger oftast några rutor fel): uppskattat
-  **35–45** tryck per sving; en hoppad position är ett tryck.
+  vidgat med **15 %** per sida (som MF6). Ett tryck sätter greppet och nästa hoseln, och
+  **positionen sparas av sig själv** när hoseln är satt och nästa visas; ångra och raden
+  P1–P10 finns kvar. **Greppet som ring:** handledernas mitt i rutan (konfidens ≥ 0,3, M1)
+  visas som en streckad ring; ett tryck inom ringen (**5 %** av ytans bredd) gör den till
+  greppet med källan `handlederna_bekraftad`, ett tryck utanför är ett fritt grepp (`klick`),
+  så att träningsdatan kan skilja dem (handlederna ligger 5–8 cm från skaftet, B44). Ett
+  tryck närmare ytans kant än **3 %** (eller utanför bilden) blir ingen punkt. En satt punkt
+  flyttas när fingret börjar inom **5 %** av den och rör sig mer än **4 pt**; punkten följer
+  fingrets förflyttning (avståndet mellan finger och punkt behålls), och ett kortare drag är
+  ett tryck. Riktpinnen sätts med två tryck (M48). **antagande** (gränserna, valda för ett
+  finger på en telefon; oprövade på telefonen).
+- **Förstoringsglaset** är 124 pt brett och visar en del av ytan som är 124/3 pt bred, ur
+  rutan som stillbild med toleransen 0 (`AVAssetImageGenerator`), så att förstoringen i
+  punkter på skärmen är **3,000 ×** (mätt i simulatorprovet: `loupeMagnification` på ytans
+  bredd, 258,8 pt). Det visar hårkorset och de satta punkterna, och står bredvid fingret där
+  det inte täcker fingret eller en satt punkt, inskjutet från ytans kant.
+- **Tryck per sving:** greppet och hoseln per position, alltså **20** för P1–P10 (Next
+  behövs inte längre: 10 tryck färre), plus stegen till P2, P6 och P8 från förslaget,
+  uppskattat **2–5** per position: cirka **26–35** tryck per sving. En hoppad position är
+  ett tryck; riktpinnen två tryck en gång per serie.
 
-## M46 — Skaftets vinkel vid varje position (båda vyerna)
+## M46 — Skaftets vinkel vid varje position, och osäkerheten (båda vyerna)
 
 - `skaft_vinkel_p1` … `skaft_vinkel_p10`: vektorn grepp → hosel mot vågrätt i bild,
   grader i (−180°, 180°], **0 = vågrätt mot +X** (bollen DTL, målet FO), **+ = hoseln över
@@ -983,52 +1007,81 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   positioner; granskningen visar positionens värde (`Klubba.nyckel`). **räkning** i 2D:
   inget antagande utöver punkterna. Bakifrån är skaftet förkortat när det pekar mot
   kameran (P2, P6, P8), så vinkeln där är bildens, inte rummets.
-- **Osäkerheten:** ett tryck antas osäkert **3 px** (1 sd per led, i hela bildens
-  pixlar; **antagande**, förstoringsglaset). En linje mellan två tryck L px isär har då
-  vinkelns sd **√2·3/L** radianer: 4,1° vid 60 px, 2,4° vid 100 px, 0,8° vid 300 px
-  (`klubba.osakerhet`). En relation mellan två linjer (M47) har roten ur summan av
-  kvadraterna. **Spärren:** ett skaft kortare än **60 px** i bild ger inget mått (sd över
-  4°). Vid träffen bakifrån (P7 DTL) ligger skaftet ofta nästan mot kameran och kan bli
-  kort i bild; då saknas måttet hellre än att visa brus. Hunter 2022 (Sci Rep 12:14012,
-  läst i original, research 5d) fann 2D-skaftvinklar mot Vicon r > 0,9 utom i adressen;
-  ingen siffra för handmarkering.
+- **Osäkerheten:** ett tryck antas osäkert **3 px** (1 sd i x och i y, i hela bildens
+  pixlar; **antagande**, förstoringsglaset 3 ×). Varje måtts osäkerhet räknas genom
+  måttets egen geometri: centrala differenser (steget **0,5 px**) för varje punkt som
+  ingår, i x och y, och roten ur summan av kvadraterna (`klubba.osakerhet`,
+  `Klubba.osakerhet`; Python och Swift samma tal). För en linje mellan två tryck L px isär
+  blir det √2·3/L radianer: 4,1° vid 60 px, 2,4° vid 100 px, 0,8° vid 300 px. Riktpinnens
+  tryck ingår i måttet vid toppen (M48), hoslarnas men inte skaftet vid P6 i P6-måttet
+  (M47), och casting blir osäkert när arm och skaft nästan ligger i linje (acos branta där).
+- **Spärren:** ett mått vars skattade osäkerhet är över **4°** saknas (`MAX_SD`). Det är
+  samma gräns som förut för en ensam linje (60 px), men den följer nu måttets geometri, så
+  att ett kort skaft vid P6 inte stoppar P6-måttet och ett långt skaft inte räddar ett mått
+  där punkterna ligger illa till. Vid P2, P6 och P8 bakifrån och ofta vid träffen ligger
+  skaftet nästan mot kameran och blir kort i bild; då saknas vinkeln hellre än att visa brus.
+  **antagande** (4°, samma gräns som för en ensam linje på 60 px). Hunter 2022
+  (Sci Rep 12:14012, läst i original, research 5d) fann 2D-skaftvinklar mot Vicon r > 0,9
+  utom i adressen; ingen siffra för handmarkering.
 
-## M47 — Skaftplanet bakifrån: P1, P2 och P6 (DTL)
+## M47 — Skaftplanet bakifrån: P1 och P6 (DTL)
 
+- **Uppställningen bakifrån** för klubbans mått: kameran **på händernas linje, i händernas
+  höjd, riktad längs mållinjen** (texten i appens uppställning). Då ligger kameran i
+  P1-skaftplanet (planet genom bollen och händerna som innehåller mållinjens riktning), och
+  ett plan genom kameran syns som en linje i bild: en punkt i planet ligger exakt på
+  P1-linjen. Prövat i 3D (granskningens `p6.py`, f = 1400 px): en hosel i planet 2,5–4,5 m
+  bort ger P6-måttet **0,0°** från händernas linje, men −14,6° till +3,1° från mållinjen i
+  höfthöjd och −6,0° till +1,6° från mållinjen på 0,5 m. **räkning** (perspektivet).
 - `skaftplan_p1`: linjen genom hoseln och greppet vid P1, förlängd, och dess vinkel mot
   marken i bild sedd från bollens sida (hoseln åt +X), grader, typiskt 50–65°. Det är
-  linjen som P2 och P6 jämförs med ("shaft plane", P-systemet, **tränare**, ej läst i
-  original). **räkning** i bild.
-- `skaft_mot_plan_p2`: skaftets linje vid P2 mot P1-linjen, båda mätta från bollens sida,
-  i (−90°, 90°], **+ = brantare**, − = flatare. P2 i P-systemet är skaftet parallellt med
-  mållinjen; bakifrån pekar det då mot kameran, så linjen i bild är förkortad och beror på
-  kamerans höjd. **antagande** (att bildens linje bär planet); egen baslinje.
+  linjen som P6 jämförs med ("shaft plane", P-systemet, **tränare**, ej läst i original).
+  **räkning** i bild.
+- **P2 mot planet är borttaget** (granskningen 2026-10-23). Det gamla måttet (P2-skaftets
+  linje mot P1-linjen) mätte kamerans höjd mer än svingen: vid P2 pekar skaftet bakifrån
+  mot kameran, och linjen i bild vände med kamerans höjd (i 3D-provet −28° till +80° för
+  samma sving mellan 0,6 och 1,4 m). Avvikelsen från riktningen grepp → flyktpunkt (som
+  M48) bär inte heller: P2 bakifrån *är* rutan där skaftet pekar mot flyktpunkten (M45), så
+  avvikelsen är noll per definition, och skaftet är då 20–70 px i bild (osäkerheten över
+  spärren). Kvar vid P2 är skaftets vinkel i bild (M46) när den bär.
 - `skaft_plan_p6`: vinkeln vid hoseln i adressen (≈ bollen) från P1-linjen till hoseln
   vid P6, grader, **+ = över planet** (hoseln utanför linjen, mot bollens sida uppåt),
-  − = under (innanför). Ett tal i grader, oberoende av skalan; hoseln måste ligga minst
-  60 px från adressens hosel. **Källan räcker inte:** Morrison 2018 (Proc IMechE P
-  232(4):295–304, läst i original, research 5b och 5 §5 punkt 11) mätte leveransplanet i
-  3D (bladmittens bana från mitten av nedsvingen till träff, anpassad till ett plan) och
-  fann att avvikelsen från det förklarade 57 % av spridningen i träffpunkt. Det är inte
-  P1-linjen i bild och inte P6, så måttet är ett **antagande** med egen baslinje och
-  Morrisons tal gäller det inte.
+  − = under (innanför). Ett tal i grader, oberoende av skalan. **Spärren** är måttets
+  osäkerhet (M46) ur P1:s två punkter och hoseln vid P6, alltså i praktiken avståndet mellan
+  hoslarna; skaftets längd vid P6 spelar ingen roll. Exakt med uppställningen ovan.
+  **Källan räcker inte:** Morrison 2018 (Proc IMechE P 232(4):295–304, läst i original,
+  research 5b och 5 §5 punkt 11) mätte leveransplanet i 3D (bladmittens bana från mitten
+  av nedsvingen till träff, anpassad till ett plan) och fann att avvikelsen från det
+  förklarade 57 % av spridningen i träffpunkt. Det är inte P1-linjen i bild och inte P6, så
+  måttet är ett **antagande** med egen baslinje och Morrisons tal gäller det inte.
 
 ## M48 — Skaftet vid toppen bakifrån: across the line och laid off (DTL)
 
-- `skaft_riktning_topp`: vinkeln vid greppet vid P4 från riktningen **grepp → bildens
-  mitt** till skaftet grepp → hosel, grader, **+ = across the line** (huvudet åt bollens
-  sida), − = laid off.
+- `skaft_riktning_topp`: vinkeln vid greppet vid P4 från riktningen **grepp →
+  flyktpunkten** till skaftet grepp → hosel, grader, **+ = across the line** (huvudet åt
+  bollens sida), − = laid off.
 - **Vad som syns i 2D:** across the line och laid off är skaftets riktning i rummet mot
-  mållinjen (P-systemet: parallellt vid toppen). Bakifrån pekar ett parallellt skaft rakt
-  från kameran, och i bild pekar det då mot **flyktpunkten**, som är bildens mitt om
-  kameran står på mållinjen med axeln längs den och mitten är den optiska axeln. Därför
-  jämförs skaftet med riktningen mot bildens mitt, inte med lodlinjen. **antagande**
-  (kamerans uppställning: på mållinjen, axeln längs linjen, i höfthöjd; en telefon som
-  vrids eller lutas flyttar flyktpunkten). Storleken är bildens vinkel, inte rummets:
-  förkortningen gör den större än i rummet, och den går inte att räkna om utan djup.
-  Talet jämförs pass mot pass med samma uppställning; egen baslinje.
-- Saknas när greppet inte står minst **5 %** av bildhöjden över mitten (riktningen mot
-  mitten blir då liten eller vänder): kameran står för högt för måttet. **antagande.**
+  mållinjen (P-systemet: parallellt vid toppen). Bakifrån pekar ett parallellt skaft från
+  kameran och i bild mot mållinjens **flyktpunkt**. Storleken är bildens vinkel, inte
+  rummets: förkortningen gör den 2,8–3,7 gånger större (i 3D-provet ger 10° across +29° till
+  +37°), och den går inte att räkna om utan djup. Talet jämförs pass mot pass; egen
+  baslinje.
+- **Flyktpunkten ur riktpinnen** (valfri, en gång per serie, `serier[].riktpinne`): två
+  tryck på en pinne på marken parallell med mållinjen. Flyktpunkten ligger på pinnens linje,
+  där den skär bildens vågräta mittlinje (horisonten för en kamera i våg). Pinnens linje
+  måste gå minst **5 %** av bildhöjden i y, annars används bildens mitt. Prövat i 3D
+  (`geo2.py` i granskningen, f = 1400 px, toppen 3,75 m bort): med pinnen tar en vriden
+  kamera inget fel (0,0° vid 0–5°), medan bildens mitt ger **3,7–4,7° fel per grads
+  vridning**; en kamera som lutar 3° ger med pinnen +4,3° på händernas linje och −11,5° från
+  mållinjen i höfthöjd (lodlinjen, MS17, rättar det inte än). **räkning** (pinnen),
+  **antagande** (kameran i våg).
+- **Utan riktpinne** är flyktpunkten **bildens mitt** (kameran riktad längs mållinjen,
+  mitten är den optiska axeln) och måttets källrad i granskningen säger "assumed: vanishing
+  point at the picture center" (`ShotMeasure.klubbaFlyktpunktAntagen`, analysens
+  `klubba_flyktpunkt`). Uppställningen är M47:s.
+- Saknas när greppet inte står minst **5 %** av bildhöjden över flyktpunkten (riktningen
+  mot den blir liten eller vänder), eller när osäkerheten är över spärren (M46).
+  **antagande.**
 
 ## M49 — Klubban framifrån: toppen, armen och skaftlutningen (FO)
 
