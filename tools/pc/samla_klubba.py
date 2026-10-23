@@ -23,44 +23,40 @@ if __package__ in (None, ""):
     __package__ = "pc"
 
 from . import klubba as KL  # noqa: E402
+from . import markera_klubba as MK  # noqa: E402
 from .session import REPO  # noqa: E402
 
 
 def las_kalla(fil: Path) -> dict | None:
-    """Märkningen ur ett paket (klubba.json) eller en fil, i version 2; None när paketet
-    inte har någon. KlubbFel när formen inte stämmer."""
+    """Märkningen ur ett paket (`klubba.json`, via markera_klubba.las_paket) eller en fil
+    (markera_klubba.las), i version 2; None när paketet inte har någon. KlubbFel när formen
+    inte stämmer."""
     fil = Path(fil)
-    if fil.suffix.lower() == ".zip":
-        with zipfile.ZipFile(fil) as z:
-            if KL.FIL not in z.namelist():
-                return None
-            text = z.read(KL.FIL).decode("utf-8")
-        namn = f"{fil.name}: {KL.FIL}"
-    else:
-        text = fil.read_text(encoding="utf-8")
-        namn = fil.name
     try:
-        d = json.loads(text)
-    except json.JSONDecodeError as e:
-        raise KL.KlubbFel(f"{namn}: inte giltig JSON (rad {e.lineno})") from None
-    return KL.las_dict(d, namn)
+        return MK.las_paket(fil) if fil.suffix.lower() == ".zip" else MK.las(fil)
+    except MK.MarkFel as e:
+        raise KL.KlubbFel(str(e)) from None
+
+
+def _tid(iso: str) -> datetime:
+    """`andrad` som tid (zonen med), så att två zoner sorteras rätt."""
+    return datetime.fromisoformat(iso)
 
 
 def sla_ihop(markeringar: list[dict]) -> dict[str, dict]:
-    """Per pass (eller `video` utan pass): rutorna ur alla källor i ordning. Samma ruta
-    (id, fil och tid inom 0,1 ms) tas en gång, den senast ändrade; en annan ruta med ett
+    """Per pass (eller `video` utan pass): rutorna ur alla källor i ordning efter `andrad`
+    (som tid). Samma ruta (`_samma_ruta`) tas en gång, den senast ändrade; en annan ruta med ett
     id som redan finns får `-2`, `-3` … (som markera_klubba.sla_ihop)."""
     ut: dict[str, dict] = {}
-    for d in sorted(markeringar, key=lambda x: x["andrad"]):
+    for d in sorted(markeringar, key=lambda x: _tid(x["andrad"])):
         nyckel = d["pass"] or "video"
         m = ut.setdefault(nyckel, {"format": KL.FORMAT, "pass": d["pass"], "kalla": [], "punkter": list(KL.PUNKTER),
                                    "andrad": d["andrad"], "rutor": []})
         m["kalla"] += [k for k in d["kalla"] if k not in m["kalla"]]
-        m["andrad"] = max(m["andrad"], d["andrad"])
+        m["andrad"] = max(m["andrad"], d["andrad"], key=_tid)
         for r in d["rutor"]:
             r = dict(r)
-            gammal = next((i for i, x in enumerate(m["rutor"]) if x["id"] == r["id"] and x["fil"] == r["fil"]
-                           and _samma_tid(x, r)), None)
+            gammal = next((i for i, x in enumerate(m["rutor"]) if _samma_ruta(x, r)), None)
             if gammal is not None:
                 m["rutor"][gammal] = r
                 continue
@@ -70,6 +66,15 @@ def sla_ihop(markeringar: list[dict]) -> dict[str, dict]:
                 k += 1
             m["rutor"].append(r)
     return ut
+
+
+def _samma_ruta(a: dict, b: dict) -> bool:
+    """Samma ruta att ersätta: samma id och fil, och antingen en position (telefonens
+    markering vid P1–P10: en ommärkning på en annan ruta ersätter den gamla) eller samma tid
+    (PC:ns rutval)."""
+    if a["id"] != b["id"] or a["fil"] != b["fil"]:
+        return False
+    return (a["val"] in KL.POSITIONER and a["val"] == b["val"]) or _samma_tid(a, b)
 
 
 def _samma_tid(a: dict, b: dict) -> bool:

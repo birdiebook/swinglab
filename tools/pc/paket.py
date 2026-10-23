@@ -78,6 +78,9 @@ class Serie:
     # Seriens kameraformat ur manifestet (`format`: lagrad bredd och höjd, liggande, och
     # vågrätt synfält i grader), när det finns och går att läsa. METOD MK3
     synfalt: tuple[int, int, float] | None = None
+    # Riktpinnen (S7a): två tryck i hela den upprätta bildens pixlar på en pinne på marken,
+    # parallell med mållinjen, för flyktpunkten bakifrån; None = ingen. Valfri. METOD M48
+    riktpinne: tuple[tuple[float, float], tuple[float, float]] | None = None
 
 
 @dataclass
@@ -144,6 +147,10 @@ def _kontrollera_manifest(m, namn_i_zip: set[str]) -> list[str]:
                 fonster[s["nr"]] = (s["fonster"]["fran_s"], s["fonster"]["till_s"])
             if s.get("klubba") is not None and not isinstance(s["klubba"], str):
                 fel.append(f"{F}: serier[{i}].klubba ska vara text")
+            rp = s.get("riktpinne")
+            if rp is not None and not (isinstance(rp, list) and len(rp) == 2 and all(
+                    isinstance(q, list) and len(q) == 2 and all(_tal(v) for v in q) for q in rp)):
+                fel.append(f"{F}: serier[{i}].riktpinne ska vara två punkter [x, y]")
             fel += _kontrollera_redigering(s, f"{F}: serier[{i}]")
     slag = m.get("slag")
     if not isinstance(slag, list) or not slag:
@@ -391,7 +398,9 @@ def las(sokvag, med_leder: bool = True) -> Paket:
             serier[s["nr"]] = Serie(nr=s["nr"], klubba=s.get("klubba"),
                                     fonster=(float(f["fran_s"]), float(f["till_s"])) if f is not None else None,
                                     utsnitt=tuple(float(u[k]) for k in ("x", "y", "b", "h")) if u is not None else None,
-                                    lodlinje=lod, lodlinje_fel=lod_fel, synfalt=_synfalt(s.get("format")))
+                                    lodlinje=lod, lodlinje_fel=lod_fel, synfalt=_synfalt(s.get("format")),
+                                    riktpinne=tuple(tuple(float(v) for v in q) for q in s["riktpinne"])
+                                    if s.get("riktpinne") is not None else None)
         ordning = sorted(range(len(m["slag"])), key=lambda i: (m["slag"][i]["serie"], m["slag"][i]["klick_s"]))
         plats = {i: k for k, i in enumerate(ordning)}
         p = Paket(fil=namn, manifest=m, pass_id=m["pass"], vy=m["vy"], spelhand=m["spelhand"],

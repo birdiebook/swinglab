@@ -17,23 +17,23 @@ enum KlubbFixturer {
       1426.7
      ],
      "hosel": [
-      827.8,
-      1790.4
+      782.8,
+      1712.4
      ],
      "position": "P1",
      "t": 1.116667
     },
     {
      "grepp": [
-      594.0,
-      1344.6
+      608.0,
+      1392.5
      ],
      "hosel": [
-      839.8,
-      1516.7
+      640.8,
+      1415.4
      ],
      "position": "P2",
-     "t": 1.591667
+     "t": 1.4625
     },
     {
      "grepp": [
@@ -41,8 +41,8 @@ enum KlubbFixturer {
       1248.6
      ],
      "hosel": [
-      528.1,
-      1031.9
+      540.3,
+      1100.9
      ],
      "position": "P3",
      "t": 1.816667
@@ -53,8 +53,8 @@ enum KlubbFixturer {
       1146.7
      ],
      "hosel": [
-      584.2,
-      1320.5
+      558.4,
+      1223.9
      ],
      "position": "P4",
      "t": 2.191667
@@ -65,8 +65,8 @@ enum KlubbFixturer {
       1252.5
      ],
      "hosel": [
-      565.0,
-      1053.3
+      569.4,
+      1103.1
      ],
      "position": "P5",
      "t": 2.308333
@@ -77,8 +77,8 @@ enum KlubbFixturer {
       1397.5
      ],
      "hosel": [
-      813.9,
-      1564.6
+      649.2,
+      1426.4
      ],
      "position": "P6",
      "t": 2.408333
@@ -89,8 +89,8 @@ enum KlubbFixturer {
       1427.1
      ],
      "hosel": [
-      638.9,
-      1461.0
+      776.7,
+      1681.5
      ],
      "position": "P7",
      "t": 2.5
@@ -101,8 +101,8 @@ enum KlubbFixturer {
       1333.3
      ],
      "hosel": [
-      427.8,
-      1213.3
+      605.3,
+      1315.8
      ],
      "position": "P8",
      "t": 2.8125
@@ -113,8 +113,8 @@ enum KlubbFixturer {
       1150.9
      ],
      "hosel": [
-      600.9,
-      963.0
+      618.0,
+      1009.9
      ],
      "position": "P9",
      "t": 3.125
@@ -125,33 +125,46 @@ enum KlubbFixturer {
       1107.8
      ],
      "hosel": [
-      530.9,
-      1081.8
+      560.5,
+      1087.0
      ],
      "position": "P10",
      "t": 3.604167
     }
    ],
    "matt": {
-    "skaft_mot_plan_p2": -24.99963050127593,
-    "skaft_plan_p6": 26.479471991206324,
-    "skaft_riktning_topp": 14.529306667573797,
-    "skaft_vinkel_p1": -59.99790791765593,
-    "skaft_vinkel_p10": 170.0229837141572,
-    "skaft_vinkel_p2": -34.99827741638,
-    "skaft_vinkel_p3": 99.99742114797151,
-    "skaft_vinkel_p4": -75.02140048634794,
-    "skaft_vinkel_p5": 95.02062506598742,
-    "skaft_vinkel_p6": -40.005954509808866,
-    "skaft_vinkel_p8": 149.99449667149614,
-    "skaft_vinkel_p9": 110.00269063718532,
-    "skaftplan_p1": 59.99790791765593
+    "skaft_plan_p6": 4.9688504513687235,
+    "skaft_riktning_topp": 16.02562407952495,
+    "skaft_vinkel_p1": -59.99232551219283,
+    "skaft_vinkel_p10": 170.01967526905952,
+    "skaft_vinkel_p3": 99.98363534871174,
+    "skaft_vinkel_p4": -74.99008285069358,
+    "skaft_vinkel_p5": 95.01111070959433,
+    "skaft_vinkel_p7": -57.99461679191651,
+    "skaft_vinkel_p9": 109.99289397986985,
+    "skaftplan_p1": 59.99232551219283
    },
-   "osakerhet": {
-    "100.0": 2.4308540536241865,
-    "300.0": 0.8102846845413956,
-    "40.0": 6.077135134060467,
-    "60.0": 4.0514234227069785
+   "pinne": [
+    [
+     585.0,
+     2700.0
+    ],
+    [
+     560.0,
+     2100.0
+    ]
+   ],
+   "sd": {
+    "skaft_plan_p6": 0.7553964298015731,
+    "skaft_riktning_topp": 3.0171191887949984,
+    "skaft_vinkel_p1": 0.7367936123576231,
+    "skaft_vinkel_p10": 2.0254298712676633,
+    "skaft_vinkel_p3": 1.620878525460461,
+    "skaft_vinkel_p4": 3.0413218683276853,
+    "skaft_vinkel_p5": 1.6208529865867465,
+    "skaft_vinkel_p7": 0.8102835261041383,
+    "skaft_vinkel_p9": 1.6201115174548835,
+    "skaftplan_p1": 0.7367936123576231
    },
    "sving": "dtl"
   },
@@ -165,23 +178,23 @@ enum KlubbFixturer {
       1426.9
      ],
      "hosel": [
-      252.3,
-      1790.7
+      297.4,
+      1712.7
      ],
      "position": "P1",
      "t": 1.116667
     },
     {
      "grepp": [
-      485.4,
-      1345.2
+      472.1,
+      1390.0
      ],
      "hosel": [
-      239.6,
-      1517.2
+      439.3,
+      1412.9
      ],
      "position": "P2",
-     "t": 1.591667
+     "t": 1.466667
     },
     {
      "grepp": [
@@ -189,8 +202,8 @@ enum KlubbFixturer {
       1248.8
      ],
      "hosel": [
-      551.1,
-      1032.2
+      538.9,
+      1101.1
      ],
      "position": "P3",
      "t": 1.816667
@@ -201,8 +214,8 @@ enum KlubbFixturer {
       1147.8
      ],
      "hosel": [
-      496.9,
-      1321.6
+      522.7,
+      1225.0
      ],
      "position": "P4",
      "t": 2.204167
@@ -213,8 +226,8 @@ enum KlubbFixturer {
       1259.2
      ],
      "hosel": [
-      511.5,
-      1060.0
+      507.1,
+      1109.8
      ],
      "position": "P5",
      "t": 2.3125
@@ -225,8 +238,8 @@ enum KlubbFixturer {
       1389.0
      ],
      "hosel": [
-      267.0,
-      1556.2
+      431.7,
+      1418.0
      ],
      "position": "P6",
      "t": 2.4
@@ -237,8 +250,8 @@ enum KlubbFixturer {
       1427.8
      ],
      "hosel": [
-      441.4,
-      1461.7
+      303.6,
+      1682.2
      ],
      "position": "P7",
      "t": 2.495833
@@ -249,8 +262,8 @@ enum KlubbFixturer {
       1335.9
      ],
      "hosel": [
-      653.6,
-      1215.9
+      476.1,
+      1318.4
      ],
      "position": "P8",
      "t": 2.808333
@@ -261,8 +274,8 @@ enum KlubbFixturer {
       1150.7
      ],
      "hosel": [
-      479.1,
-      962.7
+      462.0,
+      1009.7
      ],
      "position": "P9",
      "t": 3.125
@@ -273,33 +286,37 @@ enum KlubbFixturer {
       1107.1
      ],
      "hosel": [
-      548.7,
-      1081.1
+      519.1,
+      1086.3
      ],
      "position": "P10",
      "t": 3.6
     }
    ],
    "matt": {
-    "skaft_mot_plan_p2": -25.010284063631573,
-    "skaft_plan_p6": 26.420101189743523,
-    "skaft_riktning_topp": 14.323097812421384,
-    "skaft_vinkel_p1": -59.992916641381875,
-    "skaft_vinkel_p10": 170.0229837141572,
-    "skaft_vinkel_p2": -34.9826325777503,
-    "skaft_vinkel_p3": 100.0019435836473,
-    "skaft_vinkel_p4": -74.99064059094428,
-    "skaft_vinkel_p5": 94.99208116609164,
-    "skaft_vinkel_p6": -40.02283465361934,
-    "skaft_vinkel_p8": 149.99449667149614,
-    "skaft_vinkel_p9": 110.01980321597253,
-    "skaftplan_p1": 59.992916641381875
+    "skaft_plan_p6": 5.499398454317531,
+    "skaft_riktning_topp": 14.392872378326745,
+    "skaft_vinkel_p1": -60.00100844018335,
+    "skaft_vinkel_p10": 170.01967526905952,
+    "skaft_vinkel_p3": 99.98363534871173,
+    "skaft_vinkel_p4": -74.92086602503892,
+    "skaft_vinkel_p5": 94.97305051838524,
+    "skaft_vinkel_p7": -57.99461679191651,
+    "skaft_vinkel_p9": 110.02877091580544,
+    "skaftplan_p1": 60.00100844018335
    },
-   "osakerhet": {
-    "100.0": 2.4308540536241865,
-    "300.0": 0.8102846845413956,
-    "40.0": 6.077135134060467,
-    "60.0": 4.0514234227069785
+   "pinne": null,
+   "sd": {
+    "skaft_plan_p6": 0.7454030875583343,
+    "skaft_riktning_topp": 2.672058496037277,
+    "skaft_vinkel_p1": 0.7366002661244564,
+    "skaft_vinkel_p10": 2.0254298712676633,
+    "skaft_vinkel_p3": 1.620878525460461,
+    "skaft_vinkel_p4": 3.040334673516042,
+    "skaft_vinkel_p5": 1.6209470317033052,
+    "skaft_vinkel_p7": 0.8102835261041383,
+    "skaft_vinkel_p9": 1.619742122068857,
+    "skaftplan_p1": 0.7366002661244564
    },
    "sving": "dtl_vanster"
   },
@@ -321,15 +338,15 @@ enum KlubbFixturer {
     },
     {
      "grepp": [
-      413.2,
-      1298.8
+      478.6,
+      1354.7
      ],
      "hosel": [
-      94.5,
-      1271.0
+      159.9,
+      1326.8
      ],
      "position": "P2",
-     "t": 1.583333
+     "t": 1.458333
     },
     {
      "grepp": [
@@ -435,7 +452,7 @@ enum KlubbFixturer {
     "skaft_topp": 10.009256075682403,
     "skaft_vinkel_p1": -95.00263550333057,
     "skaft_vinkel_p10": -20.00269063718537,
-    "skaft_vinkel_p2": 175.0147439441313,
+    "skaft_vinkel_p2": 174.99690222344998,
     "skaft_vinkel_p3": 129.9874525318992,
     "skaft_vinkel_p4": 10.009256075682403,
     "skaft_vinkel_p5": 99.99730953410308,
@@ -444,11 +461,22 @@ enum KlubbFixturer {
     "skaft_vinkel_p8": 5.015374950250288,
     "skaft_vinkel_p9": 80.01553665711698
    },
-   "osakerhet": {
-    "100.0": 2.4308540536241865,
-    "300.0": 0.8102846845413956,
-    "40.0": 6.077135134060467,
-    "60.0": 4.0514234227069785
+   "pinne": null,
+   "sd": {
+    "skaft_arm_p5": 0.8683140322608803,
+    "skaft_arm_p6": 0.8101830730106198,
+    "skaft_lutning_traff": 0.5653578068827653,
+    "skaft_topp": 0.9347338683564669,
+    "skaft_vinkel_p1": 0.5652645067348887,
+    "skaft_vinkel_p10": 1.2156550000598918,
+    "skaft_vinkel_p2": 0.7598338905591752,
+    "skaft_vinkel_p3": 0.9720703083338821,
+    "skaft_vinkel_p4": 0.9347338683564669,
+    "skaft_vinkel_p5": 0.8683140322606429,
+    "skaft_vinkel_p6": 0.8101830730105101,
+    "skaft_vinkel_p7": 0.5653578068827653,
+    "skaft_vinkel_p8": 0.7841790829767752,
+    "skaft_vinkel_p9": 1.013133997467709
    },
    "sving": "fo"
   },
@@ -470,15 +498,15 @@ enum KlubbFixturer {
     },
     {
      "grepp": [
-      733.5,
-      1148.4
+      703.2,
+      1247.8
      ],
      "hosel": [
-      1052.3,
-      1120.5
+      1022.0,
+      1219.9
      ],
      "position": "P2",
-     "t": 1.779167
+     "t": 1.658333
     },
     {
      "grepp": [
@@ -552,17 +580,23 @@ enum KlubbFixturer {
     "skaft_topp": 9.987558049750769,
     "skaft_vinkel_p1": -95.00263550333058,
     "skaft_vinkel_p10": -20.00269063718537,
-    "skaft_vinkel_p2": 174.99846361504643,
+    "skaft_vinkel_p2": 174.9984636150465,
     "skaft_vinkel_p4": 9.987558049750769,
     "skaft_vinkel_p6": 175.00958054943612,
     "skaft_vinkel_p7": -103.99746022959457,
     "skaft_vinkel_p9": 79.99616815913298
    },
-   "osakerhet": {
-    "100.0": 2.4308540536241865,
-    "300.0": 0.8102846845413956,
-    "40.0": 6.077135134060467,
-    "60.0": 4.0514234227069785
+   "pinne": null,
+   "sd": {
+    "skaft_lutning_traff": 0.5653578068827653,
+    "skaft_topp": 0.9347962762622372,
+    "skaft_vinkel_p1": 0.5652645067348887,
+    "skaft_vinkel_p10": 1.2156550000598918,
+    "skaft_vinkel_p2": 0.7595973608912902,
+    "skaft_vinkel_p4": 0.9347962762622372,
+    "skaft_vinkel_p6": 0.8101830730107399,
+    "skaft_vinkel_p7": 0.5653578068827653,
+    "skaft_vinkel_p9": 1.0126451063821833
    },
    "sving": "fo_vanster"
   }
@@ -589,14 +623,14 @@ enum KlubbFixturer {
     "id": "dtl-s03-P1",
     "punkter": {
      "grepp": {
-      "kalla": "klick",
+      "kalla": "handlederna_bekraftad",
       "x": 617.8,
       "y": 1426.7
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 827.8,
-      "y": 1790.4
+      "x": 782.8,
+      "y": 1712.4
      },
      "skaft_mitt": null
     },
@@ -624,19 +658,19 @@ enum KlubbFixturer {
     "punkter": {
      "grepp": {
       "kalla": "klick",
-      "x": 594.0,
-      "y": 1344.6
+      "x": 608.0,
+      "y": 1392.5
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 839.8,
-      "y": 1516.7
+      "x": 640.8,
+      "y": 1415.4
      },
      "skaft_mitt": null
     },
     "slag": "s03",
     "status": "markerad",
-    "t": 1.591667,
+    "t": 1.4625,
     "t_klipp": null,
     "t_ruta": null,
     "val": "P2",
@@ -663,8 +697,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 528.1,
-      "y": 1031.9
+      "x": 540.3,
+      "y": 1100.9
      },
      "skaft_mitt": null
     },
@@ -697,8 +731,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 584.2,
-      "y": 1320.5
+      "x": 558.4,
+      "y": 1223.9
      },
      "skaft_mitt": null
     },
@@ -731,8 +765,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 565.0,
-      "y": 1053.3
+      "x": 569.4,
+      "y": 1103.1
      },
      "skaft_mitt": null
     },
@@ -765,8 +799,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 813.9,
-      "y": 1564.6
+      "x": 649.2,
+      "y": 1426.4
      },
      "skaft_mitt": null
     },
@@ -799,8 +833,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 638.9,
-      "y": 1461.0
+      "x": 776.7,
+      "y": 1681.5
      },
      "skaft_mitt": null
     },
@@ -833,8 +867,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 427.8,
-      "y": 1213.3
+      "x": 605.3,
+      "y": 1315.8
      },
      "skaft_mitt": null
     },
@@ -867,8 +901,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 600.9,
-      "y": 963.0
+      "x": 618.0,
+      "y": 1009.9
      },
      "skaft_mitt": null
     },
@@ -901,8 +935,8 @@ enum KlubbFixturer {
      },
      "klubbhuvud": {
       "kalla": "klick",
-      "x": 530.9,
-      "y": 1081.8
+      "x": 560.5,
+      "y": 1087.0
      },
      "skaft_mitt": null
     },
@@ -930,8 +964,7 @@ enum KlubbFixturer {
     "P3": -0.5,
     "P4": -0.3
    },
-   "start": -0.9,
-   "tid": -0.7
+   "tid": -0.95
   },
   {
    "position": "P2",
@@ -940,7 +973,6 @@ enum KlubbFixturer {
     "P3": null,
     "P4": -0.3
    },
-   "start": null,
    "tid": -0.85
   },
   {
@@ -950,7 +982,6 @@ enum KlubbFixturer {
     "P5": -0.12,
     "P7": 0.0
    },
-   "start": null,
    "tid": -0.06
   },
   {
@@ -960,7 +991,6 @@ enum KlubbFixturer {
     "P5": null,
     "P7": 0.0
    },
-   "start": null,
    "tid": -0.15
   },
   {
@@ -970,7 +1000,6 @@ enum KlubbFixturer {
     "P7": 0.0,
     "P9": 0.2
    },
-   "start": null,
    "tid": 0.1
   },
   {
@@ -980,7 +1009,6 @@ enum KlubbFixturer {
     "P7": 0.0,
     "P9": null
    },
-   "start": null,
    "tid": 0.55
   },
   {
@@ -988,8 +1016,70 @@ enum KlubbFixturer {
    "positioner": {
     "P4": -0.3
    },
-   "start": null,
    "tid": -0.3
+  }
+ ],
+ "yta": [
+  {
+   "bredd": 1080,
+   "hojd": 1920,
+   "punkt": [
+    540.0,
+    960.0
+   ],
+   "u": 0.5,
+   "utsnitt": null,
+   "v": 0.5,
+   "visad": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "bredd": 1080,
+   "hojd": 1920,
+   "punkt": [
+    310.5,
+    1142.5
+   ],
+   "u": 0.25,
+   "utsnitt": [
+    0.2,
+    0.1,
+    0.5,
+    0.6
+   ],
+   "v": 0.75,
+   "visad": [
+    135,
+    19,
+    702,
+    1498
+   ]
+  },
+  {
+   "bredd": 1080,
+   "hojd": 1920,
+   "punkt": [
+    33.48,
+    1872.074
+   ],
+   "u": 0.031,
+   "utsnitt": [
+    0.0,
+    0.3,
+    0.9,
+    0.7
+   ],
+   "v": 0.969,
+   "visad": [
+    0,
+    374,
+    1080,
+    1546
+   ]
   }
  ]
 }

@@ -48,7 +48,7 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
         # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37) och ur research 5 (PLAN S1e).
-        self.assertEqual(len(k["matt"]), 62)
+        self.assertEqual(len(k["matt"]), 61)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
         self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
@@ -86,7 +86,7 @@ class Formen(unittest.TestCase):
                                                           if m not in KL.katalognamn(vy)}
         self.assertEqual(kroppen, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
         self.assertEqual(matt[("dtl", "skaft_vinkel")], list(KL.POSITIONER))
-        self.assertEqual(matt[("dtl", "skaft_mot_plan_p2")], ["P2"])
+        self.assertNotIn(("dtl", "skaft_mot_plan_p2"), matt)       # borttaget i granskningen (METOD M47)
         self.assertEqual(matt[("fo", "skaft_arm_p6")], ["P6"])
         self.assertTrue(all("fel" not in m for m in k["matt"] if m["matt"] in KL.katalognamn(m["vy"])))
 
@@ -137,7 +137,7 @@ class Formen(unittest.TestCase):
             self.assertTrue(e["vad"].endswith(".") and e["varfor"].endswith("."), namn)
             for f in K.INFO:                                     # inga värdeord (BESLUT B13)
                 self.assertIsNone(AJ.vardeord(e[f]), f"{namn}.{f}")
-        self.assertEqual(len(k["fel"]) + len(k["matt"]), 74)
+        self.assertEqual(len(k["fel"]) + len(k["matt"]), 73)
         for e in k["spridning"]:
             for f in K.INFO:
                 self.assertTrue(e[f].strip() and len(e[f]) <= 120, e["matt"])

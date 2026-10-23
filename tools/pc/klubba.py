@@ -45,18 +45,21 @@ SKAFTETS = ("P2", "P6", "P8")         # METOD M45: definieras av skaftet, inte a
 VAL_1 = ("adress", "topp", "tidig_nedsving", "jamn")
 VAL = VAL_1 + POSITIONER
 STATUS = ("omarkerad", "markerad", "hoppad")
-KALLOR = ("klick",)                   # BESLUT B44: varje punkt är ett klick (ett tryck)
+KALLOR = ("klick", "handlederna_bekraftad")   # BESLUT B44, B47: ett fritt tryck, eller ringen ur handlederna bekräftad med ett tryck
 PASS_ID = re.compile(r"^\d{8}-\d{6}$")
 FIL = "klubba.json"                   # filen i paketet (docs/FORMAT.md)
 
 # --- måtten ----------------------------------------------------------------------------
 
 TRYCK_PX = 3.0         # METOD M46: antagen osäkerhet per tryck, px i hela bilden (1 sd)
-MIN_SKAFT_PX = 60.0    # METOD M46: kortare skaft i bild ger inget mått (vinkeln ±4° med TRYCK_PX)
-CENTRUM_MARGINAL = 0.05   # METOD M48: greppet ska stå så mycket av bildhöjden över bildens mitt vid toppen
+MAX_SD = 4.0           # METOD M46: ett mått vars skattade osäkerhet ur trycken är större saknas, grader
+STEG_PX = 0.5          # METOD M46: steget i de centrala differenserna för osäkerheten
+CENTRUM_MARGINAL = 0.05   # METOD M48: greppet ska stå så mycket av bildhöjden över flyktpunkten vid toppen
+MARGINAL_TELEFON = 0.15  # METOD M45, MF6: telefonens märkning visar utsnittet vidgat så mycket per sida
+PINNE_MIN_DY = 0.05    # METOD M48: riktpinnens linje måste gå så mycket av bildhöjden i y, annars bildens mitt
 
 PER_POSITION = ("skaft_vinkel",)      # METOD M46: ett mått per position, skaft_vinkel_p1 … _p10
-MATT_DTL = ("skaftplan_p1", "skaft_mot_plan_p2", "skaft_riktning_topp", "skaft_plan_p6")
+MATT_DTL = ("skaftplan_p1", "skaft_riktning_topp", "skaft_plan_p6")
 MATT_FO = ("skaft_topp", "skaft_arm_p5", "skaft_arm_p6", "skaft_lutning_traff")
 SPECIFIKA = {"dtl": MATT_DTL, "fo": MATT_FO}
 
@@ -218,24 +221,43 @@ def markeringar(d: dict, slag: str | None = None) -> dict[str | None, list[dict]
 
 # --- rutorna: P2, P6 och P8 ------------------------------------------------------------
 
-def forslag_tid(position: str, positioner: dict, start: float | None) -> float | None:
+def forslag_tid(position: str, positioner: dict) -> float | None:
     """Rutan som föreslås för en position, s relativt klicket (METOD M45). Kroppens
     positioner (P1, P3, P4, P5, P7, P9, P10, METOD M28) föreslås där de är. P2, P6 och P8
-    definieras av skaftet: mitt mellan baksvingens start (annars P1) och P3 (annars P4),
-    mitt mellan P5 (annars P4) och P7, och mitt mellan P7 och P9 (annars P10). Johannes
-    stegar därifrån tills skaftet ser parallellt med marken ut. None när en ände saknas."""
+    definieras av skaftet: mitt mellan P1 och P3 (annars P4), mitt mellan P5 (annars P4) och
+    P7, och mitt mellan P7 och P9 (annars P10). Johannes stegar därifrån till rutan där
+    skaftet bakifrån är kortast (pekar mot flyktpunkten) eller framifrån parallellt med
+    marken. Bara positionerna, så att telefonen och PC:n föreslår samma ruta. None när en
+    ände saknas."""
     p = positioner.get
 
     def mitt(a, b):
         return (a + b) / 2 if a is not None and b is not None else None
 
     if position == "P2":
-        return mitt(start if start is not None else p("P1"), p("P3") if p("P3") is not None else p("P4"))
+        return mitt(p("P1"), p("P3") if p("P3") is not None else p("P4"))
     if position == "P6":
         return mitt(p("P5") if p("P5") is not None else p("P4"), p("P7"))
     if position == "P8":
         return mitt(p("P7"), p("P9") if p("P9") is not None else p("P10"))
     return p(position)
+
+
+# --- flyktpunkten ----------------------------------------------------------------------
+
+def flyktpunkt(pinne, bredd: int, hojd: int) -> tuple[tuple[float, float], bool]:
+    """Mållinjens flyktpunkt i bild (hela bildens pixlar) och om den är antagen (METOD M48).
+    Med riktpinnen (två tryck på en pinne på marken, parallell med mållinjen) ligger den där
+    pinnens linje skär bildens vågräta mittlinje (kameran i våg, lodlinjen); utan pinne, eller
+    när pinnens linje nästan är vågrät i bild, är den bildens mitt och antagen."""
+    mitt = (bredd / 2.0, hojd / 2.0)
+    if not pinne or len(pinne) != 2 or pinne[0] is None or pinne[1] is None:
+        return mitt, True
+    (ax, ay), (bx, by) = pinne
+    if abs(by - ay) < PINNE_MIN_DY * hojd:
+        return mitt, True
+    u = (mitt[1] - ay) / (by - ay)
+    return (ax + u * (bx - ax), mitt[1]), False
 
 
 # --- måtten ----------------------------------------------------------------------------
@@ -260,67 +282,93 @@ def vinkel_mellan(u, v) -> float:
     return _g(math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1]))
 
 
-def _wrap90(d: float) -> float:
-    """En vinkel mellan två linjer (utan riktning) i (−90, 90]."""
-    d = (d + 90.0) % 180.0 - 90.0
-    return 90.0 if d == -90.0 else d
+def _wrap180(d: float) -> float:
+    d = (d + 180.0) % 360.0 - 180.0
+    return 180.0 if d == -180.0 else d
 
 
-def osakerhet(langd_px: float, tryck_px: float = TRYCK_PX) -> float:
-    """Vinkelns osäkerhet (1 sd, grader) för en linje mellan två tryck langd_px isär, med
-    varje tryck osäkert tryck_px i varje led: √2·σ/L radianer. METOD M46"""
-    return _g(math.sqrt(2.0) * tryck_px / langd_px) if langd_px > 0 else math.inf
+def osakerhet(f, punkter: list, tryck_px: float = TRYCK_PX) -> float:
+    """Måttets osäkerhet (1 sd, grader) av tryckens: varje punkt i `punkter` osäker
+    `tryck_px` i x och i y, oberoende, genom måttets egen geometri `f(punkter)` (centrala
+    differenser med steget STEG_PX). METOD M46"""
+    s2 = 0.0
+    for i in range(len(punkter)):
+        for k in (0, 1):
+            plus = [list(q) for q in punkter]
+            minus = [list(q) for q in punkter]
+            plus[i][k] += STEG_PX
+            minus[i][k] -= STEG_PX
+            d = _wrap180(f(plus) - f(minus)) / (2.0 * STEG_PX)
+            s2 += (d * tryck_px) ** 2
+    return math.sqrt(s2)
 
 
-def mat(marks: list[dict], vy: str, x_tecken: float, bredd: int, hojd: int, sving: Sving | None = None) -> dict:
+def _matt(ut: dict, sd: dict, namn_: str, f, punkter: list) -> None:
+    """Måttet när dess skattade osäkerhet är högst MAX_SD; annars saknas det. METOD M46"""
+    o = osakerhet(f, punkter)
+    if o <= MAX_SD:
+        ut[namn_] = f(punkter)
+        sd[namn_] = o
+
+
+def mat(marks: list[dict], vy: str, x_tecken: float, bredd: int, hojd: int, sving: Sving | None = None,
+        pinne=None, med_sd: bool = False):
     """Klubbmåtten för ett slag ur dess markeringar (METOD M46–M49). `marks` =
     [{"position", "t", "grepp", "hosel"}], punkterna i hela bildens pixlar eller None.
-    `sving` = slagets sving (format.py) för armen i FO; utan den saknas skaft_arm_*. Ett
-    mått saknas när en punkt saknas eller skaftet är kortare än MIN_SKAFT_PX i bild."""
+    `sving` = slagets sving (format.py) för armen i FO; utan den saknas skaft_arm_*.
+    `pinne` = seriens riktpinne (två punkter) för flyktpunkten bakifrån (M48). Ett mått saknas
+    när en punkt saknas eller när dess skattade osäkerhet ur trycken är över MAX_SD.
+    `med_sd` = svara också osäkerheten per mått."""
     s = float(x_tecken)
+    spegel = lambda q: (s * q[0], q[1])  # noqa: E731
     pos: dict[str, dict] = {}
     for m in marks:
         if m.get("grepp") is None or m.get("hosel") is None or m.get("position") not in POSITIONER:
             continue
-        g = (s * m["grepp"][0], m["grepp"][1])
-        h = (s * m["hosel"][0], m["hosel"][1])
-        if math.hypot(h[0] - g[0], h[1] - g[1]) < MIN_SKAFT_PX:
-            continue
-        pos[m["position"]] = {"t": float(m["t"]), "g": g, "h": h}
+        pos[m["position"]] = {"t": float(m["t"]), "g": spegel(m["grepp"]), "h": spegel(m["hosel"])}
     ut: dict[str, float] = {}
+    sd: dict[str, float] = {}
     for p, q in pos.items():                                              # METOD M46
-        ut[nyckel("skaft_vinkel", p)] = riktning(q["g"], q["h"])
+        _matt(ut, sd, nyckel("skaft_vinkel", p), lambda x: riktning(x[0], x[1]), [q["g"], q["h"]])
     if vy == "dtl":
         p1 = pos.get("P1")
         if p1:
             # Skaftplanet: linjen genom hoseln och greppet vid P1, vinkeln mot marken sedd
             # från bollens sida (hoseln åt +X). METOD M47
-            g, h = p1["g"], p1["h"]
-            plan = _g(math.atan2(-(g[1] - h[1]), h[0] - g[0]))
-            ut["skaftplan_p1"] = plan
-            p2 = pos.get("P2")
-            if p2:
-                lutning = _g(math.atan2(-(p2["g"][1] - p2["h"][1]), p2["h"][0] - p2["g"][0]))
-                ut["skaft_mot_plan_p2"] = _wrap90(lutning - plan)
+            def plan(x):
+                g, h = x[0], x[1]
+                return _g(math.atan2(-(g[1] - h[1]), h[0] - g[0]))
+            _matt(ut, sd, "skaftplan_p1", plan, [p1["g"], p1["h"]])
             p6 = pos.get("P6")
-            if p6 and math.hypot(p6["h"][0] - h[0], p6["h"][1] - h[1]) >= MIN_SKAFT_PX:
-                # Hoseln vid P6 sedd från hoseln vid P1: + över planet (utanför linjen).
-                ut["skaft_plan_p6"] = -vinkel_mellan(_upp(h, g), _upp(h, p6["h"]))   # METOD M47
+            if p6:
+                # Hoseln vid P6 sedd från hoseln vid P1: + över planet. Bara P1:s punkter och
+                # hoseln vid P6 ingår, så skaftets längd vid P6 spelar ingen roll. METOD M47
+                _matt(ut, sd, "skaft_plan_p6", lambda x: -vinkel_mellan(_upp(x[1], x[0]), _upp(x[1], x[2])),
+                      [p1["g"], p1["h"], p6["h"]])
         p4 = pos.get("P4")
         if p4:
-            # Mot riktningen som ett skaft parallellt med mållinjen tar i bild: mot bildens
-            # mitt (kamerans axel längs mållinjen). Bara när greppet står över mitten. METOD M48
-            c = (s * bredd / 2.0, hojd / 2.0)
-            g = p4["g"]
-            if c[1] - g[1] >= CENTRUM_MARGINAL * hojd:
-                ut["skaft_riktning_topp"] = vinkel_mellan(_upp(g, c), _upp(g, p4["h"]))
+            # Mot riktningen som ett skaft parallellt med mållinjen tar i bild: mot flyktpunkten.
+            # Med riktpinnen ingår dess två tryck i osäkerheten. METOD M48
+            pin = [spegel(q) for q in pinne] if pinne and len(pinne) == 2 and all(pinne) else None
+
+            def topp(x):
+                c, antagen = flyktpunkt([x[2], x[3]] if pin else None, bredd, hojd)
+                if antagen:
+                    c = (s * bredd / 2.0, hojd / 2.0)          # bildens mitt, speglad
+                g = x[0]
+                if c[1] - g[1] < CENTRUM_MARGINAL * hojd:
+                    return math.nan
+                return vinkel_mellan(_upp(g, c), _upp(g, x[1]))
+            punkter = [p4["g"], p4["h"]] + (pin or [])
+            if math.isfinite(topp(punkter)):
+                _matt(ut, sd, "skaft_riktning_topp", topp, punkter)
     else:
         p4, p7 = pos.get("P4"), pos.get("P7")
         if p4:
-            ut["skaft_topp"] = riktning(p4["g"], p4["h"])                  # METOD M49
+            _matt(ut, sd, "skaft_topp", lambda x: riktning(x[0], x[1]), [p4["g"], p4["h"]])     # METOD M49
         if p7:
-            dx, dy = _upp(p7["h"], p7["g"])
-            ut["skaft_lutning_traff"] = _g(math.atan2(dx, dy))              # METOD M49
+            _matt(ut, sd, "skaft_lutning_traff",                                                # METOD M49
+                  lambda x: _g(math.atan2(*_upp(x[1], x[0]))), [p7["g"], p7["h"]])
         if sving is not None:
             axel = F.jamna(sving.t, sving.xy[:, AXEL_F])
             hand = F.jamna(sving.t, sving.xy[:, HANDLED_F])
@@ -329,14 +377,21 @@ def mat(marks: list[dict], vy: str, x_tecken: float, bredd: int, hojd: int, svin
                 if not q:
                     continue
                 a, w = F.vid(sving.t, axel, q["t"]), F.vid(sving.t, hand, q["t"])
-                arm = (a[0] - w[0], -(a[1] - w[1]))
-                skaft = _upp(q["g"], q["h"])
-                la, ls = math.hypot(*arm), math.hypot(*skaft)
-                if not (np.isfinite(a).all() and np.isfinite(w).all() and la > 0):
+                if not (np.isfinite(a).all() and np.isfinite(w).all()):
                     continue
-                cos = (arm[0] * skaft[0] + arm[1] * skaft[1]) / (la * ls)
-                ut[f"skaft_arm_{p.lower()}"] = _g(math.acos(max(-1.0, min(1.0, cos))))   # METOD M49
-    return ut
+                arm = (float(a[0] - w[0]), float(-(a[1] - w[1])))
+                if not math.hypot(*arm) > 0:
+                    continue
+
+                def casting(x, arm=arm):
+                    skaft = _upp(x[0], x[1])
+                    la, ls = math.hypot(*arm), math.hypot(*skaft)
+                    if not ls > 0:
+                        return math.nan
+                    cos = (arm[0] * skaft[0] + arm[1] * skaft[1]) / (la * ls)
+                    return _g(math.acos(max(-1.0, min(1.0, cos))))
+                _matt(ut, sd, f"skaft_arm_{p.lower()}", casting, [q["g"], q["h"]])            # METOD M49
+    return (ut, sd) if med_sd else ut
 
 
 # --- fixturerna för Swift (BESLUT B12) -------------------------------------------------
@@ -344,15 +399,18 @@ def mat(marks: list[dict], vy: str, x_tecken: float, bredd: int, hojd: int, svin
 FIXTURFIL = Path(__file__).resolve().parents[2] / "SwingLabKit" / "Tests" / "SwingTests" / "KlubbFixturer.swift"
 FIXTUR_BREDD, FIXTUR_HOJD = 1080, 2880   # högre bild: greppet vid toppen står över mitten (M48)
 # Påhittade skaft per position: vinkeln grepp → hosel i den speglade bilden (y uppåt) och
-# längden i px. Valda så att varje mått räknas och P7 i DTL är kort (spärren).
+# längden i px. Bakifrån som i bild: P4 60–95 px, P2, P6 och P8 korta (skaftet pekar mot
+# kameran), så att spärren på osäkerheten prövas (M46); framifrån långa.
 SATTA = {
-    "dtl": {"P1": (-60.0, 420.0), "P2": (-35.0, 300.0), "P3": (100.0, 220.0), "P4": (-75.0, 180.0),
-            "P5": (95.0, 200.0), "P6": (-40.0, 260.0), "P7": (-58.0, 40.0), "P8": (150.0, 240.0),
-            "P9": (110.0, 200.0), "P10": (170.0, 150.0)},
+    "dtl": {"P1": (-60.0, 330.0), "P2": (-35.0, 40.0), "P3": (100.0, 150.0), "P4": (-75.0, 80.0),
+            "P5": (95.0, 150.0), "P6": (-40.0, 45.0), "P7": (-58.0, 300.0), "P8": (150.0, 35.0),
+            "P9": (110.0, 150.0), "P10": (170.0, 120.0)},
     "fo": {"P1": (-95.0, 430.0), "P2": (175.0, 320.0), "P3": (130.0, 250.0), "P4": (10.0, 260.0),
            "P5": (100.0, 280.0), "P6": (175.0, 300.0), "P7": (-104.0, 430.0), "P8": (5.0, 310.0),
            "P9": (80.0, 240.0), "P10": (-20.0, 200.0)},
 }
+# En påhittad riktpinne bakifrån (två tryck, bildens pixlar) för fallet dtl (M48).
+FIXTUR_PINNE = ((585.0, 2700.0), (560.0, 2100.0))
 
 
 def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], Sving]:
@@ -368,7 +426,7 @@ def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[lis
     t = np.array([x["t"] for x in d["rutor"]])
     marks = []
     for p in POSITIONER:
-        tf = forslag_tid(p, r["positioner"], r["faser"]["start"])
+        tf = forslag_tid(p, r["positioner"])
         if tf is None:
             continue
         k = int(np.argmin(np.abs(t - tf)))
@@ -395,7 +453,29 @@ def fixtur_markeringar(namn_: str, hoppa: tuple[str, ...] = ()) -> tuple[list[di
     return pahittade_markeringar(gen.fixtursving(namn_), hoppa)
 
 
-FIXTURFALL = (("dtl", ()), ("dtl_vanster", ()), ("fo", ()), ("fo_vanster", ("P8",)))
+FIXTURFALL = (("dtl", (), FIXTUR_PINNE), ("dtl_vanster", (), None), ("fo", (), None), ("fo_vanster", ("P8",), None))
+
+
+def visad_telefonen(utsnitt, bredd: int, hojd: int) -> list[int]:
+    """Det telefonens märkning visar (`ClubMarking.shownCrop`): seriens utsnitt vidgat 15 %
+    per sida, inom bilden, på hela pixlar som `paket.utsnitt_px`. Hela bilden utan utsnitt.
+    METOD M45"""
+    from .paket import utsnitt_px
+    if utsnitt is None:
+        return [0, 0, bredd, hojd]
+    x, y, b, h = utsnitt
+    if x <= 0 and y <= 0 and b >= 1 and h >= 1:
+        return [0, 0, bredd, hojd]
+    mx, my = b * MARGINAL_TELEFON, h * MARGINAL_TELEFON
+    x0, y0 = max(0.0, x - mx), max(0.0, y - my)
+    x1, y1 = min(1.0, x + b + mx), min(1.0, y + h + my)
+    return list(utsnitt_px((x0, y0, x1 - x0, y1 - y0), bredd, hojd))
+
+
+def yta_till_bild(u: float, v: float, visad: list) -> tuple[float, float]:
+    """Ett tryck på telefonens yta (0–1 i det visade utsnittet) i hela bildens pixlar: samma
+    pixel som telefonen sparar (`ClubMarking.imagePoint`). METOD M45"""
+    return (visad[0] + u * visad[2], visad[1] + v * visad[3])
 
 
 def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd: int = FIXTUR_BREDD,
@@ -410,7 +490,8 @@ def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd:
             "t": m["t"], "t_klipp": None, "forskjutning_ms": None, "t_ruta": None,
             "bredd": bredd, "hojd": hojd, "visad": [0, 0, bredd, hojd],
             "status": "markerad" if satt else "hoppad",
-            "punkter": {"grepp": {"x": m["grepp"][0], "y": m["grepp"][1], "kalla": "klick"} if satt else None,
+            "punkter": {"grepp": {"x": m["grepp"][0], "y": m["grepp"][1],
+                                  "kalla": m.get("grepp_kalla", "klick")} if satt else None,
                         "skaft_mitt": None,
                         "klubbhuvud": {"x": m["hosel"][0], "y": m["hosel"][1], "kalla": "klick"} if satt else None},
             "forslag": {}})
@@ -419,29 +500,37 @@ def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd:
 
 
 def fixturer() -> dict:
-    """Fallen för Swift: svingen (namnet i Fixturer.swift), markeringarna och Pythons mått;
-    och en fil i version 2 som Swift ska läsa. BESLUT B12"""
+    """Fallen för Swift: svingen (namnet i Fixturer.swift), markeringarna, riktpinnen och
+    Pythons mått och osäkerheter; en fil i version 2 som Swift ska läsa; förslagen till P2,
+    P6 och P8; och tryck på ytan i hela bildens pixlar. BESLUT B12"""
     fall = []
-    for namn_, hoppa in FIXTURFALL:
+    for namn_, hoppa, pinne in FIXTURFALL:
         marks, sv = fixtur_markeringar(namn_, hoppa)
+        ut, sd = mat(marks, sv.vy, sv.x_tecken, FIXTUR_BREDD, FIXTUR_HOJD, sv, pinne=pinne, med_sd=True)
         fall.append({"sving": namn_, "bredd": FIXTUR_BREDD, "hojd": FIXTUR_HOJD,
+                     "pinne": [list(q) for q in pinne] if pinne else None,
                      "markeringar": [{"position": m["position"], "t": m["t"],
                                       "grepp": list(m["grepp"]) if m["grepp"] else None,
                                       "hosel": list(m["hosel"]) if m["hosel"] else None} for m in marks],
-                     "matt": mat(marks, sv.vy, sv.x_tecken, FIXTUR_BREDD, FIXTUR_HOJD, sv),
-                     "osakerhet": {str(L): osakerhet(L) for L in (40.0, 60.0, 100.0, 300.0)}})
+                     "matt": ut, "sd": sd})
     marks, _ = fixtur_markeringar("dtl")
+    marks[0] = {**marks[0], "grepp_kalla": "handlederna_bekraftad"}
     fil = fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
-    return {"fall": fall, "fil": fil,
-            "forslag": [{"position": p, "positioner": pos, "start": st, "tid": forslag_tid(p, pos, st)}
-                        for p, pos, st in (
-                            ("P2", {"P1": -1.4, "P3": -0.5, "P4": -0.3}, -0.9),
-                            ("P2", {"P1": -1.4, "P3": None, "P4": -0.3}, None),
-                            ("P6", {"P4": -0.3, "P5": -0.12, "P7": 0.0}, None),
-                            ("P6", {"P4": -0.3, "P5": None, "P7": 0.0}, None),
-                            ("P8", {"P7": 0.0, "P9": 0.2, "P10": 1.1}, None),
-                            ("P8", {"P7": 0.0, "P9": None, "P10": 1.1}, None),
-                            ("P4", {"P4": -0.3}, None))]}
+    yta = []
+    for utsnitt, u, v in ((None, 0.5, 0.5), ((0.2, 0.1, 0.5, 0.6), 0.25, 0.75), ((0.0, 0.3, 0.9, 0.7), 0.031, 0.969)):
+        visad = visad_telefonen(utsnitt, 1080, 1920)
+        yta.append({"utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u, "v": v,
+                    "visad": visad, "punkt": list(yta_till_bild(u, v, visad))})
+    return {"fall": fall, "fil": fil, "yta": yta,
+            "forslag": [{"position": p, "positioner": pos, "tid": forslag_tid(p, pos)}
+                        for p, pos in (
+                            ("P2", {"P1": -1.4, "P3": -0.5, "P4": -0.3}),
+                            ("P2", {"P1": -1.4, "P3": None, "P4": -0.3}),
+                            ("P6", {"P4": -0.3, "P5": -0.12, "P7": 0.0}),
+                            ("P6", {"P4": -0.3, "P5": None, "P7": 0.0}),
+                            ("P8", {"P7": 0.0, "P9": 0.2, "P10": 1.1}),
+                            ("P8", {"P7": 0.0, "P9": None, "P10": 1.1}),
+                            ("P4", {"P4": -0.3}))]}
 
 
 def swift_kalla() -> str:

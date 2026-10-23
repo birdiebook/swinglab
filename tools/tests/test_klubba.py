@@ -37,18 +37,24 @@ def _vid(g, vinkel, langd):
 
 class Mattet(unittest.TestCase):
     def test_satta_vinklar_och_spegling(self) -> None:
-        """De påhittade skaften ger sina satta vinklar, också för en vänsterspelare (M1, M46)."""
+        """De påhittade skaften ger sina satta vinklar, också för en vänsterspelare (M1, M46),
+        och ett kort skaft bakifrån saknas på sin osäkerhet (M46)."""
         for namn in ("dtl", "dtl_vanster", "fo"):
             marks, sv = KL.fixtur_markeringar(namn)
-            m = KL.mat(marks, sv.vy, sv.x_tecken, KL.FIXTUR_BREDD, KL.FIXTUR_HOJD, sv)
+            m, sd = KL.mat(marks, sv.vy, sv.x_tecken, KL.FIXTUR_BREDD, KL.FIXTUR_HOJD, sv, med_sd=True)
             for p, (vinkel, langd) in KL.SATTA[sv.vy].items():
-                if langd < KL.MIN_SKAFT_PX:
-                    self.assertNotIn(KL.nyckel("skaft_vinkel", p), m, f"{namn} {p}: för kort skaft")
+                k = KL.nyckel("skaft_vinkel", p)
+                vantad_sd = math.degrees(math.sqrt(2) * KL.TRYCK_PX / langd)
+                if vantad_sd > KL.MAX_SD + 0.1:
+                    self.assertNotIn(k, m, f"{namn} {p}: för osäkert")
                     continue
-                self.assertAlmostEqual(m[KL.nyckel("skaft_vinkel", p)], vinkel, delta=0.1, msg=f"{namn} {p}")
+                if vantad_sd < KL.MAX_SD - 0.1:
+                    self.assertAlmostEqual(m[k], vinkel, delta=0.15, msg=f"{namn} {p}")
+                    self.assertAlmostEqual(sd[k], vantad_sd, delta=0.02, msg=f"{namn} {p}: √2·σ/L")
             if sv.vy == "dtl":
                 self.assertAlmostEqual(m["skaftplan_p1"], 60.0, delta=0.1)          # −60° grepp → hosel
-                self.assertAlmostEqual(m["skaft_mot_plan_p2"], -25.0, delta=0.15)   # 35° mot 60°: flatare
+                self.assertNotIn("skaft_vinkel_p2", m)                              # 40 px: för osäkert
+                self.assertIn("skaft_plan_p6", m, "bara hoslarnas avstånd spärrar (M47)")
             else:
                 self.assertAlmostEqual(m["skaft_topp"], 10.0, delta=0.1)            # huvudet över: kort av parallellt
                 self.assertAlmostEqual(m["skaft_lutning_traff"], 14.0, delta=0.1)   # greppet mot målet
@@ -57,14 +63,14 @@ class Mattet(unittest.TestCase):
         g1 = (500.0, 1000.0)
         h1 = _vid(g1, -60, 400)                                  # adressen: hoseln nere mot bollen
         dtl = lambda *x: KL.mat([_m("P1", g1, h1)] + list(x), "dtl", 1, 1080, 1920)  # noqa: E731
-        # P2 brantare än planet: +
-        self.assertGreater(dtl(_m("P2", g1, _vid(g1, -70, 300)))["skaft_mot_plan_p2"], 0)
-        self.assertLess(dtl(_m("P2", g1, _vid(g1, -40, 300)))["skaft_mot_plan_p2"], 0)
-        # P6: hoseln rakt ovanför bollen ligger över (utanför) planlinjen, bakom den under.
-        over = dtl(_m("P6", (300.0, 900.0), (h1[0], h1[1] - 300)))["skaft_plan_p6"]
+        # P6: hoseln rakt ovanför bollen ligger över (utanför) planlinjen, bakom den under; ett
+        # kort skaft vid P6 spelar ingen roll.
+        over = dtl(_m("P6", (h1[0] - 20, h1[1] - 290), (h1[0], h1[1] - 300)))["skaft_plan_p6"]
         under = dtl(_m("P6", (300.0, 900.0), (h1[0] - 300, h1[1])))["skaft_plan_p6"]
         self.assertAlmostEqual(over, 30.0, delta=1e-9)
         self.assertLess(under, 0)
+        self.assertNotIn("skaft_plan_p6", dtl(_m("P6", (h1[0] + 5, h1[1] - 25), (h1[0], h1[1] - 30))),
+                         "hoslarna för nära varandra")
         # Toppen bakifrån: mitten rakt under greppet; huvudet åt bollen = across (+).
         g4 = (540.0, 500.0)
         self.assertAlmostEqual(dtl(_m("P4", g4, _vid(g4, -60, 200)))["skaft_riktning_topp"], 30.0, delta=1e-9)
@@ -77,17 +83,31 @@ class Mattet(unittest.TestCase):
         fo = KL.mat([_m("P7", (500.0, 900.0), _vid((500.0, 900.0), -100, 400))], "fo", 1, 1080, 1920)
         self.assertAlmostEqual(fo["skaft_lutning_traff"], 10.0, delta=1e-9)
 
-    def test_toppen_bakifran_kraver_greppet_over_mitten(self) -> None:
-        g = (540.0, 960.0 - 0.04 * 1920)                          # under marginalen (5 %)
-        self.assertNotIn("skaft_riktning_topp", KL.mat([_m("P4", g, _vid(g, -60, 200))], "dtl", 1, 1080, 1920))
+    def test_flyktpunkten_ur_riktpinnen(self) -> None:
+        """Riktpinnens linje skär bildens vågräta mittlinje där flyktpunkten är (M48); utan
+        pinne eller med en nästan vågrät pinne är den bildens mitt, antagen."""
+        self.assertEqual(KL.flyktpunkt(None, 1080, 1920), ((540.0, 960.0), True))
+        c, antagen = KL.flyktpunkt([(600.0, 1800.0), (580.0, 1400.0)], 1080, 1920)
+        self.assertFalse(antagen)
+        self.assertAlmostEqual(c[0], 600.0 - 20.0 * 840.0 / 400.0)
+        self.assertTrue(KL.flyktpunkt([(100.0, 1000.0), (900.0, 1010.0)], 1080, 1920)[1])
+        # Kameran vriden: med pinnen pekar ett parallellt skaft mot flyktpunkten och ger 0.
+        g4 = (540.0, 500.0)
+        vp = (700.0, 960.0)
+        h = (g4[0] + 0.3 * (vp[0] - g4[0]), g4[1] + 0.3 * (vp[1] - g4[1]))
+        pinne = [(760.0, 1800.0), (730.0, 1380.0)]                   # genom vp
+        m = KL.mat([_m("P4", g4, h)], "dtl", 1, 1080, 1920, pinne=pinne)
+        self.assertAlmostEqual(m["skaft_riktning_topp"], 0.0, delta=1e-9)
+        self.assertNotAlmostEqual(KL.mat([_m("P4", g4, h)], "dtl", 1, 1080, 1920)["skaft_riktning_topp"], 0.0,
+                                  delta=5.0)
 
-    def test_sparren_och_hoppade_positioner(self) -> None:
+    def test_sparren_ar_osakerheten(self) -> None:
         g = (500.0, 900.0)
-        m = KL.mat([_m("P7", g, _vid(g, -60, KL.MIN_SKAFT_PX - 1)), _m("P1", None, None),
-                    _m("P4", g, _vid(g, -60, KL.MIN_SKAFT_PX))], "dtl", 1, 1080, 1920)
+        m, sd = KL.mat([_m("P7", g, _vid(g, -60, 59)), _m("P1", None, None), _m("P4", g, _vid(g, -60, 62))],
+                       "dtl", 1, 1080, 1920, med_sd=True)
         self.assertEqual(set(m), {"skaft_vinkel_p4"})
-        self.assertAlmostEqual(KL.osakerhet(KL.MIN_SKAFT_PX), 4.05, delta=0.01)   # M46: √2·3/60 rad
-        self.assertAlmostEqual(KL.osakerhet(300.0), 0.81, delta=0.01)
+        self.assertLessEqual(sd["skaft_vinkel_p4"], KL.MAX_SD)
+        self.assertAlmostEqual(sd["skaft_vinkel_p4"], math.degrees(math.sqrt(2) * 3 / 62), delta=0.01)
 
     def test_casting_ur_armen(self) -> None:
         """Armen ur svingens utjämnade leder vid markeringens tid (M49): ett skaft i armens
@@ -103,19 +123,28 @@ class Mattet(unittest.TestCase):
         g = (w[0], w[1])
         rak = (g[0] + 300 * ut[0] / n, g[1] + 300 * ut[1] / n)
         vinkel = (g[0] - 300 * ut[1] / n, g[1] + 300 * ut[0] / n)
-        for hosel, vantat in ((rak, 180.0), (vinkel, 90.0)):
-            m = KL.mat([{**p5, "grepp": g, "hosel": hosel}], "fo", 1, 1080, 1920, sv)
-            self.assertAlmostEqual(m["skaft_arm_p5"], vantat, delta=1e-6)
+        self.assertAlmostEqual(KL.mat([{**p5, "grepp": g, "hosel": vinkel}], "fo", 1, 1080, 1920, sv)["skaft_arm_p5"],
+                               90.0, delta=1e-6)
+        # I linje: derivatan av acos är oändlig där, så osäkerheten spärrar ett rakt skaft.
+        nastan = (g[0] + 300 * ut[0] / n - 60 * ut[1] / n, g[1] + 300 * ut[1] / n + 60 * ut[0] / n)
+        self.assertGreater(KL.mat([{**p5, "grepp": g, "hosel": nastan}], "fo", 1, 1080, 1920, sv)["skaft_arm_p5"], 160)
         self.assertNotIn("skaft_arm_p5", KL.mat([{**p5, "grepp": g, "hosel": rak}], "fo", 1, 1080, 1920))
 
     def test_forslaget_for_p2_p6_p8(self) -> None:
         pos = {"P1": -1.4, "P3": -0.5, "P4": -0.3, "P5": -0.1, "P7": 0.0, "P9": 0.2, "P10": 1.1}
-        self.assertAlmostEqual(KL.forslag_tid("P2", pos, -0.9), -0.7)
-        self.assertAlmostEqual(KL.forslag_tid("P2", {**pos, "P3": None}, None), -0.85)
-        self.assertAlmostEqual(KL.forslag_tid("P6", pos, None), -0.05)
-        self.assertAlmostEqual(KL.forslag_tid("P8", {**pos, "P9": None}, None), 0.55)
-        self.assertEqual(KL.forslag_tid("P4", pos, None), -0.3)
-        self.assertIsNone(KL.forslag_tid("P3", {**pos, "P3": None}, None))
+        self.assertAlmostEqual(KL.forslag_tid("P2", pos), -0.95)
+        self.assertAlmostEqual(KL.forslag_tid("P2", {**pos, "P3": None}), -0.85)
+        self.assertAlmostEqual(KL.forslag_tid("P6", pos), -0.05)
+        self.assertAlmostEqual(KL.forslag_tid("P8", {**pos, "P9": None}), 0.55)
+        self.assertEqual(KL.forslag_tid("P4", pos), -0.3)
+        self.assertIsNone(KL.forslag_tid("P3", {**pos, "P3": None}))
+
+    def test_telefonens_tryck_ar_samma_pixel(self) -> None:
+        """Ett tryck på telefonens yta blir samma pixel som PC:n räknar ur `visad` (M45)."""
+        self.assertEqual(KL.visad_telefonen(None, 1080, 1920), [0, 0, 1080, 1920])
+        v = KL.visad_telefonen((0.2, 0.1, 0.5, 0.6), 1080, 1920)
+        self.assertEqual(v, [135, 19, 702, 1498])
+        self.assertEqual(KL.yta_till_bild(0.0, 1.0, v), (135.0, 19.0 + 1498.0))
 
 
 class Formatet(unittest.TestCase):
@@ -242,6 +271,24 @@ class Samlingen(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 SK.main([str(fil), str(fil), "--ut", str(ut)])
             self.assertEqual(len(json.loads((ut / f"{PASS}.json").read_text())["rutor"]), 10)
+
+    def test_ommarkning_ersatter_och_tiden_sorteras_som_tid(self) -> None:
+        """Telefonens ommärkning av en position på en annan ruta ersätter den gamla raden, och
+        den senast ändrade vinner även när zonerna skiljer (text hade gett fel ordning)."""
+        marks, _ = KL.fixtur_markeringar("dtl")
+        a = KL.fil_ur(marks[:1], "dtl", PASS, "p.zip", "s01")
+        b = KL.fil_ur([{**marks[0], "t": marks[0]["t"] + 0.05}], "dtl", PASS, "p.zip", "s01")
+        a["andrad"] = "2026-11-03T21:00:00+01:00"       # 20:00 UTC
+        b["andrad"] = "2026-11-03T20:30:00+00:00"       # 20:30 UTC: senare, fast mindre som text
+        m = SK.sla_ihop([b, a])[PASS]
+        self.assertEqual(len(m["rutor"]), 1)
+        self.assertAlmostEqual(m["rutor"][0]["t"], marks[0]["t"] + 0.05)
+        self.assertEqual(m["andrad"], b["andrad"])
+
+    def test_markera_klubba_tal_null_forskjutning(self) -> None:
+        r = {"id": "a", "fil": "f", "t": 0.1, "t_klipp": None, "forskjutning_ms": None}
+        self.assertTrue(MK._samma(r, dict(r)))
+        self.assertFalse(MK._samma(r, {**r, "forskjutning_ms": 0.0}), "null är inte 0")
 
     def test_vagrar_en_mapp_i_repot(self) -> None:
         buf = io.StringIO()

@@ -182,7 +182,10 @@ def _samma(a: dict, b: dict) -> bool:
     (Visions tid; för en video den valda tiden i klippet, inte rutans egen). METOD MF5"""
     if a["id"] != b["id"] or a["fil"] != b["fil"]:
         return False
-    if abs(a.get("forskjutning_ms", 0.0) - b.get("forskjutning_ms", 0.0)) > SAMMA_T_S * 1000:
+    fa, fb = a.get("forskjutning_ms"), b.get("forskjutning_ms")
+    if (fa is None) != (fb is None):           # null = okänd (telefonen), inte 0 (BESLUT B47)
+        return False
+    if fa is not None and abs(fa - fb) > SAMMA_T_S * 1000:
         return False
     ta, tb = (a["t"], b["t"]) if a["t"] is not None and b["t"] is not None else (a["t_klipp"], b["t_klipp"])
     return ta is not None and tb is not None and abs(ta - tb) <= SAMMA_T_S
