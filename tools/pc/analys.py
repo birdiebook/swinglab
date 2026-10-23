@@ -293,19 +293,34 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
               skapad: str | None = None, katalog_3d: dict | None = None) -> dict:
     """Passets analys. `tidigare` = svingarna ur tidigare pass (baslinjen, M27),
     `forra` = förra passets analys (eller None)."""
-    katalog = katalog or KAT.las()
-    kedjor = kedjor or las_kedjor()
     pass_id = paket[0].pass_id
     if any(p.pass_id != pass_id for p in paket):
         raise ValueError("paketen är från olika pass")
     if len({p.vy for p in paket}) != len(paket):
         raise ValueError("två paket med samma vy")
     slag = [r for p in sorted(paket, key=lambda p: p.vy) for r in mat_paket(p, langd_m)]
+    a = analysera_rader(pass_id, slag, langd_m, tidigare, forra=forra, katalog=katalog, kedjor=kedjor,
+                        baslinje_pass=baslinje_pass, skapad=skapad, spelhand=paket[0].spelhand,
+                        paket=[{"fil": p.fil, "vy": p.vy, "slag": len(p.slag),
+                                "klipp": sum(1 for s in p.slag if s.klipp)} for p in paket])
+    a["tre_d"] = tre_d(paket, slag, forra, katalog_3d)
+    a["kontaktark"] = {}
+    return a
+
+
+def analysera_rader(pass_id: str, slag: list[dict], langd_m: float | None, tidigare: list[dict],
+                    forra: dict | None = None, katalog: dict | None = None, kedjor: dict | None = None,
+                    baslinje_pass: list[str] = (), skapad: str | None = None, spelhand: str | None = None,
+                    paket: list[dict] = ()) -> dict:
+    """Analysen ur passets slag (rader som `mat_paket` ger: `vy`, `serie`, `klubba`, och `matt`
+    med `forsta_serien` för de mätta), utan paketen och 3D. Telefonen räknar samma sak ur sina
+    slag (SwingLabKit `Passanalys`, BESLUT B12, BESLUT B53), och underlaget till Claude-appen
+    byggs ur den (`underlag.py`)."""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or las_kedjor()
     a = {"format": FORMAT, "pass": pass_id, "matversion": M.MATVERSION,
          "skapad": skapad or dt.datetime.now().astimezone().isoformat(timespec="seconds"),
-         "paket": [{"fil": p.fil, "vy": p.vy, "slag": len(p.slag),
-                    "klipp": sum(1 for s in p.slag if s.klipp)} for p in paket],
-         "spelhand": paket[0].spelhand, "spelarens_langd_m": langd_m,
+         "paket": list(paket), "spelhand": spelhand, "spelarens_langd_m": langd_m,
          "klubbor": sorted({r["klubba"] for r in slag if r.get("klubba")}),
          "slag": slag}
     vy_alla = tempo_vy(slag)
@@ -349,16 +364,25 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
                    spann=fel["gront"], gult=fel["gult"], kontrollerad=fel["kontrollerad"],
                    kalla_status=fel["status"], samre=fel["samre"],
                    forsta_serien=avrunda(m, fs["median"]) if fs else None,
-                   klart_nar=klart_nar(fel, b, sn, bas))
+                   klart_nar=klart_nar(fel, b, sn, bas), baslinje=baslinjen(fel, bas))
         if a["forra"] is not None:
             j = a["forra"]["jamforelse"][g].get(m)
             rad["mot_forra"] = None if j is None else {"skillnad": avrunda(m, j["skillnad"]), "tydlig": j["tydlig"]}
         bed.append(rad)
     a["bedomning"] = bed
     a["kandidater"] = kandidater(bed, kedjor)
-    a["tre_d"] = tre_d(paket, slag, forra, katalog_3d)
-    a["kontaktark"] = {}
     return a
+
+
+def baslinjen(fel: dict, bas: list[float]) -> dict | None:
+    """Den egna baslinjen för ett fel utan gräns: medianen, den robusta sd:n och antalet
+    svingar ur de tidigare passen, avrundade som måttet (METOD M27, MT3); None för ett fel
+    med gräns, ett avstängt fel eller färre än 8 svingar."""
+    if not fel["aktiv"] or fel["gront"] is not None or len(bas) < KAT.MIN_BASLINJE:
+        return None
+    s = sorted(bas)
+    spr = (S.percentil(s, 0.75) - S.percentil(s, 0.25)) / S.IQR_SKALA
+    return {"median": avrunda(fel["matt"], S.percentil(s, 0.5)), "sd": avrunda(fel["matt"], spr), "n": len(bas)}
 
 
 def skriv(analys: dict, sokvag: Path) -> None:

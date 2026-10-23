@@ -63,12 +63,47 @@ Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
    telefonen (Filer eller AirDrop, i appen "Import focus" under Me → Sessions, BESLUT B28).
 7. **Rapporten** till Johannes, i chatten (se Utdata).
 
+## I Claude-appen: texten från telefonen (S5b)
+
+Tolkningen går också att göra i Claude-appen på telefonen, utan PC och utan API-nyckel
+(BESLUT B52). Appen kopierar en text ("Ask Claude") med reglerna nedan och passets data,
+räknad på telefonen; Johannes klistrar in den i Claude-appen och kopierar svaret tillbaka
+("Paste from Claude"), där det kontrolleras som på PC:n. Texten är avsnitten mellan
+markörerna `claude-appen`, ordagrant och i den ordning de står: `python3
+tools/pc/underlag.py --swift` för över dem till appen, och ett prov fäller en skillnad
+(BESLUT B53). På PC:n skriver `session.py --claude-text` samma text, så att den går att
+pröva mot skillens fulla väg.
+
+<!-- claude-appen -->
+**Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude") och klistrat in
+den här. Datan längst ned är räknad på telefonen med samma regler och fältnamn som på
+PC:n: `kandidater` och `bedomning` ur analysen (`visat` är talet som visas,
+`forsta_serien` första seriens median, `spann: null` egen baslinje, `baslinje` dess median,
+sd och svingar, `mot_forra` mot förra passet), `ovningar` ur minnet, `historik` felens
+`[visat, status]` pass för pass, `pagaende` den senaste "Att jobba på", och `mallar` med
+analysens eller minnets "klart när" och märkning. Följ stegen A–I.
+Mät inget och räkna inte om något: varje tal står i datan. Fråga inget: saknas missen
+(steg C) eller svaren till treregeln (steg G) gäller stegets regel utan svar. Johannes kan
+ha skrivit missen efter texten.
+
+**Svaret.** Först rapporten på svenska, högst 9 rader: varje sak med talet, gränsen och
+gränsens sort (steg H), kedjan, övningen och tanken; förra valets läge; missen eller att
+den saknades. Sist **ett** kodblock ```json med filen: objektet `fil` med `saker` (1–3).
+Bygg varje sak ur sin mall i `mallar`: `ordning` (1, 2, 3 i svingens ordning), mallens
+fält ordagrant, `ovning` = ett av `ovning_val` med `steg` ur `steg_val` och en `tanke`
+(steg I), och `typ` och `fysik` efter steg G (`fysik_test` är felets test). Ta inte med
+`ovning_val`, `steg_val` eller `fysik_test`. Ett fel utan mall går inte att välja. All
+text i filen är engelska. Telefonen kontrollerar filen som PC:n och tar emot den bara när
+allt stämmer.
+<!-- /claude-appen -->
+
 ## Beslutsförfarandet
 
 Gå igenom stegen i ordning. Varje regel kommer ur
 `docs/research/3_tolkning_och_appar.md` (ej läst i original, BESLUT B10) och har
 en METOD-rad (MT1–MT10).
 
+<!-- claude-appen -->
 **A. Läget för förra valet först.** Läs bara övningar i minnet (`ovningar`)
 med `aktuell: true`. En övning med `lage: "avslutad"` (klar och släppt, eller
 bortvald) är historia: den väcks aldrig, och dess fel börjar ett nytt block om
@@ -141,6 +176,8 @@ Tanken skrivs på engelska och har **extern fokus**: vad klubban, bollen eller e
 föremål (stol, käpp, vägg, headcover) gör, aldrig vad en led gör ("Leave the stick
 standing", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 
+<!-- /claude-appen -->
+
 **J. "Klart när" som ett villkor i tal på första serien.** En ny övning: skriv
 av analysens `klart_nar` för felet (`villkor`, `grans`) och dess `markning`.
 En övning som fortsätter: minnets, oförändrat. Alltid `pa: "forsta_serien"`
@@ -182,6 +219,7 @@ Johannes markerat för hand, ofta 2–3 per pass: rapportera dem som en rad med 
 n, och med få svingar som **trend, inte en sak att öva** (BESLUT B47); de väljs aldrig i
 `att_jobba_pa.json`.
 
+<!-- claude-appen -->
 ## Det Claude inte får göra
 
 - **Mäta själv.** Inget tal skattas ur kontaktarket, videon eller lederna.
@@ -192,8 +230,10 @@ n, och med få svingar som **trend, inte en sak att öva** (BESLUT B47); de väl
   `kedjor.json`. Saknas något: säg det, och föreslå en rad med källa i
   rapporten i stället.
 - **Flytta "klart när"** för en övning som fortsätter.
+<!-- /claude-appen -->
 - **Ändra `katalog.json` eller `kedjor.json`** under en tolkning. Ändringar där
   är egna commits med källa (BESLUT B6, B10).
+<!-- claude-appen -->
 - **Värdeord eller siffror i appens fritext** (BESLUT B13): inget "good",
   "better", "best", "great", "nice", "perfect", "pure", "crisp", "well done", inga utropstecken, ingen
   totalpoäng. Förändring är tecken och tal i rapporten ("+2,2 cm mot 3 nov").
@@ -201,10 +241,13 @@ n, och med få svingar som **trend, inte en sak att öva** (BESLUT B47); de väl
 - **Svenska i appens text** (BESLUT B30): filens fritext är engelska.
 - **Ge ett följdfel en egen övning**, väcka en avslutad övning, eller byta en
   övning som rör sig.
+<!-- /claude-appen -->
 - **Välja ett 3D-mått som sak, bedöma det mot en gräns, eller rapportera det per
   sving** (BESLUT B14, B37). Det är passets trend, märkt "utan markörer".
+<!-- claude-appen -->
 - **Säga att något är rörlighet** utan treregeln, eller säga "är" i stället för
   "troligen".
+<!-- /claude-appen -->
 - **Lägga in riktig data i repot** eller skriva ut Johannes tal i en commit.
 
 ## Utdata

@@ -192,8 +192,17 @@ def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> lis
     över alla övningar för det. Ett fel som inte står i det senaste valet är
     avslutat."""
     pass_ids = [p for p in lista(rot) if till is None or p <= till]
-    analyser = {p: las_analys(rot, p) for p in pass_ids}
-    docs = [d for d in att_jobba_pa(rot) if (till is None or d["pass"] <= till) and (fore is None or d["pass"] < fore)]
+    return ovningar_ur({p: las_analys(rot, p) for p in pass_ids}, att_jobba_pa(rot), till, fore)
+
+
+def ovningar_ur(analyser: dict[str, dict], alla_docs: list[dict], till: str | None = None,
+                fore: str | None = None) -> list[dict]:
+    """`ovningar` ur passens analyser ({pass: analys}) och valen (`att_jobba_pa.json`), utan
+    disken: samma räkning som telefonen gör ur sina pass (SwingLabKit `Ovningslage`, BESLUT B53).
+    METOD MT4, METOD MT5"""
+    pass_ids = sorted(p for p in analyser if till is None or p <= till)
+    docs = sorted((d for d in alla_docs if (till is None or d["pass"] <= till) and (fore is None or d["pass"] < fore)),
+                  key=lambda d: d["pass"])
     senast: dict[str, dict] = {}
     forra_fel: set[str] = set()
     for d in docs:                                     # äldst först

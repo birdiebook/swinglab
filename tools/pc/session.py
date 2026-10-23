@@ -11,11 +11,13 @@ Som kommando läser den telefonens paket och skriver passets analys (S5):
 Ett paket per telefon (vy) och pass. Analysen och kontaktarken hamnar i
 `data/historik/pass/<pass>/` (gitignorerad); baslinjen och förra passet tas ur
 historiken om `--forra` inte anges. `--ut <mapp>` skriver dit i stället och
-lämnar historiken orörd.
+lämnar historiken orörd. `--claude-text` skriver också `claude-text.txt`: samma
+underlag som "Ask Claude" på telefonen (S5b), att klistra in i Claude-appen.
 """
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import math
 import sys
 from pathlib import Path
@@ -149,6 +151,8 @@ def main(argv=None) -> int:
     ap.add_argument("--historik", default=str(H.ROT), help="historikens mapp (standard data/historik)")
     ap.add_argument("--ut", help="skriv hit i stället för i historiken (historiken läses inte)")
     ap.add_argument("--utan-kontaktark", action="store_true")
+    ap.add_argument("--claude-text", action="store_true",
+                    help="skriv också underlaget till Claude-appen (claude-text.txt, S5b), samma text som telefonen")
     a = ap.parse_args(argv)
     rot = Path(a.historik)
     for falt, mapp in (("--ut", a.ut), ("--historik", a.historik)):
@@ -198,6 +202,15 @@ def main(argv=None) -> int:
             print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
             return 1
     A.skriv(analys, ut / "analys.json")
+    if a.claude_text:
+        # Samma text som "Ask Claude" på telefonen (BESLUT B52): minnet före passets val.
+        from . import underlag as U
+        skapad = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        if a.ut:
+            text = U.text(U.data(A.ren(analys), {}, [], [], skapad))
+        else:
+            text = U.ur_historik(rot, pass_id, skapad)
+        (ut / "claude-text.txt").write_text(text, encoding="utf-8")
 
     matta = [r for r in analys["slag"] if "matt" in r]
     print(f"Pass {pass_id}: {len(matta)} slag mätta av {len(analys['slag'])}"
@@ -228,6 +241,8 @@ def main(argv=None) -> int:
         for o in t["osaker"]:
             print(f"    osäker: {o}")
     print(f"Skrev {ut / 'analys.json'}")
+    if a.claude_text:
+        print(f"Skrev {ut / 'claude-text.txt'} (klistra in i Claude-appen)")
     return 0
 
 
