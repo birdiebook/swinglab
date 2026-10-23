@@ -141,6 +141,14 @@ struct ClubMarkContent<Surface: View>: View {
         return ZStack {
             surface(lc)
             Canvas { c, z in
+                // De satta punkterna och linjen syns också i glaset, förstorade.
+                func q(_ k: KlubbPunkt) -> CGPoint {
+                    CGPoint(x: CGFloat((k.x / Double(marking.width) - lc.x) / lc.width) * z.width,
+                            y: CGFloat((k.y / Double(marking.height) - lc.y) / lc.height) * z.height)
+                }
+                if let g = marking.grip, let h = marking.hosel { c.linje(q(g), q(h), Theme.text, 1.2) }
+                if let g = marking.grip { c.prick(q(g), 3.5, Theme.text) }
+                if let h = marking.hosel { c.prick(q(h), 4.5, Theme.text, ihalig: true) }
                 let p = CGPoint(x: CGFloat(cx) * z.width, y: CGFloat(cy) * z.height)
                 c.linje(CGPoint(x: p.x - 14, y: p.y), CGPoint(x: p.x - 4, y: p.y), Theme.text, 1)
                 c.linje(CGPoint(x: p.x + 4, y: p.y), CGPoint(x: p.x + 14, y: p.y), Theme.text, 1)
