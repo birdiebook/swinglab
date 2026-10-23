@@ -1,20 +1,7 @@
-c51003d875d8c4b1b7be3593b9efcf1b3876696c s6c 2026-10-23T12:11:28Z run 39951192824
+3b4dbec341b5c7b5e14612980f8e6a09b99e02a9 s5b 2026-10-23T12:12:56Z run 39951529031
 == swift-release
-GRÖNT: 238 test, 0 fel, 23 s i testerna, bygget 66 s
-Långsammast (av 238):
-      4.5 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      4.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.6 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.6 s  TreDTests.testTidenForEttPass
-      1.6 s  TreDTests.testUtanBrusSomPythonOchExakt
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.7 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.5 s  TreDTests.testSparrenHopparOver
-      0.4 s  TreDTests.testDelstegenSomPython
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/Claude/ClaudeSvar.swift:39:28: error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+|                            `- error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+error: fatalError
 
