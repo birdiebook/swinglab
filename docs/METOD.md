@@ -959,16 +959,38 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
     alltså mot flyktpunkten (M48), och är då **kortast i bild**. Rutan är den där skaftet är
     kortast och pekar mot flyktpunkten. **räkning** (perspektivet), **antagande** (att
     skaftet är parallellt med mållinjen där det är parallellt med marken).
-  - **Framifrån (FO)** syns "parallellt med marken" direkt: skaftet vågrätt i bild.
+  - **Framifrån (FO)** syns "parallellt med marken" direkt: skaftet vågrätt i bild (vinkeln
+    180° vid P2 och P6, 0° vid P8, M46). Mållinjen ligger i bildens plan, så uppställningen
+    flyttar vinkeln vid ett parallellt skaft högst 1,1° (M49): under en ruta i nedsvingen.
   - **Med två parade telefoner** (S2g) tas tiden ur FO-serien, där parallellt syns, och
-    DTL:s ruta är den närmast samma tid (parningen, MT9). Inte byggt än: appens FO-läge
-    kommer i nästa steg.
+    DTL:s ruta är den närmast samma tid. `ClubPairTime` (SwingLabKit) tar det parade klicket
+    ur `par.json`:s parning (`partner`: den styrandes klick är `a`, följarens `b`; ingen vid
+    `osaker`) och för FO-markeringens tid över med träffens förskjutning (`dtlTimes`):
+    DTL:s filtid = FO:s filtid ∓ `traff_forskjutning_s` (minus när FO följer, plus när FO
+    styr), relativt DTL:s klick. Ljudets olika väg till telefonerna (MS6) flyttar alltså inte
+    tiden: med FO 1 m längre bort är DTL:s tid FO:s + 1/343 s, vem som än styr (provat i
+    `KlubbaMarkeringTests`). **räkning** (parningen, MS9–MS10). `ClubMarking` föreslår den
+    tiden bakifrån före kroppens. **Inte inkopplat:** FO-telefonens markeringar finns inte på
+    DTL-telefonen (BESLUT B56), och PC:n märker inga P-positioner, så förslaget prövas bara i
+    Swift.
 - **Förslaget:** P2 mitt mellan P1 och P3 (annars P4), P6 mitt mellan P5 (annars P4) och P7,
   P8 mitt mellan P7 och P9 (annars P10) (`klubba.forslag_tid`, `Klubba.forslagTid`). Bara
   positionerna, inte baksvingens start, så att telefonen och PC:n föreslår samma ruta också
   för slag mätta före S7a. Johannes stegar därifrån; rutan han markerar blir P2, P6 eller P8
   för den svingen (`positioner` i analysen och slagets mått). **antagande** (mittpunkten
   är bara en start).
+- **Förslaget ur skaftet framifrån** (BESLUT B56): när positionerna före och efter är
+  markerade (P1 och P3 för P2, P5 och P7 för P6, P7 och P9 för P8) föreslås rutan där
+  skaftets vinkel (M46, speglad, M1), linjärt i tiden mellan dem, går genom vågrätt
+  (`klubba.forslag_tid_skaft`, `Klubba.forslagTidSkaft`, samma tal inom 1e-9). Vinkeln går åt
+  svingens håll i den speglade bilden, så att varvet över ±180° räknas rätt: baksvingen
+  **medurs** (P1 −95° → −180° → P3 130° är 135°), nedsvingen och genomsvingen **moturs**
+  (P5 100° → 180° → P7 256°, P7 −104° → 0° → P9 80°, 184°). Inget förslag när en ände
+  saknas eller är hoppad, tiderna inte är i ordning eller vinkeln inte når vågrätt (en kort
+  baksving); då gäller kroppens. Märkningen går P1–P10 i ordning, så vid första märkningen
+  saknas P3 när P2 märks: förslaget ur skaftet gäller när Johannes går tillbaka eller märker
+  om. **antagande** (vinkeln linjär i tiden; handleden vinklas mest mellan P2 och P3, så
+  förslaget kan ligga någon ruta fel), oprövat på riktiga svingar.
 - **Markeringen** (`KlubbMarkering`): positionen, rutans tid (s relativt klicket, Visions
   rutor), greppet och hoseln i hela bildens pixlar, källan (`klick`, eller greppet
   `handlederna_bekraftad`), när den ändrades (`andrad`), och `hoppad` för en position där
@@ -978,7 +1000,8 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   i ångra och är den som sparas och som videon söks till, också efter ett ångra. Ett steg
   till en annan ruta med en punkt satt frågar först ("Clear the points?") och tömmer dem;
   ett tryck på en annan ruta än den första punktens blir ingen punkt.
-- **Märkningen på telefonen** (`ClubMarking`, DTL först): ytan visar seriens utsnitt
+- **Märkningen på telefonen** (`ClubMarking`, bakifrån och framifrån, BESLUT B47, B56): ytan
+  visar seriens utsnitt
   vidgat med **15 %** per sida (som MF6). Ett tryck sätter greppet och nästa hoseln, och
   **positionen sparas av sig själv** när hoseln är satt och nästa visas; ångra och raden
   P1–P10 finns kvar. **Greppet som ring:** handledernas mitt i rutan (konfidens ≥ 0,3, M1)
@@ -988,8 +1011,8 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   tryck närmare ytans kant än **3 %** (eller utanför bilden) blir ingen punkt. En satt punkt
   flyttas när fingret börjar inom **5 %** av den och rör sig mer än **4 pt**; punkten följer
   fingrets förflyttning (avståndet mellan finger och punkt behålls), och ett kortare drag är
-  ett tryck. Riktpinnen sätts med två tryck (M48). **antagande** (gränserna, valda för ett
-  finger på en telefon; oprövade på telefonen).
+  ett tryck. Riktpinnen sätts med två tryck, bara bakifrån (M48). **antagande** (gränserna,
+  valda för ett finger på en telefon; oprövade på telefonen).
 - **Förstoringsglaset** är 124 pt brett och visar en del av ytan som är 124/3 pt bred, ur
   rutan som stillbild med toleransen 0 (`AVAssetImageGenerator`), så att förstoringen i
   punkter på skärmen är **3,000 ×** (mätt i simulatorprovet: `loupeMagnification` på ytans
@@ -997,8 +1020,10 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   det inte täcker fingret eller en satt punkt, inskjutet från ytans kant.
 - **Tryck per sving:** greppet och hoseln per position, alltså **20** för P1–P10 (Next
   behövs inte längre: 10 tryck färre), plus stegen till P2, P6 och P8 från förslaget,
-  uppskattat **2–5** per position: cirka **26–35** tryck per sving. En hoppad position är
-  ett tryck; riktpinnen två tryck en gång per serie.
+  uppskattat **2–5** per position: cirka **26–35** tryck per sving, i båda vyerna. En hoppad
+  position är ett tryck; riktpinnen två tryck en gång per serie bakifrån. Framifrån med
+  ändarna markerade (en ommärkning) kan förslaget ur skaftet spara steg; hur många mäts på
+  telefonen.
 
 ## M46 — Skaftets vinkel vid varje position, och osäkerheten (båda vyerna)
 
@@ -1087,8 +1112,8 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
 ## M49 — Klubban framifrån: toppen, armen och skaftlutningen (FO)
 
 Framifrån ligger mållinjen i bildens plan, så skaftets lutning mot vågrätt och lodrätt
-syns direkt; djupled (mot och från kameran) syns inte. Byggs i Python och Swift nu;
-appens märkning framifrån kommer i nästa steg (PLAN S7a).
+syns direkt; djupled (mot och från kameran) syns inte. Måtten finns i Python och Swift, och
+appen märker framifrån med samma flöde som bakifrån, utan riktpinne (BESLUT B56, PLAN S7a).
 
 - `skaft_topp`: vektorn grepp → hosel mot vågrätt vid P4, grader, **0 = parallellt med
   marken mot målet**, **+ = kort av parallellt** (huvudet över greppet), − = förbi
@@ -1104,6 +1129,40 @@ appens märkning framifrån kommer i nästa steg (PLAN S7a).
 - `skaft_lutning_traff`: skaftet hosel → grepp mot lodlinjen vid P7, grader, **+ = greppet
   mot målet** (framåtlutning), − = bakåt. **räkning** i bild; egen baslinje (ingen norm
   läst i original med samma definition).
+- **Uppställningen framifrån** för klubbans mått: kameran **mitt för spelaren, i höfthöjd,
+  riktad vinkelrätt mot mållinjen** (texten i appens uppställning: "Facing the player, at hip
+  height, aimed square to the target line"). Då ligger mållinjen i bildens plan, och ett
+  skaft parallellt med den syns i sin fulla längd och sin riktning.
+- **Känsligheten för uppställningen**, mätt i 3D (2026-10-23, granskningens metod: en
+  påhittad högersving framifrån, punkterna projicerade med en hålkamera, f = 1400 px på
+  1920 px långsida, stående 1080 × 1920; fötterna 3,5 m från kameran, bollen 2,9 m; skaftet
+  0,80 m; måtten räknade med `klubba.mat`). Utgångsläget är kameran mitt för bollen på
+  1,0 m, i våg och vinkelrätt mot mållinjen. Ändringen i grader:
+
+  | Uppställningen | `skaft_topp` | `skaft_arm_p5` | `skaft_arm_p6` | `skaft_lutning_traff` |
+  |---|---|---|---|---|
+  | vriden på platsen, per grad (±10°) | −0,21 | +0,14 | ≤ 0,08 | ≤ 0,03 |
+  | höjden 0,6 m / 1,4 m (i våg) | 0,0 (across ±10°: ±1,2) | +4,7 / −4,6 | +4,8 / −4,3 | +0,7 / −0,6 |
+  | höjden 1,4 m, lutad 6° nedåt | 0,0 (across ±10°: ±1,2) | −3,8 | −4,4 | −0,1 |
+  | flyttad 0,5 m längs mållinjen, riktad mot spelaren | +1,7 | −7,9 | +3,6 | +3,5 |
+  | rullad 1° (inte i våg) | +1,0 | 0 | 0 | −1,0 |
+
+  Höjden flyttar casting (armen och skaftet går båda i djupled) med cirka **2,3° per 0,2 m**;
+  sidoläget längs mållinjen flyttar casting **1,6°** och skaftlutningen **0,7° per 0,1 m**;
+  vridningen på platsen högst **0,2° per grad**. Toppen påverkas av höjden bara när skaftet
+  pekar i djupled (across eller laid off ±10° ger ±1,2° på 0,6 eller 1,4 m och 0 i toppens
+  höjd). Rullningen går 1:1 in i skaftets vinkel, toppen och skaftlutningen men inte i
+  casting (en vinkel mellan två linjer i samma bild); lodlinjen (MS17) rättar den inte än.
+  Vid P2, P6 och P8 flyttar uppställningen vinkeln hos ett parallellt skaft högst 1,1° (höjden
+  1,4 m och vriden 5°, eller rullad 1°), alltså oftast under en ruta. Alla FO-mått har egen
+  baslinje, så det som räknas är samma uppställning pass mot pass. **räkning** (perspektivet), **antagande**
+  (svingens punkter i 3D).
+- **Osäkerheten** följer M46: 3 px per tryck genom måttets geometri, och måttet saknas över
+  4°. Framifrån är skaftet långt i bild: med 400 px/m (de påhittade svingarna, 1080 × 1920)
+  och grepp → hosel 0,80 m är det 285–310 px vid P1, P2, P6, P7 och P8, 220–280 px vid P3,
+  P4, P5 och P9 och cirka 160 px i finishen, och osäkerheten **0,8–1,1°** (finishen 1,5°;
+  `test_klubba`, fixturerna). Casting tar bara skaftets två tryck; armen ur lederna ingår inte
+  i osäkerheten, och nära 180° (arm och skaft i linje) spärrar acos branta derivata måttet.
 
 ---
 
