@@ -115,6 +115,7 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
 | `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
+| `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp, METOD M15); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
 | `vad` | text | Infobladet (BESLUT B41): en mening på engelska, vad som mäts och mellan vilka punkter. |
 | `varfor` | text | Infobladet: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
 | `tecken` | text | Infobladet: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
@@ -133,7 +134,7 @@ och `positioner`, och valfritt `fel` och `status`; inga andra fält:
 | `varfor` | text | Som felens: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
 | `tecken` | text | Som felens: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
 | `fel` | text | Valfri. Katalogens id för felet som måttet hör till (sway hittills vid P3 → `sway_topp`), så att accenten för det du övar på (BESLUT B31) följer med. |
-| `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "own". Utan fältet: egen baslinje. |
+| `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna och genomsvingens tid, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "own". Utan fältet: egen baslinje. |
 
 Granskningen vid en position visar felen och måtten vars `positioner` har den,
 i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid

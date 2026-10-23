@@ -3,7 +3,7 @@ import Foundation
 /// Infobladet (BESLUT B41): namnet och fyra rader om ett mått, ur katalogen. Den enda
 /// platsen med beskrivande text; skärmarna visar bara namn, tal och spann (BESLUT B13).
 /// Öppnas med ett tryck på en måttrad eller ⓘ i Today, Progress, passet och granskningen.
-public struct Infoblad: Equatable, Sendable {
+public struct Infoblad: Equatable, Sendable, Identifiable {
     public let namn: String
     /// Vad som mäts och mellan vilka punkter.
     public let vad: String
@@ -14,6 +14,9 @@ public struct Infoblad: Equatable, Sendable {
     /// Källan ur `status` och `kalla`: "Assumption, own baseline". Visas i grått efter
     /// `Texter.kallaRubrik`.
     public let kalla: String
+
+    /// För `sheet(item:)`: namnet och raderna (två blad med samma text är samma blad).
+    public var id: String { [namn, vad, varfor, tecken, kalla].joined(separator: "\n") }
 
     public init(namn: String, vad: String, varfor: String, tecken: String, kalla: String) {
         self.namn = namn
@@ -27,7 +30,7 @@ public struct Infoblad: Equatable, Sendable {
     public init(_ fel: Katalog.Fel, namn: String) {
         self.init(namn: namn, vad: fel.vad, varfor: fel.varfor, tecken: fel.tecken,
                   kalla: Texter.kalla(status: fel.status, kontrollerad: fel.kontrollerad, gransFinns: fel.gront != nil,
-                                      varden: Self.webbplatser(fel.kalla)))
+                                      varden: Self.webbplatser(fel.kalla), harledd: fel.gransHarledd))
     }
 
     /// Ett mått i katalogens `matt`: egen baslinje, farterna oprövade.

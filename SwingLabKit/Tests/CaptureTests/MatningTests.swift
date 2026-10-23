@@ -306,7 +306,7 @@ final class MatningTests: XCTestCase {
         // Felen först, sedan katalogens mått (S1b: knänas sway, bröstets och handens lyft, METOD M31–M34).
         XCTAssertEqual(p4.map(\.matt), ["backen_sway_topp", "sidbojning_topp", "framre_armbage_topp",
                                         "framre_kna_sway_topp", "bakre_kna_sway_topp", "brost_lyft_topp",
-                                        "hand_lyft_topp"])
+                                        "hand_lyft_topp", "huvud_lyft_topp"])
         XCTAssertTrue(p4.first { $0.matt == "bakre_kna_sway_topp" }!.ovas, "bakre knäets sway följer sway-felet")
         let sway = try XCTUnwrap(p4.first)
         XCTAssertEqual(sway.namn, "Hip sway")                  // granskningen: utan position (BESLUT B40)

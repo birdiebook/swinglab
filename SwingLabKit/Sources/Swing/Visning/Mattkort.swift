@@ -110,11 +110,9 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         return k
     }
 
-    /// Kortet; felets namn med positionen när den behövs ("Hip sway at top", BESLUT B40).
+    /// Kortet med måttets namn utan position: kortets rubrik bär den ("FO · top", BESLUT B40).
     static func kortUtanBlad(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
-        let e0 = Etiketter.etikett(fel.matt)
-        let e = Mattetikett(Texter.felnamn(e0.namn, fas: e0.fas), e0.enhet, e0.decimaler, e0.fas, tecken: e0.tecken,
-                            plus: e0.plus, vy: e0.vy, geometri: e0.geometri)
+        let e = Etiketter.etikett(fel.matt)
         let grupp = fel.grupp
         let markning = Markning.fran(fel)
         let vy = Vy(rawValue: fel.vy)

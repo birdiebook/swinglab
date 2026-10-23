@@ -497,10 +497,12 @@ FIXTURSVINGAR = {
     # Vänsterspelaren med den främre handleden dold: greppregeln ger händerna,
     # men armbågsmåtten (M22, M23) saknas.
     "fo_vanster": ("fo", "vanster", 12, 0.8, (("handled_h", 0.0, 9.9),), {}),
-    # Axlarna vridna i bildens plan vid toppen (METOD M39); i dtl_lucka och dtl_kort
-    # skymmer de varandra, och främre armen mot axellinjen saknas.
+    # Axlarna vridna i bildens plan vid toppen (METOD M39); i dtl_kort skymmer de varandra,
+    # och främre armen mot axellinjen saknas, och i dtl_lucka ligger axellinjen nära spärren
+    # (15,3 cm i figuren), så att Python och Swift prövas vid gränsen.
     "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}),
-    "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80)), {}),
+    "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80)),
+                  {"axel_dx": (1.5, 6.5, 1.5, 1.5), "axel_dz": (0, -4.0, 0, 0)}),
     # Luckor kring toppen (2,20 s): höften 0,13 s (mer än MAX_LUCKA_S, saknas),
     # näsan 0,05 s (interpoleras). METOD M3
     "fo_luckor": ("fo", "hoger", 15, 0.8, (("hoft_v", 2.135, 2.265), ("nasa", 2.175, 2.225)), {}),

@@ -75,6 +75,11 @@ public enum Etiketter {
             // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
             e("hand_djup_topp", "cm", T.top, tecken: true, plus: T.ball),
             e("framre_arm_plan_topp", "°", T.top, tecken: true),
+            // Huvudet (METOD M8, M9) i granskningen.
+            e("huvud_mot_bollen_topp", "cm", T.top, tecken: true, plus: T.ball),
+            e("huvud_mot_bollen_traff", "cm", T.impact, tecken: true, plus: T.ball),
+            e("huvud_lyft_topp", "cm", T.top, tecken: true),
+            e("huvud_lyft_traff", "cm", T.impact, tecken: true),
             e("backen_sway_topp", "cm", T.top, tecken: true, plus: T.target),
             e("backen_resa_framat", "cm", T.topToImpact, plus: T.target),
             e("backen_thrust_traff", "cm", T.impact, tecken: true, plus: T.ball),
@@ -82,7 +87,7 @@ public enum Etiketter {
             e("tempo", ": 1", T.startTopImpact, vy: T.ljud, geometri: .tempo),
             e("sway_gap_traff", "cm", T.impact, tecken: true, plus: T.target),
             e("axellinje_lutning_traff", "°", T.impact, tecken: true),
-            e("sidbojning_topp", "°", T.top, tecken: true),
+            e("sidbojning_topp", "°", T.top, tecken: true, plus: T.awayFromTarget),
             e("framre_armbage_efter_traff", "°", T.afterImpact),
             e("bakre_armbage_topp", "°", T.top, tecken: true),
             e("handbana", "cm", T.downswing, tecken: true),

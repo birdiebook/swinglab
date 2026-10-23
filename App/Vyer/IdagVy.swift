@@ -12,6 +12,8 @@ struct IdagVy: View {
     var importera: (() -> Void)? = nil
     var oppnaPasset: () -> Void = {}
     var oppnaJobba: () -> Void = {}
+    /// Bladet som visas (BESLUT B41): ⓘ på en rad eller radens VoiceOver-åtgärd.
+    @State private var blad: Infoblad?
 
     private func namn(_ r: Idagvisning.Rad) -> some View {
         Text(r.namn)
@@ -112,22 +114,26 @@ struct IdagVy: View {
                                             .frame(minWidth: 40, idealWidth: 92, maxWidth: 92)
                                         tal(r).frame(minWidth: 66, alignment: .trailing)
                                             .layoutPriority(1)
-                                        InfoKnapp(blad: r.info)
+                                        InfoKnapp(blad: r.info) { blad = r.info }
                                     }
                                     VStack(alignment: .leading, spacing: 6) {
                                         namn(r)
                                         HStack(spacing: 12) {
                                             SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
                                             tal(r)
-                                            InfoKnapp(blad: r.info)
+                                            InfoKnapp(blad: r.info) { blad = r.info }
                                         }
                                     }
                                     .padding(.vertical, 6)
                                 }
                                 .frame(minHeight: 34)
-                                // combine: raden läses som en, och ⓘ blir radens åtgärd.
-                                .accessibilityElement(children: .combine)
+                                // VoiceOver: dubbeltryck öppnar passet som förut, och bladet är en
+                                // namngiven åtgärd på raden (BESLUT B41).
+                                .accessibilityElement(children: .ignore)
                                 .accessibilityLabel(r.upplasning)
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityAction { oppnaPasset() }
+                                .accessibilityAction(named: Text("About the measure")) { blad = r.info }
                             }
                         }
                     }
@@ -152,5 +158,6 @@ struct IdagVy: View {
         }
         .padding(.horizontal, 20)
         .background(Theme.ground)
+        .sheet(item: $blad) { InfobladArk(blad: $0) }
     }
 }

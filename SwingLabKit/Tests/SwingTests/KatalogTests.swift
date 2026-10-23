@@ -36,7 +36,7 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
         XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
         // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, två följer ett fel.
-        XCTAssertEqual(k.matt.count, 35)
+        XCTAssertEqual(k.matt.count, 41)
         XCTAssertEqual(k.matt.first { $0.matt == "framre_arm_plan_topp" }?.positioner, ["P4"])   // METOD M39
         XCTAssertNil(k.matt.first { $0.matt == "hand_djup_topp" }?.fel)                         // METOD M38
         XCTAssertEqual(k.matt.first { $0.matt == "bakre_kna_sway_topp" }?.fel, "sway_topp")
@@ -44,7 +44,12 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "framre_arm_vinkelfart_max" }?.positioner, ["P5"])
         // Farterna är oprövade på telefonen och märks så (METOD M35–M37, BESLUT B11).
         XCTAssertEqual(Set(k.matt.filter { $0.status == "oprovad" }.map { $0.matt }),
-                       ["handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"])
+                       ["handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max", "genomsving_s"])
+        // Huvudet (METOD M8, M9) vid toppen och träffen, utan fel (Johannes 2026-10-23).
+        XCTAssertEqual(k.matt.first { $0.matt == "huvud_mot_bollen_topp" }?.positioner, ["P4"])
+        XCTAssertEqual(k.matt.filter { $0.matt.hasPrefix("huvud_lyft") }.count, 4)
+        XCTAssertTrue(try fel("sway_topp").gransHarledd)
+        XCTAssertFalse(try fel("tempo").gransHarledd)
         XCTAssertEqual(k.matt.first { $0.matt == "handfart_max" }.map { Markning.fran($0) }, .oprovad)
         XCTAssertEqual(k.matt.first { $0.matt == "stans_bredd" }.map { Markning.fran($0) }, .egen)
         for m in k.matt {
@@ -90,16 +95,16 @@ final class KatalogTests: XCTestCase {
         ("\"vad\": \"Ankle width", "\"vadd\": \"Ankle width",
          "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
         ("\"tecken\": \"1.0 = as wide as the shoulders\"", "\"tecken\": \" \"", "matt stans_bredd: tecken ska vara en text"),
-        ("\"varfor\": \"Sliding away", "\"varfor\": \"\", \"x\": \"Sliding away", "sway_topp: varfor ska vara en text"),
+        ("\"varfor\": \"Shows a slide away", "\"varfor\": \"\", \"x\": \"Sliding away", "sway_topp: varfor ska vara en text"),
         ("\"status\": \"oprovad\"}", "\"status\": \"provad\"}",
-         "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
+         "matt genomsving_s: status ska vara oprovad"),
     ]
 
     /// BESLUT B41: varje fel och varje mått har infobladets tre fält, som test_katalog.py.
     func testInfobladetFinnsOveralt() throws {
         let k = try katalog()
         let poster = k.fel.map { ($0.id, $0.vad, $0.varfor, $0.tecken) } + k.matt.map { ($0.matt, $0.vad, $0.varfor, $0.tecken) }
-        XCTAssertEqual(poster.count, 47)
+        XCTAssertEqual(poster.count, 53)
         for (namn, vad, varfor, tecken) in poster {
             for t in [vad, varfor, tecken] {
                 XCTAssertFalse(t.trimmingCharacters(in: .whitespaces).isEmpty, namn)

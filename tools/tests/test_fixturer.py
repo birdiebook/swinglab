@@ -64,6 +64,8 @@ class Fixturerna(unittest.TestCase):
         kort = json.loads(self.f["svingar"]["dtl_kort"][1])["matt"]
         self.assertNotIn("framre_arm_plan_topp", kort)             # axlarna skymmer varandra (METOD M39)
         self.assertIn("hand_djup_topp", kort)                      # (METOD M38)
+        # Axellinjen 15,3 cm i bild, strax över spärren på 15 cm (METOD M39): Swift ska ge samma.
+        self.assertIn("framre_arm_plan_topp", json.loads(self.f["svingar"]["dtl_lucka"][1])["matt"])
         vanster = json.loads(self.f["svingar"]["fo_vanster"][1])["matt"]
         self.assertNotIn("framre_armbage_topp", vanster)          # den egna handleden är dold
         self.assertIn("hander_fore_adress_traff", vanster)         # men greppregeln ger händerna

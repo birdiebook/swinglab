@@ -57,6 +57,9 @@ public enum Texter {
             // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
             "hand_djup_topp": "Hand depth",
             "framre_arm_plan_topp": "Lead arm to shoulder plane",
+            // Huvudet bakifrån och framifrån (METOD M8, M9), i granskningen sedan 2026-10-23.
+            "huvud_mot_bollen_topp": "Head toward ball", "huvud_mot_bollen_traff": "Head toward ball",
+            "huvud_lyft_topp": "Head height", "huvud_lyft_traff": "Head height",
         ]
         // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37), ett namn per fas.
         for (m, namn) in [("backen_bojning", "Hip hinge"), ("framre_kna", "Lead knee flex"),
@@ -96,9 +99,11 @@ public enum Texter {
     /// Åt vilket håll + pekar.
     public static let target = "target"
     public static let ball = "ball"
+    /// Sidböjningen: + bort från målet (METOD M14, BESLUT B40).
+    public static let awayFromTarget = "away from target"
 
-    /// "+ to target"
-    public static func plus(_ hall: String) -> String { "+ to \(hall)" }
+    /// "+ to target", "+ away from target"
+    public static func plus(_ hall: String) -> String { hall == awayFromTarget ? "+ \(hall)" : "+ to \(hall)" }
 
     // MARK: märkningen (Markning)
 
@@ -178,9 +183,15 @@ public enum Texter {
     public static let egenBaslinjeKalla = "own baseline"
     public static let oprovadKalla = "untested on the phone"
 
-    /// "Manufacturer (golf.com, golftec.co.za), not verified" eller "Assumption, own baseline".
-    public static func kalla(status: String, kontrollerad: Bool, gransFinns: Bool, varden: [String]) -> String {
+    /// Gränsen är ett antagande byggt på en tillverkares tal (sway_topp, METOD M15).
+    public static let antagandeFran = "Assumption from"
+
+    /// "Manufacturer (golf.com, golftec.co.za), not verified", "Assumption from manufacturer
+    /// (golf.com, golftec.co.za), not verified" (`harledd`) eller "Assumption, own baseline".
+    public static func kalla(status: String, kontrollerad: Bool, gransFinns: Bool, varden: [String],
+                             harledd: Bool = false) -> String {
         var t = statusord[status] ?? status
+        if harledd && status != "antagande" { t = "\(antagandeFran) \(t.lowercased())" }
         if status != "antagande" && !varden.isEmpty { t += " (\(varden.joined(separator: ", ")))" }
         if !gransFinns { t += ", \(egenBaslinjeKalla)" }
         if !kontrollerad && status != "antagande" { t += ", \(ejKontrollerad)" }

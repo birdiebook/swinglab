@@ -146,7 +146,7 @@ class Engelska(unittest.TestCase):
         k = json.loads((ROT / "katalog.json").read_text(encoding="utf-8"))
         texter = [(e["id"], f, e[f]) for e in k["fel"] for f in ("namn", "ovning", "tanke", "vad", "varfor", "tecken")]
         texter += [(e["matt"], f, e[f]) for e in k["matt"] for f in ("vad", "varfor", "tecken")]
-        self.assertEqual(len(texter), 12 * 6 + 35 * 3)
+        self.assertEqual(len(texter), 12 * 6 + 41 * 3)
         for namn, f, t in texter:
             self.assertIsNone(SVENSKA.search(t), f"{namn}.{f}: {t}")
 

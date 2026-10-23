@@ -95,6 +95,9 @@ def kontrollera(k: dict) -> list[str]:
             fel.append(f"{namn}: ovning_id ska vara a–z, 0–9 och _")
         if not isinstance(e.get("kontrollerad"), bool) or not isinstance(e.get("aktiv"), bool):
             fel.append(f"{namn}: kontrollerad och aktiv ska vara true/false")
+        # Valfritt: gränsen är ett antagande härlett ur källan (sway_topp, METOD M15). BESLUT B41
+        if "grans_harledd" in e and not (isinstance(e["grans_harledd"], bool) and e.get("gront") is not None):
+            fel.append(f"{namn}: grans_harledd ska vara true/false och kräver gront")
         if "positioner" in e and not positionerna_ok(e["positioner"], tom=True):
             fel.append(f"{namn}: {POSITIONER_FEL}")
         fel += _info(namn, e)

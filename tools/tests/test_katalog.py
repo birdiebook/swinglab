@@ -5,6 +5,7 @@ import json
 import unittest
 
 from _hjalp import gen
+from pc import att_jobba_pa as AJ
 from pc import katalog as K
 
 
@@ -45,7 +46,7 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
         # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37).
-        self.assertEqual(len(k["matt"]), 35)
+        self.assertEqual(len(k["matt"]), 41)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
         self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
@@ -58,7 +59,13 @@ class Formen(unittest.TestCase):
         self.assertIsNone(kopplat["framre_arm_plan_topp"])
         # Farterna är oprövade på telefonen (METOD M35–M37, BESLUT B11), inget annat.
         oprovade = {m["matt"] for m in k["matt"] if m.get("status") == "oprovad"}
-        self.assertEqual(oprovade, {"handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"})
+        self.assertEqual(oprovade, {"handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max",
+                                    "genomsving_s"})                                   # också finishens fart (M36)
+        # Huvudet (METOD M8, M9) vid toppen och träffen, utan fel (Johannes 2026-10-23).
+        self.assertEqual(matt[("dtl", "huvud_mot_bollen_topp")], ["P4"])
+        self.assertEqual(matt[("dtl", "huvud_lyft_traff")], ["P7"])
+        self.assertEqual(matt[("fo", "huvud_lyft_topp")], ["P4"])
+        self.assertIsNone(kopplat["huvud_mot_bollen_traff"])
         # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
         alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
         self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
@@ -81,7 +88,9 @@ class Formen(unittest.TestCase):
                     self.assertTrue(e[f].strip())
                     self.assertLessEqual(len(e[f]), 120)
             self.assertTrue(e["vad"].endswith(".") and e["varfor"].endswith("."), namn)
-        self.assertEqual(len(k["fel"]) + len(k["matt"]), 47)
+            for f in K.INFO:                                     # inga värdeord (BESLUT B13)
+                self.assertIsNone(AJ.vardeord(e[f]), f"{namn}.{f}")
+        self.assertEqual(len(k["fel"]) + len(k["matt"]), 53)
 
     def test_axellutningen_ar_avstangd_utan_grans(self) -> None:
         f = _fel("axellutning")
@@ -112,8 +121,9 @@ class Formen(unittest.TestCase):
         ('"vad": "Ankle width', '"vadd": "Ankle width',
          "matt stans_bredd: ska ha matt, vy, positioner, vad, varfor och tecken, och får ha fel"),
         ('"tecken": "1.0 = as wide as the shoulders"', '"tecken": " "', "matt stans_bredd: tecken ska vara en text"),
-        ('"varfor": "Sliding away', '"varfor": "", "x": "Sliding away', "sway_topp: varfor ska vara en text"),
-        ('"status": "oprovad"}', '"status": "provad"}', "matt framre_arm_vinkelfart_max: status ska vara oprovad"),
+        ('"varfor": "Shows a slide away', '"varfor": "", "x": "Sliding away', "sway_topp: varfor ska vara en text"),
+        ('"status": "oprovad"}', '"status": "provad"}', "matt genomsving_s: status ska vara oprovad"),
+        ('"grans_harledd": true', '"grans_harledd": 1', "sway_topp: grans_harledd ska vara"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),

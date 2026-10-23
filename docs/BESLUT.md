@@ -657,13 +657,16 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   godkände tolv namn (Hips toward ball, Spine angle loss, Trail elbow flare, Hands out
   (downswing), Hip sway, Hip shift to target, Spine tilt, Lead arm fold, Hip hinge,
   Chest height, Hand height, Follow-through time); resten följer samma princip
-  (`Texter.mattnamn`). I granskningen visar positionen redan var måttet tas, så där
-  står namnet utan position; felens rader på Today och i passet får positionen när
-  måttet tas i en punkt ("Hip sway at top", `Texter.felnamn`).
+  (`Texter.mattnamn`). I granskningen visar positionen redan var måttet tas, och i
+  passet står den i kortets rubrik ("FO · top"), så där står namnet utan position;
+  felens rader på Today får positionen när måttet tas i en punkt ("Hip sway at top",
+  `Texter.felnamn`). Huvudets mått (M8, M9) visas i granskningen som Head toward ball
+  och Head height (Johannes ja 2026-10-23).
 - **Ändras inte:** id:n, `att_jobba_pa.json` och PC:ns tal: bara visningsnamnen.
 - **Tecknen som inte stämde med tabellen** behåller kodens tecken (METOD): `backen_sway_*`
   är + mot målet (M15), inte bort från målet, och `sidbojning_topp` + bort från målet
-  (M14), inte mot målet. Tecknet står rätt i infobladet och kortets rubrik.
+  (M14), inte mot målet. Tecknet står rätt i infobladet och i kortets rubrik ("+ to
+  target", "+ away from target").
 - **Bortvalt:** att vända tecknen (PC:ns tal, gränserna och historiken följer dem).
 
 ## B41 — Infobladet: beskrivande text bara i bladet
@@ -675,7 +678,14 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   liten ⓘ i Today och Progress, öppnar ett blad i halv höjd med namnet, de tre raderna
   och källan i grått ("Source: Assumption, own baseline"), svartvitt (design/README),
   accenten bara som förut (B31). Källan byggs ur `status`, `kontrollerad`, gränsen och
-  `kalla` (webbplatserna) och påstår aldrig mer än METOD.
+  `kalla` (webbplatserna) och påstår aldrig mer än METOD: en gräns som är ett antagande
+  byggt på en tillverkares tal (`grans_harledd`, sway_topp, M15) heter "Assumption from
+  manufacturer (…)", och de oprövade måtten (farterna och genomsvingens tid, M35–M37)
+  säger "untested on the phone" i källan, inte i `varfor`. `varfor` säger aldrig mer än
+  METOD-raden: en definition eller "Shows …", inga orsakssamband och inga värdeord
+  (`att_jobba_pa.vardeord` i provet).
+- **VoiceOver på Today:** dubbeltryck på en rad öppnar passet som förut; bladet är radens
+  namngivna åtgärd "About the measure". ⓘ har en tryckyta på 44×44 pt.
 - **B13 gäller på skärmarna:** ingen beskrivande text där; bladet är det enda stället.
 - **Hålls av prov:** `test_katalog.py` och `KatalogTests` kräver fälten överallt,
   `test_engelska.py` fäller svenska i dem, `VisningTests` att varje rad har sitt blad,

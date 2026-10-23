@@ -209,7 +209,11 @@ telefonen. **Byggt (grenen `s1c`):** `Texter.mattnamn` och `Texter.felnamn`,
 webbplatserna i `kalla`), fälten i `Katalog` och `tools/pc/katalog.py`,
 `App/Vyer/InfobladVy.swift` (bladet, trycket och ⓘ), och bilden `infoblad` i
 `Prov/SwingLabProvFlikar.swift`. Två tecken i Johannes tabell stämde inte med koden
-(hip sway och spine tilt); koden behölls och bladet säger kodens tecken (B40).
+(hip sway och spine tilt); koden behölls och bladet och kortets rubrik säger kodens
+tecken (B40). Efter granskningen: huvudets mått i granskningen (M8, M9), `varfor` utan
+orsakssamband som METOD inte stöder, källan "Assumption from manufacturer" för sway_topp,
+genomsvingens tid märkt oprövad, Today med bladet som VoiceOver-åtgärd och ⓘ 44×44 pt,
+passets kort utan dubbel position, och fixturen `dtl_lucka` vid spärren på 15 cm (M39).
 
 ## S5 — PC-länken och Claude
 

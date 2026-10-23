@@ -102,10 +102,14 @@ public struct Katalog: Decodable, Sendable {
         public let vad: String
         public let varfor: String
         public let tecken: String
+        /// Gränsen är ett antagande härlett ur källan (sway_topp, METOD M15); bladets källa
+        /// säger då "Assumption from manufacturer". Valfritt, false utan fältet. BESLUT B41
+        public let gransHarledd: Bool
 
         enum CodingKeys: String, CodingKey {
             case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
             case positioner, vad, varfor, tecken
+            case gransHarledd = "grans_harledd"
             case ovningId = "ovning_id"
         }
 
@@ -136,6 +140,7 @@ public struct Katalog: Decodable, Sendable {
             vad = try c.decode(String.self, forKey: .vad)
             varfor = try c.decode(String.self, forKey: .varfor)
             tecken = try c.decode(String.self, forKey: .tecken)
+            gransHarledd = try c.decodeIfPresent(Bool.self, forKey: .gransHarledd) ?? false
         }
     }
 
@@ -177,6 +182,9 @@ public struct Katalog: Decodable, Sendable {
                 if let s = spann, s.count != 2 { fel.append("\(e.id): \(namn) ska vara [min, max] eller null") }
             }
             if e.gront == nil && e.gult != nil { fel.append("\(e.id): gult utan gront") }
+            if e.gransHarledd && e.gront == nil {
+                fel.append("\(e.id): grans_harledd ska vara true/false och kräver gront")
+            }
             if !positionernaOK(e.positioner, tom: true) { fel.append("\(e.id): \(positionerFel)") }
             fel += info(e.id, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
             for vy in e.vy == "bada" ? ["dtl", "fo"] : [e.vy] { visade.insert("\(vy)/\(e.matt)") }

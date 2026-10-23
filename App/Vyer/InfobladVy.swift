@@ -35,19 +35,26 @@ struct InfobladVy: View {
     }
 }
 
-/// Bladet som sheet: halv höjd, svart botten.
+/// Bladets innehåll i ett sheet: halv höjd, svart botten.
+struct InfobladArk: View {
+    let blad: Infoblad
+
+    var body: some View {
+        ScrollView { InfobladVy(blad: blad) }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Theme.ground)
+    }
+}
+
+/// Bladet som sheet, med tillståndet hos den som visar det.
 private struct InfobladSheet: ViewModifier {
     let blad: Infoblad?
     @Binding var visas: Bool
 
     func body(content: Content) -> some View {
         content.sheet(isPresented: $visas) {
-            if let blad {
-                ScrollView { InfobladVy(blad: blad) }
-                    .presentationDetents([.medium])
-                    .presentationDragIndicator(.visible)
-                    .presentationBackground(Theme.ground)
-            }
+            if let blad { InfobladArk(blad: blad) }
         }
     }
 }
@@ -77,20 +84,24 @@ extension View {
 }
 
 /// Den lilla ⓘ som öppnar bladet där raden redan har ett annat tryck (Today, Progress).
+/// Tryckytan är 44×44 pt, men raden räknar den som 28 hög. `visa` = vyn som visar bladet
+/// håller tillståndet själv (Today, `sheet(item:)`); utan den har knappen sitt eget.
 struct InfoKnapp: View {
     let blad: Infoblad?
+    var visa: (() -> Void)? = nil
     @State private var visas = false
 
     var body: some View {
         if blad != nil {
-            Button { visas = true } label: {
+            Button { if let visa { visa() } else { visas = true } } label: {
                 Image(systemName: "info.circle")
                     .typsnitt(13)
                     .foregroundStyle(Theme.tertiary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .padding(.vertical, -8)
             .accessibilityLabel(Text("About the measure"))
             .modifier(InfobladSheet(blad: blad, visas: $visas))
         }

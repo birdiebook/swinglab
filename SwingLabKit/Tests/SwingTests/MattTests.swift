@@ -49,10 +49,10 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (54 + 46 + 43 + 35 + 48 + 33 + 51 + 50 + 43 + 51 + 54 = 508;
+        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 = 509;
         // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna)
         // och positionerna (11 × 7 − 5 saknade = 72).
-        XCTAssertEqual(jamforda, 508)
+        XCTAssertEqual(jamforda, 509)
         XCTAssertEqual(positioner, 72)
     }
 
@@ -107,6 +107,10 @@ final class MattTests: XCTestCase {
         let kort = try Matt.mat(Sving.las(json: Fixturer.svingar[5].indata))         // dtl_kort
         XCTAssertNil(kort.matt["framre_arm_plan_topp"])
         XCTAssertNotNil(kort.matt["hand_djup_topp"])
+        // dtl_lucka: axellinjen ≈ 15,3 cm, strax över spärren (15 cm): vinkeln finns, som i Python.
+        let nara = try Matt.mat(Sving.las(json: Fixturer.svingar[3].indata))
+        XCTAssertNotNil(nara.matt["framre_arm_plan_topp"])
+        XCTAssertEqual(Matt.armMotAxlar(axelF: Punkt(0, 0), axelB: Punkt(-1, -1), hand: Punkt(-0.5, -1)), 18.43, accuracy: 0.01)
         XCTAssertEqual(Farter.vinkel(181), -179)
         XCTAssertEqual(Farter.vinkel(-180), 180)
         XCTAssertEqual(Farter.rutnat(2.2, 2.5).count, 301)

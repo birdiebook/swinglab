@@ -21,8 +21,9 @@
    "tanke": "Leave the stick standing.",
    "notering": "Låg handicap nära 0 (Sportsbox), tour ≈ +10 cm mot målet (GolfTEC). Gränsen är ett antagande byggt på de två (research 1 §1.1).",
    "vad": "How far the hip center moves along the target line from address to the top.",
-   "varfor": "Sliding away from the target in the backswing makes it hard to get back to the ball (sway).",
-   "tecken": "+ toward target · − away"
+   "varfor": "Shows a slide away from the target in the backswing (sway).",
+   "tecken": "+ toward target · − away",
+   "grans_harledd": true
   },
   {
    "id": "tempo",
@@ -43,7 +44,7 @@
    "tanke": "The club meets the ball on the third beat.",
    "notering": "Låg prioritet: tempot har inget belagt samband med utfallet (research 1 §1.9). Utanför grönt är gult, aldrig rött.",
    "vad": "Backswing time divided by downswing time, from the start, the top and the impact click.",
-   "varfor": "A steady ratio is a sign of a repeatable rhythm; it has no proven link to the result.",
+   "varfor": "Shows the rhythm of the swing; tempo has no proven link to the result.",
    "tecken": "3.0 = backswing three times as long"
   },
   {
@@ -65,7 +66,7 @@
    "tanke": "The chair stays in contact all the way.",
    "notering": "Egen baslinje tills tecknet och TPI-exemplet (> 3 tum mot bollen) är kontrollerade (research 1 §1.6).",
    "vad": "How far the hips move toward the ball from address to impact.",
-   "varfor": "Moving toward the ball stands you up and pushes the hands out (early extension).",
+   "varfor": "Moving toward the ball is early extension.",
    "tecken": "+ toward ball · − away"
   },
   {
@@ -87,7 +88,7 @@
    "tanke": "The ball sees the top of your cap all the way.",
    "notering": "Felet i 2D är lika stort som förlusten, därför egen trend (research 1 §1.5).",
    "vad": "How much the forward bend of the hip-to-shoulder line drops from address to impact.",
-   "varfor": "Standing up through impact moves the low point and the strike (loss of posture).",
+   "varfor": "The chest rising from address to impact is loss of posture.",
    "tecken": "+ rises · − bends more"
   },
   {
@@ -109,7 +110,7 @@
    "tanke": "Step toward the target.",
    "notering": "Sway bakåt och för lite förskjutning framåt är samma tema, bäckenets väg (PLAN S1).",
    "vad": "How far the hip center moves toward the target from the top to impact.",
-   "varfor": "Too little shift leaves the weight back and the low point behind the ball.",
+   "varfor": "Shows how far the hips shift toward the target in the downswing (too little hip shift).",
    "tecken": "+ toward target · − away"
   },
   {
@@ -131,7 +132,7 @@
    "tanke": "The belt buckle beats the cap to the target.",
    "notering": "Sportsbox definition och tecken är okända; vårt mått är bäckenets sway minus bröstets (M19). Ingen tour-gräns (research 1 §1.3).",
    "vad": "Hip sway minus chest sway at impact, both from address.",
-   "varfor": "Hips ahead of the chest at impact go with a good shift and side bend (sway gap).",
+   "varfor": "The gap between hip and chest sway at impact; no direction is set (own baseline).",
    "tecken": "+ hips ahead of chest · − behind"
   },
   {
@@ -153,7 +154,7 @@
    "tanke": "The trail shoulder below the lead shoulder.",
    "notering": "Avstängd: definitionen granskas i S0 och får ingen tour-gräns (METOD M17).",
    "vad": "The angle of the shoulder line to level at impact, face on.",
-   "varfor": "The trail shoulder below the lead goes with side bend at impact; the measure is under review.",
+   "varfor": "Shoulder line in the picture, not the chest's side bend; under review.",
    "tecken": "+ trail shoulder lower · − higher"
   },
   {
@@ -220,7 +221,7 @@
    "notering": "Egen baslinje (research 1 §1.11, research 3).",
    "vad": "Trail upper arm angle from vertical at the top, shoulder to elbow, down the line.",
    "varfor": "A trail elbow pointing out at the top is the flying elbow.",
-   "tecken": "+ out from the body · − in"
+   "tecken": "+ away from the ball · − toward"
   },
   {
    "id": "over_the_top",
@@ -263,45 +264,51 @@
    "tanke": "The clubhead far from your head at the top.",
    "notering": "För en vänsterspelare är det högerarmen (främre). GolfTEC: 76° mot 10° är ett elevexempel, ingen norm.",
    "vad": "Lead elbow bend at the top, shoulder to elbow to wrist.",
-   "varfor": "A bent lead arm at the top shortens the swing arc.",
+   "varfor": "Shows a bent lead arm at the top.",
    "tecken": "0 = straight · + bent"
   }
  ],
  "matt": [
   {"matt": "brost_bojning_adress", "vy": "dtl", "positioner": ["P1"], "vad": "The forward bend of the hip-to-shoulder line from vertical at address.", "varfor": "The spine angle at address is what loss of posture is measured from.", "tecken": "+ toward ball"},
-  {"matt": "bakre_kna_adress", "vy": "dtl", "positioner": ["P1"], "vad": "Trail knee bend at address, hip to knee to ankle.", "varfor": "Knee flex sets the posture the body turns around.", "tecken": "0 = straight · + bent"},
-  {"matt": "stans_bredd", "vy": "fo", "positioner": ["P1"], "vad": "Ankle width divided by shoulder width at address.", "varfor": "Stance width sets the balance and how freely the hips turn.", "tecken": "1.0 = as wide as the shoulders"},
-  {"matt": "axellinje_lutning_adress", "vy": "fo", "positioner": ["P1"], "vad": "The angle of the shoulder line to level at address, face on.", "varfor": "The trail shoulder lower at address sets up the side bend at impact.", "tecken": "+ trail shoulder lower · − higher"},
+  {"matt": "bakre_kna_adress", "vy": "dtl", "positioner": ["P1"], "vad": "Trail knee bend at address, hip to knee to ankle.", "varfor": "Shows the trail knee flex in the posture at address.", "tecken": "0 = straight · + bent"},
+  {"matt": "stans_bredd", "vy": "fo", "positioner": ["P1"], "vad": "Ankle width divided by shoulder width at address.", "varfor": "Shows the stance width relative to the shoulders.", "tecken": "1.0 = as wide as the shoulders"},
+  {"matt": "axellinje_lutning_adress", "vy": "fo", "positioner": ["P1"], "vad": "The angle of the shoulder line to level at address, face on.", "varfor": "Shoulder line in the picture, not the chest's side bend; under review.", "tecken": "+ trail shoulder lower · − higher"},
   {"matt": "hoftlinje_lutning_adress", "vy": "fo", "positioner": ["P1"], "vad": "The angle of the hip line to level at address, face on.", "varfor": "Shows how the hips are set before the swing.", "tecken": "+ trail hip lower · − higher"},
   {"matt": "backen_sway_p3", "vy": "fo", "positioner": ["P3"], "vad": "How far the hip center moves along the target line from address to P3.", "varfor": "Shows a slide away from the target early in the backswing (sway).", "tecken": "+ toward target · − away", "fel": "sway_topp"},
   {"matt": "framre_armbage_p3", "vy": "fo", "positioner": ["P3"], "vad": "Lead elbow bend at P3, shoulder to elbow to wrist.", "varfor": "Shows whether the lead arm bends early in the backswing (bent lead arm).", "tecken": "0 = straight · + bent"},
   {"matt": "backen_resa_p5", "vy": "fo", "positioner": ["P5"], "vad": "How far the hip center moves toward the target from the top to P5.", "varfor": "Shows the hip shift so far in the downswing (too little hip shift).", "tecken": "+ toward target · − away", "fel": "backens_resa_framat"},
-  {"matt": "hander_fore_adress_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the hands move along the target line from address to impact.", "varfor": "Hands ahead at impact go with shaft lean and a ball-first strike.", "tecken": "+ toward target · − away"},
-  {"matt": "huvud_backen_finish", "vy": "fo", "positioner": ["P10"], "vad": "The nose minus the hip center along the target line in the finish.", "varfor": "The head over the hips shows a balanced finish.", "tecken": "+ head toward target · − behind"},
+  {"matt": "hander_fore_adress_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the hands move along the target line from address to impact.", "varfor": "Shows how far the hands have moved toward the target at impact.", "tecken": "+ toward target · − away"},
+  {"matt": "huvud_backen_finish", "vy": "fo", "positioner": ["P10"], "vad": "The nose minus the hip center along the target line in the finish.", "varfor": "Shows where the head ends up over the hips in the finish.", "tecken": "+ head toward target · − behind"},
   {"matt": "backen_bojning_adress", "vy": "dtl", "positioner": ["P1"], "vad": "The mean of the torso and trail thigh lean from vertical; an estimate, not the pelvic tilt.", "varfor": "Shows how the hip hinge holds; it does not show early extension.", "tecken": "+ forward toward ball"},
-  {"matt": "framre_kna_adress", "vy": "dtl", "positioner": ["P1"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "The lead knee straightening toward impact shows how the lead leg posts.", "tecken": "0 = straight · + bent"},
+  {"matt": "framre_kna_adress", "vy": "dtl", "positioner": ["P1"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "Shows how the lead knee straightens toward impact.", "tecken": "0 = straight · + bent"},
   {"matt": "backen_bojning_topp", "vy": "dtl", "positioner": ["P4"], "vad": "The mean of the torso and trail thigh lean from vertical; an estimate, not the pelvic tilt.", "varfor": "Shows how the hip hinge holds; it does not show early extension.", "tecken": "+ forward toward ball"},
-  {"matt": "framre_kna_topp", "vy": "dtl", "positioner": ["P4"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "The lead knee straightening toward impact shows how the lead leg posts.", "tecken": "0 = straight · + bent"},
-  {"matt": "brost_lyft_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "The chest rising at impact goes with loss of posture.", "tecken": "+ up · − down"},
+  {"matt": "framre_kna_topp", "vy": "dtl", "positioner": ["P4"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "Shows how the lead knee straightens toward impact.", "tecken": "0 = straight · + bent"},
+  {"matt": "brost_lyft_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "Shows the chest rising or dropping; at impact it belongs to loss of posture.", "tecken": "+ up · − down"},
   {"matt": "hand_lyft_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the hands move up or down from address.", "varfor": "Shows how high the hands go at the top and where they return at impact.", "tecken": "+ up · − down"},
   {"matt": "hand_djup_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the hands move toward or away from the ball from address to the top.", "varfor": "Shows how deep the hands go behind you at the top.", "tecken": "+ toward ball · − in toward the body"},
   {"matt": "framre_arm_plan_topp", "vy": "dtl", "positioner": ["P4"], "vad": "The angle between the lead arm, shoulder to wrist, and the shoulder line at the top.", "varfor": "Shows whether the lead arm swings above or below the shoulder turn.", "tecken": "+ above the shoulder plane · − below"},
   {"matt": "backen_bojning_traff", "vy": "dtl", "positioner": ["P7"], "vad": "The mean of the torso and trail thigh lean from vertical; an estimate, not the pelvic tilt.", "varfor": "Shows how the hip hinge holds; it does not show early extension.", "tecken": "+ forward toward ball"},
-  {"matt": "framre_kna_traff", "vy": "dtl", "positioner": ["P7"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "The lead knee straightening toward impact shows how the lead leg posts.", "tecken": "0 = straight · + bent"},
-  {"matt": "brost_lyft_traff", "vy": "dtl", "positioner": ["P7"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "The chest rising at impact goes with loss of posture.", "tecken": "+ up · − down", "fel": "tappad_hallning"},
+  {"matt": "framre_kna_traff", "vy": "dtl", "positioner": ["P7"], "vad": "Lead knee bend, hip to knee to ankle, down the line.", "varfor": "Shows how the lead knee straightens toward impact.", "tecken": "0 = straight · + bent"},
+  {"matt": "brost_lyft_traff", "vy": "dtl", "positioner": ["P7"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "Shows the chest rising or dropping; at impact it belongs to loss of posture.", "tecken": "+ up · − down", "fel": "tappad_hallning"},
   {"matt": "hand_lyft_traff", "vy": "dtl", "positioner": ["P7"], "vad": "How far the hands move up or down from address.", "varfor": "Shows how high the hands go at the top and where they return at impact.", "tecken": "+ up · − down"},
-  {"matt": "genomsving_s", "vy": "dtl", "positioner": ["P10"], "vad": "Time from impact until hand speed falls under 10 % of its peak after impact.", "varfor": "Shows how long the swing keeps moving into the finish.", "tecken": "Seconds after impact"},
-  {"matt": "framre_kna_sway_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the lead knee moves along the target line from address.", "varfor": "The knees show how the lower body shifts.", "tecken": "+ toward target · − away"},
-  {"matt": "bakre_kna_sway_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the trail knee moves along the target line from address.", "varfor": "A trail knee sliding away from the target goes with a sway.", "tecken": "+ toward target · − away", "fel": "sway_topp"},
-  {"matt": "brost_lyft_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "The chest rising at impact goes with loss of posture.", "tecken": "+ up · − down"},
+  {"matt": "genomsving_s", "vy": "dtl", "positioner": ["P10"], "vad": "Time from impact until hand speed falls under 10 % of its peak after impact.", "varfor": "Shows how long the swing keeps moving into the finish.", "tecken": "Seconds after impact", "status": "oprovad"},
+  {"matt": "framre_kna_sway_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the lead knee moves along the target line from address.", "varfor": "Shows how the lead knee shifts along the target line.", "tecken": "+ toward target · − away"},
+  {"matt": "bakre_kna_sway_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the trail knee moves along the target line from address.", "varfor": "Shows a trail knee sliding away from the target (sway).", "tecken": "+ toward target · − away", "fel": "sway_topp"},
+  {"matt": "brost_lyft_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "Shows the chest rising or dropping; at impact it belongs to loss of posture.", "tecken": "+ up · − down"},
   {"matt": "hand_lyft_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the hands move up or down from address.", "varfor": "Shows how high the hands go at the top and where they return at impact.", "tecken": "+ up · − down"},
-  {"matt": "framre_arm_vinkelfart_max", "vy": "fo", "positioner": ["P5"], "vad": "The peak turning speed of the lead arm, shoulder to wrist, in the downswing, in the picture.", "varfor": "Shows how fast the lead arm swings down; untested on the phone.", "tecken": "Degrees per second", "status": "oprovad"},
-  {"matt": "framre_kna_sway_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the lead knee moves along the target line from address.", "varfor": "The knees show how the lower body shifts.", "tecken": "+ toward target · − away"},
-  {"matt": "bakre_kna_sway_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the trail knee moves along the target line from address.", "varfor": "A trail knee sliding away from the target goes with a sway.", "tecken": "+ toward target · − away"},
-  {"matt": "brost_lyft_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "The chest rising at impact goes with loss of posture.", "tecken": "+ up · − down"},
+  {"matt": "framre_arm_vinkelfart_max", "vy": "fo", "positioner": ["P5"], "vad": "The peak turning speed of the lead arm, shoulder to wrist, in the downswing, in the picture.", "varfor": "Shows how fast the lead arm swings down.", "tecken": "Degrees per second", "status": "oprovad"},
+  {"matt": "framre_kna_sway_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the lead knee moves along the target line from address.", "varfor": "Shows how the lead knee shifts along the target line.", "tecken": "+ toward target · − away"},
+  {"matt": "bakre_kna_sway_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the trail knee moves along the target line from address.", "varfor": "Shows a trail knee sliding away from the target (sway).", "tecken": "+ toward target · − away"},
+  {"matt": "brost_lyft_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the shoulder center moves up or down from address.", "varfor": "Shows the chest rising or dropping; at impact it belongs to loss of posture.", "tecken": "+ up · − down"},
   {"matt": "hand_lyft_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the hands move up or down from address.", "varfor": "Shows how high the hands go at the top and where they return at impact.", "tecken": "+ up · − down"},
-  {"matt": "handfart_max", "vy": "fo", "positioner": ["P7"], "vad": "The peak speed of the hands from the top to impact, in the picture.", "varfor": "Hand speed drives club speed; face on it is a lower bound; untested on the phone.", "tecken": "Meters per second", "status": "oprovad"},
-  {"matt": "handfart_max_fore_traff_ms", "vy": "fo", "positioner": ["P7"], "vad": "How long before impact the hands reach their peak speed.", "varfor": "A peak long before impact means the hands slow into the ball; untested on the phone.", "tecken": "+ before impact", "status": "oprovad"},
-  {"matt": "genomsving_s", "vy": "fo", "positioner": ["P10"], "vad": "Time from impact until hand speed falls under 10 % of its peak after impact.", "varfor": "Shows how long the swing keeps moving into the finish.", "tecken": "Seconds after impact"}
+  {"matt": "handfart_max", "vy": "fo", "positioner": ["P7"], "vad": "The peak speed of the hands from the top to impact, in the picture.", "varfor": "Shows the hand speed in the downswing; face on it is a lower bound.", "tecken": "Meters per second", "status": "oprovad"},
+  {"matt": "handfart_max_fore_traff_ms", "vy": "fo", "positioner": ["P7"], "vad": "How long before impact the hands reach their peak speed.", "varfor": "Shows when in the downswing the hands are fastest.", "tecken": "+ before impact", "status": "oprovad"},
+  {"matt": "genomsving_s", "vy": "fo", "positioner": ["P10"], "vad": "Time from impact until hand speed falls under 10 % of its peak after impact.", "varfor": "Shows how long the swing keeps moving into the finish.", "tecken": "Seconds after impact", "status": "oprovad"},
+  {"matt": "huvud_mot_bollen_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the nose moves toward or away from the ball from address.", "varfor": "Shows the head moving toward or away from the ball; no tour value is known.", "tecken": "+ toward ball · − away"},
+  {"matt": "huvud_lyft_topp", "vy": "dtl", "positioner": ["P4"], "vad": "How far the nose moves up or down from address.", "varfor": "Shows the head rising or dropping in the swing.", "tecken": "+ up · − down"},
+  {"matt": "huvud_mot_bollen_traff", "vy": "dtl", "positioner": ["P7"], "vad": "How far the nose moves toward or away from the ball from address.", "varfor": "Shows the head moving toward or away from the ball; no tour value is known.", "tecken": "+ toward ball · − away"},
+  {"matt": "huvud_lyft_traff", "vy": "dtl", "positioner": ["P7"], "vad": "How far the nose moves up or down from address.", "varfor": "Shows the head rising or dropping in the swing.", "tecken": "+ up · − down"},
+  {"matt": "huvud_lyft_topp", "vy": "fo", "positioner": ["P4"], "vad": "How far the nose moves up or down from address.", "varfor": "Shows the head rising or dropping in the swing.", "tecken": "+ up · − down"},
+  {"matt": "huvud_lyft_traff", "vy": "fo", "positioner": ["P7"], "vad": "How far the nose moves up or down from address.", "varfor": "Shows the head rising or dropping in the swing.", "tecken": "+ up · − down"}
  ]
 }

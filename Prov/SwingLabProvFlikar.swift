@@ -148,9 +148,10 @@ extension SwingLabProvVyer {
         try rendera(UtvecklingVy(visning: u, valt: "backens_resa_framat"), namn: "flik-utveckling-resa", accent: false)
         try rendera(AttJobbaPaVy(visning: jobba), namn: "flik-jobba")
         try rendera(PassetVy(visning: pv, filter: .fo), namn: "flik-passet")
-        // Infobladet (BESLUT B41): swayens kort bär sitt blad, med positionen i namnet (B40).
+        // Infobladet (BESLUT B41): swayens kort bär sitt blad; Todays rad har positionen i namnet (B40).
         let blad = try XCTUnwrap(pv.kort.first { $0.id == "sway_topp" }?.info)
-        XCTAssertEqual(blad.namn, "Hip sway at top")
+        XCTAssertEqual(blad.namn, "Hip sway")
+        XCTAssertEqual(idag.rader.first { $0.id == "sway_topp" }?.info?.namn, "Hip sway at top")
         XCTAssertEqual(blad.tecken, "+ toward target · − away")
         XCTAssertTrue(blad.kalla.hasSuffix("not verified"), blad.kalla)
         XCTAssertNotNil(idag.rader.first?.info, "Today: ⓘ på raden")

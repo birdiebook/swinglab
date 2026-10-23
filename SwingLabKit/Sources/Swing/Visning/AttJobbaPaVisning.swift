@@ -173,8 +173,13 @@ public struct Idagvisning: Sendable {
             let p = Passvisning(katalog: katalog, pass: pass, ovas: attJobbaPa?.ovas ?? [])
             rader = p.kort.compactMap { k -> Rad? in
                 guard let s = k.spann else { return nil }
-                return Rad(id: k.id, namn: k.namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s,
-                           ovas: k.ovas, info: k.info)
+                // Raden saknar kortets rubrik, så namnet bär positionen när den behövs ("Hip sway at
+                // top"), och bladet heter som raden (BESLUT B40, B41).
+                let namn = Texter.felnamn(k.namn, fas: Etiketter.etikett(k.matt).fas)
+                let info = k.info.map { Infoblad(namn: namn, vad: $0.vad, varfor: $0.varfor, tecken: $0.tecken,
+                                                 kalla: $0.kalla) }
+                return Rad(id: k.id, namn: namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s,
+                           ovas: k.ovas, info: info)
             }
         } else {
             senaste = nil
