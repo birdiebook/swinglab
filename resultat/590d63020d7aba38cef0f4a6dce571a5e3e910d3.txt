@@ -1,0 +1,9 @@
+590d63020d7aba38cef0f4a6dce571a5e3e910d3 s5b 2026-10-23T12:15:16Z run 39951768999
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/SwingTests/ClaudeTests.swift:129:9: error: cannot find 'XCTAssertLessEqual' in scope
+|         `- error: cannot find 'XCTAssertLessEqual' in scope
+/__w/swinglab/swinglab/SwingLabKit/Tests/SwingTests/ClaudeTests.swift:130:9: error: cannot find 'XCTAssertLessEqual' in scope
+|         `- error: cannot find 'XCTAssertLessEqual' in scope
+error: fatalError
+

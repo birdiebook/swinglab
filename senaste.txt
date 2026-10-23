@@ -1,7 +1,9 @@
-3b4dbec341b5c7b5e14612980f8e6a09b99e02a9 s5b 2026-10-23T12:12:56Z run 39951529031
+590d63020d7aba38cef0f4a6dce571a5e3e910d3 s5b 2026-10-23T12:15:16Z run 39951768999
 == swift-release
 RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/Claude/ClaudeSvar.swift:39:28: error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
-|                            `- error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+/__w/swinglab/swinglab/SwingLabKit/Tests/SwingTests/ClaudeTests.swift:129:9: error: cannot find 'XCTAssertLessEqual' in scope
+|         `- error: cannot find 'XCTAssertLessEqual' in scope
+/__w/swinglab/swinglab/SwingLabKit/Tests/SwingTests/ClaudeTests.swift:130:9: error: cannot find 'XCTAssertLessEqual' in scope
+|         `- error: cannot find 'XCTAssertLessEqual' in scope
 error: fatalError
 
