@@ -218,7 +218,7 @@ fönstret.
 `swinglab-klubba/2` (nedan, "Klubbans märkning"), när något slag i paketet har markeringar.
 Telefonen skriver en ruta per markerad eller hoppad position: `id` `<vy>-<slag>-<P>`, `fil`
 = paketets namn, `val` = positionen, `t` = Visions tid, `t_klipp` = `t + klick_i_klipp_s`
-när klippet följer med (annars null), `forskjutning_ms` och `t_ruta` null, `visad` =
+när klippet följer med och rutan ligger i det, [0; `klipp_langd_s`) (annars null), `forskjutning_ms` och `t_ruta` null, `visad` =
 utsnittet som märkningen visade, `skaft_mitt` null och `forslag` tom. PC:n
 (`paket.py`) läser den till varje slags markeringar; en fil som inte går att läsa stoppar
 inte paketet (`Paket.klubba_fel`, i analysen `klubba.fel`).

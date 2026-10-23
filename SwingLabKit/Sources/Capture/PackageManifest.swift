@@ -376,7 +376,8 @@ public enum PassPackage {
 
     /// Klubbans markeringar som `klubba.json` (S7a, BESLUT B47), version 2, för slagen i
     /// manifestet som har markeringar; nil utan. `t_klipp` = Visions tid + klicket i klippet
-    /// när klippet följer med (samma ruta i klippet, MS12), annars null; `visad` = det
+    /// när klippet följer med och rutan ligger i det, [0; klippets längd) (samma ruta i
+    /// klippet, MS12), annars null; `visad` = det
     /// granskningen visade (seriens utsnitt vidgat för märkningen, i px). METOD M45
     public static func clubFile(pass: PassState, manifest: PackageManifest) -> KlubbFil? {
         let slag = Dictionary(pass.shots.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -389,11 +390,16 @@ public enum PassPackage {
             for k in marks {
                 rutor.append(KlubbFil.ruta(k, vy: pass.setup.view, slag: m.id, fil: fileName(pass), bredd: w, hojd: h,
                                            visad: [visad.x, visad.y, visad.width, visad.height],
-                                           tKlipp: m.clickInClip.map { k.t + $0 }))
+                                           tKlipp: m.clickInClip.flatMap { iKlippet(k.t + $0, m.clipDuration) }))
             }
         }
         guard !rutor.isEmpty else { return nil }
         return KlubbFil(pass: pass.id, kalla: [fileName(pass)], andrad: manifest.created, rutor: rutor)
+    }
+
+    /// Tiden i klippet när den ligger bland klippets rutor, [0; längd); annars nil. METOD MS12
+    static func iKlippet(_ t: Double, _ langd: Double?) -> Double? {
+        t >= 0 && (langd.map { t < $0 } ?? true) ? t : nil
     }
 
     /// Ändelsen på en zip under skrivning.

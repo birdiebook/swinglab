@@ -131,7 +131,8 @@ final class KlubbaMarkeringTests: XCTestCase {
             includeClips: true)), "inga markeringar: ingen fil")
         p.shots[0].klubba = [
             KlubbMarkering(position: "P1", t: -1.25, grepp: KlubbPunkt(x: 10, y: 20), hosel: KlubbPunkt(x: 30, y: 80)),
-            KlubbMarkering(position: "P8", t: 0.3, grepp: nil, hosel: nil, hoppad: true)]
+            KlubbMarkering(position: "P8", t: 0.3, grepp: nil, hosel: nil, hoppad: true),
+            KlubbMarkering(position: "P10", t: -3.0, grepp: nil, hosel: nil, hoppad: true)]   // före klippet
         p.shots[3].klubba = p.shots[0].klubba                     // leder saknas: inte i paketet
         for klipp in [true, false] {
             let man = PackageManifest.make(pass: p, app: PaketTests.app, phone: PaketTests.phone,
@@ -141,8 +142,9 @@ final class KlubbaMarkeringTests: XCTestCase {
             XCTAssertEqual(fil.pass, p.id)
             XCTAssertEqual(fil.kalla, [PassPackage.fileName(p)])
             let vy = p.setup.view.rawValue
-            XCTAssertEqual(fil.rutor.map(\.id), ["\(vy)-s01-P1", "\(vy)-s01-P8"])
-            XCTAssertEqual(fil.rutor.map(\.status), ["markerad", "hoppad"])
+            XCTAssertEqual(fil.rutor.map(\.id), ["\(vy)-s01-P1", "\(vy)-s01-P8", "\(vy)-s01-P10"])
+            XCTAssertEqual(fil.rutor.map(\.status), ["markerad", "hoppad", "hoppad"])
+            XCTAssertNil(fil.rutor[2].tKlipp, "rutan ligger före klippet")
             if klipp {
                 XCTAssertEqual(fil.rutor[0].tKlipp ?? .nan, -1.25 + 2.5021, accuracy: 1e-12)
             } else {
