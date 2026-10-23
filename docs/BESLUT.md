@@ -762,10 +762,7 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **Bortvalt:**
   - TPI:s exempel för early extension (> 7,6 cm som rött): varken mätsystem eller punkt
     anges, så definitionen går inte att stämma av.
-  - En tour-gräns för sway gap per klubba (driver +13, järn +9 cm): katalogen bär ingen
-    klubba, och att föra in den (`klubbor` per gräns, passets klubba i bedömningen i
-    Python och Swift, en tabell från uppställningens id till driver/järn) är mer än en
-    enkel ändring. Egen baslinje med samma klubba gäller.
+  - En tour-gräns för sway gap per klubba (driver +13, järn +9 cm): se klubban nedan.
   - En gräns för tappet (+1…+4°): mindre än felet i 2D.
   - GolfTEC:s hip sway vid toppen (3,9 tum mot målet) och shoulder tilt (39°): mäts på
     svanskotan respektive mot en oklar referens, inte som M15 och M17.
@@ -773,6 +770,15 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
     sensor i 3D, inte linjen i bild (METOD M14).
   - Recentreringens "under 1 tum" (Sportsbox) som gräns: en indikator utan tal per nivå
     (METOD M41).
+- **Klubban (Johannes beslut 2026-10-23, svar på research 5 §8):** egen baslinje per
+  klubba räcker, och katalogen får inga gränser per klubba.
+  - Valt: en gräns tas in bara när den inte beror på klubban (swayen vid toppen, där
+    båda klubbornas tour-tal är gröna) eller när källan inte anger någon (thrusten).
+    Annars jämförs passet med de egna passen med samma klubba (METOD M27), och PC:n
+    blandar inte klubbor i samma tal (spridningen per klubba, METOD M44).
+  - Bortvalt: tour-gränser per driver och järn (`klubbor` per gräns, passets klubba i
+    bedömningen i Python och Swift, en tabell från uppställningens id till driver/järn).
+  - Omprövas när en källa med en klubbas gräns kräver det.
 - **Antagandena under gränserna:**
   - `sway_topp`: "samma definition" gäller måttet, inte positionen. Sportsbox TOP är
     klubbans vändning, vår topp händernas högsta punkt (≈ 9 ms tidig, METOD M4), och

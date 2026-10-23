@@ -241,7 +241,8 @@ och ideal) och chicken wing (skickliga sträcker armbågen mer, via Bourgain 202
 - **S0:** räknades oktobers axellutning mot adressen eller mot vågrätt? Jämför
   med 22–25° (järn) på en bildruta.
 - Klubban i passet: ska katalogen ha gränser per klubba (driver/järn), eller
-  bara egen baslinje per klubba?
+  bara egen baslinje per klubba? **Besvarad** (Johannes 2026-10-23, BESLUT B45):
+  egen baslinje per klubba räcker; katalogen får inga gränser per klubba.
 - Hur nära kommer tyngdpunkten ur 13 leder en full segmentmodell? Prova på
   en påhittad sving med kända segment.
 - Vision har öron, ögon och nacke, men SwingLab läser 13 leder (M1). Öra–höft

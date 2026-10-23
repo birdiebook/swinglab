@@ -68,7 +68,7 @@ FO = {
     "hoftbredd": 32.0,
     # Tilläggen ur research 5 (METOD M41, M43): bäckenet glider så här mycket extra mitt i
     # baksvingen (+ mot målet) och sjunker så här mycket extra mitt i nedsvingen (+ upp), cm.
-    # Noll på platåerna, så att inget annat mått rörs där.
+    # Noll på platåerna, och bara höfterna: axlarna och händerna rörs inte.
     "sway_ut": 0.0,
     "lyft_ned": 0.0,
 }
@@ -160,8 +160,10 @@ def figur_fo(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     ua, fa = 0.186 * langd_cm, 0.146 * langd_cm
     ts, tt, tk = TIDER["start"], TIDER["topp"], TIDER["klick"]
 
-    sway = kropp(t, p["sway"]) + p["sway_ut"] * baksving_bula(t)
-    lyft = kropp(t, p["lyft"]) + p["lyft_ned"] * nedsving_bula(t)
+    sway, lyft = kropp(t, p["sway"]), kropp(t, p["lyft"])
+    # Bulorna (METOD M41, M43) flyttar bara höfterna: axlarna och händerna står som utan dem,
+    # så att starten, toppen och farterna är desamma (test_faser låser FO:s tal).
+    bula = _p(p["sway_ut"] * baksving_bula(t), p["lyft_ned"] * nedsving_bula(t))
     beta, alfa, gamma = _rad(kropp(t, p["sidbojning"])), _rad(kropp(t, p["hoftlutning"])), _rad(kropp(t, p["axellutning"]))
     a, b, c, d = p["armbage"]
     phi = _rad(profil(t, [(-INF, ts + KROPP_SEN, a), (tt - 0.06, tt + 0.06, b), (tk - 0.04, tk + 0.20, c),
@@ -172,8 +174,8 @@ def figur_fo(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     L = np.zeros((n, 13, 2))
     P = _p(sway, za + ben + lyft)
     hw, sw = p["hoftbredd"] / 2, p["axelbredd"] / 2
-    L[:, 7] = P + hw * np.stack([np.cos(alfa), np.sin(alfa)], -1)
-    L[:, 8] = P - hw * np.stack([np.cos(alfa), np.sin(alfa)], -1)
+    L[:, 7] = P + bula + hw * np.stack([np.cos(alfa), np.sin(alfa)], -1)
+    L[:, 8] = P + bula - hw * np.stack([np.cos(alfa), np.sin(alfa)], -1)
     C = P + bal * np.stack([-np.sin(beta), np.cos(beta)], -1)
     L[:, 1] = C + sw * np.stack([np.cos(gamma), np.sin(gamma)], -1)
     L[:, 2] = C - sw * np.stack([np.cos(gamma), np.sin(gamma)], -1)
@@ -209,8 +211,10 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     theta = _rad(kropp(t, p["bojning"]))
     eta = _rad(kropp(t, p["armbage_bak"]))
     L = np.zeros((n, 13, 2))
-    P = _p(px0 + kropp(t, p["thrust"]), pz0 + kropp(t, p["lyft"]) + p["lyft_ned"] * nedsving_bula(t))
-    L[:, 7], L[:, 8] = P + [1.5, 0.0], P - [1.5, 0.0]
+    P = _p(px0 + kropp(t, p["thrust"]), pz0 + kropp(t, p["lyft"]))
+    # Bulan (METOD M43) flyttar bara höfterna, som framifrån: axlarna och armarna rörs inte.
+    bula = _p(0.0, p["lyft_ned"] * nedsving_bula(t))
+    L[:, 7], L[:, 8] = P + bula + [1.5, 0.0], P + bula - [1.5, 0.0]
     C = P + bal * np.stack([np.sin(theta), np.cos(theta)], -1)
     axel = _p(kropp(t, p["axel_dx"]), kropp(t, p["axel_dz"]))
     L[:, 1], L[:, 2] = C + axel, C - axel
