@@ -1,0 +1,7 @@
+a1009aba72ce219cf0d0bcbb5eac8622a746f66d s1e 2026-10-23T07:13:12Z run 39916251485
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/SwingTests/MattTests.swift:139:29: error: cannot convert value of type 'Double?' to expected argument type 'Double'
+|                             `- error: cannot convert value of type 'Double?' to expected argument type 'Double'
+error: fatalError
+
