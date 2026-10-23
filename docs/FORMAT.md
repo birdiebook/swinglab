@@ -497,3 +497,64 @@ fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
 `"inte_flaggat"` när felet inte längre är flaggat i det senaste passet efter valet,
 till exempel när gränsen flyttats, BESLUT B45; annars `null`), och `kor_om`: passen vars
 analys har en äldre `matversion` (METOD M40), som ska köras om med session.py.
+
+## S3:s tabell: `s3.json` (utanför repot)
+
+`tools/pc/s3_facit.py` skriver i `~/swinglab-s3/<pass>/` (BESLUT B43, METOD MF1–MF4):
+`s3.md` (tabellen att läsa), `s3.json` (samma tal), `kontaktark-s3-<vy>.png` och
+`mediapipe/<paket>-<slag>.json` (MediaPipes leder som en `JointSeries` med
+`"source": "mediapipe-pose-heavy"` och `utsnitt_px`, i hela bildens pixlar).
+`s3.json` har `"format": "swinglab-s3/1"`:
+
+| Fält | Innehåll |
+|---|---|
+| `pass`, `skapad`, `modell` | passen, tiden, modellfilen och läget (`VIDEO`) |
+| `paket[]` | `fil`, `vy`, `slag`, `matbara`, `med_klipp`, `korda`, `rutor` (Visions), `rutor_med_bild` (fick MediaPipe) |
+| `nivaer` | felbudgetens trösklar per nivå: `fast`, `rorligt` (% av kroppslängden per axel), `utliggare` (andel) (MF3) |
+| `beslut_b5` | per vy: `fast`, `rorligt`, `utliggare`, `niva` (`bra`, `typiskt`, `daligt`, `samre_an_daligt`), `vision_saknar_mp_ser`, `sidbyten`, `matt_tydliga` av `matt_provade` |
+| `leder[]` | per `vy`, `led` (filens namn eller `alla`) och `fas` (`adress`, `baksving`, `nedsving`, `efter_traff`, `alla`): `rutor`, `n`, `px` och `procent` (`medel`, `spridning`, `fast`, `rorligt`), `utliggare`, `vision_saknar`, `mediapipe_saknar`, `vision_saknar_mp_ser` (MF2) |
+| `sidbyten[]` | `vy`, `par`, `n`, `andel` |
+| `matt[]` | per vy och mått: `enhet`, `n`, `vision_median`, `mediapipe_median`, `skillnad`, `skillnad_medel`, `skillnad_sd`, `abs_medel`, `mediapipe_spridning`, `tydlig` (MF3) |
+| `faser[]` | `start` och `topp` i ms (Vision − MediaPipe), och `skalan` som kvot av cm per px |
+| `slag[]` | per slag: `fil`, `id`, `vy`, `rutor`, och `vision_fel`, `mediapipe_fel` eller `hoppat` |
+| `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` |
+
+## Klubbans märkning: `swinglab-<pass>-klubba.json` (utanför repot)
+
+`tools/pc/markera_klubba.py` skriver den bredvid paketet (en video: `<video>-klubba.json`),
+efter varje ruta (BESLUT B44, METOD MF5–MF6). Samma fil läses när verktyget körs igen;
+rutor med samma `id` behåller sin märkning.
+
+```json
+{"format": "swinglab-klubba/1", "pass": "20261103-180000",
+ "kalla": ["swinglab-20261103-180000-dtl.zip", "swinglab-20261103-180000-fo.zip"],
+ "punkter": ["grepp", "skaft_mitt", "klubbhuvud"], "andrad": "2026-11-03T21:15:00+01:00",
+ "rutor": [{"id": "fo-s03-topp", "fil": "swinglab-20261103-180000-fo.zip", "vy": "fo", "slag": "s03",
+            "val": "topp", "t": -0.3125, "t_klipp": 2.1875, "bredd": 1080, "hojd": 1920,
+            "visad": [54, 0, 972, 1920], "status": "markerad",
+            "punkter": {"grepp": {"x": 512.3, "y": 640.0, "kalla": "forslag"},
+                        "skaft_mitt": {"x": 600.1, "y": 560.4, "kalla": "klick"},
+                        "klubbhuvud": {"syns_inte": true}},
+            "forslag": {"grepp": {"x": 512.3, "y": 640.0, "kalla": "handlederna"}}}]}
+```
+
+| Fält | Krav och betydelse |
+|---|---|
+| `format` | `"swinglab-klubba/1"` |
+| `pass` | passet (`yyyyMMdd-HHmmss`), eller `null` för en video utan paket |
+| `kalla` | filerna som rutorna kommer ur (namnen) |
+| `punkter` | exakt `["grepp", "skaft_mitt", "klubbhuvud"]` |
+| `andrad` | senaste sparningen, ISO 8601 |
+| `rutor[].id` | unikt: `<vy>-<slag>-<val>` (`-jamn-1` …), eller `video-01` … |
+| `fil`, `vy`, `slag` | paketets (eller videons) namn, `"dtl"`/`"fo"`/`null`, slagets id eller `null` |
+| `val` | `adress`, `topp`, `tidig_nedsving` eller `jamn` (MF5) |
+| `t`, `t_klipp` | rutans tid: s relativt klicket (Visions, `null` för en video) och s i klippet (≥ 0) |
+| `bredd`, `hojd` | hela den upprätta bilden i px |
+| `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
+| `status` | `omarkerad`, `markerad` (alla tre punkterna satta) eller `hoppad` |
+| `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla"}` i hela bildens pixlar med `kalla` `klick` eller `forslag` (ett förslag godtaget), eller `{"syns_inte": true}` |
+| `forslag` | förslagen som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`) |
+
+**Punkterna** (B44): **grepp** = skaftet mitt mellan händerna; **skaftets mitt** = mitt
+mellan greppet och hoseln; **klubbhuvud** = GolfPose hosel, där skaftet går in i huvudet
+(research 2 §3, ej läst i original). Felen nämner rutans plats och fältet, aldrig värdet.

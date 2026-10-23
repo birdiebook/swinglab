@@ -3,8 +3,9 @@
     python tools/kolla_metod.py
 
 Varje `METOD Mn` (mätningen), `METOD MSn` (inspelningen, S2), `METOD MTn`
-(tolkningen, S5) och `METOD MKn` (två kameror, S6) i koden måste ha en rubrik
-`## Mn`, `## MSn`, `## MTn` eller `## MKn` i docs/METOD.md, och
+(tolkningen, S5), `METOD MKn` (två kameror, S6) och `METOD MFn` (facit, S3 och S7)
+i koden måste ha en rubrik `## Mn`, `## MSn`, `## MTn`, `## MKn` eller `## MFn` i
+docs/METOD.md, och
 varje `B<n>` som koden nämner (`// BESLUT B3`) en rubrik i docs/BESLUT.md.
 Körs i GitHub Actions.
 """
@@ -23,7 +24,7 @@ def rubriker(fil: str, prefix: str) -> set[str]:
 
 
 def main() -> int:
-    metod = rubriker("docs/METOD.md", "M[STK]?")
+    metod = rubriker("docs/METOD.md", "M[STKF]?")
     beslut = rubriker("docs/BESLUT.md", "B")
     fel = []
     for fil in sorted([*ROT.glob("SwingLabKit/**/*.swift"), *ROT.glob("App/**/*.swift"),
@@ -31,7 +32,7 @@ def main() -> int:
                        *ROT.glob(".github/workflows/*.yml")]):
         text = fil.read_text(encoding="utf-8")
         for n, rad in enumerate(text.splitlines(), 1):
-            for ref in re.findall(r"METOD (M[STK]?\d+)", rad):
+            for ref in re.findall(r"METOD (M[STKF]?\d+)", rad):
                 if ref not in metod:
                     fel.append(f"{fil.relative_to(ROT)}:{n}: {ref} saknas i docs/METOD.md")
             for ref in re.findall(r"BESLUT (B\d+)", rad):
