@@ -170,7 +170,7 @@ def kontrollera(d) -> list[str]:
                 if q == {"syns_inte": True}:
                     continue
                 if not (isinstance(q, dict) and set(q) == {"x", "y", "kalla"} and _tal(q["x"]) and _tal(q["y"])
-                        and q["kalla"] in KALLOR):
+                        and q["kalla"] in (KALLOR if v2 else KALLOR[:1])):
                     fel.append(f"{p}.punkter.{n} ska vara null, {{x, y, kalla}} eller {{syns_inte: true}}")
                 elif bh and not (0 <= q["x"] <= bh[0] and 0 <= q["y"] <= bh[1]):
                     fel.append(f"{p}.punkter.{n} ligger utanför bilden")
