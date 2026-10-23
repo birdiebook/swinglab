@@ -144,12 +144,16 @@ struct ClubMarkContent<Surface: View>: View {
         }
         let kandidater = [CGPoint(x: fx - s / 2, y: fy - s - 40), CGPoint(x: fx - s / 2, y: fy + 40),
                           CGPoint(x: fx - s - 40, y: fy - s / 2), CGPoint(x: fx + 40, y: fy - s / 2)]
-        func ryms(_ o: CGPoint) -> Bool { o.x >= 0 && o.y >= 0 && o.x + s <= size.width && o.y + s <= size.height }
-        func tacker(_ o: CGPoint) -> Bool {
-            satta.contains { CGRect(x: o.x - 8, y: o.y - 8, width: s + 16, height: s + 16).contains($0) }
+        // Inom ytan (skjuten in från kanten), och inte över fingret eller en satt punkt.
+        func inom(_ o: CGPoint) -> CGPoint {
+            CGPoint(x: min(max(0, o.x), max(0, size.width - s)), y: min(max(0, o.y), max(0, size.height - s)))
         }
-        let vald = kandidater.first { ryms($0) && !tacker($0) } ?? kandidater.first(where: ryms) ?? kandidater[0]
-        let x = min(max(0, vald.x), max(0, size.width - s)), y = min(max(0, vald.y), max(0, size.height - s))
+        func tacker(_ o: CGPoint) -> Bool {
+            let r = CGRect(x: o.x - 8, y: o.y - 8, width: s + 16, height: s + 16)
+            return (satta + [CGPoint(x: fx, y: fy)]).contains { r.contains($0) }
+        }
+        let vald = kandidater.map(inom).first { !tacker($0) } ?? inom(kandidater[0])
+        let x = vald.x, y = vald.y
         return ZStack {
             surface(lc)
             Canvas { c, z in
