@@ -947,3 +947,33 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
 - **Omprövas:** när Johannes markerat svingar på telefonen (gränserna 3 %, 5 % och 4 pt,
   M45), när FO-läget byggs (och FO-tiden för P2/P6/P8 med två telefoner), och när S7:s
   detektor föreslår punkterna.
+
+## B48 — 3D på telefonen: Python-kedjan portad till Swift, med ett jämnt urval
+*2026-10-23 · prövas · PLAN.md S6c · METOD M50, MK1–MK7*
+
+- **Valt:** `SwingLabKit/Sources/TreD` (eget mål, beror på Swing och Capture) gör två
+  telefoners paket till 3D rad för rad som `tools/pc/tva_kameror.py`: samma algoritmer,
+  samma konstanter och samma ordning, med egen linjär algebra (ensidig Jacobi för
+  singulärvärdena, LU för ekvationssystemen, Levenberg–Marquardt som Pythons `lm`).
+  Utdata är `TreDResultat`, samma form som `analys.json`:s `tre_d`. Python är facit
+  (B12): `tools/pc/generera_tre_d.py` skriver påhittade tvåpaketspass och Pythons tal
+  till `tools/tests/fixturer/tre_d/`, och Swift ska ge dem inom METOD M50:s tolerans.
+- **Ändrat i Python:** kalibreringens högst 5 000 punktpar valdes med numpys slumptal
+  (`default_rng(0).choice`), som Swift inte kan räkna om utan att skriva av PCG64 och
+  numpys urvalsalgoritm. Nu tas de jämnt spridda, index ⌊i · n / 5 000⌋, i båda.
+  **Prövat mot S6a:s facit** (S6_FELBUDGET §6.7, samma 56 pass, frö 100–123):
+  utan brus oförändrat (max 0,3°); med bra och typiskt brus samma bias inom 0,1° och
+  samma eller lägre SD (bra: bäckenet 5,9 → 5,8°, bröstet 5,7 → 5,6, X-factor 7,8 → 7,7,
+  stretchen 3,5 → 3,4; typiskt: bröstet 9,6 → 9,6, stretchen 5,7 → 5,6), synken och
+  Sampson-felet oförändrade.
+- **Varför:** Johannes mål (2026-10-23) är att så mycket som möjligt görs på telefonen.
+  En port som ger Pythons tal kan prövas mot samma facit som S6a, och PC:n kan jämföra
+  telefonens 3D med sin egen.
+- **Bortvalt:** Accelerate (finns inte på Linux, där SwingLabKit testas); en annan
+  algoritm i Swift (t.ex. SVD ur AᵀA:s egenvektorer, eller en färdig optimerare), som
+  inte går att pröva mot Python tal för tal; att skriva av numpys slumptal.
+- **Kostnad:** kedjan finns två gånger. Fixturerna är 3,2 MB JSON (lederna kompakt
+  som int16 i base64), och Python-testet räknar om dem (cirka 50 s).
+- **Omprövas:** när kedjan ändras i Python (fixturerna skrivs om, B12), eller om
+  telefonen blir för långsam (METOD M50:s tid).
+

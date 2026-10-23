@@ -2016,6 +2016,38 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   raderna "Bra brus" och "Grund (typiskt brus)"), och utan brus inom 0,5° (varje
   slag inom 1°). Uppmätt för kedjan på 24 pass per nivå står i §6.7.
 
+
+## M50 — 3D på telefonen: Swift mot Python (S6c-1)
+
+- **Porten.** `SwingLabKit/Sources/TreD` räknar MK1–MK7 rad för rad som
+  `tools/pc/tva_kameror.py` och `tools/pc/tre_d/` (BESLUT B48): parningen, spåren på
+  träffens tid, LOESS-utjämningen, självkalibreringen (åttapunktsmetoden, robusta varv,
+  Levenberg–Marquardt på Sampson-felet med numerisk Jacobian, ε = **1e-6**, högst **30**
+  varv, λ från **1e-3**, ×0,3 vid ett bättre steg och ×10 annars), synken, den viktade
+  DLT-trianguleringen, vinkelkurvorna och passets median. Inga nya konstanter i kedjan:
+  varje tal är MK1–MK7:s. **standard** (metoderna), **räkning** (porten).
+- **Den linjära algebran** är egen och liten (bara Foundation, `Linalg.swift`):
+  singulärvärden med ensidig Jacobi (Hestenes), som roterar kolumnerna tills de är
+  ortogonala inom **1e-15 · max(m, 4)** relativt (högst 60 svep); nollvektorn är den
+  högra singulärvektorn med minst längd, och en 3×3:s tredje vänstra vektor är u₁ × u₂
+  (den är bara bestämd upp till tecknet när σ₃ ≈ 0, och E:s fyra lösningar är desamma).
+  Ekvationssystem med LU och radpivotering som LAPACK:s gesv. Summor av en vektor med
+  numpys parvisa summering (åtta delsummor upp till 128 tal), `np.arange` som numpys
+  fill (a + i·((a + steg) − a)) och Pythons `round` via printf (lika till jämnt på det
+  binära talet). **standard** (Golub & Van Loan kap. 8.6, ej läst i original),
+  **räkning** (numpys källkod).
+- **Urvalet till kalibreringen** är jämnt spritt, index ⌊i · n / 5 000⌋, i både Python
+  och Swift (BESLUT B48), i stället för numpys slumpade urval med frö 0.
+- **Toleransen mot Python** (TreDTests, fixturerna ur `tools/pc/generera_tre_d.py`):
+  kalibreringens R, t och uppåt inom **1e-6**, synken inom **1e-6 s**, återprojektionen
+  inom **1e-4 px**, måtten per slag och passets sammanfattning inom **1e-4°**, och de
+  avrundade fälten (Sampson-felet, vinkeln, synken i ms) inom sitt avrundningssteg.
+  Algoritmen är densamma; skillnaden är summeringsordningen i BLAS och LAPACK, som
+  växer i Levenberg–Marquardts iterationer och i medianerna. **räkning** (uppmätt i
+  Actions, nedan).
+- **Mot sanningen** gäller MK8:s gränser i Swift också: utan brus varje slag inom 1°
+  och passets median inom 0,5°, med bra brus inom felbudgetens |bias| + 3 SD.
+
 ---
 
 # Facit (S3 och S7)

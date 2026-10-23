@@ -40,7 +40,7 @@ LAGE = "utan_markorer"         # BESLUT B14: markörerna väntar (S6b)
 MIN_KONF = 0.3                 # METOD M1: under det räknas leden som saknad
 F_PX_1920 = 1444.0             # METOD MK3: 26 mm ekvivalent, långsidan 1920 px (S6_FELBUDGET §3)
 KALIB_KONF = 0.5               # METOD MK3: punktpar till kalibreringen kräver konfidens över det i båda vyerna
-KALIB_PAR = 5000               # METOD MK3: högst så många punktpar (slumpat, frö 0)
+KALIB_PAR = 5000               # METOD MK3: högst så många punktpar (jämnt spridda, METOD M50)
 KALIB_STEG_S = 1 / 60          # METOD MK3: tidsaxeln för kalibreringens punktpar
 KALIB_VARV = 2                 # METOD MK4: kalibrering → synk, två varv
 VINKEL_OK = (60.0, 120.0)      # METOD MK3: vinkeln mellan kamerorna som felbudgeten godtar (§6.4)
@@ -232,6 +232,13 @@ def _normera(uv: np.ndarray, K: np.ndarray) -> np.ndarray:
     return np.column_stack([uv, np.ones(len(uv))]) @ np.linalg.inv(K).T
 
 
+def urval(n: int, k: int) -> np.ndarray:
+    """k av n punktpar, jämnt spridda: index ⌊i · n / k⌋ för i = 0 … k − 1. Heltal, så att
+    SwingLabKit väljer exakt samma par (numpys slumptal går inte att räkna om i Swift).
+    METOD M50, BESLUT B48"""
+    return (np.arange(k, dtype=np.int64) * n) // k
+
+
 def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
     """Kamerorna för en uppställning (en serie per telefon) ur dess slags leder ihop.
     Varje slags punkter normeras med slagets egen K. FO är kamera A, DTL kamera B.
@@ -246,7 +253,7 @@ def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
         w.append(np.sqrt(ka[ok] * kb[ok]))
     x1, x2, w = np.concatenate(x1), np.concatenate(x2), np.concatenate(w)
     if len(x1) > KALIB_PAR:
-        val = np.random.default_rng(0).choice(len(x1), KALIB_PAR, replace=False)
+        val = urval(len(x1), KALIB_PAR)
         x1, x2, w = x1[val], x2[val], w[val]
     f_px = float(np.median([d["KA"][0, 0] for d in slagen]))
     lang = float(np.median([max(d["KA"][0, 2], d["KA"][1, 2]) * 2 for d in slagen]))
@@ -343,9 +350,11 @@ def matt(t: np.ndarray, P: np.ndarray, t_start: float, hand: str) -> dict | str:
 
 # --- hela passet -------------------------------------------------------------------
 
-def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[dict, list[dict]]:
+def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict, inre: list | None = None
+                  ) -> tuple[dict, list[dict]]:
     """En uppställning (en DTL-serie mot en FO-serie): kalibreringen i två varv med
-    synken, spärren och måtten per slag. Svarar (info, slagens rader). METOD MK3, MK4"""
+    synken, spärren och måtten per slag. Svarar (info, slagens rader). `inre` (en lista)
+    får de oavrundade talen per uppställning, för Swift-facit (METOD M50). METOD MK3, MK4"""
     sd, sf = grupp[0]["dtl"].serie, grupp[0]["fo"].serie
     info = {"serie": {"dtl": sd, "fo": sf}, "slag": len(grupp),
             "f_kalla": {"dtl": grupp[0]["fKB"], "fo": grupp[0]["fKA"]}}
@@ -362,7 +371,12 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[
         R, t, upp, k = kalibrera(grupp, forsk, uppA, uppB)
     except TreDFel as e:
         info["hoppat"] = str(e)
+        if inre is not None:
+            inre.append(None)
         return info, []
+    if inre is not None:
+        inre.append({"R": R.tolist(), "t": t.tolist(), "upp": [float(x) for x in upp], "forsk": list(forsk),
+                     "aterprojektion": []})
     fel_k = k.pop("lodlinje_fel", [])
     info.update(k)
     if fel_k:
@@ -377,8 +391,12 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[
         if t_start is None:
             r["fel"] = "faserna saknas i båda vyerna"
             ut.append(r)
+            if inre is not None:
+                inre[-1]["aterprojektion"].append(None)
             continue
         tg, P, rep = triangulera(*kameror(d, R, t, upp), d, f)
+        if inre is not None:
+            inre[-1]["aterprojektion"].append(rep)
         r["aterprojektion_px"] = round(rep, 1) if math.isfinite(rep) else None
         m = matt(tg, P, t_start, dtl.spelhand)
         r["matt" if isinstance(m, dict) else "fel"] = m
@@ -386,10 +404,10 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[
     return info, ut
 
 
-def analysera(dtl: Paket, fo: Paket, rader: list[dict]) -> dict:
+def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None) -> dict:
     """3D för passet: parningen, en kalibrering per uppställning (serie mot serie),
     måtten per slag och passets trend. `rader` är 2D-analysens slag
-    (analys.mat_paket) för båda paketen. METOD MK1–MK7"""
+    (analys.mat_paket) för båda paketen. `inre`: se _uppstallning. METOD MK1–MK7"""
     par, parning = para_slag(dtl, fo)
     rad = {(r["vy"], r["id"]): r for r in rader}
     grupper: dict[tuple[int, int], list[dict]] = {}
@@ -409,7 +427,7 @@ def analysera(dtl: Paket, fo: Paket, rader: list[dict]) -> dict:
         raise TreDFel("parningen: inga slag som båda telefonerna filmat och som går att mäta")
     kalib, ut_slag, osaker = [], [], []
     for nyckel in sorted(grupper):
-        info, ut = _uppstallning(dtl, fo, grupper[nyckel], rad)
+        info, ut = _uppstallning(dtl, fo, grupper[nyckel], rad, inre)
         kalib.append(info)
         ut_slag += ut
         namn = f"serie {nyckel[0]} (DTL) mot {nyckel[1]} (FO)"
