@@ -1,20 +1,20 @@
-647c8d2633327b9a8ce134676800c1c2bb75bbde s7a 2026-10-23T09:53:36Z run 39934919806
+99ea165e76547315625db5b035af9bddf1ff239c s7a 2026-10-23T09:54:26Z run 39935039240
 == swift-release
-GRÖNT: 227 test, 0 fel, 10 s i testerna, bygget 63 s
+GRÖNT: 227 test, 0 fel, 9 s i testerna, bygget 58 s
 Långsammast (av 227):
-      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  KatalogTests.testKontrollernaSomPython
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  KatalogTests.testKontrollernaSomPython
-      0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.3 s  MattTests.testVarjeSvingGerPythonsTal
       0.2 s  FormatTests.testFixturernaGarAttLasa
-      0.2 s  MattTests.testTillaggenMotSportsbox
-      0.2 s  VisningTests.testUtvecklingMedBlandadeVyer
-      0.1 s  MatningTests.testSammaSomFilformatet
-      0.1 s  VisningTests.testUtvecklingMedSpridningOchEjMatta
+      0.2 s  PaketTests.testFelFilTasInteEmot
+      0.2 s  FlikarTests.testGamlaOmattaPassTarMesLangd
+      0.2 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.2 s  MatningTests.testSammaSomFilformatet
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
-      0.1 s  VisningTests.testInfobladet
+      0.1 s  MattTests.testStartenBakifranUrPosen
 
