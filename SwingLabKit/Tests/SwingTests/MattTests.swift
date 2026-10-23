@@ -160,11 +160,13 @@ final class MattTests: XCTestCase {
 
     func testNamnenPerVy() {
         XCTAssertEqual(Matt.namnFO.count, 54)
-        XCTAssertEqual(Matt.namnDTL.count, 41)
+        XCTAssertEqual(Matt.namnDTL.count, 43)
         XCTAssertEqual(Set(Matt.namnFO).count, Matt.namnFO.count)
         XCTAssertEqual(Set(Matt.namnDTL).count, Matt.namnDTL.count)
         XCTAssertTrue(Matt.namnDTL.contains("backen_bojning_traff"))       // METOD M30
         XCTAssertTrue(Matt.namnFO.contains("framre_arm_vinkelfart_max"))   // METOD M37
+        XCTAssertTrue(Matt.namnDTL.contains("hand_djup_topp"))             // METOD M38
+        XCTAssertTrue(Matt.namnDTL.contains("framre_arm_plan_topp"))       // METOD M39
         XCTAssertTrue(Matt.namnDTL.contains("handbana"))
         XCTAssertTrue(Matt.namnFO.contains("backen_resa_framat"))
     }
