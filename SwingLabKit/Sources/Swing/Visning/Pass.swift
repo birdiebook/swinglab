@@ -9,12 +9,15 @@ public struct Pass: Sendable {
     /// De första så här många svingarna i varje vy är serie 1, före uppvärmningen
     /// (design/README.md, öppet val 4). 0 = ingen serie 1.
     public let serie1: Int
+    /// Slagen vars start är osäker bakifrån: de saknar tempo (METOD M40).
+    public let osakerStart: Int
 
-    public init(datum: Date, klubba: String, svingar: [SvingMatt], serie1: Int = 0) {
+    public init(datum: Date, klubba: String, svingar: [SvingMatt], serie1: Int = 0, osakerStart: Int = 0) {
         self.datum = datum
         self.klubba = klubba
         self.svingar = svingar
         self.serie1 = serie1
+        self.osakerStart = osakerStart
     }
 
     /// Slagen: den telefon som såg flest.

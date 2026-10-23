@@ -133,7 +133,8 @@ public struct Idagvisning: Sendable {
         public let varde: String
         /// Enheten efter talet, utan kvoten ": 1".
         public let enhet: String
-        public let spann: Spann
+        /// nil bara för tempot när starten är osäker bakifrån: raden visar "—" (METOD M40).
+        public let spann: Spann?
         /// Måttet övas just nu (BESLUT B31).
         public let ovas: Bool
         /// Infobladet som ⓘ öppnar (BESLUT B41).
@@ -141,8 +142,8 @@ public struct Idagvisning: Sendable {
 
         /// "Sway −2.4 cm, target from 0 cm"
         public var upplasning: String {
-            let m = spann.upplasning
-            return "\(namn) \(Tal.medEnhet(varde, enhet))" + (m.isEmpty ? "" : ", \(m)")
+            let m = spann?.upplasning ?? ""
+            return (varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet))") + (m.isEmpty ? "" : ", \(m)")
         }
     }
 
@@ -172,13 +173,13 @@ public struct Idagvisning: Sendable {
             senaste = [Tal.dag(nu.datum), nu.klubba, "\(nu.slag)"].joined(separator: Texter.skilje)
             let p = Passvisning(katalog: katalog, pass: pass, ovas: attJobbaPa?.ovas ?? [])
             rader = p.kort.compactMap { k -> Rad? in
-                guard let s = k.spann else { return nil }
+                guard k.spann != nil || k.startOsaker(nu) else { return nil }
                 // Raden saknar kortets rubrik, så namnet bär positionen när den behövs ("Hip sway at
                 // top"), och bladet heter som raden (BESLUT B40, B41).
                 let namn = Texter.felnamn(k.namn, fas: Etiketter.etikett(k.matt).fas)
                 let info = k.info.map { Infoblad(namn: namn, vad: $0.vad, varfor: $0.varfor, tecken: $0.tecken,
                                                  kalla: $0.kalla) }
-                return Rad(id: k.id, namn: namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s,
+                return Rad(id: k.id, namn: namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: k.spann,
                            ovas: k.ovas, info: info)
             }
         } else {

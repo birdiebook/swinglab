@@ -97,6 +97,11 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         return d.joined(separator: ", ")
     }
 
+    /// Tempot saknas ("—") och passet har slag med osäker start bakifrån (METOD M40).
+    public func startOsaker(_ nu: Pass) -> Bool {
+        matt == "tempo" && varde == "—" && nu.osakerStart > 0
+    }
+
     /// Värdet som text, med tecken för mått där noll är adressen.
     public static func text(_ v: Double?, _ e: Mattetikett) -> String {
         e.tecken ? Tal.tecken(v, decimaler: e.decimaler) : Tal.tal(v, decimaler: e.decimaler)
@@ -107,6 +112,10 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public static func kort(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
         var k = kortUtanBlad(fel, nu: nu, tidigare: tidigare)
         k.info = Infoblad(fel, namn: k.namn)
+        if k.startOsaker(nu), let b = k.info {                     // METOD M40
+            k.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
+                              kalla: "\(b.kalla); \(Texter.startOsakerKalla)")
+        }
         return k
     }
 

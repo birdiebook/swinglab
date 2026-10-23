@@ -182,6 +182,8 @@ public enum Texter {
     public static let ejKontrollerad = "not verified"
     public static let egenBaslinjeKalla = "own baseline"
     public static let oprovadKalla = "untested on the phone"
+    /// Tempot saknas för att baksvingens start är osäker bakifrån (METOD M40).
+    public static let startOsakerKalla = "no tempo when the start is unclear from behind"
 
     /// Gränsen är ett antagande byggt på en tillverkares tal (sway_topp, METOD M15).
     public static let antagandeFran = "Assumption from"

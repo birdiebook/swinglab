@@ -352,6 +352,8 @@ final class MatningTests: XCTestCase {
                                         "framre_kna_adress"])
         XCTAssertTrue(p1.allSatisfy { $0.varde != "—" && $0.enhet == "°" })
         XCTAssertEqual(dtl.values["framre_kna_adress"]!, 20, accuracy: 0.5)     // DemoSving: främre knät 20°
+        XCTAssertNil(dtl.startUncertain)                                        // starten ur posen (M40)
+        XCTAssertNotNil(dtl.values["tempo"])
         let svenska = CharacterSet(charactersIn: "åäöÅÄÖ")
         for r in p1 + p3 + p4 + p7 + p9 { XCTAssertNil((r.namn + r.upplasning).rangeOfCharacter(from: svenska), r.namn) }
     }

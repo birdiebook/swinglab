@@ -22,17 +22,29 @@ struct IdagVy: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Talet med enheten direkt efter för grader ("+2.0°").
+    /// Talet med enheten direkt efter för grader ("+2.0°"); "—" grått och utan enhet.
     private func tal(_ r: Idagvisning.Rad) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: r.enhet == "°" ? 0 : 2) {
             Text(r.varde)
                 .typsnitt(14, .medium, siffror: true)
-                .foregroundStyle(Theme.text)
-            Text(r.enhet)
-                .typsnitt(14)
-                .foregroundStyle(Theme.tertiary)
+                .foregroundStyle(r.varde == "—" ? Theme.tertiary : Theme.text)
+            if r.varde != "—" {
+                Text(r.enhet)
+                    .typsnitt(14)
+                    .foregroundStyle(Theme.tertiary)
+            }
         }
         .fixedSize()
+    }
+
+    /// Spannet; tempot utan säker start bakifrån har inget (METOD M40).
+    @ViewBuilder
+    private func spann(_ r: Idagvisning.Rad) -> some View {
+        if let s = r.spann {
+            SpannVy(spann: s, kompakt: true, accent: r.ovas)
+        } else {
+            Color.clear.frame(height: 1)
+        }
     }
 
     /// En sak: måttets namn, tanken och kedjan (saken i accenten).
@@ -110,7 +122,7 @@ struct IdagVy: View {
                                 ViewThatFits(in: .horizontal) {
                                     HStack(spacing: 12) {
                                         namn(r).frame(maxWidth: .infinity, alignment: .leading)
-                                        SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
+                                        spann(r)
                                             .frame(minWidth: 40, idealWidth: 92, maxWidth: 92)
                                         tal(r).frame(minWidth: 66, alignment: .trailing)
                                             .layoutPriority(1)
@@ -119,7 +131,7 @@ struct IdagVy: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         namn(r)
                                         HStack(spacing: 12) {
-                                            SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
+                                            spann(r)
                                             tal(r)
                                             InfoKnapp(blad: r.info) { blad = r.info }
                                         }

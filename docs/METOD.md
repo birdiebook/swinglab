@@ -163,6 +163,12 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   osäkert, "typiskt" 3–7 av 12 svingar per kamerahöjd, "bra" aldrig; bland de omärkta med
   "bra" och "typiskt" är 95 % av tempofelen från starten under 0,25 och det största
   0,34. Gränsen är ett **antagande** tills S3 mätt posemodellens brus på golf.
+- **På telefonen:** slaget sparar flaggan (`ShotMeasure.startUncertain`), och passet
+  räknar slagen med osäker start (`Pass.osakerStart`). Saknas passets tempo och har
+  passet sådana slag visar tempokortet och Today-raden "—" (Today utan spann), och
+  infobladets källrad slutar med "no tempo when the start is unclear from behind".
+  Har bara en del av slagen osäker start är tempot medianen av de övriga. Svartvitt
+  och utan värdeord (BESLUT B13).
 - **Två telefoner:** när båda vyerna filmar tar 3D-måtten redan FO:s start (MK6),
   och tempot tas ur en vy (MT9). Det behövs ingen ny väg för starten.
 - **Oprovat på telefonen:** riktiga DTL-pass, waggle och forward press (en waggle
@@ -171,23 +177,16 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 ## M5 — Tempot
 
 - tempo = (topp − start) / (träff − topp), baksvingen och nedsvingen i s.
-  Båda vyerna. Saknas starten saknas tempot.
+  Båda vyerna. Saknas starten, eller är den osäker (M40), saknas tempot.
 - **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), utanför gult,
   aldrig rött. **tillverkare, ej läst i original.** Novosel 3:1 och Grober
   2,8:1 (research 1 §1.9). Blasts topp är klubbans, vår är händernas, och vår
   topp ligger ≈ 9 ms tidigt (M4), så tempot är troligen något lågt mot Blast.
   Låg prioritet: inget belagt samband med utfallet.
-- **Bakifrån (DTL) saknas tempot oftare, och blir lägre** (utredningen 2026-10-23,
-  ett importerat DTL-pass med två slag utan tempo på Today): klicket finns i varje
-  slag (utan klick blir det inget slag), så det är starten som saknas. Bakifrån går
-  händernas första rörelse i baksvingen i djupled mot kameran och syns knappt i
-  bilden, och står kameran högre än händerna ser de ut att sjunka en bit innan de
-  stiger, så adressläget (det lägsta) och starten hittas sent. Uppmätt på påhittade
-  svingar: 0,2 s osynlig takeaway med en baksving på 0,75 s ger en synlig baksving
-  under 0,5 s, och starten och tempot saknas (Today visar då ingen rad); med 0,95 s
-  baksving finns tempot men blir ≈ 0,9 lägre. Framifrån (FO) ligger takeawayn i
-  bildens plan. **antagande** tills ett riktigt DTL-pass prövats: `faser.start` är
-  `null` i PC:ns `analys.json` när det är orsaken.
+- **Bakifrån (DTL)** syns takeawayn knappt (den går mot kameran), och händernas start
+  (M4) kom sent eller saknades (utredningen 2026-10-23: ett importerat DTL-pass utan
+  tempo på Today). Starten bakifrån tas därför ur posen (M40). Är den osäker saknas
+  tempot och `faser.start_osaker` är sant; vyerna visar då "–" (M40).
 
 ## M6 — Bröstets böjning och tappad hållning (DTL)
 

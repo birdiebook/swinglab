@@ -124,8 +124,9 @@ armbågarna och handlederna) mot adressens stillaste fönster, bakåt från topp
 bakifrån: förut +176 till +265 ms sen eller saknad, nu högst 0,14 fel på tempot med
 0,8 px brus. Skakar adressen eller räcker inte posen är starten osäker
 (`faser.start_osaker`) och tempot saknas. Fixturerna `dtl_dold`, `dtl_osaker` och
-`dtl_utan_pose`; `test_faser.StartenBakifran` (gränsen 0,15 och FO:s tal låsta). Kvar
-till ✓: ett riktigt DTL-pass, och att vyerna visar "osäkert" (efter S1c).
+`dtl_utan_pose`; `test_faser.StartenBakifran` (gränsen 0,15 och FO:s tal låsta). I
+vyerna: tempot "—" i passet och på Today när slagen saknar säker start, och skälet i
+infobladets källrad. Kvar till ✓: ett riktigt DTL-pass på telefonen.
 
 ## S2 — Appskalet och första bygget
 

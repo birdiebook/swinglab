@@ -22,6 +22,8 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     /// Varför slaget inte gick att mäta: "hands" (händerna syns inte före träffen),
     /// "scale" (skalans segment syns inte i adressen) eller "format"; nil när det gick.
     public var problem: String?
+    /// Baksvingens start är osäker bakifrån, och tempot saknas (METOD M40); nil = säker.
+    public var startUncertain: Bool?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -74,6 +76,7 @@ public enum ShotMeasuring {
                 if let t = r.positioner.tid(p), t.isFinite { ut.positions[p] = t }
             }
             ut.values = r.matt.filter { $0.value.isFinite }
+            ut.startUncertain = r.faser.startOsaker ? true : nil
         } catch SvingFel.handernaSaknas {
             ut.problem = "hands"
         } catch SvingFel.skalanSaknas {
@@ -137,7 +140,8 @@ extension PassState {
         let forsta = series.map(\.nr).min()
         let iSerie1 = shots.filter { $0.counts && $0.series == forsta }.count
         return Swing.Pass(datum: created, klubba: PassSetup.clubLabel(setup.club), svingar: countedSwings,
-                          serie1: Swift.min(PassHistory.firstSet, iSerie1))
+                          serie1: Swift.min(PassHistory.firstSet, iSerie1),
+                          osakerStart: shots.filter { $0.counts && $0.measure?.startUncertain == true }.count)
     }
 
     /// Längden som slagens mått bär, och om den är antagen: den första mätta. nil = inget mätt.

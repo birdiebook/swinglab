@@ -148,6 +148,28 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(djup.info?.kalla, "Assumption, own baseline")
     }
 
+    /// Tempot utan säker start bakifrån (METOD M40): "—" i passet och på Today, utan spann,
+    /// och källraden säger varför. Utan osäkra slag som förut: ingen rad på Today.
+    func testTempotUtanSakerStartBakifran() throws {
+        let k = try katalog()
+        let svingar = (0..<5).map { SvingMatt(vy: .dtl, matt: ["backen_thrust_traff": Double($0)]) }
+        let osaker = Pass(datum: Tal.dag(2027, 1, 12), klubba: "7i", svingar: svingar, osakerStart: 5)
+        let kort = try XCTUnwrap(Passvisning(katalog: k, pass: [osaker]).kort.first { $0.id == "tempo" })
+        XCTAssertEqual(kort.varde, "—")
+        XCTAssertEqual(kort.info?.kalla, "Manufacturer (blastmotion.com), not verified; \(Texter.startOsakerKalla)")
+        let idag = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: [osaker], attJobbaPa: nil)
+        let rad = try XCTUnwrap(idag.rader.first { $0.id == "tempo" })
+        XCTAssertEqual(rad.varde, "—")
+        XCTAssertNil(rad.spann)
+        XCTAssertEqual(rad.info?.kalla, kort.info?.kalla)
+        XCTAssertEqual(rad.upplasning, rad.namn)
+        let saker = Pass(datum: Tal.dag(2027, 1, 12), klubba: "7i", svingar: svingar)
+        XCTAssertNil(Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: [saker], attJobbaPa: nil)
+            .rader.first { $0.id == "tempo" })
+        XCTAssertEqual(Passvisning(katalog: k, pass: [saker]).kort.first { $0.id == "tempo" }?.info?.kalla,
+                       "Manufacturer (blastmotion.com), not verified")
+    }
+
     func testAccentenBaraForDetSomOvas() throws {
         // BESLUT B31: det du övar på bär accenten, inget annat.
         let a = Demo.attJobbaPa
