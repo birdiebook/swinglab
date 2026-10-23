@@ -288,8 +288,8 @@ public enum AttJobbaPaKontroll {
                 if steg == nil || !stegen.contains(steg!) {
                     fel.append(Kontrollfel("\(p).ovning.steg", "steg"))
                 } else if fortsatter, let ost = stegen.firstIndex(of: o!.steg) {
-                    let d = stegen.firstIndex(of: steg!)! - ost
-                    if !(0...1).contains(d) { fel.append(Kontrollfel("\(p).ovning.steg", "steg_hopp")) }
+                    let hopp = stegen.firstIndex(of: steg!)! - ost
+                    if !(0...1).contains(hopp) { fel.append(Kontrollfel("\(p).ovning.steg", "steg_hopp")) }
                 } else if steg != stegen[0] {
                     fel.append(Kontrollfel("\(p).ovning.steg", "steg_forsta"))
                 }
@@ -371,7 +371,7 @@ public enum AttJobbaPaKontroll {
                 if typ != "teknik" { fel.append(Kontrollfel("\(p).fysik", "kravs")) }
             } else if nycklar(fy, fysiken, "\(p).fysik", &fel) {
                 let tre = fy["treregeln"]?.somLista
-                let bools: [Bool]? = tre.flatMap { l in
+                let bools: [Bool]? = tre.flatMap { l -> [Bool]? in
                     let b = l.compactMap { v -> Bool? in if case let .bool(x) = v { return x } else { return nil } }
                     return b.count == l.count ? b : nil
                 }

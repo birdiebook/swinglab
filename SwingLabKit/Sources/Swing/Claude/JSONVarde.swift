@@ -43,12 +43,12 @@ public indirect enum JSONVarde: Equatable, Sendable {
     // MARK: att bygga
 
     public static func o(_ par: [(String, JSONVarde)]) -> JSONVarde { .objekt(Objekt(par)) }
-    public static func t(_ s: String?) -> JSONVarde { s.map { .text($0) } ?? .null }
-    public static func d(_ v: Double?) -> JSONVarde { v.map { .tal($0) } ?? .null }
+    public static func t(_ s: String?) -> JSONVarde { s.map { JSONVarde.text($0) } ?? .null }
+    public static func d(_ v: Double?) -> JSONVarde { v.map { JSONVarde.tal($0) } ?? .null }
     public static func i(_ v: Int) -> JSONVarde { .tal(Double(v)) }
-    public static func texter(_ s: [String]) -> JSONVarde { .lista(s.map { .text($0) }) }
+    public static func texter(_ s: [String]) -> JSONVarde { .lista(s.map { JSONVarde.text($0) }) }
     /// Ett spann ur katalogen: [min, max] med null för en öppen ände, eller null.
-    public static func spann(_ s: [Double?]?) -> JSONVarde { s.map { .lista($0.map { d($0) }) } ?? .null }
+    public static func spann(_ s: [Double?]?) -> JSONVarde { s.map { JSONVarde.lista($0.map { JSONVarde.d($0) }) } ?? .null }
 
     // MARK: att läsa
 

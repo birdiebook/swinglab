@@ -39,7 +39,7 @@ public enum ClaudeSvar {
         let s = Array(text.unicodeScalars)
         let n = s.count
         func tre(_ i: Int) -> Bool { i + 3 <= n && s[i] == "`" && s[i + 1] == "`" && s[i + 2] == "`" }
-        func text(_ a: Int, _ b: Int) -> String {
+        func stycke(_ a: Int, _ b: Int) -> String {
             var t = ""
             t.unicodeScalars.append(contentsOf: s[a..<b])
             return t
@@ -54,7 +54,7 @@ public enum ClaudeSvar {
                     var k = j + 1
                     while k + 3 <= n, !tre(k) { k += 1 }
                     if tre(k) {
-                        ut.append(text(j + 1, k))
+                        ut.append(stycke(j + 1, k))
                         i = k + 3
                         continue
                     }

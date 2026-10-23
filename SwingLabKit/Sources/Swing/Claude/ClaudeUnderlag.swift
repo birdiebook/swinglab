@@ -84,9 +84,9 @@ public struct ClaudeUnderlag: Sendable {
     }
 
     func kandidater() -> JSONVarde {
-        .lista(analys.kandidater.map { k in
+        .lista(analys.kandidater.map { k -> JSONVarde in
             .o([("fel", .text(k.fel)), ("status", .text(k.status.rawValue)), ("fas", .text(k.fas)),
-                ("orsaker", .o(k.orsaker.map { ($0.fel, .texter($0.vag)) })), ("foljdfel", .bool(k.foljdfel)),
+                ("orsaker", .o(k.orsaker.map { ($0.fel, JSONVarde.texter($0.vag)) })), ("foljdfel", .bool(k.foljdfel)),
                 ("fysik", .texter(k.fysik))])
         })
     }
@@ -101,7 +101,7 @@ public struct ClaudeUnderlag: Sendable {
                 guard let b = per[p]?.rad(f.id), let v = b.visat else { return .null }
                 return .lista([.tal(v), .text(b.status.rawValue)])
             }
-            if rader.contains(where: { $0 != .null }) { fel.append((f.id, .lista(rader))) }
+            if rader.contains(where: { $0 != .null }) { fel.append((f.id, JSONVarde.lista(rader))) }
         }
         return .o([("pass", .texter(passen)), ("fel", .o(fel))])
     }
@@ -134,7 +134,7 @@ public struct ClaudeUnderlag: Sendable {
     func pagaende() -> JSONVarde {
         guard let d = filer.filter({ $0.pass < analys.pass }).enumerated()
             .max(by: { ($0.element.pass, $0.offset) < ($1.element.pass, $1.offset) })?.element else { return .null }
-        return .o([("pass", .text(d.pass)), ("saker", .lista(d.saker.map { s in
+        return .o([("pass", .text(d.pass)), ("saker", .lista(d.saker.map { s -> JSONVarde in
             .o([("fel", .text(s.fel)), ("ovning_id", .text(Ovningslage.id(s.ovning))), ("steg", .text(s.ovning.steg)),
                 ("tanke", .text(s.ovning.tanke)), ("typ", .text(s.typ)),
                 ("block", .o([("start", .text(s.block.start)), ("vecka", .i(s.block.vecka))]))])
@@ -199,7 +199,7 @@ public struct ClaudeUnderlag: Sendable {
                 steg = [stegen[0]]
             }
             let start = o.flatMap { Dag.fran($0.felStart) } ?? dag
-            let foljd: [JSONVarde] = kand.filter { $0.foljdfel }.compactMap { x in
+            let foljd: [JSONVarde] = kand.filter { $0.foljdfel }.compactMap { x -> JSONVarde? in
                 guard let vag = x.orsaker.first(where: { $0.fel == fid })?.vag, let kx = K[x.fel] else { return nil }
                 return .o([("fel", .text(x.fel)), ("namn", .text(kx.namn)), ("vag", .texter(vag)),
                            ("nu", .d(analys.rad(x.fel)?.visat)), ("enhet", .text(Avrundning.enhet(kx.matt)))])
@@ -231,7 +231,7 @@ public struct ClaudeUnderlag: Sendable {
                                              ("fo", .i(a.baslinjeSvingar["fo"] ?? 0))]))])),
             ("kandidater", kandidater()),
             ("bedomning", bedomning()),
-            ("spridning", .lista(a.spridning.filter { $0.n > 0 }.map { s in
+            ("spridning", .lista(a.spridning.filter { $0.n > 0 }.map { s -> JSONVarde in
                 .o([("matt", .text(s.matt)), ("vy", .text(s.vy)), ("klubba", .t(s.klubba)), ("n", .i(s.n)),
                     ("visat", .d(s.visat))])
             })),

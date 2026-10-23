@@ -51,7 +51,7 @@ public struct Kedjor: Decodable, Sendable {
             i += 1
             if sedda.contains(o) || o == fel { continue }
             sedda.insert(o)
-            ut.append((o, vag))
+            ut.append((fel: o, vag: vag))
             ko += (fore[o] ?? []).map { ($0, [$0] + vag) }
         }
         return ut
