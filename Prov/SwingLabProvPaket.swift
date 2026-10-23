@@ -195,8 +195,8 @@ final class SwingLabProvPaket: XCTestCase {
         let med = try ZipCatalog(url: medUrl)
         let medByte = try Data(contentsOf: medUrl).count
         print("PROV: paket med klipp \(med.names), \(medByte) byte")
-        XCTAssertEqual(med.names, ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json",
-                                   "klipp/s01.mov", "klipp/s02.mov"])
+        XCTAssertEqual(med.names, ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json",
+                                   "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"])
         XCTAssertEqual(try med.data(named: "par.json"), parPaDisken, "par.json som S2g skrev den")
         XCTAssertEqual(try PassCoding.decoder().decode(PairFile.self, from: med.data(named: "par.json")).entries, [par])
         for e in med.entries { _ = try med.data(e) }        // varje fil: huvudet, storleken och CRC
@@ -234,7 +234,8 @@ final class SwingLabProvPaket: XCTestCase {
         let utanExport = try await Export.package(passID: pass.id, store: store, includeClips: false)
         let utanUrl = try tillPC(utanExport, "utan-klipp")
         let utan = try ZipCatalog(url: utanUrl)
-        XCTAssertEqual(utan.names, ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json"])
+        XCTAssertEqual(utan.names, ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json",
+                                    "slag/s02.json"])
         let utanM = try JSONDecoder().decode(PackageManifest.self, from: utan.data(named: "manifest.json"))
         XCTAssertTrue(utanM.shots.allSatisfy { $0.clip == nil })
         let lodlinje = try XCTUnwrap(utanM.series.first?.plumb, "lodlinjen ur de injicerade proven")

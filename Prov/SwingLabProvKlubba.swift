@@ -122,7 +122,11 @@ final class SwingLabProvKlubba: XCTestCase {
         }
         XCTAssertEqual(mv.values["skaftplan_p1"] ?? .nan, 60, accuracy: 0.01)
         XCTAssertEqual(mv.values["skaft_mot_plan_p2"] ?? .nan, -25, accuracy: 0.01)
-        XCTAssertNotNil(mv.values["skaft_plan_p6"])
+        // P6 mot planet räknas när hoseln vid P6 ligger minst 60 px från adressens (METOD M47).
+        let h1 = try XCTUnwrap(m.result.first { $0.position == "P1" }?.hosel)
+        let h6 = try XCTUnwrap(m.result.first { $0.position == "P6" }?.hosel)
+        XCTAssertEqual(mv.values["skaft_plan_p6"] != nil,
+                       ((h6.x - h1.x) * (h6.x - h1.x) + (h6.y - h1.y) * (h6.y - h1.y)).squareRoot() >= Klubba.minSkaftPx)
         XCTAssertEqual(mv.positions["P2"] ?? .nan, satt["P2"]?.t ?? 0, accuracy: 1e-9)
         XCTAssertEqual(mv.positions["P6"] ?? .nan, satt["P6"]?.t ?? 0, accuracy: 1e-9)
         XCTAssertNil(mv.positions["P8"], "P8 hoppades över")
