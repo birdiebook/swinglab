@@ -1,20 +1,20 @@
-8f5b2f5b94f015eadef93cd98ce9d98f60879b27 main 2026-10-23T08:05:32Z run 39921987890
+46a32623c15589152b2ca7bce9f2bd7bf18a9bd5 s3verktyg 2026-10-23T08:09:10Z run 39922437335
 == swift-release
-GRÖNT: 215 test, 0 fel, 8 s i testerna, bygget 57 s
-Långsammast (av 215):
-      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+GRÖNT: 213 test, 0 fel, 6 s i testerna, bygget 47 s
+Långsammast (av 213):
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
       0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
-      0.2 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  VisningTests.testMatytanGerMattetsTal
-      0.1 s  VisningTests.testUtvecklingMedSpridningOchEjMatta
+      0.1 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  VisningTests.testUtveckling
       0.1 s  MatningTests.testSammaSomFilformatet
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
       0.1 s  KatalogTests.testKontrollernaSomPython
-      0.1 s  MattTests.testLangLuckaTarBortMattenIFasen
+      0.1 s  VisningTests.testS5sExempelGarAttLasa
+      0.1 s  PaketTests.testAttJobbaPaTasEmotOchFarPassetsNamn
 
