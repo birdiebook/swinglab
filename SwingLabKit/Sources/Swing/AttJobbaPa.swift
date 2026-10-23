@@ -72,6 +72,9 @@ public struct AttJobbaPa: Decodable, Sendable {
         /// Stegen i ordning (METOD MT10 i S5).
         public static let stegen = ["langsamt_med_foremal", "halv_fart", "full_fart", "varierat"]
 
+        /// Övningens stabila id (katalogens `ovning_id` eller kedjornas `id`); nil i en fil från
+        /// före S5, som känns igen på texten (Ovningslage, METOD MT8).
+        public let id: String?
         public let text: String
         public let tanke: String
         /// "katalog" eller "research3".

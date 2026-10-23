@@ -297,7 +297,9 @@ nästa steg (`halv_fart`), samma "klart när". Resan framåt och tappad hållnin
   Valt: en egen fil som bara PC:n läser, med källa och status per kedja.
   Bortvalt: fält i `katalog.json`, som appen läser och vars ordagranna kopia
   ligger i Swift-fixturerna (BESLUT B12): varje ändring av en kedja hade krävt
-  nya fixturer. Omprövas om appen ska rita kedjan (research 3 (c)).
+  nya fixturer. Omprövas om appen ska rita kedjan (research 3 (c)). **Ändrat av BESLUT
+  B53:** kedjorna följer med till appen som genererad källa (`underlag.py --swift`), för
+  Claude-appen.
 - **F-S5-2 — Claude skriver av, koden kontrollerar.** Valt: analysen föreslår
   "klart när" och talet som visas för varje fel (METOD MT3), och
   `att_jobba_pa.py --analys` fäller ett tal, en gräns, en kedja eller ett

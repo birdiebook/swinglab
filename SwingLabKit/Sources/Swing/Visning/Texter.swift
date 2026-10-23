@@ -274,4 +274,39 @@ public enum Texter {
     public static func stegSkaVara(_ falt: String, _ stegen: String) -> String { "\(falt): must be one of \(stegen)" }
     /// Platsen när felet gäller hela filen.
     public static let filen = "file"
+
+    // MARK: svaret från Claude-appen (S5b)
+
+    /// Kontrollens koder (AttJobbaPaKontroll och ClaudeSvar, samma som PC:ns) på engelska;
+    /// fältet står före, värdet aldrig (Dataregeln). BESLUT B54
+    public static let kontrollfelTexter: [String: String] = [
+        "objekt": "must be an object", "okand_nyckel": "unknown key", "saknas": "is missing",
+        "format": "must be swinglab-att-jobba-pa/1", "pass_form": "must be yyyyMMdd-HHmmss",
+        "inte_analysens": "is not this session", "iso": "must be an ISO 8601 time", "antal": "must be 1–3 items",
+        "dubblett": "the same fault twice", "ordning": "wrong order number", "ej_i_katalogen": "not in the catalog",
+        "avstangt": "switched off in the catalog", "katalogens": "must be the catalog's",
+        "mattets": "must be the measure's unit", "svingens_ordning": "earlier in the swing than the item before",
+        "foljdfel_av_vald": "follows from another chosen item", "ej_i_analysen": "not in this session",
+        "foljdfel": "follows from a flagged fault; practise the cause", "okant_med_flaggade": "unknown while others are flagged",
+        "inte_flaggat": "not flagged in this session", "analysens_tal": "must be the session's number",
+        "klar": "the drill is done; drop the item", "byt_ovning": "the history says change drill",
+        "redan_provad": "drill already tried for this fault", "ej_i_kedjorna": "not a drill for this fault",
+        "kedjornas": "must be the drill's text", "kalla": "must be katalog or research3", "text": "must be text",
+        "for_lang": "too long", "siffror": "no digits", "vardeord": "no judging words", "utropstecken": "no exclamation marks",
+        "svenska": "must be English", "steg": "unknown step", "steg_hopp": "same step or the next",
+        "steg_forsta": "a new drill starts at the first step", "villkor": "must be >=, <= or mellan",
+        "grans_spann": "must be [min, max]", "grans_tal": "must be a number", "pa": "must be forsta_serien",
+        "pass_i_rad": "must be 2", "last": "must stay as when the drill was chosen",
+        "analysens": "must be the session's suggestion", "inget_forslag": "the session has no suggestion",
+        "block_start": "must be the day the fault was first chosen", "block_vecka": "wrong week",
+        "lista": "must be a list", "ingen_kedja": "no chain from the item", "vag": "must be the chain's path",
+        "vald": "is also a chosen item", "fysik_forst": "the history says test mobility first",
+        "typ": "unknown type", "kravs": "needed for the type", "treregeln": "does not follow the three rules",
+        "test": "not a test for this fault", "null": "must be null for technique",
+        "inget_block": "no code block from Claude", "inte_json": "the code block is not valid JSON",
+        "inte_att_jobba_pa": "no Focus file in the reply",
+    ]
+
+    /// Kodens text, eller "invalid" för en kod utan text.
+    public static func kontrollfel(_ kod: String) -> String { kontrollfelTexter[kod] ?? "invalid" }
 }

@@ -35,6 +35,8 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
 - **Bortvalt:** att anropa API:et från telefonen. Abonnemanget ger ingen
   API-nyckel; API:et faktureras för sig.
 - **Omprövas:** om tolkningen behövs på rangen, utan PC.
+- **Kompletteras av B52** (2026-10-23): tolkningen går också i Claude-appen på telefonen,
+  med samma abonnemang och utan API-nyckel.
 
 ## B5 — Vision i 2D på telefonen, MediaPipe på PC:n för siffrorna
 *2026-10-22 · prövas*
@@ -988,3 +990,94 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
 - **Omprövas:** när kedjan ändras i Python (fixturerna skrivs om, B12), eller om
   telefonen blir för långsam (METOD M50:s tid).
 
+---
+
+Besluten B52–B55 kommer ur S5b-1 (Claude-appen på telefonen, grenen `s5b`). Lucka: s7a tar
+B47 och s6c börjar på B48.
+
+## B52 — Claude-appen på telefonen via urklippet, utan PC och utan API-nyckel
+*2026-10-23 · prövas · Johannes beslut (utformningen) · PLAN.md S5b*
+
+- **Valt:** "Ask Claude" i passet kopierar en färdig text (skillens regler och passets
+  data, räknad på telefonen) till urklipp; Johannes klistrar in den i Claude-appen, som
+  svarar med rapporten och sist ett kodblock i formatet `att_jobba_pa.json`. "Paste from
+  Claude" läser urklippet, kontrollerar filen som PC:n (B54) och sparar den som Focus via
+  samma väg som "Import focus" (`FocusInbox`, `Store.focus`). Bara text, inga videor.
+- **Varför:** tolkningen behövs på rangen, där PC:n inte finns (B4 omprövad). Urklippet
+  går genom abonnemanget utan nyckel och utan server (B3): det är Johannes som klistrar in.
+- **Bortvalt:** API:et från telefonen (ingen nyckel i abonnemanget, B4); en delning till
+  Claude-appen med fil (Claude läser text lika bra, och en fil kräver ett steg till); att
+  telefonen fyller i filen själv ur Claudes val (då blir det två format att hålla ihop).
+- **Kostnad:** två klipp per pass; Claudes svar kan vara fel i form, och fångas då av
+  kontrollen (B54) i stället för att sparas. Ingen kontaktark: Claude i appen ser inga
+  bilder, bara talen.
+- **S5b-1 (byggt):** logiken i SwingLabKit (`Swing/Claude/`, `Capture/ClaudeKontext.swift`)
+  och PC-sidan (`tools/pc/underlag.py`, `att_jobba_pa.py --ur-text`, `session.py
+  --claude-text`). **S5b-2:** knapparna och simulatorprovet.
+- **Omprövas:** efter de första passen tolkade i Claude-appen: jämför valet med skillens
+  fulla väg på PC:n (`session.py --claude-text` ger samma text).
+
+## B53 — Texten byggs ur skillen, och telefonen räknar som PC:n
+*2026-10-23 · gäller · PLAN.md S5b*
+
+- **Valt:** instruktionen är avsnitten mellan markörerna `<!-- claude-appen -->` och
+  `<!-- /claude-appen -->` i `.claude/skills/svinganalys/SKILL.md`, ordagrant: ett nytt
+  avsnitt om Claude-appen, stegen A–I och delar av "Det Claude inte får göra" (J och K
+  fyller mallen i). `python3 tools/pc/underlag.py --swift` skriver dem och `kedjor.json`
+  till `Swing/Claude/ClaudeKallor.swift`; `test_underlag.py` fäller en källa som glidit
+  isär. Datan räknas på telefonen med en Swift-port av `analysera_rader` (`Passanalys`) och
+  minnet (`Ovningslage`, `ovningar_ur`), med Python som facit (B12): påhittade
+  passhistoriker i `tools/tests/fixturer/claude_facit.json` ska ge samma text tecken för
+  tecken.
+- **Kedjorna följer med till appen** (ändrar förslaget F-S5-1 i skillen): kandidaterna,
+  mallarna och kontrollen behöver dem. De bärs som genererad källa, inte resurs (B12), så
+  en ändrad kedja kräver bara att skriptet körs igen.
+- **Telefonens baslinje** är passen som kan jämföras (`PassHistory.earlier`: samma
+  klubba, vy och längd, METOD MS14), som passets vy redan visar; PC:n tar alla tidigare
+  pass i historiken. Samma regel räknar på samma pass; urvalet är anroparens.
+- **Bortvalt:** en egen kortversion av reglerna i appen (glider isär från skillen); att
+  låta Claude räkna ur rådata (B2).
+- **Kostnad:** analysen och minnet finns i två språk till; facit-filen är ≈ 170 kB.
+
+## B54 — Svaret: det sista kodblocket, samma kontroll och samma felkoder som PC:n
+*2026-10-23 · gäller · PLAN.md S5b*
+
+- **Valt:** urklippet läses som `att_jobba_pa.py --ur-text` gör: det sista kodblocket
+  (```` ``` ```` med valfri märkning) som är ett JSON-objekt med `format` eller `saker`,
+  annars hela texten eller det mellan första `{` och sista `}` (när Johannes kopierat bara
+  blocket). Typografiska citattecken, hårda mellanslag och BOM byts bara när blocket inte
+  går att läsa som det står (ett ’ i en övnings text är rätt, METOD MT12). Filen
+  kontrolleras med alla regler i `kontrollera` (stängd form, flaggade fel, analysens tal,
+  låst "klart när", kedjorna, värdeorden, treregeln), mot passet som underlaget gällde och
+  minnet före passets val. Varje fel är ett fält och en kod (`Kontrollfel`); PC:n skriver
+  koden på svenska och telefonen på engelska (B30, `Texter.kontrollfelTexter`). Ingen kod
+  och ingen text bär ett värde ur svaret: värdeordet står inte längre i PC:ns fel.
+- **Varför:** samma svarstexter prövas i båda språken (facit), och telefonen tar emot en
+  fil bara när PC:n hade tagit emot den.
+- **Bortvalt:** en mildare kontroll på telefonen (då kan en fil med fel tal bli Focus);
+  att rätta Claudes fel automatiskt (då står något annat i Focus än Claude skrev).
+- **Kostnad:** `skapad` prövas nu med en regel (dag, valfri tid och zon) i stället för
+  `datetime.fromisoformat`, så att Swift kan pröva samma sak.
+
+## B55 — Underlagets språk och form: skillens svenska, data som kompakt JSON med mallar
+*2026-10-23 · prövas · PLAN.md S5b*
+
+- **Valt:** instruktionen är på **svenska**, eftersom den är skillens text ordagrant (B53),
+  och Johannes läser rapporten på svenska och skriver svenska till Claude. Filens fritext
+  är engelska som förut (B30); instruktionen säger det. Datan är **kompakt JSON** i ett
+  kodblock, med fältnamnen ur `analys.json` och minnet (så att skillens text gäller utan
+  översättning), en rad per fält och listpost i de två yttersta nivåerna, och en **mall**
+  per fel som går att välja med de låsta fälten ifyllda (namn, tal, spann, märkning,
+  "klart när", följdfelen med kedjans väg, blocket) och valen (övningarna, stegen, testen).
+- **Varför:** Claude läser JSON säkrast när talen ska skrivas av exakt, och kontrollen
+  jämför tal för tal; mallen gör att Claude bara väljer och skriver tanken. Svenska ger ett
+  par procent längre text (å, ä, ö är två byte) men ingen översättning som kan glida.
+- **Storleken (METOD MT11):** ett typiskt pass med två vyer, sex pass och en övning som
+  fortsätter: ≈ 8,1 kB data och 7,5 kB instruktion, ≈ 15,6 kB totalt; ett pass i en vy utan
+  minne ≈ 2,7 kB data. Provet håller datan under 8 KiB och hela texten under 16 KiB.
+- **Bortvalt:** engelska (en översatt kopia av skillen, eller engelsk rapport till
+  Johannes); en tabell i Markdown (kortare, men talen och listorna, som `vag` och
+  `spann`, skrivs av sämre); indenterad JSON (≈ 40 % längre); kontaktarken (Claude i appen
+  får bara text).
+- **Omprövas:** om Claude-appens svar ofta faller i kontrollen (B54) eller rapporten blir
+  sämre än på PC:n.

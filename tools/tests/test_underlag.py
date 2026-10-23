@@ -169,6 +169,20 @@ class Svaret(unittest.TestCase):
                     self.assertNotIn(varde, str(f), s["namn"])
 
 
+class Koderna(unittest.TestCase):
+    def test_varje_kod_har_en_engelsk_text_i_appen(self) -> None:
+        """BESLUT B54: telefonen visar koden på engelska; en ny kod i Python behöver sin text."""
+        import re
+        kalla = (U.ROT / "tools" / "pc" / "att_jobba_pa.py").read_text(encoding="utf-8")
+        koder = set(re.findall(r'_F\([^\n]*?, "(\w+)"(?:, [^\n]*)?\)', kalla))
+        koder |= set(re.findall(r'Kontrollfel\("[^"]*", "svaret", "(\w+)"\)', kalla))
+        texter = (U.ROT / "SwingLabKit" / "Sources" / "Swing" / "Visning" / "Texter.swift").read_text(encoding="utf-8")
+        i = texter.index("kontrollfelTexter")
+        swift = set(re.findall(r'"(\w+)": "', texter[i:texter.index("]", texter.index("inte_att_jobba_pa"))]))
+        self.assertGreater(len(koder), 50)
+        self.assertEqual(koder - swift, set())
+
+
 class PCvagen(unittest.TestCase):
     """session.py --claude-text och att_jobba_pa.py --ur-text på skillens påhittade exempel."""
 

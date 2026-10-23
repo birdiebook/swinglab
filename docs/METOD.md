@@ -1841,6 +1841,46 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
   dag felet först valdes och fortsätter genom bytta övningar; `vecka` = hela
   veckor sedan starten + 1. **antagande.**
 
+## MT11 — Underlaget till Claude-appen (S5b)
+
+- Texten är rubriken, instruktionen (skillens avsnitt `claude-appen`, BESLUT B53) och
+  datan som kompakt JSON i ett kodblock (BESLUT B55), räknad med samma regler som PC:n:
+  analysen (M25–M27, MT2, MT3, MT6, MT9), minnet före passets val (MT4, MT5, MT10) och en
+  mall per fel som går att välja.
+- **Datan:** `kandidater` som analysen; `bedomning` för de aktiva felen med ett tal (`z`
+  med **1** decimal, `baslinje` = baslinjens median, robusta sd och svingar för ett fel
+  utan gräns); `spridning` (M44) med minst ett slag; `historik` = `[visat, status]` för de
+  senaste **6** passen; `ovningar` = minnet med uppföljningens senaste **4** rader;
+  `pagaende` = den senaste filen före passet; `fil` = filens huvud med `skapad`.
+  **antagande** (6 pass räcker för trenden i ett block på 4–6 veckor med två pass i
+  veckan; 4 rader är `byt_ovning`-gränsen i MT5).
+- **Mallen** för ett fel: grundorsakerna bland kandidaterna, eller de okända felen med
+  förslag när inget är flaggat (MT6). Ett fel vars övning är klar får ingen mall. Övningen
+  som fortsätter (`ny`, `fortsatt`, `fysik`) ger minnets "klart när" och märkning, samma
+  övning och stegen `[nu, nästa]`; annars analysens förslag, övningarna (katalogens och
+  kedjornas) som inte provats för felet, och första steget. Blocket från minnets
+  `fel_start` eller passets dag. **räkning** (kontrollens regler, MT3, MT5, MT10).
+- **Storleken:** datan för ett typiskt pass (två vyer, sex pass, en övning som
+  fortsätter) högst **8 KiB**, hela texten högst **16 KiB** (`test_underlag.py`,
+  `ClaudeTests`). **antagande** (några kB, Johannes 2026-10-23).
+- **Talen** skrivs som heltal utan decimaler, annars i kortaste form (Python `repr`,
+  Swift `description`). De påhittade måtten har sex decimaler, så att ingen median hamnar
+  på en avrundnings halva, där Pythons och Swifts avrundning skiljer sig (MT3).
+
+## MT12 — Svaret från Claude-appen
+
+- **Kodblocken:** från ``` med valfri märkning till radslutet, och till nästa ```.
+  Det sista blocket som är ett JSON-objekt med `format` eller `saker` gäller; utan block
+  hela texten, och det mellan första `{` och sista `}`. **räkning.**
+- **Utbytena**, bara när blocket inte går att läsa som det står: “ ” „ ‟ ″ → ", hårt
+  mellanslag (U+00A0, U+202F, U+2007) → mellanslag, BOM och nollbrett mellanslag bort.
+  **antagande** (det telefonens skiljetecken och anteckningar byter).
+- **Kontrollen** är MT3, MT5, MT6, MT8 och MT10 som på PC:n, mot passet som underlaget
+  gällde. Felen är fält och kod (BESLUT B54): `inget_block`, `inte_json`,
+  `inte_att_jobba_pa`, och kontrollens koder.
+- **`skapad`:** `yyyy-MM-dd`, valfritt `THH:mm[:ss[.f]]` (högst sex decimaler) och `Z`
+  eller `±HH:mm`, med giltig dag och tid. **räkning.**
+
 ---
 
 # Två kameror (S6)

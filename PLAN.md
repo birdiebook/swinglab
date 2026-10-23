@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S6c · S7 · S7a · S7b · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b · S6 · S6c · S7 · S7a · S7b · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -286,6 +286,32 @@ passets kort utan dubbel position, och fixturen `dtl_lucka` vid spärren på 15 
 
 **Klart när:** ett pass har gått telefon → PC → Claude → telefon, utan att
 någon fil behövt redigeras för hand.
+
+## S5b — Claude på telefonen (Johannes 2026-10-23)
+
+Claudes tolkning ska också gå att göra på mobilen, utan PC och utan API-nyckel, med
+abonnemanget (BESLUT B52). "Ask Claude" i passet kopierar en text: skillens regler (avsnitten
+`claude-appen` i SKILL.md, B53) och passets data räknad på telefonen, med en mall per fel
+som går att välja (B55). Johannes klistrar in den i Claude-appen. "Paste from Claude" läser
+svaret, tar det sista kodblocket och kontrollerar det som PC:n (B54); godkänt blir det Focus
+som "Import focus", annars visas fältet som är fel och inget ändras.
+
+**S5b-1 — logiken (byggt, grenen `s5b`):** SwingLabKit `Swing/Claude/` (`Passanalys` och
+`Ovningslage` portade ur `analysera_rader` och `ovningar_ur`, `ClaudeUnderlag`,
+`ClaudeSvar`, `AttJobbaPaKontroll`, `JSONVarde`, och `ClaudeKallor` genererad ur skillen
+och `kedjor.json`), `Capture/ClaudeKontext.swift` (passen → raderna, underlaget ur
+`PassHistory.earlier`, `FocusInbox.acceptClaude`), och på PC:n `tools/pc/underlag.py`,
+`att_jobba_pa.py --ur-text` och `session.py --claude-text`. Facit:
+`tools/tests/fixturer/claude_facit.json` (påhittade passhistoriker, Pythons text och
+svarstexter med felkoder), prövat i `test_underlag.py` och `ClaudeTests`. METOD MT11–MT12.
+
+**S5b-2 — knapparna (efter att `s7a` landat, samma vyer):** "Ask Claude" och "Paste from
+Claude" i passet och på Today, felet som en rad i formspråket (B13), och simulatorprovet:
+texten kopieras, ett påhittat svar klistras in och blir Focus, och ett ogiltigt visar fältet.
+
+**Klart när:** Johannes har tolkat ett pass i Claude-appen på rangen och svaret blivit Focus
+utan att någon fil redigerats för hand, och samma text (`session.py --claude-text`) har
+prövats mot skillens fulla väg på PC:n.
 
 ## S6 — Två kameror: vridningen och X-factor
 

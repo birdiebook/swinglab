@@ -4,9 +4,9 @@
 // .claude/skills/svinganalys/SKILL.md, och kedjorna är tools/pc/kedjor.json, båda
 // ordagrant (BESLUT B53). test_underlag.py fäller filen när den inte längre är källornas.
 
-enum ClaudeKallor {
+public enum ClaudeKallor {
     /// Reglerna ur skillen svinganalys, kortade (avsnitten claude-appen).
-    static let instruktion = #"""
+    public static let instruktion = #"""
 **Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude") och klistrat in
 den här. Datan längst ned är räknad på telefonen med samma regler och fältnamn som på
 PC:n: `kandidater` och `bedomning` ur analysen (`visat` är talet som visas,
@@ -124,7 +124,7 @@ standing", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 """#
 
     /// tools/pc/kedjor.json, ordagrant.
-    static let kedjor = #"""
+    public static let kedjor = #"""
 {
  "version": 1,
  "om": "Tolkningens kunskap för PC:n (skillen svinganalys, tools/pc/analys.py): vilka fel i katalog.json som kan vara följdfel av vilka, i vilken ordning faserna kommer, vilka fysiska test som hör till ett fel, och övningarna ur research 3 §2 som Claude får byta till. Ur docs/research/3_tolkning_och_appar.md §1 och §5; allt är ej läst i original (BESLUT B10). Claude får bara använda kedjor och test som står här (METOD MT6). Texterna som visas (övningarnas text och testen) är engelska (BESLUT B30); varje övning har ett stabilt id som historiken jämför på (tools/pc/historik.py), så att en ändrad formulering inte nollställer steget.",

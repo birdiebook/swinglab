@@ -320,7 +320,7 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `skifte_ej_tillbaka` | `fo`: FO-slag där bäckenet står bakom adressläget vid träffen, så att skiftet saknas (censurerat, METOD M42), och `fo_matta`: mätta FO-slag |
 | `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
 | `forra` | `null`, eller `pass` och `jamforelse` (METOD M26) per grupp |
-| `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
+| `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `baslinje` (för ett fel utan gräns: baslinjens `median`, robusta `sd` och `n` svingar, avrundade; `null` med gräns eller under 8 svingar, S5b), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
 | `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}` |
@@ -511,6 +511,31 @@ B30): `namn` och övningarna är katalogens och kedjornas, och fritexten (`tanke
 `fysik.ovning`) skrivs på engelska; kontrollen fäller å, ä och ö där. Ingen text
 bär värdeord, siffror i fritext eller utropstecken (BESLUT B13, METOD MT8).
 Rapporten till Johannes står i chatten, inte i filen, och får vara svensk.
+
+## Underlaget till Claude-appen (S5b)
+
+"Ask Claude" på telefonen och `session.py --claude-text` på PC:n skriver samma text
+(BESLUT B52–B55, METOD MT11): `# SwingLab: Att jobba på efter passet <pass>`, skillens
+avsnitt `claude-appen`, och `## Datan` med ett kodblock ```` ```json ```` som bär ett objekt
+med fälten i den här ordningen:
+
+| Fält | Innehåll |
+|---|---|
+| `pass`, `datum`, `klubbor` | passet |
+| `slag` | mätta slag per vy (`dtl`, `fo`) |
+| `tempo_vy`, `forra` | analysens; `forra` är förra passets id eller `null` |
+| `baslinje` | antal tidigare `pass` och `svingar` per vy |
+| `kandidater` | analysens |
+| `bedomning` | de aktiva felen med ett tal: `id`, `vy`, `enhet`, `status`, `z` (1 decimal), `n`, `visat`, `forsta_serien`, `spann`, `gult`, `baslinje`, `mot_forra` (de valfria står inte med när de är `null`) |
+| `spridning` | analysens, för mått med minst ett slag |
+| `historik` | `pass` (de senaste sex) och `fel`: per aktivt fel `[visat, status]` eller `null` per pass |
+| `ovningar` | minnet före passets val (`historik.py minne`), uppföljningen med de senaste fyra raderna; en avslutad övning bara `fel`, `aktuell`, `lage`, `ovning_id` |
+| `pagaende` | den senaste filen före passet: `pass` och per sak `fel`, `ovning_id`, `steg`, `tanke`, `typ`, `block`; eller `null` |
+| `fil` | `format`, `pass` och `skapad` för svaret |
+| `mallar` | per fel som går att välja: sakens fält utom `ordning`, `ovning`, `typ` och `fysik`, och valen `ovning_val` (`id`, `text`, `kalla`, och `tanke` för katalogens eller den som fortsätter), `steg_val` och `fysik_test` |
+
+Svaret är rapporten och sist ett kodblock med `fil` och `saker`, i formen ovan ("Att
+jobba på"). Telefonen och `att_jobba_pa.py --ur-text` läser det likadant (METOD MT12).
 
 ## Historiken: `data/historik/`
 
