@@ -44,7 +44,8 @@ final class SwingLabProv: XCTestCase {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "se.birdiebook.swinglab")
         XCTAssertEqual(info["CFBundleDisplayName"] as? String, "SwingLab")
         for nyckel in ["NSCameraUsageDescription", "NSMicrophoneUsageDescription",
-                       "NSPhotoLibraryUsageDescription", "NSLocalNetworkUsageDescription"] {
+                       "NSPhotoLibraryUsageDescription", "NSLocalNetworkUsageDescription",
+                       "NSMotionUsageDescription"] {
             XCTAssertFalse((info[nyckel] as? String ?? "").isEmpty, "\(nyckel) saknas")
         }
         XCTAssertEqual(info["NSBonjourServices"] as? [String], ["_swinglab._tcp"])
@@ -78,7 +79,8 @@ final class SwingLabProv: XCTestCase {
         }
         let info = try XCTUnwrap(Bundle.main.infoDictionary)
         for nyckel in ["NSCameraUsageDescription", "NSMicrophoneUsageDescription",
-                       "NSPhotoLibraryUsageDescription", "NSLocalNetworkUsageDescription"] {
+                       "NSPhotoLibraryUsageDescription", "NSLocalNetworkUsageDescription",
+                       "NSMotionUsageDescription"] {
             XCTAssertNil((info[nyckel] as? String ?? "").rangeOfCharacter(from: svenska), nyckel)
         }
     }

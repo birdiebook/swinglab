@@ -45,6 +45,7 @@ KALIB_STEG_S = 1 / 60          # METOD MK3: tidsaxeln för kalibreringens punktp
 KALIB_VARV = 2                 # METOD MK4: kalibrering → synk, två varv
 VINKEL_OK = (60.0, 120.0)      # METOD MK3: vinkeln mellan kamerorna som felbudgeten godtar (§6.4)
 SAMPSON_MAX_PX = 8.0           # METOD MK3: spärren, Sampson-felets median i px på 1920 px långsida
+LODLINJE_MOT_VAGRATA_MAX = 15.0  # METOD MK3: manifestets uppåt får avvika så mycket (grader) från kamerornas vågräta
 SYNK_SOK_S = 0.0105            # METOD MK4: ±1,5 × klickets ±7 ms
 SYNK_SOK2_S = 0.003            # METOD MK4: andra varvet söker så nära det första
 SYNK_STEG_S = 0.0005           # METOD MK4: sökningens steg
@@ -253,24 +254,35 @@ def kalibrera(slagen: list[dict], forsk: list[float], uppA=None, uppB=None):
         R, t, samp = kal.relativ_ur_normerade(x1, x2, w, f_px)
     except (ValueError, np.linalg.LinAlgError):
         raise TreDFel("kalibreringen: för få leder syns i båda vyerna") from None
-    if uppA is not None and uppB is not None:
-        upp, kalla = uppA + R.T @ uppB, "manifest"
-    elif uppA is not None:
-        upp, kalla = uppA, "manifest"
-    elif uppB is not None:
-        upp, kalla = R.T @ uppB, "manifest"
-    else:
-        try:
-            upp, kalla = kal.upp_ur_vagrata(R), "kamerornas_vagrata"
-        except ValueError:
-            raise TreDFel("kalibreringen: kamerorna står för nära samma riktning") from None
+    try:
+        vagrata = kal.upp_ur_vagrata(R)
+    except ValueError:
+        vagrata = None
+    upp, kalla, extra = None, "kamerornas_vagrata", {}
+    if uppA is not None or uppB is not None:
+        upp = (uppA if uppA is not None else 0) + (R.T @ uppB if uppB is not None else 0)
+        kalla = "manifest"
+        if vagrata is not None:
+            # Skyddet (B39): manifestets uppåt mot kamerornas vågräta. Vinkeln skrivs alltid
+            # och är mätningen för B39:s omprövning; över gränsen används de vågräta. METOD MK3
+            avvik = math.degrees(math.acos(float(np.clip(upp @ vagrata / np.linalg.norm(upp), -1, 1))))
+            extra["lodlinje_mot_vagrata"] = round(avvik, 1)
+            if avvik > LODLINJE_MOT_VAGRATA_MAX:
+                upp, kalla = None, "kamerornas_vagrata"
+                extra["lodlinje_fel"] = [f"lodlinjen i manifestet avviker mer än {LODLINJE_MOT_VAGRATA_MAX:.0f}° "
+                                         "från kamerornas vågräta"]
+    if upp is None:
+        if vagrata is None:
+            raise TreDFel("kalibreringen: kamerorna står för nära samma riktning")
+        upp = vagrata
     kamA, kamB = kal.varld(np.eye(3), np.eye(3), R, t, upp)
     # Vinkeln mellan blickriktningarna i markplanet (uppställningen, S6_FELBUDGET §6.4).
     fa, fb = kamA.R[2].copy(), kamB.R[2].copy()
     fa[2] = fb[2] = 0.0
     vinkel = math.degrees(math.acos(float(np.clip(fa @ fb / (np.linalg.norm(fa) * np.linalg.norm(fb)), -1, 1))))
     info = {"lodlinje": kalla, "sampson_px": round(samp * f_px * 1920.0 / lang, 2),
-            "vinkel_mellan_kamerorna": round(vinkel, 1), "vinkel_ok": VINKEL_OK[0] <= vinkel <= VINKEL_OK[1]}
+            "vinkel_mellan_kamerorna": round(vinkel, 1), "vinkel_ok": VINKEL_OK[0] <= vinkel <= VINKEL_OK[1],
+            **extra}
     return R, t, upp, info
 
 
@@ -351,7 +363,10 @@ def _uppstallning(dtl: Paket, fo: Paket, grupp: list[dict], rad: dict) -> tuple[
     except TreDFel as e:
         info["hoppat"] = str(e)
         return info, []
+    fel_k = k.pop("lodlinje_fel", [])
     info.update(k)
+    if fel_k:
+        info["lodlinje_fel"] = info.get("lodlinje_fel", []) + fel_k
     if k["sampson_px"] > SAMPSON_MAX_PX:
         info["hoppat"] = "kalibreringen: Sampson-felet är över spärren"
         return info, []

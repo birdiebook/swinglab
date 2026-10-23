@@ -1125,22 +1125,37 @@ värden i `CaptureTests`.
   överkant, z ut ur skärmen) var **1/30 s** från seriens start till filen är klar
   (App/Motion.swift). Tiden är `CMLogItem.timestamp` på värdklockan, samma som seriens
   `startHost` (BESLUT B19), så att provets tid i filen är `host − startHost`.
-  **tillverkare** (Apples CoreMotion), **antagande** (takten: 30 prov i fönstret nedan).
-  Kräver ingen tillåtelse: `NSMotionUsageDescription` gäller rörelseaktiviteten och
-  stegen (`CMMotionActivityManager`, `CMPedometer`), inte `CMMotionManager`.
-  **tillverkare, ej läst i original.**
+  **tillverkare** (Apples CoreMotion), **antagande** (takten: 30 prov i fönstret nedan,
+  och klockan). Inspelaren delas i appen: varje serie får en token, och bara den senaste
+  serien stoppar den och får proven.
+- **Tillåtelsen:** Apples dokumentation visar `CMMotionManager.authorizationStatus` från
+  iOS 27.2, och sidan för `NSMotionUsageDescription` varnar för att appen kraschar utan
+  nyckeln. Nyckeln står därför i project.yml. **tillverkare, inte bekräftat i original,
+  oprövat på iOS 27.2.**
+- **Trasiga prov slängs:** tal som inte är ändliga och en längd utanför **0,5–1,5 g**
+  (gravitationen har längden 1). Spridningen är därför alltid ändlig, och `pass.json` går
+  att spara. **antagande.**
 - **Medianen** per axel över **1,0 s** före seriens första klick (stativet står still och
-  ingen har rört telefonen sedan starten), med minst **10** prov. Är fönstret inte stilla,
-  saknas klicket eller värdklockan: seriens **stillastående sekunder** (sekunden från
-  första provet, var och en med minst 10 prov och stilla), när de är eniga med varandra.
+  ingen har rört telefonen sedan starten), med minst **10** giltiga prov. Den gäller bara
+  när varje stillastående sekund i serien ligger inom spärren från den: stöts stativet
+  efter första klicket blir det `oenig` och inget fält. Är fönstret inte stilla, saknas
+  klicket eller värdklockan: seriens **stillastående sekunder** (sekunden från första
+  provet, var och en med minst 10 prov och stilla), när varje sekunds median ligger inom
+  spärren från deras gemensamma median. **antagande.**
+- **Spridningen** är **95:e percentilen** (närmaste rang) av vinkeln mellan proven och
+  medianen, så att ett ensamt prov (en skakning vid träffen) inte fäller fönstret.
   **antagande.**
-- **Spärren för rörelse:** spridningen, den största vinkeln mellan ett prov och
-  medianen, över **1,0°** är rörelse. Rör sig telefonen i fönstret och i de stilla
-  sekunderna, eller är de stilla sekunderna inte eniga (stativet flyttat mitt i serien),
-  sparas `rorelse` i `pass.json` och fältet skrivs inte; PC:n tar då kamerornas vågräta
-  (MK3). Felbudgeten ger 0,5–3° fel i lodlinjen under slumpfelet (S6_FELBUDGET §6.5), så
-  1° är en telefon som vrider sig, inte brus. **antagande** (kalibreras på telefonen:
-  `spread` står i `pass.json`).
+- **Spärren:** spridningen över **1,0°** är rörelse, och två stilla fönster vars medianer
+  skiljer mer än 1,0° är oeniga. Felbudgeten ger 0,5–3° fel i lodlinjen under slumpfelet
+  (S6_FELBUDGET §6.5), så 1° är en telefon som vrider sig, inte brus. **antagande**
+  (kalibreras på telefonen: `spread` står i `pass.json`).
+- **Skälen** i `pass.json` (`basis`): `fore_klicket` och `stilla` ger fältet; `oenig`
+  (stilla men oeniga), `rorelse` (inget fönster stilla) och `for_fa_prov` (inget fönster med
+  10 giltiga prov) ger inget, och PC:n tar kamerornas vågräta (MK3).
+- **Klockan syns:** `beforeClickSamples` (proven i sekunden före klicket) och
+  `firstSampleOffset` (första provets tid i filen, `t0 − startHost`) sparas. En serie med
+  prov men ett tomt fönster, eller en förskjutning på sekunder, är ett klockfel som
+  telefonprovet avgör.
 - **Kamerans ram** (docs/FORMAT.md): uppåt = −gravitationen. Bakre kamerans lagrade bild
   (EXIF 1) är sensorns liggande bild med telefonens överkant åt vänster: höger = −y,
   ned = −x, framåt ur linsen = −z i enhetens ram. Filens EXIF-orientering (MS7) vrider
@@ -1149,16 +1164,17 @@ värden i `CaptureTests`.
   AVFoundations ramar), prövad åt båda håll med påhittade telefoner i stående och
   liggande (`tools/tests/fixturer/lodlinje.json`: `LodlinjeTests.swift` och
   `test_lodlinje.py` mot `paket.lodlinjen`). **Oprövad på telefonen.**
-- **Fältet skrivs** med fyra decimaler (0,006°) bara när PC:ns kontroll tar det (längden
-  0,8–1,2 g och y < 0, MK3) och uppåt lutar högst **45°** från bildens överkant. Mer är en
-  telefon som stod i en annan orientering än filens (liggande i en stående fil), där
-  lederna inte heller står upp (MS7). **räkning** (45° är gränsen mellan två
+- **Fältet skrivs** med fyra decimaler (0,006°) bara när PC:ns formkontroll tar det
+  (längden 0,8–1,2 g och y < 0, MK3) och uppåt lutar högst **45°** från bildens överkant.
+  Mer är en telefon som stod i en annan orientering än filens (liggande i en stående fil),
+  där lederna inte heller står upp (MS7). **räkning** (45° är gränsen mellan två
   orienteringar).
 - **Vad som provas var.** Linux (`LodlinjeTests`): ramen i fyra orienteringar, medianen,
-  fönstret, spärren, manifestet med och utan fältet och ett gammalt pass. Simulatorn
-  (`SwingLabProvPaket`, ingen rörelse): ett pass utan lodlinje paketeras och läses av
-  PC:n, och injicerade prov skrivs rätt och läses av `paket.py`. Telefonen: att
-  `gravity` och tiden är det som antas här, och spridningen på stativet.
+  fönstret och dess enighet med serien, percentilen, skälen, klockans fält, trasiga prov,
+  manifestet med och utan fältet och ett gammalt pass. Simulatorn (`SwingLabProvPaket`,
+  ingen rörelse): ett pass utan lodlinje paketeras och läses av PC:n, och injicerade prov
+  skrivs rätt och läses av `paket.py`. Telefonen: att `gravity` och tiden är det som
+  antas här, spridningen på stativet, och tillåtelsen på iOS 27.2.
 
 ---
 
@@ -1395,7 +1411,13 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   måtten (granskningen, utan brus: höfterna vid träffen −36° mot +36°). Ett fält
   som inte går att använda stoppar aldrig paketet: skälet (utan värden) står i
   `kalibrering[].lodlinje_fel` och i `tre_d.osaker`, och uppställningen tar
-  kamerornas vågräta (BESLUT B39). Utan fältet: **kamerornas vågräta**, uppåt
+  kamerornas vågräta (BESLUT B39). **Skyddet:** vinkeln mellan manifestets uppåt och
+  kamerornas vågräta skrivs i `kalibrering[].lodlinje_mot_vagrata` (mätningen som B39
+  omprövas med), och över **15°** används de vågräta, med skälet i `lodlinje_fel` och
+  `tre_d.osaker`. Uppmätt på facit (kamerorna utan lutning åt sidan, lodlinjen ±1°, 18
+  pass utan, med bra och med typiskt brus): 0,1–1,8°. En riktig telefon lutar några grader
+  på stativet, och de vågräta är då fel med ungefär lutningen; 15° är en telefon som står
+  synligt snett eller ett fält i fel ram. **antagande.** Utan fältet: **kamerornas vågräta**, uppåt
   vinkelrätt mot båda bildernas x-axel. Det antar att ingen telefon lutar åt sidan
   (felet blir ungefär lutningen); felbudgeten ger 0,5–3° fel i lodlinjen under
   slumpfelet, eftersom vridningen mäts mot adressen (§6.5). **antagande.** Står

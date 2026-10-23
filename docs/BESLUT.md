@@ -644,18 +644,25 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   mot adressen), så antagandet räcker tills appen skriver fältet.
 - **Appen (S6b, METOD MS17):** `CMDeviceMotion.gravity` i 30 Hz under serien. Medianen
   tas över sekunden före seriens första klick, inte vid starten: där har någon nyss
-  tryckt på telefonen. Är den sekunden inte stilla tas seriens stilla sekunder, när de är
-  eniga. Telefonen som rör sig (spridningen över 1°) får inget fält. Logiken ligger i
-  SwingLabKit (`Plumb`), appen ger bara proven, och `pass.json` sparar gravitationen i
-  enhetens ram; manifestet vrider den med filens orientering. Telefonen skriver bara ett
-  fält som PC:ns kontroll tar och som lutar högst 45° från bildens överkant. Ingen ny
-  tillåtelse: `CMMotionManager` kräver inget `NSMotionUsageDescription`.
+  tryckt på telefonen. Den gäller bara när den stämmer med seriens stilla sekunder (ett
+  stöt efter första klicket ger inget fält); är sekunden inte stilla tas seriens stilla
+  sekunder, när de är eniga. Spridningen mäts som 95:e percentilen, och över 1° får
+  telefonen inget fält. Skälet (`oenig`, `rorelse`, `for_fa_prov`), fönstrets prov och
+  första provets tid i filen står i `pass.json`, så att ett klockfel syns. Logiken ligger
+  i SwingLabKit (`Plumb`), appen ger bara proven, och manifestet vrider gravitationen med
+  filens orientering. Telefonen skriver bara ett fält som PC:ns kontroll tar och som lutar
+  högst 45° från bildens överkant. **Tillåtelsen:** `NSMotionUsageDescription` står i
+  project.yml, eftersom Apple visar en tillåtelse för `CMMotionManager` från iOS 27.2 och
+  varnar för krasch utan nyckeln: inte bekräftat i original, oprövat på iOS 27.2.
+- **PC:ns skydd (METOD MK3):** vinkeln mellan manifestets uppåt och kamerornas vågräta
+  skrivs per uppställning, och över 15° används de vågräta. Den vinkeln är mätningen som
+  beslutet omprövas med.
 - **Följdjobb:** visa i uppställningen om telefonen lutar åt sidan (en vy, inte S6b).
 - **Bortvalt:** att kräva fältet (då går dagens paket inte), och lodlinjen ur kroppen
   (fötterna och höfterna i adressen lutar med hållningen). I appen: provet vid seriens
   start (telefonen gungar av trycket), och råa prov i `pass.json` (300 kB per serie, och
   medianen är densamma).
-- **Omprövas:** när appen skriver fältet; då jämförs de två på riktiga pass.
+- **Omprövas:** på riktiga pass med fältet, ur `kalibrering[].lodlinje_mot_vagrata`.
 
 ## B40 — Måttens namn: kroppsdel och vad, positionen bara där den behövs
 *2026-10-23 · gäller · Johannes beslut*

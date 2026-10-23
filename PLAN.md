@@ -306,18 +306,24 @@ typiskt brus är kalibreringens fel 5° i snitt, upp till 14° (B38).
 
 **S6b-1, lodlinjen (gjort):** appen läser `CMDeviceMotion.gravity` i 30 Hz under varje
 serie (App/Motion.swift) och ger bara proven. SwingLabKit (`Plumb`, Lodlinje.swift) tar
-medianen över sekunden före seriens första klick, eller seriens stilla sekunder, spärrar
-en telefon som rör sig (spridningen över 1°), sparar gravitationen i `pass.json` och
+medianen över sekunden före seriens första klick när den stämmer med seriens stilla
+sekunder, annars de stilla sekunderna när de är eniga, och spärrar en telefon som rör sig
+(spridningen, 95:e percentilen, över 1°) eller ett stativ som stöts. Den sparar
+gravitationen, skälet och klockans två tal i `pass.json` och
 vrider den i manifestet till kamerans ram med filens orientering: `serier[].lodlinje`
 står med bara när PC:ns kontroll tar den och den lutar högst 45°. Gamla pass och pass utan
 rörelse (simulatorn, Bilder) paketeras som förut. Samma påhittade telefoner i stående och
 liggande (`tools/tests/fixturer/lodlinje.json`) prövas i Swift och genom `paket.py`;
 simulatorprovet visar ett paket utan fältet och ett med injicerade prov, båda lästa av
-PC:n. Ingen ny tillåtelse behövs. METOD MS17, BESLUT B39.
+PC:n. `NSMotionUsageDescription` står i project.yml (tillåtelsen från iOS 27.2). PC:n
+skriver vinkeln mellan fältet och kamerornas vågräta per uppställning och faller tillbaka
+på de vågräta över 15° (MK3). METOD MS17, MK3, BESLUT B39.
 
 **Oprövat på telefonen:** att `gravity` och dess tid är det som antas (enhetens ram,
-värdklockan), spridningen på ett riktigt stativ (spärren 1°), och att PC:ns 3D blir
-densamma eller bättre med fältet än med kamerornas vågräta (B39 omprövas).
+värdklockan, avläst ur `beforeClickSamples` och `firstSampleOffset`), spridningen på ett
+riktigt stativ (spärren 1°), tillåtelsen på iOS 27.2, och att PC:ns 3D blir densamma
+eller bättre med fältet än med kamerornas vågräta (B39 omprövas på
+`lodlinje_mot_vagrata`).
 
 **Återstår (S6b-2):** trendvyn med läget, och visa i uppställningen om telefonen lutar.
 

@@ -101,10 +101,25 @@ final class LodlinjeTests: XCTestCase {
         let r = try XCTUnwrap(Plumb.estimate(samples: p, startHost: 100, firstClick: 5))
         XCTAssertEqual(r.basis, .beforeClick)
         XCTAssertTrue((29...31).contains(r.samples), "en sekund i 30 Hz")
+        XCTAssertEqual(r.beforeClickSamples, r.samples, "fönstrets prov syns i pass.json")
+        XCTAssertEqual(r.firstSampleOffset ?? .nan, 0, accuracy: 1e-9, "provens klocka är seriens")
         XCTAssertLessThan(r.spread, 1e-3)
         for i in 0..<3 { XCTAssertEqual(r.gravity[i], Self.staende[i], accuracy: 1e-9) }
         let v = try XCTUnwrap(Plumb.field(r, exif: 6))
         XCTAssertEqual(v, [-0.0691, -0.9879, -0.1392])
+    }
+
+    func testStotEfterForstaKlicketSkrivsInte() throws {
+        // Stilla före klicket, men stativet stöts 6 s in och står sedan 3° snett: sekunden
+        // före klicket stämmer inte med seriens stilla sekunder, så inget fält.
+        let p = Self.prov(Self.staende, fran: 100, till: 112, vrid: { t in t < 106 ? 0 : 3 })
+        let r = try XCTUnwrap(Plumb.estimate(samples: p, startHost: 100, firstClick: 5))
+        XCTAssertEqual(r.basis, .disagree)
+        XCTAssertTrue(r.spread.isFinite)
+        XCTAssertNil(Plumb.field(r, exif: 6))
+        // Ett stöt inom spärren (0,5°) gör inget.
+        let litet = Self.prov(Self.staende, fran: 100, till: 112, vrid: { t in t < 106 ? 0 : 0.5 })
+        XCTAssertEqual(Plumb.estimate(samples: litet, startHost: 100, firstClick: 5)?.basis, .beforeClick)
     }
 
     func testStillaSekunderNarKlicketGungar() throws {
@@ -114,9 +129,34 @@ final class LodlinjeTests: XCTestCase {
         XCTAssertEqual(r.basis, .still)
         XCTAssertLessThanOrEqual(r.spread, Plumb.maxSpread)
         XCTAssertNotNil(Plumb.field(r, exif: 6))
-        // Utan värdklocka (startHost saknas) eller klick: samma väg.
-        XCTAssertEqual(Plumb.estimate(samples: p, startHost: nil, firstClick: 0.5)?.basis, .still)
+        // Utan värdklocka (startHost saknas) eller klick: samma väg, och ingen tid i filen.
+        let utan = try XCTUnwrap(Plumb.estimate(samples: p, startHost: nil, firstClick: 0.5))
+        XCTAssertEqual(utan.basis, .still)
+        XCTAssertNil(utan.firstSampleOffset)
+        XCTAssertNil(utan.beforeClickSamples)
         XCTAssertEqual(Plumb.estimate(samples: p, startHost: 100, firstClick: nil)?.basis, .still)
+    }
+
+    func testKlockfelSyns() throws {
+        // Proven på en annan klocka (1000 s fel): fönstret före klicket är tomt och första
+        // provet ligger 1000 s in i filen. De stilla sekunderna ger ändå lodlinjen.
+        let p = Self.prov(Self.staende, fran: 1100, till: 1110)
+        let r = try XCTUnwrap(Plumb.estimate(samples: p, startHost: 100, firstClick: 5))
+        XCTAssertEqual(r.basis, .still)
+        XCTAssertEqual(r.beforeClickSamples, 0)
+        XCTAssertEqual(r.firstSampleOffset ?? .nan, 1000, accuracy: 1e-9)
+    }
+
+    func testSpridningenArEnPercentil() throws {
+        // Ett ensamt prov 10° snett (en skakning vid träffen) av 30: under 95:e percentilen.
+        var p = Self.prov(Self.staende, fran: 100, till: 112)
+        let i = p.firstIndex { $0.host >= 104.5 }!
+        let a = 10.0 * .pi / 180
+        p[i] = GravitySample(host: p[i].host, x: p[i].x * cos(a) - p[i].y * sin(a), y: p[i].x * sin(a) + p[i].y * cos(a),
+                             z: p[i].z)
+        let r = try XCTUnwrap(Plumb.estimate(samples: p, startHost: 100, firstClick: 5))
+        XCTAssertEqual(r.basis, .beforeClick)
+        XCTAssertLessThan(r.spread, 1e-3)
     }
 
     func testTelefonenSomRorSigSkrivsInte() throws {
@@ -128,14 +168,44 @@ final class LodlinjeTests: XCTestCase {
         XCTAssertNil(Plumb.field(r, exif: 6))
         // Två stilla lägen 5° isär (stativet flyttat mitt i serien): de är inte eniga.
         let tva = Self.prov(Self.staende, fran: 100, till: 110, vrid: { t in t < 105 ? 0 : 5 })
-        XCTAssertEqual(Plumb.estimate(samples: tva, startHost: nil, firstClick: nil)?.basis, .moving)
+        let o = try XCTUnwrap(Plumb.estimate(samples: tva, startHost: nil, firstClick: nil))
+        XCTAssertEqual(o.basis, .disagree)
+        XCTAssertNil(Plumb.field(o, exif: 6))
     }
 
-    func testIngaProvGerInget() {
+    func testForFaProvSkiljsFranRorelse() {
         XCTAssertNil(Plumb.estimate(samples: [], startHost: 100, firstClick: 5), "simulatorn")
         let fa = Self.prov(Self.staende, fran: 100, till: 100.2)
-        XCTAssertEqual(Plumb.estimate(samples: fa, startHost: 100, firstClick: 5)?.basis, .moving,
-                       "för få prov för ett fönster")
+        let r = Plumb.estimate(samples: fa, startHost: 100, firstClick: 5)
+        XCTAssertEqual(r?.basis, .tooFew, "för få prov för ett fönster")
+        XCTAssertNil(Plumb.field(r, exif: 6))
+    }
+
+    func testTrasigaProvSlangsOchPassJsonGarAttSpara() throws {
+        // NaN, nollvektorer och fel längd (accelerometerns hela utslag) slängs; spridningen är
+        // alltid ändlig, så att pass.json (JSONEncoder utan NaN) går att spara.
+        var p = Self.prov(Self.staende, fran: 100, till: 106)
+        for k in stride(from: 0, to: p.count, by: 3) { p[k].x = .nan }
+        for k in stride(from: 1, to: p.count, by: 7) { p[k] = GravitySample(host: p[k].host, x: 0, y: 0, z: 0) }
+        for k in stride(from: 2, to: p.count, by: 11) { p[k].y = -3 }
+        var pass = SlagTests.pass(klick: [[4.0]])
+        pass.series[0].startHost = 100
+        pass.series[0].setPlumb(p)
+        let r = try XCTUnwrap(pass.series[0].plumb)
+        XCTAssertEqual(r.basis, .beforeClick)
+        XCTAssertTrue(r.spread.isFinite)
+        for i in 0..<3 { XCTAssertEqual(r.gravity[i], Self.staende[i], accuracy: 1e-9) }
+        let e = try PassCoding.encoder().encode(pass)
+        XCTAssertEqual(try PassCoding.decoder().decode(PassState.self, from: e).series[0].plumb, r)
+        // Bara trasiga prov: inget giltigt, "för få", och pass.json går att spara.
+        let trasiga = (0..<60).map { GravitySample(host: 100 + Double($0) / 30, x: .nan, y: 0, z: 0) }
+        pass.series[0].setPlumb(trasiga)
+        XCTAssertEqual(pass.series[0].plumb?.basis, .tooFew)
+        XCTAssertEqual(pass.series[0].plumb?.samples, 0)
+        XCTAssertNoThrow(try PassCoding.encoder().encode(pass))
+        // Motsatta prov (medianen nära noll): spridningen är ändå ändlig.
+        let mot = Self.prov([0, -1, 0], fran: 100, till: 101) + Self.prov([0, 1, 0], fran: 101, till: 102)
+        XCTAssertTrue(Plumb.estimate(samples: mot, startHost: nil, firstClick: nil)?.spread.isFinite ?? false)
     }
 
     // MARK: Manifestet

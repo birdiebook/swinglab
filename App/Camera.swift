@@ -32,6 +32,8 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var startHosts: [URL: Double] = [:]
     @ObservationIgnored private var seriesStart = Date()
+    /// Lodlinjens inspelare för pågående serie (S6b). METOD MS17
+    @ObservationIgnored private var gravityToken: Int?
     @ObservationIgnored private var probeURL: URL?
     @ObservationIgnored private var probeWaiter: CheckedContinuation<Bool, Never>?
     @ObservationIgnored private var probeDone: Bool?
@@ -132,7 +134,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         seriesStart = Date()
         seriesPressure = pressure
         phase = .recording
-        GravityRecorder.shared.start()                                // lodlinjen (S6b), METOD MS17
+        gravityToken = GravityRecorder.shared.start()                 // lodlinjen (S6b), METOD MS17
         queue.async { [self] in output.startRecording(to: url, recordingDelegate: self) }
     }
 
@@ -209,7 +211,9 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         }
         if !ok { problem = String(localized: "The recording was interrupted.") }
         let f = Finished(url: url, startHost: startHosts.removeValue(forKey: url), started: seriesStart,
-                         pressure: seriesPressure, ok: ok, gravity: GravityRecorder.shared.stop())
+                         pressure: seriesPressure, ok: ok,
+                         gravity: gravityToken.map { GravityRecorder.shared.stop($0) } ?? [])
+        gravityToken = nil
         if phase == .recording { phase = .ready }
         if let w = seriesWaiter {
             seriesWaiter = nil

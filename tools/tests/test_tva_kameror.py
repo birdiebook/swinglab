@@ -203,6 +203,33 @@ class Lodlinjen(unittest.TestCase):
         for m in TK.MATT:                                     # tecknet vänds inte
             self.assertLess(max(abs(x) for x in per_slag[m]), 1.0, m)
 
+    def test_vinkeln_mot_kamerornas_vagrata_skrivs(self) -> None:
+        # Mätningen för B39:s omprövning: en riktig lodlinje (±1°, kamerorna utan lutning
+        # åt sidan) ligger nära de vågräta och används.
+        r, _ = _resultat("inget", 3, n=4, lodlinje=True)
+        k = r["kalibrering"][0]
+        self.assertEqual(k["lodlinje"], "manifest")
+        self.assertLess(k["lodlinje_mot_vagrata"], 3.0)
+        self.assertNotIn("lodlinje_fel", k)
+
+    def test_lodlinje_langt_fran_vagrata_anvands_inte(self) -> None:
+        # Båda telefonernas uppåt vridet 30° kring linsens axel: PC:ns kontroll i paketet
+        # tar dem (y < 0), men skyddet i kalibreringen faller tillbaka på de vågräta. METOD MK3
+        d, f, facit = _pass("inget", 3, n=4, lodlinje=True)
+        a = np.radians(30.0)
+        vrid = lambda v: [v[0] * np.cos(a) - v[1] * np.sin(a), v[0] * np.sin(a) + v[1] * np.cos(a), v[2]]  # noqa: E731
+        pd, pf = P.las(_med_lodlinje(d, "vrid-dtl.zip", vrid)), P.las(_med_lodlinje(f, "vrid-fo.zip", vrid))
+        self.assertIsNotNone(pf.serier[1].lodlinje, "paketets kontroll tar den")
+        r = TK.analysera(pd, pf, A.mat_paket(pd, 1.80) + A.mat_paket(pf, 1.80))
+        k = r["kalibrering"][0]
+        self.assertEqual(k["lodlinje"], "kamerornas_vagrata")
+        self.assertGreater(k["lodlinje_mot_vagrata"], TK.LODLINJE_MOT_VAGRATA_MAX)
+        self.assertTrue(any("avviker" in x for x in k["lodlinje_fel"]))
+        self.assertTrue(any("lodlinjen" in o for o in r["osaker"]))
+        per_slag, _ = _fel(r, facit)
+        for m in TK.MATT:                                     # som utan fältet: exakt utan brus
+            self.assertLess(max(abs(x) for x in per_slag[m]), 1.0, m)
+
 
 class Brannvidden(unittest.TestCase):
     """f ur seriens synfält, annars enhet.json, annars specifikationen (METOD MK3)."""
