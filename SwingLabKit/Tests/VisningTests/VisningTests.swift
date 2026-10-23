@@ -88,7 +88,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt at impact, off")
         let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
         XCTAssertEqual(j.saker[0].upplasning, "Hip sway −2.4 cm, target from 0 cm, limit not read in original, FO · top · week 5")
-        XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Hip shift, Chest bend +2.0°")
+        XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Hip shift to target, Spine angle loss +2.0°")
     }
 
     /// BESLUT B40: varje fel och mått i katalogen har ett eget namn (inte nyckeln), utan
