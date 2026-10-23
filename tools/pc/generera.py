@@ -481,7 +481,7 @@ def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.
     from .tre_d import kamera as KM
     from .tre_d import sving as S3
     rng = np.random.default_rng(seed)
-    s3 = S3.Sving(langd=1.80, t_start=1.0, baksving=baksving)
+    s3 = S3.Sving(langd=1.80, t_start=1.0, baksving=baksving, efter=0.8)   # finishens fönster i klippet
     t = np.arange(int(round(fran * FREKVENS)), int(s3.t_slut * FREKVENS) + 1) / FREKVENS
     t = t[rng.random(len(t)) >= saknas]
     uv = KM.placera(180, DOLD_KAMERA[0], hojd).projicera(s3.leder(t))     # högerspelaren: x mot bollen

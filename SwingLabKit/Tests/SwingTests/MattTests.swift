@@ -50,10 +50,10 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 + 35 + 32 + 34 = 610;
+        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 + 43 + 40 + 34 = 626;
         // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna)
         // och positionerna (14 × 7 − 6 saknade = 92).
-        XCTAssertEqual(jamforda, 610)
+        XCTAssertEqual(jamforda, 626)
         XCTAssertEqual(positioner, 92)
     }
 
