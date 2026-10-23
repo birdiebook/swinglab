@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -104,6 +104,28 @@ varandra). Den påhittade DTL-figuren kan vrida axlarna vid toppen (`axel_dx`,
 `axel_dz`); fixturerna `dtl` och `dtl_vanster` gör det. Tempot: klicket finns i
 varje slag, så det är baksvingens start som saknas; bakifrån syns takeawayn knappt
 (METOD M5), oprövat på riktiga DTL-pass. Kvar till ✓: synas i granskningen på telefonen.
+
+## S1d — Tempot bakifrån (Johannes 2026-10-23)
+
+Bakifrån (DTL) försvann tempot: takeawayn går mot kameran och syns knappt, och står
+kameran över händerna ser de ut att sjunka först, så starten hittades sent eller inte
+alls (utredningen i grenen `s1c`). Gör: en start som håller bakifrån, i Python och
+Swift med samma tal (B12), prövad på påhittade svingar mot andra signaler; FO ger samma
+tal som förut; saknas en säker start märks tempot osäkert hellre än att visa ett fel
+tal.
+
+**Klart när:** testerna har påhittade DTL-svingar med dold takeaway och kameran över
+händerna där tempot ligger inom en uttalad gräns från det sanna, och ett test låser
+FO:s tal; och ett riktigt DTL-pass på telefonen ger tempot (eller märker det osäkert).
+
+**Byggt (grenen `s1d`).** METOD M40, BESLUT B42: bakifrån tas starten ur posen (axlarna,
+armbågarna och handlederna) mot adressens stillaste fönster, bakåt från toppen
+(`faser.start_ur_posen`, `Faser.startUrPosen`). Uppmätt på påhittade 3D-svingar sedda
+bakifrån: förut +176 till +265 ms sen eller saknad, nu högst 0,14 fel på tempot med
+0,8 px brus. Skakar adressen eller räcker inte posen är starten osäker
+(`faser.start_osaker`) och tempot saknas. Fixturerna `dtl_dold`, `dtl_osaker` och
+`dtl_utan_pose`; `test_faser.StartenBakifran` (gränsen 0,15 och FO:s tal låsta). Kvar
+till ✓: ett riktigt DTL-pass, och att vyerna visar "osäkert" (efter S1c).
 
 ## S2 — Appskalet och första bygget
 
