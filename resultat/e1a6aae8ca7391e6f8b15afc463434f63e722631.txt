@@ -1,0 +1,21 @@
+e1a6aae8ca7391e6f8b15afc463434f63e722631 s1e 2026-10-23T08:21:33Z run 39923874785
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+Thread 0 "SwingLabKitPack" crashed:error: Exited with unexpected signal code 4
+Långsammast (av 24):
+      0.1 s  VisningTests.testAttJobbaPa
+      0.1 s  VisningTests.testDemopassenHarSkissensTal
+      0.0 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.0 s  VisningTests.testAccentenBaraForDetSomOvas
+      0.0 s  VisningTests.testMatytanGerMattetsTal
+      0.0 s  VisningTests.testSpridningen
+      0.0 s  VisningTests.testBlockenUrFilerna
+      0.0 s  VisningTests.testForraPassetLiggerILinjeEfterFaserna
+      0.0 s  VisningTests.testNamnenEfterKroppsdelOchVad
+      0.0 s  VisningTests.testInfobladet
+      0.0 s  VisningTests.testIdagVisarDenForstaSaken
+      0.0 s  VisningTests.testGranskningensSlag
+      0.0 s  VisningTests.testPasset
+      0.0 s  VisningTests.testS5sExempelGarAttLasa
+      0.0 s  VisningTests.testEttMattUtanEtikettSyns
+
