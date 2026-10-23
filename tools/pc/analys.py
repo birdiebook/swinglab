@@ -44,7 +44,7 @@ def enhet(matt: str) -> str:
         return "m/s"
     if "_sway" in matt:                 # knänas sway är cm, inte knäets böjning
         return "cm"
-    if any(o in matt for o in ("bojning", "lutning", "kna", "armbage")):
+    if any(o in matt for o in ("bojning", "lutning", "kna", "armbage", "_plan")):     # _plan: METOD M39
         return "°"
     return "cm"
 

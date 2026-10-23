@@ -45,12 +45,17 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
         # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37).
-        self.assertEqual(len(k["matt"]), 33)
+        self.assertEqual(len(k["matt"]), 35)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
         self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
         self.assertEqual(matt[("fo", "genomsving_s")], ["P10"])
         self.assertEqual(matt[("fo", "handfart_max_fore_traff_ms")], ["P7"])
+        # Tilläggen bakifrån (PLAN S1c, METOD M38–M39): vid toppen, utan fel.
+        self.assertEqual(matt[("dtl", "hand_djup_topp")], ["P4"])
+        self.assertEqual(matt[("dtl", "framre_arm_plan_topp")], ["P4"])
+        self.assertIsNone(kopplat["hand_djup_topp"])
+        self.assertIsNone(kopplat["framre_arm_plan_topp"])
         # Farterna är oprövade på telefonen (METOD M35–M37, BESLUT B11), inget annat.
         oprovade = {m["matt"] for m in k["matt"] if m.get("status") == "oprovad"}
         self.assertEqual(oprovade, {"handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"})

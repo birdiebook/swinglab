@@ -72,6 +72,9 @@ public enum Etiketter {
             e("handfart_max", "m/s", T.downswing),
             e("handfart_max_fore_traff_ms", "ms", T.beforeImpact),
             e("framre_arm_vinkelfart_max", "°/s", T.downswing),
+            // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
+            e("hand_djup_topp", "cm", T.top, tecken: true, plus: T.ball),
+            e("framre_arm_plan_topp", "°", T.top, tecken: true),
             e("backen_sway_topp", "cm", T.top, tecken: true, plus: T.target),
             e("backen_resa_framat", "cm", T.topToImpact, plus: T.target),
             e("backen_thrust_traff", "cm", T.impact, tecken: true, plus: T.ball),

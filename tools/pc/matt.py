@@ -13,7 +13,9 @@ bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt (format.p
        träffen, stansen, handens fart och främre armens vinkelfart.
   Båda tempot, bröstets och handens lyft och genomsvingens tid.
 
-Tilläggen mot Sportsbox i 2D (PLAN S1b, research 4): METOD M30–M37.
+Tilläggen mot Sportsbox i 2D (PLAN S1b, research 4): METOD M30–M37. Tilläggen
+bakifrån (PLAN S1c): händernas djup och främre armen mot axellinjen vid toppen,
+METOD M38–M39.
 
 Positionerna P1–P10 (BESLUT B32, METOD M28) och måtten vid P3, P5 och P10 som
 inte är en fas (METOD M29): sway och främre armbågen vid P3, bäckenets resa
@@ -43,6 +45,7 @@ BEN = HOFTHOJD - FOTLEDSHOJD     # höftmitt–fotledsmitt, FO
 
 CHICKEN = (0.05, 0.15)           # METOD M23: s efter träffen
 HANDBANA_NIVAER = (0.25, 0.50, 0.75)   # METOD M13: andel av höjden från adress till topp
+AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")
@@ -56,7 +59,7 @@ MATT_DTL = (
     + ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"]
     + [f"{m}_{f}" for m in ("backen_bojning", "framre_kna") for f in ("adress", "topp", "traff")]
     + [f"{m}_{f}" for m in ("brost_lyft", "hand_lyft") for f in EFTER]
-    + ["genomsving_s"])
+    + ["genomsving_s", "hand_djup_topp", "framre_arm_plan_topp"])
 MATT_FO = (
     [f"sidbojning_{f}" for f in FASER]
     + [f"{m}_{f}" for m in ("backen_sway", "brost_sway", "backen_lyft", "huvud_sway", "huvud_lyft")
@@ -86,6 +89,15 @@ def bojning(a: np.ndarray, mitt: np.ndarray, c: np.ndarray) -> float:
         return math.nan
     cos = (u[0] * v[0] + u[1] * v[1]) / (nu * nv)
     return 180.0 - math.degrees(math.acos(max(-1.0, min(1.0, cos))))
+
+
+def arm_mot_axlar(axel_f: np.ndarray, axel_b: np.ndarray, hand: np.ndarray) -> float:
+    """Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel →
+    den egna handleden) i bild, grader, + när armen pekar brantare uppåt än axellinjen
+    (över axelplanet). Kryss- och skalärprodukten i bildens koordinater (y nedåt).
+    METOD M39"""
+    s, a = axel_b - axel_f, hand - axel_f
+    return math.degrees(math.atan2(s[0] * a[1] - s[1] * a[0], s[0] * a[0] + s[1] * a[1]))
 
 
 def linjens_lutning(fram: np.ndarray, bak: np.ndarray) -> float:
@@ -176,6 +188,13 @@ def mat(s: Sving) -> dict:
                                          + vinkel_fran_lod(L(b[:, KNA_B], fz), L(b[:, HOFT_B], fz))) / 2
         for fz in ("adress", "topp", "traff"):                       # METOD M33
             m[f"framre_kna_{fz}"] = bojning(L(b[:, HOFT_F], fz), L(b[:, KNA_F], fz), L(b[:, FOTLED_F], fz))
+        # Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
+        m["hand_djup_topp"] = flytt(G, 0, "topp")
+        # Främre armen mot axellinjen vid toppen, + över axelplanet; bara när axellinjen
+        # är lång nog i bild (axlarna skymmer inte varandra). METOD M39
+        af, ab = L(b[:, AXEL_F], "topp"), L(b[:, AXEL_B], "topp")
+        if math.hypot(ab[0] - af[0], ab[1] - af[1]) * cm >= AXLAR_MIN_CM:
+            m["framre_arm_plan_topp"] = arm_mot_axlar(af, ab, L(hand_f, "topp"))
     else:
         for fz in FASER:                                             # METOD M14
             m[f"sidbojning_{fz}"] = -vinkel_fran_lod(L(P, fz), L(C, fz))

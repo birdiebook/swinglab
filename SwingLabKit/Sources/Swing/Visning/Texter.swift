@@ -40,6 +40,9 @@ public enum Texter {
         "handfart_max": "Hand speed",
         "handfart_max_fore_traff_ms": "Hand speed peak",
         "framre_arm_vinkelfart_max": "Lead arm speed",
+        // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
+        "hand_djup_topp": "Hand depth",
+        "framre_arm_plan_topp": "Lead arm plane",
         "backen_sway_topp": "Sway",
         "backen_resa_framat": "Hip shift",
         "backen_thrust_traff": "Thrust",

@@ -12,6 +12,11 @@ HANDBANA = 0.15        # rutnätet och utjämningen när händerna rör sig 4–
 # anpassningen över ±3σ rundar av toppen (handen −0,6 %, största felet 9,8 cm/s; armen −0,3 %,
 # 4,1 °/s), och toppens tid ligger på en flack kurva (sd 3 ms, största 6,1 ms). Handens lyft vid
 # toppen: utjämningen sänker toppen och toppen ligger tidigt (−0,06 cm, största 0,18).
+# Axlarna vridna i bildens plan vid toppen (METOD M39): utan det skymmer de varandra
+# bakifrån, och främre armen mot axellinjen saknas. Armens vinkel vid toppen: utjämningen
+# sänker handleden i toppen (som handens lyft), uppmätt −0,03° i snitt, största 0,10°.
+AXLAR = {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}
+ARM_PLAN = {"framre_arm_plan_topp": 0.15}
 FARTER = {"handfart_max": 0.12, "handfart_max_fore_traff_ms": 8.0, "framre_arm_vinkelfart_max": 6.0,
           "genomsving_s": 0.008, "hand_lyft_topp": 0.2}
 
@@ -35,7 +40,7 @@ class KandaTal(unittest.TestCase):
         self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER}, seed=3)
 
     def test_dtl(self) -> None:
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER})
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN}, **AXLAR)
 
     def test_backen_sex_cm_bakat_vid_toppen(self) -> None:
         r = mat(vy="fo", sway=(0, -6, 8, 14))
@@ -50,8 +55,8 @@ class KandaTal(unittest.TestCase):
         self.assertLess(r["matt"]["sidbojning_topp"], 0)        # reverse spine
         self.assertAlmostEqual(r["cm_per_px"], 1 / 4.0, delta=1e-4)
         andra = {"thrust": (0, 1, -2, 5), "bojning": (35, 36, 37, 0), "over": -3.0, "kna_bak": (15, 18, 40, 5),
-                 "armbage_bak": (0, 95, 10, 30), "seed": 8}
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER}, **andra)
+                 "armbage_bak": (0, 95, 10, 30), "seed": 8, "axel_dx": (1.5, 14, 1.5, 1.5), "axel_dz": (0, -14, 0, 0)}
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN}, **andra)
         self.assertLess(mat(vy="dtl", **andra)["matt"]["handbana"], 0)       # innanför
 
     def test_tecknen(self) -> None:
@@ -138,6 +143,46 @@ class Granserna(unittest.TestCase):
         self.assertNotIn("framre_armbage_efter_traff", r["matt"])
         self.assertIn("hander_fore_adress_traff", r["matt"])
         self.assertIn("tempo", r["matt"])
+
+
+
+class TillaggenBakifran(unittest.TestCase):
+    """PLAN S1c: händernas djup och främre armen mot axellinjen vid toppen (METOD M38, M39)."""
+
+    def test_handernas_djup(self) -> None:
+        r = mat(vy="dtl", **AXLAR)
+        self.assertAlmostEqual(r["matt"]["hand_djup_topp"], -20.0, delta=FACIT)     # 20 cm från bollen
+        self.assertIn("hand_djup_topp", mat(vy="dtl")["matt"])                       # kräver inga axlar
+
+    def test_armen_over_och_under_axellinjen(self) -> None:
+        over = mat(vy="dtl", **AXLAR)                                                # axellinjen 34,5°
+        _, f = sving(vy="dtl", **AXLAR)
+        self.assertAlmostEqual(f["framre_arm_plan_topp"], 6.1, delta=0.05)
+        self.assertAlmostEqual(over["matt"]["framre_arm_plan_topp"], 6.1, delta=0.15)
+        brant = dict(AXLAR, axel_dz=(0, -20, 0, 0))                                  # axellinjen 51°
+        under = mat(vy="dtl", **brant)
+        self.assertLess(under["matt"]["framre_arm_plan_topp"], -2.5)
+        self.assertGreater(under["matt"]["framre_arm_plan_topp"], -3.5)
+
+    def test_saknas_nar_axlarna_skymmer_varandra(self) -> None:
+        """Standardfiguren har axlarna 3 cm isär i bild: under AXLAR_MIN_CM saknas vinkeln."""
+        self.assertNotIn("framre_arm_plan_topp", mat(vy="dtl")["matt"])
+        self.assertNotIn("framre_arm_plan_topp", sving(vy="dtl")[1])
+        kort = dict(AXLAR, axel_dx=(1.5, 5.5, 1.5, 1.5), axel_dz=(0, -4.0, 0, 0))   # 13,6 cm
+        self.assertNotIn("framre_arm_plan_topp", mat(vy="dtl", **kort)["matt"])
+        lang = dict(AXLAR, axel_dx=(1.5, 6.5, 1.5, 1.5), axel_dz=(0, -4.0, 0, 0))   # 15,3 cm
+        self.assertIn("framre_arm_plan_topp", mat(vy="dtl", **lang)["matt"])
+
+    def test_saknas_utan_framre_axeln_eller_handleden(self) -> None:
+        self.assertNotIn("framre_arm_plan_topp", mat(vy="dtl", dolj=[["axel_v", 2.0, 2.4]], **AXLAR)["matt"])
+        r = mat(vy="dtl", dolj=[["handled_v", 2.0, 2.4]], **AXLAR)
+        self.assertNotIn("framre_arm_plan_topp", r["matt"])                          # den egna handleden
+        self.assertIn("hand_djup_topp", r["matt"])                                   # greppregeln ger greppet
+
+    def test_vansterspelaren_ger_samma_tal(self) -> None:
+        h, v = mat(vy="dtl", seed=5, **AXLAR), mat(vy="dtl", seed=5, hand="vanster", **AXLAR)
+        for k in ("hand_djup_topp", "framre_arm_plan_topp"):
+            self.assertAlmostEqual(h["matt"][k], v["matt"][k], delta=1e-6)
 
 
 if __name__ == "__main__":

@@ -79,6 +79,11 @@ DTL = {
     "over": 4.0,                       # handens bana: nedsvingen så här mycket utanför, cm
     "hander_upp": 70.0,                # händerna så här mycket högre vid toppen än i adressen, cm
     "hander_finish": 80.0,             # … och i finishen (bakre armen vågrät på vägen dit, P9)
+    # Främre axeln från axelmitten i bild, cm: X mot bollen och Z uppåt; den bakre är
+    # spegelbilden. Standarden står still (axlarna skymmer varandra bakifrån); med
+    # vridningen vid toppen hamnar axellinjen i bildens plan (METOD M39).
+    "axel_dx": (1.5, 1.5, 1.5, 1.5),
+    "axel_dz": (0, 0, 0, 0),
 }
 
 
@@ -185,7 +190,8 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     P = _p(px0 + kropp(t, p["thrust"]), pz0 + kropp(t, p["lyft"]))
     L[:, 7], L[:, 8] = P + [1.5, 0.0], P - [1.5, 0.0]
     C = P + bal * np.stack([np.sin(theta), np.cos(theta)], -1)
-    L[:, 1], L[:, 2] = C + [1.5, 0.0], C - [1.5, 0.0]
+    axel = _p(kropp(t, p["axel_dx"]), kropp(t, p["axel_dz"]))
+    L[:, 1], L[:, 2] = C + axel, C - axel
     t0 = _rad(p["bojning"][0])
     nasa0 = np.array([px0 + (bal + hals) * math.sin(t0), pz0 + (bal + hals) * math.cos(t0)])
     L[:, 0] = nasa0 + _p(kropp(t, p["huvud_x"]), kropp(t, p["huvud_lyft"]))
@@ -350,6 +356,7 @@ def facit_s1b(figur, p: dict, langd_cm: float, vy: str, klick: float | None = No
             f[f"backen_bojning_{fz}"] = (_lod(P, C) + _lod(L[fz][10], L[fz][8])) / 2       # METOD M30
         for i, fz in enumerate(("adress", "topp", "traff")):
             f[f"framre_kna_{fz}"] = float(p["kna_fram"][i])                              # METOD M33
+        f.update(facit_s1c(L["adress"], L["topp"]))
     else:
         for i, fz in ((1, "topp"), (2, "traff"), (3, "finish")):                         # METOD M34
             f[f"framre_kna_sway_{fz}"] = float(p["kna_sway_f"][i])
@@ -362,6 +369,20 @@ def facit_s1b(figur, p: dict, langd_cm: float, vy: str, klick: float | None = No
         d = F[:, 5] - F[:, 1]                                                             # METOD M37
         w = np.gradient(np.unwrap(np.arctan2(d[:, 1], d[:, 0])), t)
         f["framre_arm_vinkelfart_max"] = float(np.degrees(np.abs(w).max()))
+    return f
+
+
+def facit_s1c(adress: np.ndarray, topp: np.ndarray) -> dict:
+    """Tilläggen bakifrån (METOD M38, M39) på den exakta figuren (X mot bollen, Z uppåt):
+    greppets X vid toppen mot adressen, och främre armens höjdvinkel bort från bollen
+    minus axellinjens (främre → bakre axel), räknade var för sig mot vågrätt. Den
+    vinkeln saknas när axellinjen är kortare än AXLAR_MIN_CM (standardfiguren)."""
+    def hojd(v: np.ndarray) -> float:
+        return math.degrees(math.atan2(v[1], -v[0]))
+
+    f = {"hand_djup_topp": float(_hander(topp)[0] - _hander(adress)[0])}
+    if math.hypot(*(topp[2] - topp[1])) >= M.AXLAR_MIN_CM:          # annars skymmer axlarna varandra
+        f["framre_arm_plan_topp"] = hojd(topp[5] - topp[1]) - hojd(topp[2] - topp[1])
     return f
 
 
@@ -476,7 +497,9 @@ FIXTURSVINGAR = {
     # Vänsterspelaren med den främre handleden dold: greppregeln ger händerna,
     # men armbågsmåtten (M22, M23) saknas.
     "fo_vanster": ("fo", "vanster", 12, 0.8, (("handled_h", 0.0, 9.9),), {}),
-    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {}),
+    # Axlarna vridna i bildens plan vid toppen (METOD M39); i dtl_lucka och dtl_kort
+    # skymmer de varandra, och främre armen mot axellinjen saknas.
+    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}),
     "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80)), {}),
     # Luckor kring toppen (2,20 s): höften 0,13 s (mer än MAX_LUCKA_S, saknas),
     # näsan 0,05 s (interpoleras). METOD M3
@@ -490,8 +513,9 @@ FIXTURSVINGAR = {
     # Främre handleden borta kring P3 (rå lucka 0,096 s: interpoleras) och kring P5
     # (0,104 s: P5 saknas, och resan vid P5). METOD M3, METOD M28
     "fo_lucka_arm": ("fo", "hoger", 19, 0.8, (("handled_v", 1.7525, 1.8425), ("handled_v", 2.2587, 2.3587)), {}),
-    # Vänsterspelaren bakifrån med alla positioner (de speglade armarna).
-    "dtl_vanster": ("dtl", "vanster", 18, 0.8, (), {}),
+    # Vänsterspelaren bakifrån med alla positioner (de speglade armarna), och axlarna
+    # vridna i bildens plan vid toppen: främre armen 6° över axellinjen (METOD M39).
+    "dtl_vanster": ("dtl", "vanster", 18, 0.8, (), {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}),
     # Händerna borta 80 ms över toppfarten: ingen toppfart och ingen vinkelfart, men
     # finishens tid (METOD M35–M37).
     "fo_lucka_fart": ("fo", "hoger", 20, 0.8, (("handled_v", 2.29, 2.37), ("handled_h", 2.29, 2.37)), {}),

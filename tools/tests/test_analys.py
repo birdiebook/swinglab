@@ -59,6 +59,8 @@ class KlartNar(unittest.TestCase):
                                                "genomsving_s", "backen_bojning_traff", "hand_lyft_topp")],
                          ["cm", "°", "m/s", "ms", "°/s", "s", "°", "cm"])
         self.assertEqual(A.avrunda("handfart_max", 7.26), 7.3)
+        # Tilläggen bakifrån (METOD M38–M39): djupet i cm, armen mot axellinjen i grader.
+        self.assertEqual((A.enhet("hand_djup_topp"), A.enhet("framre_arm_plan_topp")), ("cm", "°"))
         self.assertEqual(A.avrunda("handfart_max_fore_traff_ms", 24.4), 24.0)
 
 

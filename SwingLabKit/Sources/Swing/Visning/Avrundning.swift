@@ -13,7 +13,8 @@ public enum Avrundning {
         if matt.contains("vinkelfart") { return "°/s" }
         if matt.contains("fart") { return "m/s" }
         if matt.contains("_sway") { return "cm" }       // knänas sway är cm, inte knäets böjning
-        if ["bojning", "lutning", "kna", "armbage"].contains(where: { matt.contains($0) }) { return "°" }
+        // _plan: främre armen mot axellinjen (METOD M39)
+        if ["bojning", "lutning", "kna", "armbage", "_plan"].contains(where: { matt.contains($0) }) { return "°" }
         return "cm"
     }
 

@@ -116,6 +116,17 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   2,8:1 (research 1 §1.9). Blasts topp är klubbans, vår är händernas, och vår
   topp ligger ≈ 9 ms tidigt (M4), så tempot är troligen något lågt mot Blast.
   Låg prioritet: inget belagt samband med utfallet.
+- **Bakifrån (DTL) saknas tempot oftare, och blir lägre** (utredningen 2026-10-23,
+  ett importerat DTL-pass med två slag utan tempo på Today): klicket finns i varje
+  slag (utan klick blir det inget slag), så det är starten som saknas. Bakifrån går
+  händernas första rörelse i baksvingen i djupled mot kameran och syns knappt i
+  bilden, och står kameran högre än händerna ser de ut att sjunka en bit innan de
+  stiger, så adressläget (det lägsta) och starten hittas sent. Uppmätt på påhittade
+  svingar: 0,2 s osynlig takeaway med en baksving på 0,75 s ger en synlig baksving
+  under 0,5 s, och starten och tempot saknas (Today visar då ingen rad); med 0,95 s
+  baksving finns tempot men blir ≈ 0,9 lägre. Framifrån (FO) ligger takeawayn i
+  bildens plan. **antagande** tills ett riktigt DTL-pass prövats: `faser.start` är
+  `null` i PC:ns `analys.json` när det är orsaken.
 
 ## M6 — Bröstets böjning och tappad hållning (DTL)
 
@@ -552,6 +563,57 @@ tal; med 0,8 px brus står spridningen per rad.
   i nedsvingen tar bort punkterna där (fixturen `fo_lucka_arm` tappar toppen).
 - Uppmätt utan brus: −0,3 %, största 3 °/s på ≈ 700; med 0,8 px brus
   +1,3 %, största 27 °/s; med 2 px +5 %. Märkt `oprovad` i katalogen.
+
+## Tilläggen bakifrån (S1c)
+
+Johannes beställning 2026-10-23: fler mått bakifrån (DTL) ur dagens leder i 2D
+(PLAN S1c). **Definitionerna är våra**, med egen baslinje (M27), i katalogens
+`matt` vid P4 utan `fel`, i Python och Swift med samma tal (BESLUT B12). Ingen
+Sportsbox-definition med samma innehåll är hittad (research 4; Sportsbox är **ej
+läst i original**, BESLUT B10).
+
+- **Huvudet bakifrån fanns redan** och byggdes inte om: rörelsen mot och från
+  bollen är `huvud_mot_bollen_<fas>` (M9) och upp och ned `huvud_lyft_<fas>` (M8,
+  båda vyerna), näsan som punkt och vyns skala (M2), adressen = 0, vid toppen och
+  träffen (P4, P7) och i finishen. De står inte i katalogens `matt` och syns därför
+  inte i granskningen.
+
+## M38 — Händernas djup vid toppen (DTL)
+
+- `hand_djup_topp`: greppets (händernas medel efter greppregeln, M1, som M32)
+  förflyttning längs X från adressen till toppen, cm, **+ mot bollen** (bort från
+  kroppen), − in mot och bakom kroppen. X bakifrån är djupled mot bollen (M1), samma
+  axel som bäckenets thrust (M7). Måttet är händernas egen väg, inte händerna mot
+  bröstet: bröstets egen rörelse är `brost_thrust_topp` (M10). Om Sportsbox har en
+  Thrust för greppet (6 DoF, research 4) är okänt. **antagande.**
+- Uppmätt (frön 0–19, utan brus): +0,02 cm i snitt, största 0,06 (toppen ligger
+  ≈ 9 ms tidigt, M4, men händerna står still i X där); med 0,8 px brus sd 0,08 cm,
+  största 0,22; med 2 px sd 0,21 cm.
+
+## M39 — Främre armen mot axellinjen vid toppen (DTL)
+
+- `framre_arm_plan_topp`: vinkeln i bild från axellinjen (främre axel → bakre axel)
+  till främre armen (främre axel → **den egna** främre handleden, som M22 och M37;
+  greppregeln ersätter inte), grader, **+ = armen över axelplanet** (brantare uppåt
+  än axellinjen), − under (flatare). Räknas med kryss- och skalärprodukten, i
+  (−180°, 180°]. Vänsterarmen för en högerspelare; en vänsterspelare speglas (M1).
+  **antagande** (ingen källa med samma definition).
+- **Varför bara vid toppen:** bakifrån ligger axellinjen i adressen och vid träffen
+  i djupled (axlarna skymmer varandra i bild). Vid toppen har axlarna vridit sig
+  ≈ 90°, bröstet vetter mot kameran och axellinjen ligger nära bildens plan. Med
+  mindre vridning blir linjen förkortad och brantare i bild: med 35° axellutning
+  ger 70° vridning ≈ 1,7° brantare linje, 45° vridning ≈ 9,7° (projektionen
+  atan(tan τ / sin θ)); armen förkortas på liknande sätt. Talet jämförs därför bäst
+  pass mot pass.
+- **Axlarna skymmer varandra:** är axellinjen vid toppen kortare än **15 cm** i bild
+  (vyns skala, M2) saknas måttet. Uppmätt på påhittade svingar med 0,8 px brus:
+  med axlarna 3 cm isär (som i adressen) sd 2,3°, största 3,8°; 15–16 cm sd 0,4°,
+  största 0,7°; 39 cm (en full vridning i figuren) sd 0,17°, största 0,36°. Gränsen
+  är ett **antagande**: under den är riktningen mer brus än axellinje. Saknas en axel
+  eller den främre handleden vid toppen saknas måttet.
+- Uppmätt utan brus (frön 0–19, axellinjen 39 cm): −0,03° i snitt, största 0,10°
+  (utjämningen sänker handleden i toppen, som M32); med 2 px brus sd 0,42°, största
+  0,96°.
 
 ---
 

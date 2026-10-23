@@ -49,6 +49,9 @@ final class VisningTests: XCTestCase {
                         "framre_arm_vinkelfart_max", "genomsving_s", "backen_bojning_traff", "hand_lyft_topp"]
                         .map { Avrundning.enhet($0) }, ["cm", "°", "m/s", "ms", "°/s", "s", "°", "cm"])
         XCTAssertEqual(Avrundning.avrunda("handfart_max", 7.26), 7.3)
+        // Tilläggen bakifrån (METOD M38–M39), som test_analys.py.
+        XCTAssertEqual(Avrundning.enhet("hand_djup_topp"), "cm")
+        XCTAssertEqual(Avrundning.enhet("framre_arm_plan_topp"), "°")
         XCTAssertEqual(Avrundning.decimaler("framre_arm_vinkelfart_max"), 0)
         XCTAssertEqual(Avrundning.avrunda("brost_bojning_tapp", 5.94), 5.9)
         XCTAssertEqual(Avrundning.avrunda("tempo", 2.876), 2.88)

@@ -22,7 +22,8 @@ public struct SvingResultat: Sendable {
 /// bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt.
 /// Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
 /// Positionerna P1–P10 och måtten vid P3, P5 och P10 som inte är en fas: METOD M28, M29.
-/// Tilläggen mot Sportsbox i 2D (PLAN S1b): METOD M30–M37.
+/// Tilläggen mot Sportsbox i 2D (PLAN S1b): METOD M30–M37. Tilläggen bakifrån (PLAN S1c):
+/// händernas djup och främre armen mot axellinjen vid toppen, METOD M38–M39.
 public enum Matt {
     // Drillis & Contini via Winter, andel av kroppslängden H. METOD M2
     public static let axelhojd = 0.818
@@ -37,6 +38,8 @@ public enum Matt {
     public static let chicken = (fran: 0.05, till: 0.15)
     /// Andel av höjden från adress till topp. METOD M13
     public static let handbanaNivaer = [0.25, 0.50, 0.75]
+    /// Kortare axellinje i bild vid toppen, cm = axlarna skymmer varandra. METOD M39
+    public static let axlarMinCm = 15.0
 
     static let faser: [Fas] = [.adress, .topp, .traff, .finish]
     static let efter: [Fas] = [.topp, .traff, .finish]
@@ -55,7 +58,7 @@ public enum Matt {
         for m in ["brost_lyft", "hand_lyft"] {
             n += efter.map { "\(m)_\($0.rawValue)" }
         }
-        return n + ["genomsving_s"]
+        return n + ["genomsving_s", "hand_djup_topp", "framre_arm_plan_topp"]
     }()
 
     public static let namnFO: [String] = {
@@ -92,6 +95,14 @@ public enum Matt {
         guard nu > 0 && nv > 0 else { return .nan }
         let cosv = (u.x * v.x + u.y * v.y) / (nu * nv)
         return 180.0 - grader(acos(max(-1.0, min(1.0, cosv))))
+    }
+
+    /// Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel → den
+    /// egna handleden) i bild, grader, + när armen pekar brantare uppåt än axellinjen (över
+    /// axelplanet). Kryss- och skalärprodukten i bildens koordinater (y nedåt). METOD M39
+    public static func armMotAxlar(axelF: Punkt, axelB: Punkt, hand: Punkt) -> Double {
+        let s = axelB - axelF, a = hand - axelF
+        return grader(atan2(s.x * a.y - s.y * a.x, s.x * a.x + s.y * a.y))
     }
 
     /// Linjen bakre→främre mot vågrätt, + när den bakre sidan är lägre. METOD M17
@@ -195,6 +206,14 @@ public enum Matt {
             }
             for fz in [Fas.adress, .topp, .traff] {                                 // METOD M33
                 m["framre_kna_\(fz.rawValue)"] = bojning(L(led(.hoftF), fz), L(led(.knaF), fz), L(led(.fotledF), fz))
+            }
+            // Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
+            m["hand_djup_topp"] = flyttX(G, .topp)
+            // Främre armen mot axellinjen vid toppen, + över axelplanet; bara när axellinjen
+            // är lång nog i bild (axlarna skymmer inte varandra). METOD M39
+            let af = L(led(.axelF), .topp), ab = L(led(.axelB), .topp)
+            if (ab - af).langd * cm >= axlarMinCm {
+                m["framre_arm_plan_topp"] = armMotAxlar(axelF: af, axelB: ab, hand: L(handF, .topp))
             }
         case .fo:
             for fz in faser {                                                       // METOD M14

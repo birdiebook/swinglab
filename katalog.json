@@ -248,6 +248,8 @@
   {"matt": "framre_kna_topp", "vy": "dtl", "positioner": ["P4"]},
   {"matt": "brost_lyft_topp", "vy": "dtl", "positioner": ["P4"]},
   {"matt": "hand_lyft_topp", "vy": "dtl", "positioner": ["P4"]},
+  {"matt": "hand_djup_topp", "vy": "dtl", "positioner": ["P4"]},
+  {"matt": "framre_arm_plan_topp", "vy": "dtl", "positioner": ["P4"]},
   {"matt": "backen_bojning_traff", "vy": "dtl", "positioner": ["P7"]},
   {"matt": "framre_kna_traff", "vy": "dtl", "positioner": ["P7"]},
   {"matt": "brost_lyft_traff", "vy": "dtl", "positioner": ["P7"], "fel": "tappad_hallning"},

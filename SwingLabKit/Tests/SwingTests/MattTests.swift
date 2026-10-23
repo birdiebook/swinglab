@@ -49,9 +49,10 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (54 + 46 + 41 + 34 + 48 + 32 + 51 + 50 + 41 + 51 + 54 = 502)
+        // (54 + 46 + 43 + 35 + 48 + 33 + 51 + 50 + 43 + 51 + 54 = 508;
+        // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna)
         // och positionerna (11 × 7 − 5 saknade = 72).
-        XCTAssertEqual(jamforda, 502)
+        XCTAssertEqual(jamforda, 508)
         XCTAssertEqual(positioner, 72)
     }
 
@@ -99,6 +100,13 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(dtl.matt["framre_kna_traff"]!, 12.0, accuracy: 1.5)            // METOD M33
         XCTAssertEqual(dtl.matt["backen_bojning_adress"]!, 10.0, accuracy: 0.5)       // METOD M30
         XCTAssertNil(dtl.matt["handfart_max"])                                        // bara FO
+        // Tilläggen bakifrån (PLAN S1c): figurens händer 20 cm från bollen vid toppen, och
+        // främre armen 6,1° över axellinjen med axlarna vridna; skymda axlar ger ingen vinkel.
+        XCTAssertEqual(dtl.matt["hand_djup_topp"]!, -20.0, accuracy: 0.5)            // METOD M38
+        XCTAssertEqual(dtl.matt["framre_arm_plan_topp"]!, 6.1, accuracy: 1.0)         // METOD M39
+        let kort = try Matt.mat(Sving.las(json: Fixturer.svingar[5].indata))         // dtl_kort
+        XCTAssertNil(kort.matt["framre_arm_plan_topp"])
+        XCTAssertNotNil(kort.matt["hand_djup_topp"])
         XCTAssertEqual(Farter.vinkel(181), -179)
         XCTAssertEqual(Farter.vinkel(-180), 180)
         XCTAssertEqual(Farter.rutnat(2.2, 2.5).count, 301)
