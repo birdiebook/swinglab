@@ -97,7 +97,7 @@ INTE_TEXT = {
     "par", "par.json", "foljare", "foljare.json", "\\(…) · \\(…) ms",
     "\\(…) cm", "katalog", "json", "P1", "P4", "P7", "P10", " s", " ",
     "eye", "eye.slash", "ellipsis", "\\(…) / \\(…)", "—",
-    "smallcircle.filled.circle", "chart.xyaxis.line", "person", "chevron.right",
+    "smallcircle.filled.circle", "chart.xyaxis.line", "person", "chevron.right", "info.circle",
 }
 
 
@@ -139,6 +139,16 @@ class Engelska(unittest.TestCase):
         self.assertGreater(len(s), 50)
         for t in s:
             self.assertIsNone(SVENSKA.search(t), t)
+
+    def test_katalogens_texter_ar_engelska(self) -> None:
+        """Det katalog.json visar i appen: felens namn, övningar och tankar, och
+        infobladets vad, varfor och tecken för varje fel och mått (BESLUT B30, B41)."""
+        k = json.loads((ROT / "katalog.json").read_text(encoding="utf-8"))
+        texter = [(e["id"], f, e[f]) for e in k["fel"] for f in ("namn", "ovning", "tanke", "vad", "varfor", "tecken")]
+        texter += [(e["matt"], f, e[f]) for e in k["matt"] for f in ("vad", "varfor", "tecken")]
+        self.assertEqual(len(texter), 12 * 6 + 35 * 3)
+        for namn, f, t in texter:
+            self.assertIsNone(SVENSKA.search(t), f"{namn}.{f}: {t}")
 
     def test_fragorna_om_tillatelse_ar_engelska(self) -> None:
         projekt = (ROT / "project.yml").read_text(encoding="utf-8")

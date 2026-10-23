@@ -26,47 +26,56 @@ public enum Texter {
 
     // MARK: måtten (Etiketter)
 
-    /// Måttens korta namn i vyn, per mått i katalogen.
-    public static let mattnamn: [String: String] = [
-        // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37).
-        "backen_bojning_adress": "Hip hinge (est.)", "backen_bojning_topp": "Hip hinge (est.)",
-        "backen_bojning_traff": "Hip hinge (est.)",
-        "framre_kna_adress": "Lead knee", "framre_kna_topp": "Lead knee", "framre_kna_traff": "Lead knee",
-        "brost_lyft_topp": "Chest lift", "brost_lyft_traff": "Chest lift", "brost_lyft_finish": "Chest lift",
-        "hand_lyft_topp": "Hand lift", "hand_lyft_traff": "Hand lift", "hand_lyft_finish": "Hand lift",
-        "framre_kna_sway_topp": "Lead knee sway", "framre_kna_sway_traff": "Lead knee sway", "framre_kna_sway_finish": "Lead knee sway",
-        "bakre_kna_sway_topp": "Trail knee sway", "bakre_kna_sway_traff": "Trail knee sway", "bakre_kna_sway_finish": "Trail knee sway",
-        "genomsving_s": "Follow-through",
-        "handfart_max": "Hand speed",
-        "handfart_max_fore_traff_ms": "Hand speed peak",
-        "framre_arm_vinkelfart_max": "Lead arm speed",
-        // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
-        "hand_djup_topp": "Hand depth",
-        "framre_arm_plan_topp": "Lead arm plane",
-        "backen_sway_topp": "Sway",
-        "backen_resa_framat": "Hip shift",
-        "backen_thrust_traff": "Thrust",
-        "brost_bojning_tapp": "Chest bend",
-        "tempo": "Tempo",
-        "sway_gap_traff": "Sway gap",
-        "axellinje_lutning_traff": "Shoulder tilt",
-        "sidbojning_topp": "Side bend",
-        "framre_armbage_efter_traff": "Lead elbow",
-        "bakre_armbage_topp": "Trail elbow",
-        "handbana": "Hand path",
-        "framre_armbage_topp": "Lead arm",
-        // Måtten som granskningen visar vid en position utan att de är fel (katalogens `matt`).
-        "brost_bojning_adress": "Chest bend",
-        "bakre_kna_adress": "Trail knee",
-        "stans_bredd": "Stance",
-        "axellinje_lutning_adress": "Shoulder tilt",
-        "hoftlinje_lutning_adress": "Hip tilt",
-        "backen_sway_p3": "Sway",
-        "framre_armbage_p3": "Lead arm",
-        "backen_resa_p5": "Hip shift",
-        "hander_fore_adress_traff": "Hands ahead",
-        "huvud_backen_finish": "Head to pelvis",
-    ]
+    /// Måttens korta namn i vyn, per mått i katalogen: kroppsdel och vad, utan position
+    /// (granskningen visar positionen själv) och utan värdeord (BESLUT B13, B40).
+    public static let mattnamn: [String: String] = {
+        var n: [String: String] = [
+            // Johannes godkända namn (BESLUT B40).
+            "backen_thrust_traff": "Hips toward ball",
+            "brost_bojning_tapp": "Spine angle loss",
+            "bakre_armbage_topp": "Trail elbow flare",
+            "handbana": "Hands out (downswing)",
+            "backen_sway_topp": "Hip sway", "backen_sway_p3": "Hip sway",
+            "backen_resa_framat": "Hip shift to target", "backen_resa_p5": "Hip shift to target",
+            "sidbojning_topp": "Spine tilt",
+            "framre_armbage_efter_traff": "Lead arm fold",
+            "genomsving_s": "Follow-through time",
+            // Övriga efter samma princip (BESLUT B40).
+            "framre_armbage_topp": "Lead elbow bend", "framre_armbage_p3": "Lead elbow bend",
+            "brost_bojning_adress": "Spine angle",
+            "bakre_kna_adress": "Trail knee flex",
+            "stans_bredd": "Stance width",
+            "axellinje_lutning_adress": "Shoulder tilt", "axellinje_lutning_traff": "Shoulder tilt",
+            "hoftlinje_lutning_adress": "Hip tilt",
+            "hander_fore_adress_traff": "Hands toward target",
+            "huvud_backen_finish": "Head over hips",
+            "sway_gap_traff": "Hip–chest sway gap",
+            "tempo": "Swing tempo",
+            "handfart_max": "Hand speed",
+            "handfart_max_fore_traff_ms": "Hand speed peak timing",
+            "framre_arm_vinkelfart_max": "Lead arm speed",
+            // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
+            "hand_djup_topp": "Hand depth",
+            "framre_arm_plan_topp": "Lead arm to shoulder plane",
+        ]
+        // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37), ett namn per fas.
+        for (m, namn) in [("backen_bojning", "Hip hinge"), ("framre_kna", "Lead knee flex"),
+                          ("brost_lyft", "Chest height"), ("hand_lyft", "Hand height"),
+                          ("framre_kna_sway", "Lead knee sway"), ("bakre_kna_sway", "Trail knee sway")] {
+            for fz in ["adress", "topp", "traff", "finish"] { n["\(m)_\(fz)"] = namn }
+        }
+        return n
+    }()
+
+    /// Felets namn på Today och i passet: med positionen när måttet tas i en punkt i
+    /// svingen ("Hip sway at top"), annars bara namnet (BESLUT B40).
+    public static func felnamn(_ namn: String, fas: String) -> String {
+        switch fas {
+        case address, top, impact, finish: return "\(namn) at \(fas)"
+        case afterImpact: return "\(namn) \(fas)"
+        default: return namn
+        }
+    }
 
     /// Var i svingen måttet hör hemma, i kortets rubrik.
     public static let address = "address"
@@ -156,8 +165,32 @@ public enum Texter {
 
     // MARK: Granskningen
 
-    public static let sway = "Sway"
-    public static let thrust = "Thrust"
+    public static let sway = "Hip sway"
+    public static let thrust = "Hips toward ball"
+
+    // MARK: infobladet (BESLUT B41)
+
+    /// Källans rad, ur katalogens `status` och `kalla`: aldrig mer än METOD säger.
+    public static let kallaRubrik = "Source"
+    static let statusord = ["tillverkare": "Manufacturer", "forskning": "Research", "tranare": "Coach",
+                            "antagande": "Assumption"]
+    public static let ejKontrollerad = "not verified"
+    public static let egenBaslinjeKalla = "own baseline"
+    public static let oprovadKalla = "untested on the phone"
+
+    /// "Manufacturer (golf.com, golftec.co.za), not verified" eller "Assumption, own baseline".
+    public static func kalla(status: String, kontrollerad: Bool, gransFinns: Bool, varden: [String]) -> String {
+        var t = statusord[status] ?? status
+        if status != "antagande" && !varden.isEmpty { t += " (\(varden.joined(separator: ", ")))" }
+        if !gransFinns { t += ", \(egenBaslinjeKalla)" }
+        if !kontrollerad && status != "antagande" { t += ", \(ejKontrollerad)" }
+        return t
+    }
+
+    /// Ett mått utan fel: egen baslinje, och farterna oprövade (METOD M27, M35–M37).
+    public static func kallaMatt(oprovad: Bool) -> String {
+        "\(statusord["antagande"]!), \(egenBaslinjeKalla)" + (oprovad ? ", \(oprovadKalla)" : "")
+    }
 
     // MARK: kvittot och ljusprovet (Capture, METOD MS11)
 

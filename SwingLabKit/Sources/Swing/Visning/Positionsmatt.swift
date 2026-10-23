@@ -16,6 +16,8 @@ public struct Positionsrad: Identifiable, Equatable, Sendable {
     /// Gränsen eller den egna baslinjen med slagets värde; nil utan någon av dem.
     public let spann: Spann?
     public var ovas = false
+    /// Infobladet som ett tryck på raden öppnar (BESLUT B41).
+    public var info: Infoblad? = nil
 
     /// Raden i ord för VoiceOver.
     public var upplasning: String {
@@ -39,12 +41,14 @@ public enum Positionsmatt {
             var r = rad(f.matt, varden: varden, gront: f.gront, aktiv: f.aktiv, markning: Markning.fran(f),
                         baslinje: baslinje[f.matt] ?? [], under: f.fas == "efter_traff" ? Texter.afterImpact : nil)
             r.ovas = ovas.contains(f.id)
+            r.info = Infoblad(f, namn: r.namn)
             ut.append(r)
         }
         for m in k.matt where m.vy == vy.rawValue && m.positioner.contains(position) {
             var r = rad(m.matt, varden: varden, gront: nil, aktiv: true, markning: Markning.fran(m),
                         baslinje: baslinje[m.matt] ?? [], under: nil)
             r.ovas = m.fel.map { ovas.contains($0) } ?? false
+            r.info = Infoblad(m, namn: r.namn)
             ut.append(r)
         }
         return ut

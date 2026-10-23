@@ -80,15 +80,63 @@ final class VisningTests: XCTestCase {
     func testUpplasningen() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
         let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
-        XCTAssertEqual(sway.upplasning, "Sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, limit not read in original")
+        XCTAssertEqual(sway.upplasning, "Hip sway at top −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, limit not read in original")
         let tempo = try XCTUnwrap(v.kort.first { $0.id == "tempo" })
-        XCTAssertTrue(tempo.upplasning.hasPrefix("Tempo 2.90, target 2.5 to 3.1"), tempo.upplasning)
+        XCTAssertTrue(tempo.upplasning.hasPrefix("Swing tempo 2.90, target 2.5 to 3.1"), tempo.upplasning)
         let tapp = try XCTUnwrap(v.kort.first { $0.id == "tappad_hallning" })
         XCTAssertTrue(tapp.upplasning.contains("own baseline"), tapp.upplasning)
-        XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt, off")
+        XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt at impact, off")
         let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
-        XCTAssertEqual(j.saker[0].upplasning, "Sway −2.4 cm, target from 0 cm, limit not read in original, FO · top · week 5")
+        XCTAssertEqual(j.saker[0].upplasning, "Hip sway −2.4 cm, target from 0 cm, limit not read in original, FO · top · week 5")
         XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Hip shift, Chest bend +2.0°")
+    }
+
+    /// BESLUT B40: varje fel och mått i katalogen har ett eget namn (inte nyckeln), utan
+    /// position i granskningen och med positionen på felens rader när den behövs.
+    func testNamnenEfterKroppsdelOchVad() throws {
+        let k = try katalog()
+        for m in k.fel.map(\.matt) + k.matt.map(\.matt) {
+            XCTAssertNotEqual(Etiketter.etikett(m).namn, m, "\(m) saknar namn")
+            XCTAssertFalse(Etiketter.etikett(m).namn.hasSuffix(" at top"), m)
+        }
+        XCTAssertEqual(Etiketter.etikett("backen_thrust_traff").namn, "Hips toward ball")
+        XCTAssertEqual(Etiketter.etikett("framre_arm_plan_topp").namn, "Lead arm to shoulder plane")
+        XCTAssertEqual(Texter.felnamn("Hip sway", fas: Texter.top), "Hip sway at top")
+        XCTAssertEqual(Texter.felnamn("Lead arm fold", fas: Texter.afterImpact), "Lead arm fold after impact")
+        XCTAssertEqual(Texter.felnamn("Hip shift to target", fas: Texter.topToImpact), "Hip shift to target")
+        let v = Passvisning(katalog: k, pass: Demo.pass)
+        XCTAssertEqual(v.kort.first { $0.id == "early_extension" }?.namn, "Hips toward ball at impact")
+        XCTAssertEqual(v.kort.first { $0.id == "tempo" }?.namn, "Swing tempo")
+        XCTAssertEqual(v.kort.first { $0.id == "over_the_top" }?.namn, "Hands out (downswing)")
+    }
+
+    /// BESLUT B41: infobladet finns för varje fel och mått, på varje skärm, och källan
+    /// säger aldrig mer än katalogen (status, kontrollerad, gränsen).
+    func testInfobladet() throws {
+        let k = try katalog()
+        for f in k.fel {
+            let b = try XCTUnwrap(Infoblad.fran(k, matt: f.matt, vy: Vy(rawValue: f.vy)), f.id)
+            XCTAssertEqual(b.vad, f.vad)
+            XCTAssertFalse(b.kalla.isEmpty)
+        }
+        for m in k.matt { XCTAssertNotNil(Infoblad.fran(k, matt: m.matt, vy: Vy(rawValue: m.vy)), m.matt) }
+        let v = Passvisning(katalog: k, pass: Demo.pass)
+        let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" }?.info)
+        XCTAssertEqual(sway.namn, "Hip sway at top")
+        XCTAssertEqual(sway.kalla, "Manufacturer (golf.com, golftec.co.za), not verified")
+        XCTAssertEqual(v.kort.first { $0.id == "early_extension" }?.info?.kalla, "Assumption, own baseline")
+        XCTAssertTrue(v.kort.allSatisfy { $0.info != nil })
+        let fart = try XCTUnwrap(Infoblad.fran(k, matt: "handfart_max", vy: .fo))
+        XCTAssertEqual(fart.kalla, "Assumption, own baseline, untested on the phone")
+        XCTAssertEqual(sway.upplasning, "Hip sway at top. \(sway.vad) \(sway.varfor) + toward target · − away. "
+                       + "Source: Manufacturer (golf.com, golftec.co.za), not verified")
+        let idag = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: Demo.pass, attJobbaPa: nil)
+        XCTAssertTrue(idag.rader.allSatisfy { $0.info != nil })
+        let rader = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["hand_djup_topp": -20])
+        let djup = try XCTUnwrap(rader.first { $0.matt == "hand_djup_topp" })
+        XCTAssertEqual(djup.namn, "Hand depth")
+        XCTAssertEqual(djup.info?.tecken, "+ toward ball · − in toward the body")
+        XCTAssertEqual(djup.info?.kalla, "Assumption, own baseline")
     }
 
     func testAccentenBaraForDetSomOvas() throws {
@@ -235,7 +283,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(v.undertitel, "7i\u{00A0}· 34")
         let k = Dictionary(uniqueKeysWithValues: v.kort.map { ($0.id, $0) })
         let sway = try XCTUnwrap(k["sway_topp"])
-        XCTAssertEqual(sway.namn, "Sway")
+        XCTAssertEqual(sway.namn, "Hip sway at top")                        // BESLUT B40
         XCTAssertEqual(sway.rubrik, "FO · top · + to target")
         XCTAssertEqual(sway.varde, "−2.4")
         XCTAssertEqual(sway.enhet, "cm")
@@ -315,8 +363,8 @@ final class VisningTests: XCTestCase {
         let sv = v.saker[0]
         XCTAssertEqual(sv.rubrik, "FO · top · week 1")
         XCTAssertEqual(sv.nu, "−5.7")
-        XCTAssertEqual(sv.foljd.map { $0.vag }, [["Side bend"], ["Side bend", "Thrust"], ["Hip shift"],
-                                                ["Hip shift", "Chest bend"], ["Sway gap"]])
+        XCTAssertEqual(sv.foljd.map { $0.vag }, [["Spine tilt"], ["Spine tilt", "Hips toward ball"], ["Hip shift to target"],
+                                                ["Hip shift to target", "Spine angle loss"], ["Hip–chest sway gap"]])
         XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4.0", "+3.3", "13.8", "+5.9", "+16.5"])   // filens tal, inte avrundade om
         XCTAssertEqual(sv.steg.map { $0.namn }, ["Slow", "Half speed", "Full speed", "Varied"])
         XCTAssertEqual(sv.steg[0].lage, .nu)
@@ -384,13 +432,13 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(v.fran, "Jan 9")
         XCTAssertEqual(v.saker.count, 2)
         let s = v.saker[0]
-        XCTAssertEqual(s.namn, "Sway")
+        XCTAssertEqual(s.namn, "Hip sway")
         XCTAssertEqual(s.rubrik, "FO · top · week 5")
         XCTAssertEqual(s.markning, .b10)
         XCTAssertEqual(s.nu, "−2.4")
         guard case let .grans(lo, _)? = s.mal?.zon else { return XCTFail("målet utan spann") }
         XCTAssertEqual(lo, 0)
-        XCTAssertEqual(s.foljd.first?.vag, ["Side bend"])
+        XCTAssertEqual(s.foljd.first?.vag, ["Spine tilt"])
         XCTAssertEqual(s.steg[1].lage, .nu)
         XCTAssertEqual(s.steg[0].lage, .klart)
         XCTAssertEqual(s.tanke, "\u{201C}Leave the stick standing.\u{201D}")
@@ -398,7 +446,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(s.villkorUnder, "2 sessions in a row")
         XCTAssertNil(s.rorlighet)
         let t = v.saker[1]
-        XCTAssertEqual(t.namn, "Trail elbow")
+        XCTAssertEqual(t.namn, "Trail elbow flare")
         XCTAssertEqual(t.markning, .egen)
         XCTAssertNil(t.mal)                                   // egen baslinje: inget spann i filen
         XCTAssertTrue(t.foljd.isEmpty)
@@ -412,14 +460,14 @@ final class VisningTests: XCTestCase {
                             attJobbaPa: Demo.attJobbaPa)
         XCTAssertEqual(v.dag, "Wed, Jan 13")
         XCTAssertEqual(v.senaste, "Sat, Jan 9\u{00A0}· 7i\u{00A0}· 34")
-        XCTAssertEqual(v.rader.first?.namn, "Sway")
+        XCTAssertEqual(v.rader.first?.namn, "Hip sway at top")
         XCTAssertFalse(v.rader.contains { $0.id == "axellutning" })     // avstängt
         XCTAssertEqual(v.rader.first { $0.id == "tempo" }?.enhet, "")
-        XCTAssertEqual(v.forsta?.namn, "Sway")
+        XCTAssertEqual(v.forsta?.namn, "Hip sway")
         XCTAssertEqual(v.forsta?.tanke, "\u{201C}Leave the stick standing.\u{201D}")
-        XCTAssertEqual(v.forsta?.kedja, ["Sway", "Side bend", "Hip shift"])
+        XCTAssertEqual(v.forsta?.kedja, ["Hip sway", "Spine tilt", "Hip shift to target"])
         // Alla saker med tanken (S4c), och veckan för den första.
-        XCTAssertEqual(v.fokus.map(\.namn), ["Sway", "Trail elbow"])
+        XCTAssertEqual(v.fokus.map(\.namn), ["Hip sway", "Trail elbow flare"])
         XCTAssertEqual(v.fokus[1].tanke, "\u{201C}A towel under the trail arm stays in place to the top.\u{201D}")
         XCTAssertEqual(v.fokus[1].kedja.count, 1, "flying elbow saknar följdfel")
         XCTAssertEqual(v.vecka, "week 5")
@@ -540,7 +588,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(g.slag[0], .init(nr: nil, text: "−2.4"))
         XCTAssertEqual(g.slag[1].nr, 1)
         XCTAssertEqual(g.forraDatum, "Jan 6")
-        XCTAssertEqual(y.namn, "Sway")
+        XCTAssertEqual(y.namn, "Hip sway")
         XCTAssertEqual(y.tidText(2.2), "2.20 s")
         XCTAssertEqual(y.faser.topp, 2.2, accuracy: 0.01)
     }

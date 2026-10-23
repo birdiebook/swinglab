@@ -98,7 +98,9 @@ struct IdagVy: View {
             }
 
             if let senaste = visning.senaste {
-                Button(action: oppnaPasset) {
+                // Ett tryck på sektionen öppnar passet; raden ⓘ öppnar bladet (BESLUT B41),
+                // så sektionen är ingen Button (en knapp i en knapp tar fel tryck).
+                VStack(spacing: 0) {
                     Sektion(etikett: String(localized: "Last session"), hoger: senaste) {
                         VStack(spacing: 0) {
                             ForEach(visning.rader, id: \.id) { r in
@@ -110,24 +112,29 @@ struct IdagVy: View {
                                             .frame(minWidth: 40, idealWidth: 92, maxWidth: 92)
                                         tal(r).frame(minWidth: 66, alignment: .trailing)
                                             .layoutPriority(1)
+                                        InfoKnapp(blad: r.info)
                                     }
                                     VStack(alignment: .leading, spacing: 6) {
                                         namn(r)
                                         HStack(spacing: 12) {
                                             SpannVy(spann: r.spann, kompakt: true, accent: r.ovas)
                                             tal(r)
+                                            InfoKnapp(blad: r.info)
                                         }
                                     }
                                     .padding(.vertical, 6)
                                 }
                                 .frame(minHeight: 34)
-                                .accessibilityElement(children: .ignore)
+                                // combine: raden läses som en, och ⓘ blir radens åtgärd.
+                                .accessibilityElement(children: .combine)
                                 .accessibilityLabel(r.upplasning)
                             }
                         }
                     }
                 }
-                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: oppnaPasset)
+                .accessibilityAddTraits(.isButton)
             }
 
             if !visning.fokus.isEmpty {

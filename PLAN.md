@@ -195,6 +195,22 @@ granskningens rader. Simulatorprovet: `Prov/SwingLabProvFlikar.swift` (bilderna
 `flik-idag`, `flik-idag-utan-fokus`, `flik-utveckling`, `flik-utveckling-resa`,
 `flik-jobba`, `flik-passet`, `flik-jag`).
 
+**S4d — namnen och infobladet (Johannes 2026-10-23, BESLUT B40, B41).** Beställningen:
+måtten heter efter kroppsdel och vad, med entydigt tecken; i granskningen utan position,
+på felens rader i Today och passet med positionen när den behövs ("Hip sway at top").
+Och ett infoblad: varje fel och mått i `katalog.json` får `vad`, `varfor` och `tecken`
+på engelska, och ett tryck på en måttrad (passet, granskningen) eller ⓘ (Today,
+Progress) öppnar ett blad i halv höjd med namnet, de tre raderna och källan i grått.
+Bara visningsnamnen ändras: id:n, `att_jobba_pa.json` och PC:ns tal är orörda.
+**Klart när:** proven kräver fälten överallt (Python och Swift, test_engelska), varje
+rad har sitt blad, simulatorprovet ritar bladet, och Johannes har öppnat bladet på
+telefonen. **Byggt (grenen `s1c`):** `Texter.mattnamn` och `Texter.felnamn`,
+`Swing/Visning/Infoblad.swift` (källan ur `status`, `kontrollerad`, gränsen och
+webbplatserna i `kalla`), fälten i `Katalog` och `tools/pc/katalog.py`,
+`App/Vyer/InfobladVy.swift` (bladet, trycket och ⓘ), och bilden `infoblad` i
+`Prov/SwingLabProvFlikar.swift`. Två tecken i Johannes tabell stämde inte med koden
+(hip sway och spine tilt); koden behölls och bladet säger kodens tecken (B40).
+
 ## S5 — PC-länken och Claude
 
 - `tools/pc/session.py <paket>` läser paketet, kör det tunga (MediaPipe,

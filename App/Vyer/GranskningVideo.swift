@@ -488,6 +488,7 @@ struct PositionsradVy: View {
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(rad.upplasning)
+        .infoblad(rad.info)                      // BESLUT B41
     }
 }
 

@@ -309,7 +309,7 @@ final class MatningTests: XCTestCase {
                                         "hand_lyft_topp"])
         XCTAssertTrue(p4.first { $0.matt == "bakre_kna_sway_topp" }!.ovas, "bakre knäets sway följer sway-felet")
         let sway = try XCTUnwrap(p4.first)
-        XCTAssertEqual(sway.namn, "Sway")
+        XCTAssertEqual(sway.namn, "Hip sway")                  // granskningen: utan position (BESLUT B40)
         XCTAssertTrue(sway.ovas)
         XCTAssertEqual(sway.markning, .b10)
         XCTAssertEqual(sway.enhet, "cm")

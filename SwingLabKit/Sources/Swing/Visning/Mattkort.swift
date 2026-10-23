@@ -70,6 +70,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public let geometri: Geometri?
     /// Måttet övas just nu (Att jobba på): kortet bär accenten (BESLUT B31).
     public var ovas = false
+    /// Infobladet som ett tryck på kortet öppnar (BESLUT B41).
+    public var info: Infoblad? = nil
 
     public init(id: String, matt: String, namn: String, rubrik: String, vy: Vy?, markning: Markning?,
                 varde: String, enhet: String, skillnad: String?, spann: Spann?, geometri: Geometri?) {
@@ -103,7 +105,16 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     /// Ett fel i katalogen som kort för passet `nu`. `tidigare` är passen före,
     /// äldst först; det sista är förra passet. Baslinjen är alla svingar i dem (M27).
     public static func kort(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
-        let e = Etiketter.etikett(fel.matt)
+        var k = kortUtanBlad(fel, nu: nu, tidigare: tidigare)
+        k.info = Infoblad(fel, namn: k.namn)
+        return k
+    }
+
+    /// Kortet; felets namn med positionen när den behövs ("Hip sway at top", BESLUT B40).
+    static func kortUtanBlad(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
+        let e0 = Etiketter.etikett(fel.matt)
+        let e = Mattetikett(Texter.felnamn(e0.namn, fas: e0.fas), e0.enhet, e0.decimaler, e0.fas, tecken: e0.tecken,
+                            plus: e0.plus, vy: e0.vy, geometri: e0.geometri)
         let grupp = fel.grupp
         let markning = Markning.fran(fel)
         let vy = Vy(rawValue: fel.vy)

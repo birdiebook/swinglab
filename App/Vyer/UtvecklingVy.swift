@@ -72,6 +72,7 @@ struct UtvecklingKort: View {
                 Etikett(text: u.rubrik, farg: u.ovas ? Theme.acc : Theme.tertiary)
                 Spacer()
                 if let m = u.markning { MarkningVy(markning: m) }
+                InfoKnapp(blad: u.info)                  // BESLUT B41
             }
             HStack(alignment: .lastTextBaseline) {
                 StortTal(varde: u.varde, enhet: u.enhet)

@@ -41,6 +41,8 @@ public struct Utveckling: Sendable {
     public var harSerie1: Bool { punkter.contains { $0.serie1 != nil } }
     /// Måttet övas just nu: linjen bär accenten (BESLUT B31).
     public var ovas = false
+    /// Infobladet som ⓘ öppnar (BESLUT B41).
+    public let info: Infoblad
 
     /// `block` = blockens första dagar, äldst först.
     public init(_ fel: Katalog.Fel, pass: [Pass], block: [Date] = []) {
@@ -48,6 +50,7 @@ public struct Utveckling: Sendable {
         let grupp = fel.grupp
         id = fel.id
         namn = e.namn
+        info = Infoblad(fel, namn: e.namn)
         var r = [e.vy ?? Etiketter.vy(fel.vy)]
         if !e.fas.isEmpty { r.append(e.fas) }
         rubrik = r.joined(separator: " · ")

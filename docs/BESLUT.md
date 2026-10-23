@@ -648,3 +648,38 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **Bortvalt:** att kräva fältet (då går dagens paket inte), och lodlinjen ur kroppen
   (fötterna och höfterna i adressen lutar med hållningen).
 - **Omprövas:** när appen skriver fältet; då jämförs de två på riktiga pass.
+
+## B40 — Måttens namn: kroppsdel och vad, positionen bara där den behövs
+*2026-10-23 · gäller · Johannes beslut*
+
+- **Valt:** varje mått heter efter kroppsdelen och vad som mäts, på engelska och utan
+  värdeord (B13), och tecknet ska gå att läsa entydigt (infobladet, B41). Johannes
+  godkände tolv namn (Hips toward ball, Spine angle loss, Trail elbow flare, Hands out
+  (downswing), Hip sway, Hip shift to target, Spine tilt, Lead arm fold, Hip hinge,
+  Chest height, Hand height, Follow-through time); resten följer samma princip
+  (`Texter.mattnamn`). I granskningen visar positionen redan var måttet tas, så där
+  står namnet utan position; felens rader på Today och i passet får positionen när
+  måttet tas i en punkt ("Hip sway at top", `Texter.felnamn`).
+- **Ändras inte:** id:n, `att_jobba_pa.json` och PC:ns tal: bara visningsnamnen.
+- **Tecknen som inte stämde med tabellen** behåller kodens tecken (METOD): `backen_sway_*`
+  är + mot målet (M15), inte bort från målet, och `sidbojning_topp` + bort från målet
+  (M14), inte mot målet. Tecknet står rätt i infobladet och kortets rubrik.
+- **Bortvalt:** att vända tecknen (PC:ns tal, gränserna och historiken följer dem).
+
+## B41 — Infobladet: beskrivande text bara i bladet
+*2026-10-23 · gäller · Johannes beslut · kompletterar B13*
+
+- **Valt:** varje fel och mått i `katalog.json` har `vad` (vad som mäts och mellan
+  vilka punkter), `varfor` (varför det spelar roll, med felets namn) och `tecken`, på
+  engelska och korta. Ett tryck på en måttrad i passet och granskningen, eller på en
+  liten ⓘ i Today och Progress, öppnar ett blad i halv höjd med namnet, de tre raderna
+  och källan i grått ("Source: Assumption, own baseline"), svartvitt (design/README),
+  accenten bara som förut (B31). Källan byggs ur `status`, `kontrollerad`, gränsen och
+  `kalla` (webbplatserna) och påstår aldrig mer än METOD.
+- **B13 gäller på skärmarna:** ingen beskrivande text där; bladet är det enda stället.
+- **Hålls av prov:** `test_katalog.py` och `KatalogTests` kräver fälten överallt,
+  `test_engelska.py` fäller svenska i dem, `VisningTests` att varje rad har sitt blad,
+  och simulatorprovet ritar bladet (`infoblad`).
+- **Bortvalt:** en förklarande rad under varje mått (bryter B13), och en hjälpsida.
+- **Omprövas:** när ett andra språk kommer (fälten blir då en tabell per språk, B33).
+

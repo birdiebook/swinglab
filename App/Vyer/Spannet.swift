@@ -141,5 +141,6 @@ struct MattkortVy: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kort.upplasning)
+        .infoblad(kort.info)                     // BESLUT B41
     }
 }

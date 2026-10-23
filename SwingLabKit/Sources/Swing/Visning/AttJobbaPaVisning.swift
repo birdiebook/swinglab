@@ -136,6 +136,8 @@ public struct Idagvisning: Sendable {
         public let spann: Spann
         /// Måttet övas just nu (BESLUT B31).
         public let ovas: Bool
+        /// Infobladet som ⓘ öppnar (BESLUT B41).
+        public var info: Infoblad? = nil
 
         /// "Sway −2.4 cm, target from 0 cm"
         public var upplasning: String {
@@ -172,7 +174,7 @@ public struct Idagvisning: Sendable {
             rader = p.kort.compactMap { k -> Rad? in
                 guard let s = k.spann else { return nil }
                 return Rad(id: k.id, namn: k.namn, varde: k.varde, enhet: k.enhet == ": 1" ? "" : k.enhet, spann: s,
-                           ovas: k.ovas)
+                           ovas: k.ovas, info: k.info)
             }
         } else {
             senaste = nil

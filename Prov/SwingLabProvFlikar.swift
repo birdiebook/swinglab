@@ -14,8 +14,9 @@
 //   längden   en ny längd i Jag rör inga gamla pass, och ett nytt pass får den;
 //   accenten  bara på det som övas (swayen), i Idag, Passet, Utveckling och granskningens
 //             rader; utan fil syns den inte alls (BESLUT B31).
+//   bladet    infobladet för swayen ur passets kort: namnet och fyra rader, svartvitt (BESLUT B41).
 // Bilderna: flik-idag, flik-idag-utan-fokus, flik-utveckling, flik-utveckling-resa,
-// flik-jag, flik-jobba, flik-passet.
+// flik-jag, flik-jobba, flik-passet, infoblad.
 
 import XCTest
 import SwiftUI
@@ -97,7 +98,7 @@ extension SwingLabProvVyer {
         let rad = try XCTUnwrap(idag.rader.first { $0.id == "sway_topp" })
         XCTAssertEqual(rad.varde, Tal.tecken(Avrundning.avrunda("backen_sway_topp", median), decimaler: 1))
         XCTAssertEqual(idag.rader.filter(\.ovas).map(\.id), ["sway_topp"])
-        XCTAssertEqual(idag.fokus.map(\.namn), ["Sway", "Trail elbow"])
+        XCTAssertEqual(idag.fokus.map(\.namn), ["Hip sway", "Trail elbow flare"])
         XCTAssertEqual(idag.vecka, "week 5")
         print("PROV: flikarna Idag: \(idag.senaste ?? "-"), sway \(rad.varde) \(rad.enhet), \(idag.rader.count) rader, "
               + "fokus \(idag.fokus.map(\.namn))")
@@ -147,6 +148,15 @@ extension SwingLabProvVyer {
         try rendera(UtvecklingVy(visning: u, valt: "backens_resa_framat"), namn: "flik-utveckling-resa", accent: false)
         try rendera(AttJobbaPaVy(visning: jobba), namn: "flik-jobba")
         try rendera(PassetVy(visning: pv, filter: .fo), namn: "flik-passet")
+        // Infobladet (BESLUT B41): swayens kort bär sitt blad, med positionen i namnet (B40).
+        let blad = try XCTUnwrap(pv.kort.first { $0.id == "sway_topp" }?.info)
+        XCTAssertEqual(blad.namn, "Hip sway at top")
+        XCTAssertEqual(blad.tecken, "+ toward target · − away")
+        XCTAssertTrue(blad.kalla.hasSuffix("not verified"), blad.kalla)
+        XCTAssertNotNil(idag.rader.first?.info, "Today: ⓘ på raden")
+        XCTAssertNotNil(u.matt.first?.info)
+        try rendera(InfobladVy(blad: blad), namn: "infoblad", accent: false)
+        print("PROV: infobladet \(blad.namn): \(blad.kalla)")
 
         // Jag: en ny längd rör inga gamla pass; ett nytt pass får den.
         store.setHand(.hoger)
