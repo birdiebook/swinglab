@@ -2065,11 +2065,12 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   gånger Actions-maskinens (Geekbench 6, enkeltråd; ej läst i original, **antagande**),
   så 10 slag tar cirka 0,7–1 s och 20 slag 1,5–2 s; med dubbel marginal för värme och
   annat i appen under **4 s** för 20 slag, under målet 10 s. Simulatorprovet
-  (`Prov/SwingLabProvTreD.swift`) skriver tiden för fyra slag på Darwin; telefonen är
-  inte mätt (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna
+  (`Prov/SwingLabProvTreD.swift`) bygger och kör TreD på Darwin: fyra slag på 0,46 s i
+  simulatorn (Actions macOS-maskin, Apple-processor; Linux 0,51 s), största avvikelse mot
+  Python 6e-11°. Telefonen är inte mätt (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna
   om det behövs.
-- **Python-facit** räknas om parallellt (fyra processer, de längsta först, ett pass spår
-  och robusta vikter en gång per process) i `tools/tests/test_tre_d_fixturer.py`, och
+- **Python-facit** räknas om parallellt (fyra processer, de längsta först, ett pass leder,
+  spår och robusta vikter en gång per process) i `tools/tests/test_tre_d_fixturer.py`, och
   talen jämförs inom **1e-6** relativt eller **1e-5** absolut: numpy och OpenBLAS ger
   olika sista bitar på olika processorer (Actions byter maskin mellan körningar), och
   skillnaden växer som mellan Swift och Python. Testet skriver den största skillnaden

@@ -329,14 +329,30 @@ def _andra(bas: dict, ny: dict) -> dict:
     return ut
 
 
+_LEDER: dict = {}
+
+
+def _lederna(indata: dict, vy: str, sid: str) -> dict:
+    """Ett slags JointSeries ur passets kompakta leder, avkodad en gång per process."""
+    nyckel = (indata["namn"], vy, sid)
+    if nyckel not in _LEDER:
+        _LEDER[nyckel] = ur_kompakt(indata["paket"][vy]["leder"][sid])
+    return _LEDER[nyckel]
+
+
 def paketen(indata: dict, andra: dict, mapp: Path, med_leder: bool = True):
-    """Ett pass paket med en variants ändringar, lästa med paket.las: (dtl, fo)."""
+    """Ett pass paket med en variants ändringar, lästa med paket.las: (dtl, fo). Manifestet,
+    par.json och enhet.json läses och kontrolleras av paket.las; lederna (fixturens egna,
+    redan prövade när de skrevs) avkodas en gång per process och sätts in efteråt."""
     bas = indata["paket"]
     ut = []
     for vy in ("dtl", "fo"):
         p = dict(_filerna(bas)[vy], **andra.get(vy, {}))
-        fil = skriv_zip(p, bas[vy]["leder"] if med_leder else None, mapp / f"{indata['namn']}-{vy}.zip")
-        ut.append(P.las(fil, med_leder=med_leder))
+        paket = P.las(skriv_zip(p, None, mapp / f"{indata['namn']}-{vy}.zip"), med_leder=False)
+        if med_leder:
+            for s in paket.slag:
+                s.lederna = _lederna(indata, vy, s.id)
+        ut.append(paket)
     return ut
 
 
