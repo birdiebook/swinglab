@@ -973,7 +973,7 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   algoritm i Swift (t.ex. SVD ur AᵀA:s egenvektorer, eller en färdig optimerare), som
   inte går att pröva mot Python tal för tal; att skriva av numpys slumptal.
 - **Kostnad:** kedjan finns två gånger. Fixturerna är 3,2 MB JSON (lederna kompakt
-  som int16 i base64), och Python-testet räknar om dem (cirka 50 s).
+  som int16 i base64), och Python-testet räknar om dem (cirka 30 s). TreDTests tar cirka 15 s i Actions.
 - **Omprövas:** när kedjan ändras i Python (fixturerna skrivs om, B12), eller om
   telefonen blir för långsam (METOD M50:s tid).
 

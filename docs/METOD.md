@@ -2039,12 +2039,29 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Urvalet till kalibreringen** är jämnt spritt, index ⌊i · n / 5 000⌋, i både Python
   och Swift (BESLUT B48), i stället för numpys slumpade urval med frö 0.
 - **Toleransen mot Python** (TreDTests, fixturerna ur `tools/pc/generera_tre_d.py`):
-  kalibreringens R, t och uppåt inom **1e-6**, synken inom **1e-6 s**, återprojektionen
-  inom **1e-4 px**, måtten per slag och passets sammanfattning inom **1e-4°**, och de
-  avrundade fälten (Sampson-felet, vinkeln, synken i ms) inom sitt avrundningssteg.
-  Algoritmen är densamma; skillnaden är summeringsordningen i BLAS och LAPACK, som
-  växer i Levenberg–Marquardts iterationer och i medianerna. **räkning** (uppmätt i
-  Actions, nedan).
+  kalibreringens R, t och uppåt inom **1e-8**, synken inom **1e-9 s**, återprojektionen
+  inom **1e-7 px**, måtten per slag och passets sammanfattning inom **1e-6°**, delstegen
+  inom **1e-6**, och de avrundade fälten (Sampson-felet, vinkeln, synken i ms, lodlinjen
+  mot de vågräta) inom sitt avrundningssteg. Algoritmen är densamma; det som skiljer är
+  summeringsordningen i BLAS och LAPACK, som växer i Levenberg–Marquardts iterationer
+  och i utjämningen. Toleransen är minst 250 gånger den uppmätta avvikelsen.
+  **Uppmätt i Actions** (4 pass, 10 varianter, största avvikelsen): måtten per slag
+  3,8e-9° (höfterna vid träffen, bra brus), passets median 2,1e-9°, R 3,6e-11, t 1,4e-11,
+  uppåt 4,4e-12, synken 1,0e-11 s, återprojektionen 5,0e-10 px; Sampson-felet, vinkeln
+  mellan kamerorna, lodlinjen mot de vågräta och synken i ms blev samma avrundade tal;
+  parningen, skälen (`osaker`, `hoppat`, `lodlinje_fel`) och antalen samma. Utan brus
+  ligger avvikelserna kring 1e-11°. **räkning.**
+- **Tiden** (Actions, `ubuntu-latest`, release, en tråd): ett pass om **10 slag 1,6 s**,
+  **20 slag** i två uppställningar **3,3 s** (TreDTests). Per uppställning om tio slag går
+  tiden till synken (två varv, 0,55 s, 34 %: 22 + 7 förskjutningar trianguleras och
+  projiceras), trianguleringen och måtten (0,42 s, 26 %: en 4×4-SVD per led och ruta),
+  kalibreringen (tre gånger 0,10 s, 19 %) och spåren med de robusta vikterna (0,22 s,
+  14 %). **Skattat för iPhone 13** (A15): dess enkeltrådsprestanda är ungefär 1,3–1,5
+  gånger Actions-maskinens (Geekbench 6, enkeltråd; ej läst i original, **antagande**),
+  så 10 slag tar cirka 1–1,5 s och 20 slag 2–3 s; med dubbel marginal för värme och
+  annat i appen under **7 s** för 20 slag, under målet 10 s. Inte mätt på telefonen
+  (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna om det
+  behövs.
 - **Mot sanningen** gäller MK8:s gränser i Swift också: utan brus varje slag inom 1°
   och passets median inom 0,5°, med bra brus inom felbudgetens |bias| + 3 SD.
 
