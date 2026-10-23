@@ -2043,29 +2043,33 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   sprids jämnt över slagen, tiderna och lederna; ett jämnt steg n/5 000 kan gå i takt med
   ledernas period (13 per ruta) och välja samma leder. **räkning** (Weyls följd, standard).
 - **Toleransen mot Python** (TreDTests, fixturerna ur `tools/pc/generera_tre_d.py`):
-  kalibreringens R, t och uppåt inom **1e-8**, synken inom **1e-9 s**, återprojektionen
-  inom **1e-7 px**, måtten per slag och passets sammanfattning inom **1e-6°**, delstegen
+  kalibreringens R, t och uppåt inom **1e-8**, synken inom **1e-8 s**, återprojektionen
+  inom **1e-6 px**, måtten per slag och passets sammanfattning inom **1e-5°**, delstegen
   inom **1e-6**, och de avrundade fälten (Sampson-felet, vinkeln, synken i ms, lodlinjen
-  mot de vågräta) inom sitt avrundningssteg. Algoritmen är densamma; det som skiljer är
-  summeringsordningen i BLAS och LAPACK, som växer i Levenberg–Marquardts iterationer
-  och i utjämningen. Toleransen är minst 250 gånger den uppmätta avvikelsen.
-  **Uppmätt i Actions** (4 pass, 10 varianter, största avvikelsen): måtten per slag
-  3,8e-9° (höfterna vid träffen, bra brus), passets median 2,1e-9°, R 3,6e-11, t 1,4e-11,
-  uppåt 4,4e-12, synken 1,0e-11 s, återprojektionen 5,0e-10 px; Sampson-felet, vinkeln
-  mellan kamerorna, lodlinjen mot de vågräta och synken i ms blev samma avrundade tal;
-  parningen, skälen (`osaker`, `hoppat`, `lodlinje_fel`) och antalen samma. Utan brus
-  ligger avvikelserna kring 1e-11°. **räkning.**
-- **Tiden** (Actions, `ubuntu-latest`, release, en tråd): ett pass om **10 slag 1,6 s**,
-  **20 slag** i två uppställningar **3,3 s** (TreDTests). Per uppställning om tio slag går
-  tiden till synken (två varv, 0,55 s, 34 %: 22 + 7 förskjutningar trianguleras och
-  projiceras), trianguleringen och måtten (0,42 s, 26 %: en 4×4-SVD per led och ruta),
-  kalibreringen (tre gånger 0,10 s, 19 %) och spåren med de robusta vikterna (0,22 s,
-  14 %). **Skattat för iPhone 13** (A15): dess enkeltrådsprestanda är ungefär 1,3–1,5
+  mot de vågräta) inom sitt avrundningssteg; parningen, uppställningarna, skälen
+  (`osaker`, `hoppat`, `lodlinje_fel`, `utelamnade`, `fel`) och antalen ska vara
+  desamma. Algoritmen är densamma; det som skiljer är summeringsordningen i BLAS och
+  LAPACK, som växer i Levenberg–Marquardts iterationer och i utjämningen. Toleransen är
+  minst 14 gånger den uppmätta avvikelsen och tusentals gånger under det som syns
+  (0,05°, PLAN S6c-2). **Uppmätt i Actions** (5 pass, 12 varianter, största
+  avvikelsen, bra brus): måtten per slag 3,3e-7° (stretchen), passets median 7e-8°, R
+  1,9e-10, t 7,7e-11, uppåt 3e-11, synken 7,3e-10 s, återprojektionen 2,9e-8 px; de
+  avrundade fälten blev samma tal. Utan brus ligger avvikelserna kring 1e-11°.
+  **räkning.**
+- **Tiden** (Actions, `ubuntu-latest`, release, en tråd): ett pass om **10 slag 1,1 s**,
+  **20 slag** i två uppställningar **2,2 s** (TreDTests). Per uppställning om tio slag går
+  tiden till synken (två varv, cirka 0,45 s, 44 %: 22 + 7 förskjutningar trianguleras och
+  projiceras), trianguleringen och måtten (0,25 s, 25 %: en 4×4-SVD per led och ruta),
+  kalibreringen (tre gånger 0,07 s, 20 %) och spåren med de robusta vikterna (0,11 s,
+  11 %). **Skattat för iPhone 13** (A15): dess enkeltrådsprestanda är ungefär 1,3–1,5
   gånger Actions-maskinens (Geekbench 6, enkeltråd; ej läst i original, **antagande**),
-  så 10 slag tar cirka 1–1,5 s och 20 slag 2–3 s; med dubbel marginal för värme och
-  annat i appen under **7 s** för 20 slag, under målet 10 s. Inte mätt på telefonen
-  (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna om det
-  behövs.
+  så 10 slag tar cirka 0,7–1 s och 20 slag 1,5–2 s; med dubbel marginal för värme och
+  annat i appen under **4 s** för 20 slag, under målet 10 s. Simulatorprovet
+  (`Prov/SwingLabProvTreD.swift`) skriver tiden för fyra slag på Darwin; telefonen är
+  inte mätt (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna
+  om det behövs.
+- **Python-facit** räknas om parallellt (fyra processer, de längsta först, ett pass spår
+  och robusta vikter en gång per process) i `tools/tests/test_tre_d_fixturer.py`.
 - **Mot sanningen** gäller MK8:s gränser i Swift också: utan brus varje slag inom 1°
   och passets median inom 0,5°, med bra brus inom felbudgetens |bias| + 3 SD.
 

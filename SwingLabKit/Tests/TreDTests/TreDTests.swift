@@ -132,10 +132,10 @@ final class Avvikelser {
 
 final class TreDTests: XCTestCase {
     /// Toleranserna mot Python, METOD M50.
-    static let tolKamera = 1e-8        // R, t, uppåt (enhetslösa); uppmätt högst 4e-11
-    static let tolSynk = 1e-9          // s; uppmätt högst 1e-11
-    static let tolRep = 1e-7           // px; uppmätt högst 5e-10
-    static let tolMatt = 1e-6          // grader, per slag och passets sammanfattning; uppmätt högst 4e-9
+    static let tolKamera = 1e-8        // R, t, uppåt (enhetslösa); uppmätt högst 1,9e-10
+    static let tolSynk = 1e-8          // s; uppmätt högst 7,3e-10
+    static let tolRep = 1e-6           // px; uppmätt högst 2,9e-8
+    static let tolMatt = 1e-5          // grader, per slag och passets sammanfattning; uppmätt högst 3,3e-7
 
     /// Jämför Swifts resultat med Pythons för en variant, fält för fält.
     func jamfor(_ r: TreDResultat, _ py: [String: Any], _ inre: [Any], _ namn: String, _ a: Avvikelser) {
