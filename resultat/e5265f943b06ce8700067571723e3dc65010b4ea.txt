@@ -1,0 +1,23 @@
+e5265f943b06ce8700067571723e3dc65010b4ea s7a 2026-10-23T09:47:49Z run 39934226109
+== swift-release
+RÖTT: 223 test, 16 fel, 9 s i testerna, bygget 67 s
+  fel: VisningTests.testNamnenEfterKroppsdelOchVad
+  fel: MatningTests.testMattenVidPositionerna
+  fel: KatalogTests.testKatalogenPekarPaMattSomFinns
+Långsammast (av 223):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.4 s  MattTests.testVarjeSvingGerPythonsTal
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.3 s  FormatTests.testFixturernaGarAttLasa
+      0.3 s  KatalogTests.testKontrollernaSomPython
+      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.2 s  MattTests.testTillaggenMotSportsbox
+      0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  VisningTests.testUtvecklingMedSpridningOchEjMatta
+      0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
+      0.1 s  VisningTests.testInfobladet
+      0.1 s  MattTests.testStartenBakifranUrPosen
+
