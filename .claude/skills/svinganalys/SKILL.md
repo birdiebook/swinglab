@@ -73,8 +73,12 @@ en METOD-rad (MT1–MT10).
 med `aktuell: true`. En övning med `lage: "avslutad"` (klar och släppt, eller
 bortvald) är historia: den väcks aldrig, och dess fel börjar ett nytt block om
 det väljs igen. För de aktuella:
-- `klart` (klart när hölls på första serien två pass i rad): saken lämnar
-  listan. Skriv det i rapporten som tal ("−0,4 → 0,3 cm, två pass").
+- `klart`: saken lämnar listan. Med `klart_skal: "klart_nar"` hölls "klart när" på
+  första serien två pass i rad: skriv det i rapporten som tal ("−0,4 → 0,3 cm, två
+  pass"). Med `"inte_flaggat"` är felet grönt i senaste passet, ofta för att
+  katalogens gräns flyttats medan övningen pågick (BESLUT B45): skriv "klar, inte
+  längre flaggat" med talet och gränsen, och ta aldrig bort saken tyst. "Klart när" och
+  märkningen från valet står kvar i minnet men gäller inte längre.
 - `fortsatt` eller `ny`: behåll samma sak och samma övning, med **samma "klart
   när" och märkning som när övningen valdes** (minnets `klart_nar` och
   `markning`), och samma `block.start`. Steget står kvar eller tar nästa
@@ -121,7 +125,9 @@ svaren i `fysik.treregeln` och `fysik.ovning: null`. Utan Johannes svar:
 `null`). Säg "troligen", aldrig "är".
 
 **H. Gränsens vikt.** Står `markning: "B10"` är gränsen inte läst i original; står
-`"egen"` är det Johannes egen baslinje (eller passet självt, `grund: "nu"`). Väg
+`"egen"` är det Johannes egen baslinje (eller passet självt, `grund: "nu"`); `null` är
+en gräns vars källa är läst i original (sedan research 5: swayen, tempot och early
+extension, BESLUT B45). Väg
 därefter: ett rött mot en kontrollerad gräns väger mer än ett gult mot en
 egen baslinje på 8 svingar. Säg i rapporten vilken sort varje gräns är.
 
@@ -200,10 +206,10 @@ När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
 2. **Rapporten** i chatten, högst 9 rader (påhittade tal):
    ```
    Pass 3 nov, 16 slag (8 FO, 8 DTL), j7. Missen: tunn (Johannes).
-   1. Bäckenet glider bakåt i baksvingen: −5,7 cm, grönt ≥ 0 (B10). Rött.
+   1. Bäckenet glider bakåt i baksvingen: −5,7 cm, grönt ≥ −2,5 (kontrollerad gräns). Rött.
       Kedjan: → reverse spine → early extension; → resan framåt → tappad hållning; → sway gap.
       Övning: käppen vid bakre höften, långsamt med käppen. Tanke: "Leave the stick standing."
-      Klart när: första serien ≥ 0 cm, två pass i rad. Block vecka 1.
+      Klart när: första serien ≥ −2,5 cm, två pass i rad. Block vecka 1.
    Förra valet: — (första passet).
    3D (trend, utan markörer, 12 slag): stretch 9°, höfter öppna vid träff 38°; ingen tydlig ändring.
    Fil att dela: data/historik/att_jobba_pa/20261103-180000.json
@@ -226,10 +232,10 @@ python3 tools/pc/historik.py --rot data/exempel/historik minne
 ```
 
 Längden 1,80 m hör till den påhittade spelaren. Pass 1: bara `sway_topp` är
-flaggad (rött mot ≥ 0, B10). Valet är
+flaggad (rött mot ≥ −2,5, kontrollerad gräns, `markning: null`). Valet är
 `tools/tests/fixturer/att_jobba_pa_exempel.json`: en sak, katalogens övning på
 första steget, följdfelen ur kedjorna med hela vägen (även early extension
-två led bort), klart när första serien ≥ 0 cm två pass i rad, block vecka 1.
+två led bort), klart när första serien ≥ −2,5 cm två pass i rad, block vecka 1.
 Pass 2: första serien rörde sig tydligt (−5,5 → −3,3 cm, mer än pass 1:s
 spridning) men klarar inte villkoret, så läget är `fortsatt`: samma övning,
 nästa steg (`halv_fart`), samma "klart när". Resan framåt och tappad hållning

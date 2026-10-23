@@ -3,7 +3,7 @@ import Swing
 
 /// Påhittade pass för vyernas prov (CLAUDE.md, Dataregeln: repot är publikt, bara
 /// påhittade tal). Talen följer skissen (`design/skiss.html`): 16 pass med järn 7
-/// från 20 okt till 9 jan, där bäckenets sway går från −7,9 till −2,4 cm.
+/// från 20 okt till 9 jan, där bäckenets sway går från −7,9 till −3,0 cm.
 /// Varje pass ges som svingar, så att vyerna räknar medianen, kvartilerna och
 /// jämförelsen själva (METOD M25–M27). Appen länkar inte in det här målet.
 public enum Demo {
@@ -25,7 +25,7 @@ public enum Demo {
     }
 
     static let serier: [String: Serie] = [
-        "backen_sway_topp": Serie(vy: .fo, pass: [-7.9, -8.3, -7.4, -8.1, -7.6, -7.9, -7.2, -7.6, -7.0, -7.3, -6.8, -5.9, -4.6, -3.9, -3.6, -2.4],
+        "backen_sway_topp": Serie(vy: .fo, pass: [-7.9, -8.3, -7.4, -8.1, -7.6, -7.9, -7.2, -7.6, -7.0, -7.3, -6.8, -5.9, -4.6, -3.9, -3.6, -3.0],
                                   sd: 1.4,
                                   serie1: [-8.4, -8.9, -8.0, -8.6, -8.3, -8.5, -7.9, -8.2, -7.7, -8.0, -7.5, -7.0, -6.1, -5.2, -4.8, -4.0]),
         "backen_resa_framat": Serie(vy: .fo, pass: [8.1, 7.6, 8.4, 7.9, 8.0, 8.2, 7.8, 8.3, 8.1, 8.4, 8.2, 9.0, 9.8, 10.4, 11.0, 11.3],
@@ -162,7 +162,7 @@ public enum Demo {
        "fel": "sway_topp",
        "namn": "Sway: the pelvis slides away from the target in the backswing",
        "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
-       "nu": -2.4, "spann": [0, null], "markning": "B10",
+       "nu": -3.0, "spann": [-2.5, null], "markning": null,
        "ovning": {
         "id": "kapp_och_fotterna_ihop",
         "text": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
@@ -170,7 +170,7 @@ public enum Demo {
         "kalla": "katalog",
         "steg": "halv_fart"
        },
-       "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
+       "klart_nar": {"villkor": ">=", "grans": -2.5, "pa": "forsta_serien", "pass_i_rad": 2},
        "foljdfel": [
         {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
         {"fel": "backens_resa_framat", "namn": "Too little hip shift from the top", "vag": ["sway_topp", "backens_resa_framat"], "nu": 11.3, "enhet": "cm"},

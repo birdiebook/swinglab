@@ -172,8 +172,10 @@ public struct Idagvisning: Sendable {
         if let nu = pass.last {
             senaste = [Tal.dag(nu.datum), nu.klubba, "\(nu.slag)"].joined(separator: Texter.skilje)
             let p = Passvisning(katalog: katalog, pass: pass, ovas: attJobbaPa?.ovas ?? [])
+            // Felen, inte spridningen mellan slagen (den visas i passet och Progress, METOD M44).
+            let felen = Set(katalog.fel.map(\.id))
             rader = p.kort.compactMap { k -> Rad? in
-                guard k.spann != nil || k.startOsaker(nu) else { return nil }
+                guard felen.contains(k.id), k.spann != nil || k.startOsaker(nu) else { return nil }
                 // Raden saknar kortets rubrik, så namnet bär positionen när den behövs ("Hip sway at
                 // top"), och bladet heter som raden (BESLUT B40, B41).
                 let namn = Texter.felnamn(k.namn, fas: Etiketter.etikett(k.matt).fas)

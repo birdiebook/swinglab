@@ -95,7 +95,8 @@ Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
 
 ## Katalogen: `katalog.json`
 
-I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [ … ]}`, där varje fel har:
+I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [ … ], "spridning": [ … ]}`,
+där varje fel har:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
@@ -108,14 +109,14 @@ I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [
 | `gult` | `[min, max]` eller `null` | Gult spann runt det gröna. `null` med en grön gräns = allt utanför grönt är gult. |
 | `kalla` | text | URL till källan för definitionen eller gränsen. |
 | `status` | text | Gränsens status: `tillverkare`, `forskning`, `tranare` eller `antagande` (egen baslinje är `antagande`). |
-| `kontrollerad` | bool | `false` tills källan lästs i original (BESLUT B10). |
+| `kontrollerad` | bool | `false` tills källan i `kalla` lästs i original (BESLUT B10; research 5, BESLUT B45). |
 | `aktiv` | bool | `false` = felet bedöms inte (axellutningen, METOD M17). |
 | `samre` | `"+"`, `"-"` eller `null` | Åt vilket håll måttet blir sämre, för den egna baslinjen. `null` = båda. |
 | `ovning_id` | text | Övningens stabila id (`a–z`, `0–9`, `_`). Historiken känner igen övningen på det, inte på texten, så att en omskriven formulering inte nollställer steget. Samma id i katalogen och `tools/pc/kedjor.json` betyder samma text. |
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
 | `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
-| `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp, METOD M15); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
+| `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp och early_extension, BESLUT B45); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
 | `vad` | text | Infobladet (BESLUT B41): en mening på engelska, vad som mäts och mellan vilka punkter. |
 | `varfor` | text | Infobladet: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
 | `tecken` | text | Infobladet: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
@@ -135,6 +136,12 @@ och `positioner`, och valfritt `fel` och `status`; inga andra fält:
 | `tecken` | text | Som felens: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
 | `fel` | text | Valfri. Katalogens id för felet som måttet hör till (sway hittills vid P3 → `sway_topp`), så att accenten för det du övar på (BESLUT B31) följer med. |
 | `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna och genomsvingens tid, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "own". Utan fältet: egen baslinje. |
+
+`spridning` är passets spridning mellan slagen för ett mått, ett tal per pass: den
+robusta sd:n ur passets svingar i vyn, och inget tal under 8 slag (METOD M44, BESLUT
+B46). Passet visar den som ett kort och Progress som ett mått över passen. Varje post har exakt `matt`, `vy`
+(`"dtl"` eller `"fo"`, måttet måste finnas i vyn, en gång), `vad`, `varfor` och
+`tecken` (som felens).
 
 Granskningen vid en position visar felen och måtten vars `positioner` har den,
 i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid
@@ -283,12 +290,14 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | Fält | Innehåll |
 |---|---|
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
-| `matversion` | måttens version (`matt.MATVERSION`, 2 sedan METOD M40); saknas = 1, kör session.py igen |
+| `matversion` | måttens version (`matt.MATVERSION`; 2 = METOD M40, 3 = M41–M43, spridningen); saknas = 1, kör session.py igen |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
 | `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
 | `tempo_vy` | vyn som gruppen `alla` tas ur: flest slag med tempo (METOD MT9) |
 | `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
 | `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |
+| `spridning[]` | ett per mått i katalogens `spridning` och klubba i passet: `matt`, `vy`, `klubba`, `n` (slagen med måttet i vyn och klubban), `varde` (den robusta sd:n, `null` under 8 slag) och `visat` (avrundat), METOD M44 |
+| `skifte_ej_tillbaka` | `fo`: FO-slag där bäckenet står bakom adressläget vid träffen, så att skiftet saknas (censurerat, METOD M42), och `fo_matta`: mätta FO-slag |
 | `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
 | `forra` | `null`, eller `pass` och `jamforelse` (METOD M26) per grupp |
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
@@ -354,10 +363,10 @@ okänd eller saknad nyckel fälls.
   "fel": "sway_topp",
   "namn": "Sway: the pelvis slides away from the target in the backswing",
   "vy": "fo", "matt": "backen_sway_topp", "enhet": "cm",
-  "nu": -5.7, "spann": [0, null], "markning": "B10",
+  "nu": -5.7, "spann": [-2.5, null], "markning": null,
   "ovning": {"id": "kapp_och_fotterna_ihop", "text": "Stick in the ground …", "tanke": "Leave the stick standing.", "kalla": "katalog",
              "steg": "langsamt_med_foremal"},
-  "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
+  "klart_nar": {"villkor": ">=", "grans": -2.5, "pa": "forsta_serien", "pass_i_rad": 2},
   "foljdfel": [
    {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top",
     "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
@@ -483,6 +492,8 @@ fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
 `valt_i_pass`, `fel_start`, `forra_ovningar` (id:n), `klart_nar` och `markning` (från valet), `steg`,
 `uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),
 `pass_utan_rorelse`, `dagar_sedan_felet_valdes`, `rorelse_sedan_felet_valdes`,
-`aktuell` och `lage` (`avslutad`, `klart`, `fysik`, `ny`, `byt_ovning`,
-`fortsatt`; METOD MT4, MT5), och `kor_om`: passen vars analys har en äldre
-`matversion` (METOD M40), som ska köras om med session.py.
+`aktuell`, `lage` (`avslutad`, `klart`, `fysik`, `ny`, `byt_ovning`,
+`fortsatt`; METOD MT4, MT5), `klart_skal` (`"klart_nar"` när "klart när" hölls,
+`"inte_flaggat"` när felet inte längre är flaggat i det senaste passet efter valet,
+till exempel när gränsen flyttats, BESLUT B45; annars `null`), och `kor_om`: passen vars
+analys har en äldre `matversion` (METOD M40), som ska köras om med session.py.

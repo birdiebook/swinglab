@@ -19,13 +19,13 @@ def _sammanf(v: float) -> dict:
     return {"n": 8, "median": v, "q1": v - 0.6745, "q3": v + 0.6745}     # robust sd 1,0
 
 
-def _analys(pass_id: str, forsta: float, hela: float | None = None) -> dict:
+def _analys(pass_id: str, forsta: float, hela: float | None = None, status: str = "rod") -> dict:
     hela = forsta if hela is None else hela
     return {"pass": pass_id, "klubbor": ["j7"],
             "slag": [{"vy": "fo", "matt": {MATT: hela}} for _ in range(8)],
             "session": {"fo": {MATT: _sammanf(hela)}, "dtl": {}, "alla": {}},
             "forsta_serien": {"fo": {MATT: _sammanf(forsta)}, "dtl": {}, "alla": {}},
-            "bedomning": [{"id": "sway_topp", "visat": hela, "forsta_serien": forsta, "status": "rod"}]}
+            "bedomning": [{"id": "sway_topp", "visat": hela, "forsta_serien": forsta, "status": status}]}
 
 
 def _doc(pass_id: str, text: str = "Stick at the hip.", grans: float = 0, fysik=None, ovid: str | None = None) -> dict:
@@ -52,8 +52,8 @@ class Historiken(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
-    def pass_(self, pass_id: str, forsta: float, hela: float | None = None) -> None:
-        H.spara_analys(self.rot, _analys(pass_id, forsta, hela))
+    def pass_(self, pass_id: str, forsta: float, hela: float | None = None, status: str = "rod") -> None:
+        H.spara_analys(self.rot, _analys(pass_id, forsta, hela, status))
 
     def ajp(self, pass_id: str, **kw) -> None:
         H._skriv(self.rot / "att_jobba_pa" / f"{pass_id}.json", _doc(pass_id, **kw))
@@ -111,8 +111,24 @@ class Historiken(unittest.TestCase):
         self.assertEqual(self.lage()["lage"], "fortsatt")
         self.pass_("20261110-180000", 0.0)
         o = self.lage()
-        self.assertEqual((o["lage"], o["uppfyllt_i_rad"]), ("klart", 2))
+        self.assertEqual((o["lage"], o["uppfyllt_i_rad"], o["klart_skal"]), ("klart", 2, "klart_nar"))
         self.assertTrue(all(u["tydlig"] for u in o["uppfoljning"]))
+
+    def test_ett_fel_som_inte_langre_flaggas_ar_klart(self) -> None:
+        """BESLUT B45: gränsen flyttades medan övningen pågick (≥ 0 → ≥ −2,5). "Klart när"
+        står kvar från valet, men felet är grönt: övningen är klar, inte tyst borttagen."""
+        self.pass_("20261103-180000", -6.0)
+        self.ajp("20261103-180000", grans=0)
+        self.pass_("20261106-180000", -2.0, status="gron")
+        o = self.lage()
+        self.assertEqual((o["lage"], o["klart_skal"], o["klart_nar"]["grans"]), ("klart", "inte_flaggat", 0))
+        self.assertEqual(o["uppfyllt_i_rad"], 0)
+        # Flaggat igen i ett senare pass: övningen fortsätter.
+        self.pass_("20261110-180000", -4.0, status="gul")
+        self.assertEqual((self.lage()["lage"], self.lage()["klart_skal"]), ("fortsatt", None))
+        # Grönt i samma pass som valet räknas inte: inget pass har kommit efter valet.
+        self.ajp("20261110-180000", grans=0)
+        self.assertEqual(self.lage()["lage"], "fortsatt")
 
     def test_klart_nar_flyttar_sig_inte_nar_ovningen_fortsatter(self) -> None:
         """Granskningen fynd 3: äldre pass bedöms mot gränsen från valet."""

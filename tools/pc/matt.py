@@ -15,7 +15,9 @@ bildens plan. X pekar mot målet (FO) eller mot bollen (DTL), Y nedåt (format.p
 
 Tilläggen mot Sportsbox i 2D (PLAN S1b, research 4): METOD M30–M37. Tilläggen
 bakifrån (PLAN S1c): händernas djup och främre armen mot axellinjen vid toppen,
-METOD M38–M39.
+METOD M38–M39. Tilläggen ur research 5 (PLAN S1e): bäckenets recentrering och
+skiftets tidpunkt (FO), och bäckenets lägsta punkt i nedsvingen och lyftet därifrån
+in i träffen (båda vyerna), METOD M41–M43.
 
 Positionerna P1–P10 (BESLUT B32, METOD M28) och måtten vid P3, P5 och P10 som
 inte är en fas (METOD M29): sway och främre armbågen vid P3, bäckenets resa
@@ -46,7 +48,7 @@ BEN = HOFTHOJD - FOTLEDSHOJD     # höftmitt–fotledsmitt, FO
 CHICKEN = (0.05, 0.15)           # METOD M23: s efter träffen
 HANDBANA_NIVAER = (0.25, 0.50, 0.75)   # METOD M13: andel av höjden från adress till topp
 AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
-MATVERSION = 2                   # METOD M40: mätningens version; 2 = starten bakifrån ur posen
+MATVERSION = 3                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")
@@ -60,7 +62,8 @@ MATT_DTL = (
     + ["bakre_armbage_topp", "handbana", "tempo", "baksving_s", "nedsving_s"]
     + [f"{m}_{f}" for m in ("backen_bojning", "framre_kna") for f in ("adress", "topp", "traff")]
     + [f"{m}_{f}" for m in ("brost_lyft", "hand_lyft") for f in EFTER]
-    + ["genomsving_s", "hand_djup_topp", "framre_arm_plan_topp"])
+    + ["genomsving_s", "hand_djup_topp", "framre_arm_plan_topp"]
+    + ["backen_lyft_min", "backen_lyft_in_traff"])
 MATT_FO = (
     [f"sidbojning_{f}" for f in FASER]
     + [f"{m}_{f}" for m in ("backen_sway", "brost_sway", "backen_lyft", "huvud_sway", "huvud_lyft")
@@ -71,7 +74,8 @@ MATT_FO = (
        "framre_armbage_topp", "framre_armbage_efter_traff", "stans_bredd", "tempo", "baksving_s", "nedsving_s",
        "backen_sway_p3", "framre_armbage_p3", "backen_resa_p5", "huvud_backen_finish"]
     + [f"{m}_{f}" for m in ("brost_lyft", "hand_lyft", "framre_kna_sway", "bakre_kna_sway") for f in EFTER]
-    + ["genomsving_s", "handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"])
+    + ["genomsving_s", "handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"]
+    + ["backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff"])
 MATT = {"dtl": tuple(MATT_DTL), "fo": tuple(MATT_FO)}
 
 
@@ -105,6 +109,35 @@ def linjens_lutning(fram: np.ndarray, bak: np.ndarray) -> float:
     """Linjen bakre→främre mot vågrätt, + när den bakre sidan är lägre. METOD M17"""
     d = fram - bak
     return math.degrees(math.atan2(-d[1], d[0]))
+
+
+def fonster(t: np.ndarray, p: np.ndarray, axel: int, noll: float, skala: float, a: float,
+            b: float) -> tuple[np.ndarray, np.ndarray] | None:
+    """Punktens koordinat längs `axel` minus `noll`, gånger `skala`, i fönstret a…b:
+    värdet i ögonblicket vid a och vid b (M3) och rutorna strikt mellan dem som har
+    värde, i tidsordning, som (tider, värden). None när en ände saknas eller när två
+    tider i följd ligger mer än MAX_LUCKA_S isär: då kan ytterläget ligga i luckan.
+    METOD M41, METOD M42, METOD M43"""
+    pa, pb = F.vid(t, p, a), F.vid(t, p, b)
+    if not (np.isfinite(pa).all() and np.isfinite(pb).all()):
+        return None
+    sel = np.isfinite(p).all(axis=1) & (t > a) & (t < b)
+    tt = np.concatenate([[a], t[sel], [b]])
+    if np.any(np.diff(tt) > F.MAX_LUCKA_S):
+        return None
+    v = np.concatenate([[pa[axel]], p[sel, axel], [pb[axel]]])
+    return tt, (v - noll) * skala
+
+
+def forsta_framat(tt: np.ndarray, v: np.ndarray) -> float | None:
+    """Första tiden då v når 0 underifrån, linjärt mellan två värden i följd; tt[0] när
+    v redan är ≥ 0 där, None när v aldrig når 0. METOD M42"""
+    if v[0] >= 0:
+        return float(tt[0])
+    for i in range(1, len(v)):
+        if v[i] >= 0:
+            return float(tt[i - 1] + (0.0 - v[i - 1]) / (v[i] - v[i - 1]) * (tt[i] - tt[i - 1]))
+    return None
 
 
 def _korsning(t: np.ndarray, G: np.ndarray, a: float, b: float, niva: float, uppat: bool) -> float:
@@ -249,14 +282,34 @@ def mat(s: Sving) -> dict:
     for fz in EFTER:                                                 # METOD M31, METOD M32
         m[f"brost_lyft_{fz}"] = flytt(C, 1, fz, -1.0)
         m[f"hand_lyft_{fz}"] = flytt(G, 1, fz, -1.0)
+    # Bäckenets lägsta punkt mellan toppen och träffen, från adressen, och lyftet därifrån
+    # in i träffen. METOD M43
+    ned = fonster(t, P, 1, L(P, "adress")[1], -cm, f.topp, f.traff)
+    if ned is not None:
+        m["backen_lyft_min"] = float(ned[1].min())
+        m["backen_lyft_in_traff"] = float(ned[1][-1] - ned[1].min())
+    if s.vy == "fo":
+        x0 = L(P, "adress")[0]
+        # Recentreringen: bäckenets sway vid toppen minus dess minsta i baksvingen. METOD M41
+        bak = fonster(t, P, 0, x0, cm, f.adress[1], f.topp)
+        if bak is not None:
+            m["backen_recentrering"] = float(bak[1][-1] - bak[1].min())
+        # Skiftet: tiden från toppen tills höftmitten är tillbaka i adressläget. METOD M42
+        fram = fonster(t, P, 0, x0, cm, f.topp, f.traff)
+        if fram is not None:
+            tc = forsta_framat(*fram)
+            if tc is not None:
+                m["backen_skifte_ms"] = (tc - f.topp) * 1000.0
+
     efter = FA.rutnat(f.traff + FA.STEG_S, f.traff + F.FINISH[0])  # METOD M36
     tf = FA.finish_tid(efter, FA.handens_fart(t, s.xy[:, HANDLED_F], s.xy[:, HANDLED_B], efter, False))
     if tf is not None:
         m["genomsving_s"] = tf - f.traff
 
+    m["nedsving_s"] = f.traff - f.topp                               # METOD M5: utan starten
     if f.start is not None and not f.start_osaker:                   # METOD M5, METOD M40
         bak, ned = f.topp - f.start, f.traff - f.topp
-        m["baksving_s"], m["nedsving_s"] = bak, ned
+        m["baksving_s"] = bak
         if ned > 0:
             m["tempo"] = bak / ned
 

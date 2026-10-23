@@ -66,6 +66,11 @@ FO = {
     "kna_sway_b": (0, -4, 7, 28),      # bakre knäets sway, cm
     "axelbredd": 40.0,
     "hoftbredd": 32.0,
+    # Tilläggen ur research 5 (METOD M41, M43): bäckenet glider så här mycket extra mitt i
+    # baksvingen (+ mot målet) och sjunker så här mycket extra mitt i nedsvingen (+ upp), cm.
+    # Noll på platåerna, så att inget annat mått rörs där.
+    "sway_ut": 0.0,
+    "lyft_ned": 0.0,
 }
 DTL = {
     "bojning": (40, 38, 34, 10),       # bröstets böjning, grader, + mot bollen
@@ -84,6 +89,7 @@ DTL = {
     # vridningen vid toppen hamnar axellinjen i bildens plan (METOD M39).
     "axel_dx": (1.5, 1.5, 1.5, 1.5),
     "axel_dz": (0, 0, 0, 0),
+    "lyft_ned": 0.0,                   # bäckenet sjunker extra mitt i nedsvingen, cm (METOD M43)
 }
 
 
@@ -107,6 +113,21 @@ def kropp(t: np.ndarray, varden) -> np.ndarray:
     ts, tt, tk = TIDER["start"] + KROPP_SEN, TIDER["topp"], TIDER["klick"]
     a, b, c, d = varden
     return profil(t, [(-INF, ts, a), (tt - 0.06, tt + 0.06, b), (tk - 0.04, tk + 0.04, c), (tk + 0.8, INF, d)])
+
+
+def bula(t: np.ndarray, a: float, b: float) -> np.ndarray:
+    """sin(π u) för u = (t − a)/(b − a) mellan a och b, annars 0: en bula mellan två platåer."""
+    return np.sin(np.pi * np.clip((t - a) / (b - a), 0.0, 1.0))
+
+
+def baksving_bula(t: np.ndarray) -> np.ndarray:
+    """Bulan mellan adressens och toppens platåer. METOD M41"""
+    return bula(t, TIDER["start"] + KROPP_SEN, TIDER["topp"] - 0.06)
+
+
+def nedsving_bula(t: np.ndarray) -> np.ndarray:
+    """Bulan mellan toppens och träffens platåer. METOD M43"""
+    return bula(t, TIDER["topp"] + 0.06, TIDER["klick"] - 0.04)
 
 
 def _rad(v):
@@ -139,7 +160,8 @@ def figur_fo(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     ua, fa = 0.186 * langd_cm, 0.146 * langd_cm
     ts, tt, tk = TIDER["start"], TIDER["topp"], TIDER["klick"]
 
-    sway, lyft = kropp(t, p["sway"]), kropp(t, p["lyft"])
+    sway = kropp(t, p["sway"]) + p["sway_ut"] * baksving_bula(t)
+    lyft = kropp(t, p["lyft"]) + p["lyft_ned"] * nedsving_bula(t)
     beta, alfa, gamma = _rad(kropp(t, p["sidbojning"])), _rad(kropp(t, p["hoftlutning"])), _rad(kropp(t, p["axellutning"]))
     a, b, c, d = p["armbage"]
     phi = _rad(profil(t, [(-INF, ts + KROPP_SEN, a), (tt - 0.06, tt + 0.06, b), (tk - 0.04, tk + 0.20, c),
@@ -187,7 +209,7 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     theta = _rad(kropp(t, p["bojning"]))
     eta = _rad(kropp(t, p["armbage_bak"]))
     L = np.zeros((n, 13, 2))
-    P = _p(px0 + kropp(t, p["thrust"]), pz0 + kropp(t, p["lyft"]))
+    P = _p(px0 + kropp(t, p["thrust"]), pz0 + kropp(t, p["lyft"]) + p["lyft_ned"] * nedsving_bula(t))
     L[:, 7], L[:, 8] = P + [1.5, 0.0], P - [1.5, 0.0]
     C = P + bal * np.stack([np.sin(theta), np.cos(theta)], -1)
     axel = _p(kropp(t, p["axel_dx"]), kropp(t, p["axel_dz"]))
@@ -386,6 +408,32 @@ def facit_s1c(adress: np.ndarray, topp: np.ndarray) -> dict:
     return f
 
 
+def facit_s1e(figur, p: dict, langd_cm: float, vy: str) -> dict:
+    """Tilläggen ur research 5 (METOD M41–M43) på den exakta figuren, på ett rutnät om
+    10 µs: höftmittens lägsta höjd mellan toppen och träffen och lyftet därifrån till
+    träffen, och framifrån swayens minsta i baksvingen (efter adressen) mot toppen och
+    tiden från toppen tills höftmitten är tillbaka i adressläget."""
+    tt, tk = TIDER["topp"], TIDER["klick"]
+
+    def hoft(t: np.ndarray) -> np.ndarray:
+        L = figur(t, p, langd_cm)
+        return (L[:, 7] + L[:, 8]) / 2
+
+    h0 = hoft(np.array([0.0]))[0]
+    t = np.arange(tt, tk + 1e-6, 1e-5)
+    z = hoft(t)[:, 1] - h0[1]
+    f = {"backen_lyft_min": float(z.min()), "backen_lyft_in_traff": float(z[-1] - z.min())}
+    if vy == "fo":
+        tb = np.arange(0.0, tt + 1e-6, 1e-5)
+        x = hoft(tb)[:, 0] - h0[0]
+        f["backen_recentrering"] = float(x[-1] - x.min())
+        x = hoft(t)[:, 0] - h0[0]
+        k = int(np.argmax(x >= 0))
+        f["backen_skifte_ms"] = 0.0 if k == 0 else 1000.0 * float(
+            t[k - 1] + (0 - x[k - 1]) / (x[k] - x[k - 1]) * (t[k] - t[k - 1]) - tt)
+    return f
+
+
 # --- svingen som JSON ------------------------------------------------------------
 
 def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0.0, langd_m: float = 1.80,
@@ -449,6 +497,7 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     if vy == "fo":
         facit.update(facit_vid_positioner(p, langd_cm, pos))
     facit.update(facit_s1b(figur, p, langd_cm, vy, klick))
+    facit.update(facit_s1e(figur, p, langd_cm, vy))
     return d, facit
 
 
@@ -559,14 +608,17 @@ def session(seed: int, n_fo: int, n_dtl: int, utslag: bool = False) -> list[dict
 
 FIXTURSVINGAR = {
     # namn: (vy, hand, seed, brus_px, dolj, övrigt till sving())
-    "fo": ("fo", "hoger", 11, 0.8, (("hoft_v", 1.60, 1.62),), {}),
+    # Bäckenet glider 3 cm extra bort från målet mitt i baksvingen: recentreringen (METOD M41).
+    "fo": ("fo", "hoger", 11, 0.8, (("hoft_v", 1.60, 1.62),), {"sway_ut": -3.0}),
     # Vänsterspelaren med den främre handleden dold: greppregeln ger händerna,
     # men armbågsmåtten (M22, M23) saknas.
     "fo_vanster": ("fo", "vanster", 12, 0.8, (("handled_h", 0.0, 9.9),), {}),
     # Axlarna vridna i bildens plan vid toppen (METOD M39); i dtl_kort skymmer de varandra,
     # och främre armen mot axellinjen saknas, och i dtl_lucka ligger axellinjen nära spärren
     # (15,3 cm i figuren), så att Python och Swift prövas vid gränsen.
-    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}),
+    # Bäckenet sjunker 3 cm extra mitt i nedsvingen: lägsta punkten och lyftet in i träffen (M43).
+    "dtl": ("dtl", "hoger", 13, 0.8, (("kna_h", 2.0, 2.02),), {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0),
+                                                              "lyft_ned": -3.0}),
     "dtl_lucka": ("dtl", "hoger", 14, 0.8, (("hoft_v", 2.05, 2.35), ("nasa", 3.40, 3.80)),
                   {"axel_dx": (1.5, 6.5, 1.5, 1.5), "axel_dz": (0, -4.0, 0, 0)}),
     # Luckor kring toppen (2,20 s): höften 0,13 s (mer än MAX_LUCKA_S, saknas),
@@ -622,7 +674,8 @@ def session_fixtur() -> dict:
     sn, sf = S.sammanfatta_session(nu), S.sammanfatta_session(forra)
     return {"nu": nu, "forra": forra, "sammanfattning": {"nu": sn, "forra": sf},
             "jamforelse": {g: S.jamfor(sn[g], sf[g]) for g in sn},
-            "bedomning": KAT.bedom(katalog, nu, forra)}
+            "bedomning": KAT.bedom(katalog, nu, forra),
+            "spridning": {"nu": KAT.spridning(katalog, nu), "forra": KAT.spridning(katalog, forra)}}
 
 
 def _raa(text: str) -> str:

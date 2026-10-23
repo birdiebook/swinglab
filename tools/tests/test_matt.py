@@ -1,4 +1,4 @@
-"""Måtten (METOD M6–M24, M30–M37): påhittade svingar med kända förflyttningar ger kända tal."""
+"""Måtten (METOD M6–M24, M30–M39, M41–M43): påhittade svingar med kända förflyttningar ger kända tal."""
 from __future__ import annotations
 
 import unittest
@@ -17,6 +17,11 @@ HANDBANA = 0.15        # rutnätet och utjämningen när händerna rör sig 4–
 # sänker handleden i toppen (som handens lyft), uppmätt −0,03° i snitt, största 0,10°.
 AXLAR = {"axel_dx": (1.5, 16, 1.5, 1.5), "axel_dz": (0, -11, 0, 0)}
 ARM_PLAN = {"framre_arm_plan_topp": 0.15}
+# Tilläggen ur research 5 (METOD M41–M43, uppmätt på frön 0–19 utan brus): skiftets tid räknas
+# från den uppmätta toppen, som ligger ≈ 9 ms tidigt (M4), så talet blir ≈ 9 ms för långt
+# (största 13 ms); själva passagen ligger inom 4 ms. Bäckenets lägsta punkt: utjämningen
+# höjer en dal (största 0,09 cm).
+S1E = {"backen_skifte_ms": 15.0, "backen_lyft_min": 0.1, "backen_lyft_in_traff": 0.1}
 FARTER = {"handfart_max": 0.12, "handfart_max_fore_traff_ms": 8.0, "framre_arm_vinkelfart_max": 6.0,
           "genomsving_s": 0.008, "hand_lyft_topp": 0.2}
 
@@ -37,10 +42,10 @@ class KandaTal(unittest.TestCase):
     def test_fo(self) -> None:
         # Frö 3: frö 1 har en rå lucka på 33 ms vid handens toppfart, och då saknas toppen
         # (test_farter.Svingen.test_lucka_vid_toppfarten_ger_ingen_topp).
-        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER}, seed=3)
+        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER, **S1E}, seed=3)
 
     def test_dtl(self) -> None:
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN}, **AXLAR)
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN, **S1E}, **AXLAR)
 
     def test_backen_sex_cm_bakat_vid_toppen(self) -> None:
         r = mat(vy="fo", sway=(0, -6, 8, 14))
@@ -50,13 +55,13 @@ class KandaTal(unittest.TestCase):
     def test_andra_parametrar_och_annan_langd(self) -> None:
         andra = {"sway": (0, 3, 12, 15), "sidbojning": (10, -4, 30, 5), "armbage": (0, 40, 55, 80),
                  "stans": 36.0, "langd_m": 1.62, "seed": 7}
-        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER}, **andra)
+        self.kolla("fo", {"tempo": TEMPO_BIAS, **FARTER, **S1E}, **andra)
         r = mat(vy="fo", **andra)
         self.assertLess(r["matt"]["sidbojning_topp"], 0)        # reverse spine
         self.assertAlmostEqual(r["cm_per_px"], 1 / 4.0, delta=1e-4)
         andra = {"thrust": (0, 1, -2, 5), "bojning": (35, 36, 37, 0), "over": -3.0, "kna_bak": (15, 18, 40, 5),
                  "armbage_bak": (0, 95, 10, 30), "seed": 8, "axel_dx": (1.5, 14, 1.5, 1.5), "axel_dz": (0, -14, 0, 0)}
-        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN}, **andra)
+        self.kolla("dtl", {"tempo": TEMPO_BIAS, "handbana": HANDBANA, **FARTER, **ARM_PLAN, **S1E}, **andra)
         self.assertLess(mat(vy="dtl", **andra)["matt"]["handbana"], 0)       # innanför
 
     def test_tecknen(self) -> None:
@@ -132,8 +137,10 @@ class Granserna(unittest.TestCase):
     def test_kort_baksving_ger_ingen_start_och_inget_tempo(self) -> None:
         r = mat(vy="dtl", start=1.95)
         self.assertIsNone(r["faser"]["start"])
-        for k in ("tempo", "baksving_s", "nedsving_s"):
+        for k in ("tempo", "baksving_s"):
             self.assertNotIn(k, r["matt"])
+        # Nedsvingens tid kräver ingen start: toppen till klicket (METOD M5).
+        self.assertAlmostEqual(r["matt"]["nedsving_s"], r["faser"]["traff"] - r["faser"]["topp"], delta=1e-12)
         self.assertAlmostEqual(r["matt"]["backen_thrust_topp"], -2.0, delta=FACIT)  # adressen från toppen − 1,2 s
 
     def test_armbagen_mats_mot_den_egna_handleden(self) -> None:
@@ -182,6 +189,54 @@ class TillaggenBakifran(unittest.TestCase):
     def test_vansterspelaren_ger_samma_tal(self) -> None:
         h, v = mat(vy="dtl", seed=5, **AXLAR), mat(vy="dtl", seed=5, hand="vanster", **AXLAR)
         for k in ("hand_djup_topp", "framre_arm_plan_topp"):
+            self.assertAlmostEqual(h["matt"][k], v["matt"][k], delta=1e-6)
+
+
+class TillaggenUrResearch5(unittest.TestCase):
+    """PLAN S1e: recentreringen och skiftet (FO), bäckenets lägsta punkt och lyftet in i
+    träffen (båda vyerna). METOD M41–M43"""
+
+    def test_mot_figuren(self) -> None:
+        for vy, andra in (("fo", {"sway_ut": -3.0, "lyft_ned": -4.0, "seed": 3}), ("dtl", {"lyft_ned": -3.0})):
+            r = mat(vy=vy, **andra)
+            _, f = sving(vy=vy, **andra)
+            for k in ("backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff"):
+                if k in f:
+                    with self.subTest(vy=vy, matt=k):
+                        self.assertAlmostEqual(r["matt"][k], f[k], delta=S1E.get(k, FACIT))
+            self.assertLess(r["matt"]["backen_lyft_min"], 0)                     # under adressen
+            # Lyftet in i träffen är träffens lyft minus den lägsta punkten.
+            self.assertAlmostEqual(r["matt"]["backen_lyft_in_traff"],
+                                   r["matt"]["backen_lyft_traff"] - r["matt"]["backen_lyft_min"], delta=1e-9)
+        self.assertNotIn("backen_recentrering", mat(vy="dtl")["matt"])            # bara FO
+
+    def test_recentreringen(self) -> None:
+        _, f = sving(vy="fo", sway_ut=-3.0)
+        self.assertGreater(f["backen_recentrering"], 1.0)                           # glider bort, sedan tillbaka
+        self.assertAlmostEqual(mat(vy="fo")["matt"]["backen_recentrering"], 0.0, delta=FACIT)   # ingen glidning
+        self.assertAlmostEqual(mat(vy="fo", sway=(0, 2, 8, 14))["matt"]["backen_recentrering"], 2.0, delta=FACIT)
+
+    def test_skiftet(self) -> None:
+        # Redan framför adressläget vid toppen: 0 ms.
+        self.assertEqual(mat(vy="fo", sway=(0, 2, 8, 14))["matt"]["backen_skifte_ms"], 0.0)
+        # Aldrig tillbaka före träffen: saknas.
+        self.assertNotIn("backen_skifte_ms", mat(vy="fo", sway=(0, -6, -1, 14))["matt"])
+        tidigt = mat(vy="fo", sway=(0, -2, 8, 14))["matt"]["backen_skifte_ms"]
+        sent = mat(vy="fo", sway=(0, -10, 8, 14))["matt"]["backen_skifte_ms"]
+        self.assertLess(tidigt, sent)
+
+    def test_lucka_ger_inget_tal(self) -> None:
+        """En rå lucka längre än MAX_LUCKA_S i fönstret: ytterläget kan ligga i luckan."""
+        r = mat(vy="fo", sway_ut=-3.0, dolj=[["hoft_v", 1.70, 1.85]])
+        self.assertNotIn("backen_recentrering", r["matt"])
+        self.assertIn("backen_lyft_min", r["matt"])                                 # nedsvingen är hel
+        r = mat(vy="dtl", dolj=[["hoft_v", 2.30, 2.45]])
+        self.assertNotIn("backen_lyft_min", r["matt"])
+        self.assertNotIn("backen_lyft_in_traff", r["matt"])
+
+    def test_vansterspelaren_ger_samma_tal(self) -> None:
+        h, v = mat(vy="fo", seed=5, sway_ut=-3.0), mat(vy="fo", seed=5, hand="vanster", sway_ut=-3.0)
+        for k in ("backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff"):
             self.assertAlmostEqual(h["matt"][k], v["matt"][k], delta=1e-6)
 
 

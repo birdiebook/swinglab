@@ -314,14 +314,16 @@ final class MatningTests: XCTestCase {
         let m = ShotMeasuring.measure(Self.serie(sv), shot: Self.slag(), setup: Self.fo, height: 1.8)
         let p4 = Positionsmatt.rader(k, vy: .fo, position: "P4", varden: m.values, ovas: ["sway_topp"])
         // Felen först, sedan katalogens mått (S1b: knänas sway, bröstets och handens lyft, METOD M31–M34).
+        // S1e: recentreringen och höftlinjen vid toppen (METOD M41, M18).
         XCTAssertEqual(p4.map(\.matt), ["backen_sway_topp", "sidbojning_topp", "framre_armbage_topp",
                                         "framre_kna_sway_topp", "bakre_kna_sway_topp", "brost_lyft_topp",
-                                        "hand_lyft_topp", "huvud_lyft_topp"])
+                                        "hand_lyft_topp", "huvud_lyft_topp", "backen_recentrering",
+                                        "hoftlinje_lutning_topp"])
         XCTAssertTrue(p4.first { $0.matt == "bakre_kna_sway_topp" }!.ovas, "bakre knäets sway följer sway-felet")
         let sway = try XCTUnwrap(p4.first)
         XCTAssertEqual(sway.namn, "Hip sway")                  // granskningen: utan position (BESLUT B40)
         XCTAssertTrue(sway.ovas)
-        XCTAssertEqual(sway.markning, .b10)
+        XCTAssertNil(sway.markning)                            // kontrollerad gräns (BESLUT B45)
         XCTAssertEqual(sway.enhet, "cm")
         XCTAssertEqual(sway.varde, Tal.tecken(Avrundning.avrunda("backen_sway_topp", m.values["backen_sway_topp"]), decimaler: 1))
         XCTAssertNotNil(sway.spann, "katalogens gräns")

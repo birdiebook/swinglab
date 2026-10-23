@@ -153,7 +153,8 @@ extension SwingLabProvVyer {
         XCTAssertEqual(blad.namn, "Hip sway")
         XCTAssertEqual(idag.rader.first { $0.id == "sway_topp" }?.info?.namn, "Hip sway at top")
         XCTAssertEqual(blad.tecken, "+ toward target · − away")
-        XCTAssertTrue(blad.kalla.hasSuffix("not verified"), blad.kalla)
+        // Källan läst i original, gränsen härledd ur den (BESLUT B45).
+        XCTAssertEqual(blad.kalla, "Assumption from manufacturer (help.sportsbox.ai, golf.com)")
         XCTAssertNotNil(idag.rader.first?.info, "Today: ⓘ på raden")
         XCTAssertNotNil(u.matt.first?.info)
         try rendera(InfobladVy(blad: blad), namn: "infoblad", accent: false)

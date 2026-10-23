@@ -39,6 +39,12 @@ public struct Infoblad: Equatable, Sendable, Identifiable {
                   kalla: Texter.kallaMatt(oprovad: post.status == "oprovad"))
     }
 
+    /// Spridningen mellan slagen (METOD M44): egen baslinje, ett tal per pass.
+    public init(_ post: Katalog.Spridningspost, namn: String) {
+        self.init(namn: namn, vad: post.vad, varfor: post.varfor, tecken: post.tecken,
+                  kalla: Texter.kallaMatt(oprovad: false))
+    }
+
     /// Bladet för ett mått i en vy: felet som har måttet, annars posten i `matt`.
     public static func fran(_ k: Katalog, matt: String, vy: Vy?) -> Infoblad? {
         let namn = Etiketter.etikett(matt).namn

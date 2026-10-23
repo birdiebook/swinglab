@@ -94,6 +94,9 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   molnmiljön nekade källsidorna. En gräns i `katalog.json` får status och
   källa först när källan lästs i original.
 - **Kostnad:** katalogen börjar med egen baslinje för de flesta mått.
+- **Läget 2026-10-23:** research 5 läste källorna i original på hemdatorn
+  (`docs/research/5_matt_i_original.md`, 5a–5d). Katalogens `kontrollerad` följer
+  det, och gränserna som det gav står i B45.
 
 ## B11 — Inspelningen sker i appen
 *2026-10-22 · gäller*
@@ -735,3 +738,81 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **Omprövas:** när S3 mätt posemodellens brus på golf och ett riktigt DTL-pass
   prövats (`faser.start` och `start_osaker` i PC:ns `analys.json`), och om en
   waggle visar sig flytta adressens fönster.
+
+## B45 — Gränserna ur research 5: bara där källan mäter samma sak
+*2026-10-23 · gäller · ledarens beställning (S1e)*
+
+- **Regeln:** en gräns tas in bara när källan har samma definition, nollpunkt och
+  tecken som SwingLabs mått i 2D. Annars gäller egen baslinje (METOD M27), och skälet
+  står i METOD. En tour-gräns som beror på klubban gäller bara den klubba källan avser;
+  katalogen bär ingen klubba, så en sådan gräns blir egen baslinje med en notering.
+  Gränserna är **antaganden** byggda på källorna (`grans_harledd`), och `varfor` i
+  katalogen säger aldrig mer än källan (B41).
+- **Valt, per fel:**
+
+| Fel | Förut | Nu | Källa (läst i original) | Varför |
+|---|---|---|---|---|
+| `sway_topp` | grönt ≥ 0, gult −5…0 | grönt ≥ −2,5, gult −5…−2,5, rött under −5 cm | Sportsbox tour-ranges-for (tour P4 −1,5 cm med driver, 0,0 med järn), golf.com (låg handicap nära 0, hög "flera tum" bort) | Pelvis Sway = M15 (bäckenets mitt, 0 vid adressen, + mot målet). Tour med driver blev gult förut. Båda klubbornas tour-tal är gröna, så gränsen beror inte på klubban. |
+| `early_extension` | egen baslinje | grönt ≤ +4,3, gult +4,3…+8,4, rött över +8,4 cm | Sportsbox what-is-early-extension: ideal −2,3…+4,3 cm, tour +1,3 cm (SD 3,6) | Pelvis Thrust = M7 (0 vid adressen, + mot bollen, bakifrån). Rött över tour-medel + 2 SD. Klubban anges inte i källan. |
+| `sway_gap` | egen baslinje, ingen riktning | egen baslinje, `samre: "-"` | Sportsbox what-is-sway-gap och tabellen: tour vid träff +13,2 cm (driver), +8,9 cm (järn) i M19:s form | Definitionen är löst (M19). + = bröstet bakom = tour-hållet. Tour-talet skiljer 4–6 cm mellan klubborna. |
+| `tappad_hallning` | egen baslinje | oförändrad, referensen ny | Sportsbox Chest Bend (tour-tapp +4°/+1°), Yamamoto 2023 | Bröstkorgen i 3D, inte linjen i bild, och tappet är mindre än felet i 2D (≈ 5°). Vikten läggs på spridningen (B46, METOD M44). |
+| `axellutning` | avstängd, referens GolfTEC 39° | avstängd, referens 22–25° med järn | Sportsbox Chest Side Bend 22° (järn), Meister S-faktor 25 ± 3° (järn 5) | Samma nollpunkt och tecken som M17 men 3D; S0 avgör definitionen. |
+| `tempo` | grönt 2,5–3,1 | oförändrat, nedsvingens tid visas | Blast (2,5–3,1), Grober 2006 (amatörer har också medel 3,0) | Kvoten skiljer inte nivåer; `nedsving_s` står i katalogens `matt` vid P7 och tempokortet visar sekunderna. Blast definierar inte toppen. |
+
+- **Bortvalt:**
+  - TPI:s exempel för early extension (> 7,6 cm som rött): varken mätsystem eller punkt
+    anges, så definitionen går inte att stämma av.
+  - En tour-gräns för sway gap per klubba (driver +13, järn +9 cm): katalogen bär ingen
+    klubba, och att föra in den (`klubbor` per gräns, passets klubba i bedömningen i
+    Python och Swift, en tabell från uppställningens id till driver/järn) är mer än en
+    enkel ändring. Egen baslinje med samma klubba gäller.
+  - En gräns för tappet (+1…+4°): mindre än felet i 2D.
+  - GolfTEC:s hip sway vid toppen (3,9 tum mot målet) och shoulder tilt (39°): mäts på
+    svanskotan respektive mot en oklar referens, inte som M15 och M17.
+  - En gräns för bröstets bakåtlutning i finishen (GolfTEC tour 32°, 31+ 3,2°): en
+    sensor i 3D, inte linjen i bild (METOD M14).
+  - Recentreringens "under 1 tum" (Sportsbox) som gräns: en indikator utan tal per nivå
+    (METOD M41).
+- **Antagandena under gränserna:**
+  - `sway_topp`: "samma definition" gäller måttet, inte positionen. Sportsbox TOP är
+    klubbans vändning, vår topp händernas högsta punkt (≈ 9 ms tidig, METOD M4), och
+    bäckenet rör sig redan mot målet där: vårt tal blir systematiskt mer negativt, i
+    storleksordningen 1 cm per 20 ms. Gränsen behålls och prövas på ett riktigt FO-pass.
+  - `early_extension`: bakifrån ser kameran bäckenet snett när det vrider sig, och
+    höftmitten kan flytta sig 1–2 cm skenbart "mot bollen" (METOD M7). Gränsen behålls
+    och prövas på riktiga DTL-pass.
+- **En övning som pågår när gränsen ändras:** "klart när" och märkningen är låsta från
+  valet (METOD MT5), medan sakens `spann` följer katalogen. Är felet inte längre flaggat
+  i det senaste passet efter valet räknas övningen som klar (`lage: "klart"`,
+  `klart_skal: "inte_flaggat"`, `tools/pc/historik.py`), och skillen rapporterar den
+  som klar, inte tyst borttagen. Det gäller swayen och early extension, vars gränser
+  flyttades. Är felet fortfarande flaggat fortsätter övningen med sitt gamla "klart när".
+- **Följd:** alla källor i katalogen är lästa i original utom flying elbows
+  (`kontrollerad: true` för elva av tolv fel), och märkningen B10 försvinner från de
+  tre gränserna (`sway_topp`, `tempo`, `early_extension`); `att_jobba_pa.json` får
+  `markning: null` för dem.
+- **Omprövas:** när klubban förs in i katalogen (sway gap per klubba), när S0 har
+  avgjort axellinjen, och när riktiga pass visar var Johannes ligger mot gränserna.
+
+## B46 — Spridningen mellan slagen som eget tal, med felens kort och diagram
+*2026-10-23 · gäller · ledarens beställning (S1e)*
+
+- **Valt:** ett tal per pass och mått: den robusta sd:n ur passets svingar (METOD M44),
+  först bröstets böjning bakifrån i adressen och vid träffen, och inget tal under 8
+  slag (IQR/1,349 är 0,63σ vid tre slag och 0,84σ vid åtta; Severin 2021: 8 räcker). På
+  PC:n räknas den per klubba när serierna har olika klubbor. Måtten står i en egen
+  lista `spridning` i `katalog.json` (docs/FORMAT.md) med infobladets tre fält. Passet
+  visar ett kort per mått ("Spine angle spread") efter felen, och Progress ett mått
+  över passen, med **samma kort, spann och diagram** som felen: förra passets spridning
+  som streck och de tidigare passens som egen baslinje. Ingen ny visningstyp, svartvitt
+  (B13), utan accent (B31). Simulatorprovet ritar Progress med spridningen vald
+  (`utveckling-spridning`), och passets bild har korten. PC:n skriver talen i
+  `analys.json`.
+- **Varför:** Yamamoto 2023 (läst i original): spridningen i framåtlutningen hängde ihop
+  med score (r = 0,80), medelvinkeln inte. Det är det enda markörlösa 2D-fyndet med utfall.
+- **Bortvalt:** sd med n − 1 (en felmärkt sving drar den långt); att räkna från tre slag
+  som M25 (talet blir en tredjedel för lågt); spridningen som fel med
+  gräns (ingen norm); en egen vy med slagen som prickar (kortet och diagrammet räcker);
+  spridningen på Today (Today visar felen).
+- **Omprövas:** när fler mått ska få sin spridning (en rad i listan), eller när riktiga
+  pass visar att spridningen behöver en egen gräns.

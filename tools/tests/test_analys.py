@@ -130,6 +130,38 @@ class TempotMedTvaTelefoner(unittest.TestCase):
         self.assertEqual(s["fo"]["tempo"]["n"], 5)
 
 
+class SpridningenOchSkiftet(unittest.TestCase):
+    """METOD M44: spridningen per klubba; M42: de censurerade skiftena räknas."""
+
+    def analys(self, klubbor: dict[str, str], sway_topp: float = -6.0) -> dict:
+        import tempfile
+        from pathlib import Path
+
+        from pc import generera_paket as GP
+        from pc import paket as P
+        with tempfile.TemporaryDirectory() as tmp:
+            pk = [P.las(GP.paket(Path(tmp), "20261103-180000", vy, n=8, klubba=k, sway_topp=sway_topp))
+                  for vy, k in klubbor.items()]
+            return A.analysera(pk, 1.80, [], skapad="")
+
+    def test_en_klubba(self) -> None:
+        a = self.analys({"fo": "j7", "dtl": "j7"})
+        s = {(e["klubba"], e["matt"]): e for e in a["spridning"]}
+        self.assertEqual(len(s), 2)
+        e = s[(a["slag"][0]["klubba"], "brost_bojning_traff")]
+        self.assertEqual(e["n"], 8)
+        self.assertIsNotNone(e["varde"])
+        self.assertEqual(a["skifte_ej_tillbaka"]["fo_matta"], 8)
+
+    def test_olika_klubbor_blandas_inte(self) -> None:
+        a = self.analys({"fo": "j7", "dtl": "dr"})
+        klubbor = {e["klubba"] for e in a["spridning"]}
+        self.assertEqual(len(klubbor), 2)
+        for e in a["spridning"]:
+            # DTL-måtten finns bara med DTL-paketets klubba.
+            self.assertEqual(e["n"] > 0, e["klubba"] == next(r["klubba"] for r in a["slag"] if r["vy"] == "dtl"))
+
+
 class Renheten(unittest.TestCase):
     def test_nan_blir_null(self) -> None:
         self.assertEqual(json.dumps(A.ren({"a": [math.nan, 1.0], "b": math.inf})), '{"a": [null, 1.0], "b": null}')

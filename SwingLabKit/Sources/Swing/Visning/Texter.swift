@@ -42,7 +42,7 @@ public enum Texter {
             "genomsving_s": "Follow-through time",
             // Övriga efter samma princip (BESLUT B40).
             "framre_armbage_topp": "Lead elbow bend", "framre_armbage_p3": "Lead elbow bend",
-            "brost_bojning_adress": "Spine angle",
+            "brost_bojning_adress": "Spine angle", "brost_bojning_traff": "Spine angle",
             "bakre_kna_adress": "Trail knee flex",
             "stans_bredd": "Stance width",
             "axellinje_lutning_adress": "Shoulder tilt", "axellinje_lutning_traff": "Shoulder tilt",
@@ -57,6 +57,14 @@ public enum Texter {
             // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
             "hand_djup_topp": "Hand depth",
             "framre_arm_plan_topp": "Lead arm to shoulder plane",
+            // Tilläggen ur research 5 (PLAN S1e, METOD M41–M43, M5, M14, M18).
+            "backen_recentrering": "Hip recentering",
+            "backen_skifte_ms": "Hip shift timing",
+            "backen_lyft_min": "Hip low point",
+            "backen_lyft_in_traff": "Hip rise into impact",
+            "sidbojning_finish": "Spine tilt",
+            "nedsving_s": "Downswing time",
+            "hoftlinje_lutning_topp": "Hip tilt", "hoftlinje_lutning_traff": "Hip tilt",
             // Huvudet bakifrån och framifrån (METOD M8, M9), i granskningen sedan 2026-10-23.
             "huvud_mot_bollen_topp": "Head toward ball", "huvud_mot_bollen_traff": "Head toward ball",
             "huvud_lyft_topp": "Head height", "huvud_lyft_traff": "Head height",
@@ -69,6 +77,9 @@ public enum Texter {
         }
         return n
     }()
+
+    /// Spridningen mellan slagen (METOD M44): "Spine angle spread".
+    public static func spridningsnamn(_ namn: String) -> String { "\(namn) spread" }
 
     /// Felets namn på Today och i passet: med positionen när måttet tas i en punkt i
     /// svingen ("Hip sway at top"), annars bara namnet (BESLUT B40).
@@ -92,6 +103,8 @@ public enum Texter {
     public static let startTopImpact = "start–top–impact"
     public static let impactToFinish = "impact–finish"
     public static let beforeImpact = "before impact"
+    /// Skiftets tid räknas från toppen (METOD M42).
+    public static let afterTop = "after top"
 
     /// Tempots vy: det kommer ur ljudet (klicket), inte ur en kamera.
     public static let ljud = "Audio"

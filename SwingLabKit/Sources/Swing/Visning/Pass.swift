@@ -54,6 +54,13 @@ public struct Pass: Sendable {
         Session.sammanfatta(serie1Grupp(grupp).map { $0.matt })[matt]?.median
     }
 
+    /// Passets spridning mellan slagen för ett mått i en grupp: den robusta sd:n
+    /// (q3 − q1)/1,349, nil under `Spridning.minSlag` svingar. METOD M44
+    public func spridning(_ matt: String, _ grupp: String) -> Double? {
+        guard varden(matt, grupp).count >= Spridning.minSlag else { return nil }
+        return sammanfattning(matt, grupp).map(Session.robustSD)
+    }
+
     /// Värdena för ett mått i passet, i passets ordning.
     public func varden(_ matt: String, _ grupp: String) -> [Double] {
         self.grupp(grupp).compactMap { $0.matt[matt] }.filter { $0.isFinite }

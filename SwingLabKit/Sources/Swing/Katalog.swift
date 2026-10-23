@@ -11,6 +11,40 @@ public struct Katalog: Decodable, Sendable {
     public let fel: [Fel]
     /// Måtten som granskningen visar vid en position utan att de är fel (BESLUT B32).
     public let matt: [Mattpost]
+    /// Måtten vars spridning mellan slagen passet och Progress visar, ett tal per pass
+    /// (METOD M44, BESLUT B46).
+    public let spridning: [Spridningspost]
+
+    /// Ett mått vars spridning mellan passets slag visas: måttet, vyn och infobladet. METOD M44
+    public struct Spridningspost: Decodable, Sendable {
+        public let matt: String
+        /// "dtl" eller "fo".
+        public let vy: String
+        public let vad: String
+        public let varfor: String
+        public let tecken: String
+        /// Fält utöver de fem; kontrollen fäller dem, som Python.
+        let andraFalt: [String]
+
+        enum CodingKeys: String, CodingKey, CaseIterable {
+            case matt, vy, vad, varfor, tecken
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            matt = try c.decode(String.self, forKey: .matt)
+            vy = try c.decode(String.self, forKey: .vy)
+            vad = try c.decode(String.self, forKey: .vad)
+            varfor = try c.decode(String.self, forKey: .varfor)
+            tecken = try c.decode(String.self, forKey: .tecken)
+            let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
+            andraFalt = try decoder.container(keyedBy: Mattpost.Nyckel.self).allKeys.map { $0.stringValue }
+                .filter { !kanda.contains($0) }
+        }
+
+        /// Kortets och Progress-måttets id: skilt från felens.
+        public var id: String { "\(matt)_spridning" }
+    }
 
     /// Ett mått i granskningen: namnet, vyn och positionerna, och valfritt felet vars
     /// accent (BESLUT B31) måttet följer. METOD M29
@@ -208,6 +242,22 @@ public struct Katalog: Decodable, Sendable {
             visade.insert("\(e.vy)/\(e.matt)")
             if !positionernaOK(e.positioner, tom: false) { fel.append("\(namn): \(positionerFel)") }
         }
+        var spridda = Set<String>()
+        for e in k.spridning {
+            let namn = "spridning \(e.matt)"
+            if !e.andraFalt.isEmpty {
+                fel.append("\(namn): ska ha matt, vy, vad, varfor och tecken")
+                continue
+            }
+            fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
+            if let vy = Vy(rawValue: e.vy) {
+                if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
+            } else {
+                fel.append("\(namn): vy ska vara dtl eller fo")
+            }
+            if spridda.contains("\(e.vy)/\(e.matt)") { fel.append("\(namn): står två gånger") }
+            spridda.insert("\(e.vy)/\(e.matt)")
+        }
         return fel
     }
 
@@ -250,9 +300,34 @@ public struct Bedomning: Equatable, Sendable {
     public let z: Double?
 }
 
+/// Passets spridning mellan slagen för ett mått i katalogens `spridning`. METOD M44
+public struct Spridning: Equatable, Sendable {
+    public let matt: String
+    public let vy: String
+    /// Svingar med måttet i passet.
+    public let n: Int
+    /// Den robusta sd:n (q3 − q1)/1,349 (METOD M25, M26); nil under `minSlag` svingar.
+    public let varde: Double?
+
+    /// Slag för passets spridning: under dem är IQR/1,349 skev (0,63σ vid tre slag), 8
+    /// räcker (Severin 2021, som baslinjen i M27). METOD M44
+    public static let minSlag = 8
+
+    /// Passets spridning för katalogens mått, i katalogens ordning. Samma tal som
+    /// `spridning` i tools/pc/katalog.py. METOD M44
+    public static func pass(_ katalog: Katalog, _ svingar: [SvingMatt]) -> [Spridning] {
+        let sammanf = Session.sammanfattaSession(svingar)
+        return katalog.spridning.map { e in
+            let n = svingar.filter { $0.vy.rawValue == e.vy && ($0.matt[e.matt]?.isFinite ?? false) }.count
+            let s = sammanf[e.vy]?[e.matt]
+            return Spridning(matt: e.matt, vy: e.vy, n: n, varde: n >= minSlag ? s.map(Session.robustSD) : nil)
+        }
+    }
+}
+
 /// Bedömningen av ett pass mot katalogen. Samma regler som tools/pc/katalog.py. METOD M27
 public enum Bedomare {
-    /// Svingar i baslinjen (8 försök räcker, research 1 del 4). METOD M27
+    /// Svingar i baslinjen (8 slag räcker, Severin 2021). METOD M27
     public static let minBaslinje = 8
     /// Inom 1 robust sd från baslinjen = grönt. METOD M27
     public static let gronZ = 1.0

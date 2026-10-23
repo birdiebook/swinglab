@@ -7,6 +7,7 @@ import unittest
 from _hjalp import gen
 from pc import att_jobba_pa as AJ
 from pc import katalog as K
+from pc import session as S
 
 
 def _fel(id_: str) -> dict:
@@ -45,8 +46,8 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_sway_p3"], "sway_topp")
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
-        # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37).
-        self.assertEqual(len(k["matt"]), 41)
+        # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37) och ur research 5 (PLAN S1e).
+        self.assertEqual(len(k["matt"]), 52)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
         self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
@@ -57,6 +58,19 @@ class Formen(unittest.TestCase):
         self.assertEqual(matt[("dtl", "framre_arm_plan_topp")], ["P4"])
         self.assertIsNone(kopplat["hand_djup_topp"])
         self.assertIsNone(kopplat["framre_arm_plan_topp"])
+        # Tilläggen ur research 5 (PLAN S1e, METOD M41–M43, M5, M14, M18): utan fel.
+        self.assertEqual(matt[("fo", "backen_recentrering")], ["P4"])
+        self.assertEqual(matt[("fo", "backen_skifte_ms")], ["P5"])
+        for vy in ("dtl", "fo"):
+            self.assertEqual(matt[(vy, "backen_lyft_min")], ["P5"])
+            self.assertEqual(matt[(vy, "backen_lyft_in_traff")], ["P7"])
+            self.assertEqual(matt[(vy, "nedsving_s")], ["P7"])
+        self.assertEqual(matt[("fo", "sidbojning_finish")], ["P10"])
+        self.assertEqual(matt[("fo", "hoftlinje_lutning_topp")], ["P4"])
+        self.assertEqual(matt[("fo", "hoftlinje_lutning_traff")], ["P7"])
+        for m in ("backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff",
+                  "sidbojning_finish", "nedsving_s", "hoftlinje_lutning_topp", "hoftlinje_lutning_traff"):
+            self.assertIsNone(kopplat[m], m)
         # Farterna är oprövade på telefonen (METOD M35–M37, BESLUT B11), inget annat.
         oprovade = {m["matt"] for m in k["matt"] if m.get("status") == "oprovad"}
         self.assertEqual(oprovade, {"handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max",
@@ -70,11 +84,38 @@ class Formen(unittest.TestCase):
         alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
         self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
 
-    def test_ingen_grans_ar_kontrollerad_an(self) -> None:
-        """BESLUT B10: inget är läst i original ännu (2026-10-22)."""
-        for f in K.las()["fel"]:
-            self.assertFalse(f["kontrollerad"], f["id"])
-            self.assertTrue(f["kalla"].startswith("https://"), f["id"])
+    def test_kallorna_efter_research_5(self) -> None:
+        """BESLUT B10, B45: research 5 läste källorna i original 2026-10-23. Bara flying elbow
+        har kvar en källa som inte är läst; gränserna med källa är härledda ur Sportsbox."""
+        k = K.las()
+        for f in k["fel"]:
+            self.assertEqual(f["kontrollerad"], f["id"] != "flying_elbow", f["id"])
+            self.assertTrue(all(u.startswith("https://") for u in f["kalla"].split(" · ")), f["id"])
+        med_grans = {f["id"] for f in k["fel"] if f["gront"] is not None}
+        self.assertEqual(med_grans, {"sway_topp", "tempo", "early_extension"})
+        self.assertEqual({f["id"] for f in k["fel"] if f.get("grans_harledd")}, {"sway_topp", "early_extension"})
+        self.assertEqual(_fel("sway_gap")["samre"], "-")                     # + = bröstet bakom (M19)
+        self.assertIsNone(_fel("sway_gap")["gront"])                         # gränsen beror på klubban
+        self.assertIsNone(_fel("tappad_hallning")["gront"])
+
+    def test_spridningen(self) -> None:
+        """METOD M44, BESLUT B46: bröstets böjning i adressen och vid träffen, bakifrån."""
+        k = K.las()
+        self.assertEqual([(e["vy"], e["matt"]) for e in k["spridning"]],
+                         [("dtl", "brost_bojning_adress"), ("dtl", "brost_bojning_traff")])
+        nu = gen.session(21, 10, 9, utslag=True)
+        s = K.spridning(k, nu)
+        dtl = S.sammanfatta([x["matt"] for x in nu if x["vy"] == "dtl"])
+        for e in s:
+            self.assertAlmostEqual(e["varde"], S.robust_sd(dtl[e["matt"]]), delta=1e-12)
+            self.assertEqual(e["n"], 9)
+        sju = [x for x in nu if x["vy"] == "dtl"][:7]
+        self.assertEqual([(e["n"], e["varde"]) for e in K.spridning(k, sju)], [(7, None), (7, None)])   # under 8
+        ett = [x for x in nu if x["vy"] == "dtl"][:1]
+        self.assertEqual([e["n"] for e in K.spridning(k, ett)], [1, 1])               # det verkliga antalet
+        hand = [{"vy": "dtl", "matt": {"brost_bojning_traff": v}} for v in (30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0, 50.0)]
+        # q1 = 31,75, q3 = 35,25 (linjärt, M25): IQR 3,5.
+        self.assertAlmostEqual(K.spridning(k, hand)[1]["varde"], 3.5 / 1.349, delta=1e-12)
 
     def test_infobladet_finns_overallt(self) -> None:
         """BESLUT B41: varje fel och varje mått har vad, varfor och tecken, korta och
@@ -90,7 +131,11 @@ class Formen(unittest.TestCase):
             self.assertTrue(e["vad"].endswith(".") and e["varfor"].endswith("."), namn)
             for f in K.INFO:                                     # inga värdeord (BESLUT B13)
                 self.assertIsNone(AJ.vardeord(e[f]), f"{namn}.{f}")
-        self.assertEqual(len(k["fel"]) + len(k["matt"]), 53)
+        self.assertEqual(len(k["fel"]) + len(k["matt"]), 64)
+        for e in k["spridning"]:
+            for f in K.INFO:
+                self.assertTrue(e[f].strip() and len(e[f]) <= 120, e["matt"])
+                self.assertIsNone(AJ.vardeord(e[f]), e["matt"])
 
     def test_axellutningen_ar_avstangd_utan_grans(self) -> None:
         f = _fel("axellutning")
@@ -103,7 +148,7 @@ class Formen(unittest.TestCase):
         ('"vy": "bada"', '"vy": "sida"', "tempo: vy ska vara"),
         ('"status": "tillverkare"', '"status": "rykte"', "sway_topp: status ska vara"),
         ('"samre": "-"', '"samre": "x"', "sway_topp: samre ska vara"),
-        ('"gront": [0, null]', '"gront": null', "sway_topp: gult utan gront"),
+        ('"gront": [-2.5, null]', '"gront": null', "sway_topp: gult utan gront"),
         ('"id": "tempo"', '"id": "sway_topp"', "sway_topp: id finns två gånger"),
         ('"gront": [2.5, 3.1]', '"gront": [2.5]', "tempo: gront ska vara"),
         ('"positioner": ["P4"]', '"positioner": ["P2"]', "sway_topp: positioner ska vara"),
@@ -129,6 +174,13 @@ class Formen(unittest.TestCase):
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),
         ('"vad": "Backswing time', '"vadd": "Backswing time', "tempo: vad saknas"),
         ('"matt": [\n', '"mått": [\n', "katalogen: listan matt saknas"),
+        # Spridningen (METOD M44).
+        ('"spridning": [\n', '"spridningen": [\n', "katalogen: listan spridning saknas"),
+        ('{"matt": "brost_bojning_adress", "vy": "dtl", "vad": "The spread', '{"matt": "brost_bojning_adress", "vy": "fo", "vad": "The spread',
+         "spridning brost_bojning_adress: måttet finns inte i vyn"),
+        ('{"matt": "brost_bojning_traff", "vy": "dtl", "vad": "The spread', '{"matt": "brost_bojning_adress", "vy": "dtl", "vad": "The spread',
+         "spridning brost_bojning_adress: står två gånger"),
+        ('"tecken": "Degrees, robust', '"x": 1, "tecken": "Degrees, robust', "spridning brost_bojning_adress: ska ha matt"),
     ]
 
     def test_formfelen_hittas(self) -> None:
@@ -142,8 +194,16 @@ class Formen(unittest.TestCase):
 
 class Granserna(unittest.TestCase):
     def test_sway_vid_toppen(self) -> None:
+        """BESLUT B45: grönt från −2,5 cm (tour −1,5 med driver, 0,0 med järn)."""
         f = _fel("sway_topp")
-        for v, status in ((3.0, "gron"), (0.0, "gron"), (-0.1, "gul"), (-5.0, "gul"), (-5.01, "rod"), (-12.0, "rod")):
+        for v, status in ((3.0, "gron"), (0.0, "gron"), (-1.5, "gron"), (-2.5, "gron"), (-2.6, "gul"), (-5.0, "gul"),
+                          (-5.01, "rod"), (-12.0, "rod")):
+            self.assertEqual(K.bedom_varde(f, v, [])["status"], status, v)
+
+    def test_early_extension(self) -> None:
+        """BESLUT B45: grönt till Sportsbox ideal (+4,3 cm), rött över tour + 2 SD (8,4 cm)."""
+        f = _fel("early_extension")
+        for v, status in ((-6.0, "gron"), (1.3, "gron"), (4.3, "gron"), (4.4, "gul"), (8.4, "gul"), (8.5, "rod")):
             self.assertEqual(K.bedom_varde(f, v, [])["status"], status, v)
 
     def test_tempot_blir_aldrig_rott(self) -> None:
@@ -161,7 +221,7 @@ class Baslinjen(unittest.TestCase):
     BAS = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]      # median 4, q1 2, q3 6 → spridning 4/1,349
 
     def test_det_samre_hallet_raknas(self) -> None:
-        f = _fel("early_extension")                          # samre "+": mot bollen
+        f = _fel("tappad_hallning")                          # samre "+": bröstet reser sig
         spr = 4.0 / 1.349
         self.assertEqual(K.bedom_varde(f, 4.0 + 0.5 * spr, self.BAS)["status"], "gron")
         self.assertEqual(K.bedom_varde(f, 4.0 + 1.5 * spr, self.BAS)["status"], "gul")
@@ -171,12 +231,15 @@ class Baslinjen(unittest.TestCase):
         self.assertAlmostEqual(b["z"], -2.5)
 
     def test_utan_riktning_raknas_bada_hallen(self) -> None:
-        f = _fel("sway_gap")
+        f = dict(_fel("sway_gap"), samre=None)
         self.assertEqual(K.bedom_varde(f, 4.0 - 2.5 * 4.0 / 1.349, self.BAS)["status"], "rod")
+        self.assertEqual(K.bedom_varde(f, 4.0 + 2.5 * 4.0 / 1.349, self.BAS)["status"], "rod")
+        f = _fel("sway_gap")                                 # samre "-": bröstet mindre bakom är sämre
+        self.assertEqual(K.bedom_varde(f, 4.0 + 2.5 * 4.0 / 1.349, self.BAS)["status"], "gron")
 
     def test_for_kort_baslinje_ar_okand(self) -> None:
-        self.assertEqual(K.bedom_varde(_fel("early_extension"), 9.0, self.BAS[:7])["status"], "okand")
-        self.assertEqual(K.bedom_varde(_fel("early_extension"), 9.0, [1.0] * 9)["status"], "okand")
+        self.assertEqual(K.bedom_varde(_fel("tappad_hallning"), 9.0, self.BAS[:7])["status"], "okand")
+        self.assertEqual(K.bedom_varde(_fel("tappad_hallning"), 9.0, [1.0] * 9)["status"], "okand")
 
     def test_ett_pass_mot_tva_tidigare(self) -> None:
         nu = gen.session(21, 10, 9, utslag=True)
@@ -184,7 +247,8 @@ class Baslinjen(unittest.TestCase):
         b = {x["id"]: x for x in K.bedom(K.las(), nu, tidigare)}
         self.assertEqual(len(b), len(K.las()["fel"]))
         self.assertEqual(b["sway_topp"]["grund"], "grans")
-        self.assertEqual(b["early_extension"]["grund"], "baslinje")
+        self.assertEqual(b["early_extension"]["grund"], "grans")
+        self.assertEqual(b["tappad_hallning"]["grund"], "baslinje")
         self.assertEqual(b["axellutning"]["status"], "av")
         self.assertIn(b["tempo"]["status"], ("gron", "gul"))
 

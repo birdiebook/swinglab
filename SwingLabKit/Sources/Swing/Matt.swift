@@ -23,7 +23,9 @@ public struct SvingResultat: Sendable {
 /// Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6).
 /// Positionerna P1–P10 och måtten vid P3, P5 och P10 som inte är en fas: METOD M28, M29.
 /// Tilläggen mot Sportsbox i 2D (PLAN S1b): METOD M30–M37. Tilläggen bakifrån (PLAN S1c):
-/// händernas djup och främre armen mot axellinjen vid toppen, METOD M38–M39.
+/// händernas djup och främre armen mot axellinjen vid toppen, METOD M38–M39. Tilläggen ur
+/// research 5 (PLAN S1e): bäckenets recentrering och skiftets tidpunkt (FO), bäckenets lägsta
+/// punkt i nedsvingen och lyftet därifrån in i träffen (båda vyerna), METOD M41–M43.
 public enum Matt {
     // Drillis & Contini via Winter, andel av kroppslängden H. METOD M2
     public static let axelhojd = 0.818
@@ -59,6 +61,7 @@ public enum Matt {
             n += efter.map { "\(m)_\($0.rawValue)" }
         }
         return n + ["genomsving_s", "hand_djup_topp", "framre_arm_plan_topp"]
+            + ["backen_lyft_min", "backen_lyft_in_traff"]
     }()
 
     public static let namnFO: [String] = {
@@ -75,6 +78,7 @@ public enum Matt {
             n += efter.map { "\(m)_\($0.rawValue)" }
         }
         return n + ["genomsving_s", "handfart_max", "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max"]
+            + ["backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff"]
     }()
 
     public static func namn(_ vy: Vy) -> [String] { vy == .dtl ? namnDTL : namnFO }
@@ -109,6 +113,38 @@ public enum Matt {
     public static func linjensLutning(fram: Punkt, bak: Punkt) -> Double {
         let d = fram - bak
         return grader(atan2(-d.y, d.x))
+    }
+
+    /// Punktens koordinat (x eller y) minus `noll`, gånger `skala`, i fönstret a…b: värdet i
+    /// ögonblicket vid a och vid b (M3) och rutorna strikt mellan dem som har värde, i
+    /// tidsordning. nil när en ände saknas eller när två tider i följd ligger mer än
+    /// maxLuckaS isär: då kan ytterläget ligga i luckan. Som `fonster` i tools/pc/matt.py.
+    /// METOD M41, METOD M42, METOD M43
+    static func fonster(_ t: [Double], _ p: [Punkt], y: Bool, noll: Double, skala: Double,
+                        _ a: Double, _ b: Double) -> (t: [Double], v: [Double])? {
+        let pa = Faser.vid(t, p, a), pb = Faser.vid(t, p, b)
+        guard pa.hel && pb.hel else { return nil }
+        var tt = [a], v = [y ? pa.y : pa.x]
+        for k in t.indices where p[k].hel && t[k] > a && t[k] < b {
+            tt.append(t[k])
+            v.append(y ? p[k].y : p[k].x)
+        }
+        tt.append(b)
+        v.append(y ? pb.y : pb.x)
+        for i in 1..<tt.count where tt[i] - tt[i - 1] > Faser.maxLuckaS {
+            return nil
+        }
+        return (tt, v.map { ($0 - noll) * skala })
+    }
+
+    /// Första tiden då v når 0 underifrån, linjärt mellan två värden i följd; tt[0] när v
+    /// redan är ≥ 0 där, nil när v aldrig når 0. METOD M42
+    static func forstaFramat(_ tt: [Double], _ v: [Double]) -> Double? {
+        if v[0] >= 0 { return tt[0] }
+        for i in 1..<v.count where v[i] >= 0 {
+            return tt[i - 1] + (0.0 - v[i - 1]) / (v[i] - v[i - 1]) * (tt[i] - tt[i - 1])
+        }
+        return nil
     }
 
     /// Händernas X första gången de passerar höjden `niva` mellan a och b,
@@ -277,16 +313,36 @@ public enum Matt {
             m["brost_lyft_\(fz.rawValue)"] = flyttUpp(C, fz)
             m["hand_lyft_\(fz.rawValue)"] = flyttUpp(G, fz)
         }
+        // Bäckenets lägsta punkt mellan toppen och träffen, från adressen, och lyftet därifrån
+        // in i träffen. METOD M43
+        if let ned = fonster(t, P, y: true, noll: L(P, .adress).y, skala: -cm, f.topp, f.traff),
+           let lagst = ned.v.min() {
+            m["backen_lyft_min"] = lagst
+            m["backen_lyft_in_traff"] = ned.v[ned.v.count - 1] - lagst
+        }
+        if s.vy == .fo {
+            let x0 = L(P, .adress).x
+            // Recentreringen: bäckenets sway vid toppen minus dess minsta i baksvingen. METOD M41
+            if let bak = fonster(t, P, y: false, noll: x0, skala: cm, f.adressTill, f.topp), let lagst = bak.v.min() {
+                m["backen_recentrering"] = bak.v[bak.v.count - 1] - lagst
+            }
+            // Skiftet: tiden från toppen tills höftmitten är tillbaka i adressläget. METOD M42
+            if let fram = fonster(t, P, y: false, noll: x0, skala: cm, f.topp, f.traff),
+               let tc = forstaFramat(fram.t, fram.v) {
+                m["backen_skifte_ms"] = (tc - f.topp) * 1000.0
+            }
+        }
+
         let efterTraff = Farter.rutnat(f.traff + Farter.stegS, f.traff + Faser.finish.fran)   // METOD M36
         if let tf = Farter.finishTid(efterTraff, Farter.handensFart(t, fram: s.led(.handledF), bak: s.led(.handledB),
                                                                     efterTraff, bada: false)) {
             m["genomsving_s"] = tf - f.traff
         }
 
+        m["nedsving_s"] = f.traff - f.topp                                          // METOD M5: utan starten
         if let start = f.start, !f.startOsaker {                                    // METOD M5, METOD M40
             let bak = f.topp - start, ned = f.traff - f.topp
             m["baksving_s"] = bak
-            m["nedsving_s"] = ned
             if ned > 0 {
                 m["tempo"] = bak / ned
             }

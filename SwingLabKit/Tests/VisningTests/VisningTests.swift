@@ -80,14 +80,14 @@ final class VisningTests: XCTestCase {
     func testUpplasningen() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
         let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
-        XCTAssertEqual(sway.upplasning, "Hip sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, limit not read in original")
+        XCTAssertEqual(sway.upplasning, "Hip sway −3.0 cm, target from −2.5 cm, last −3.6 cm, +0.6 cm vs Jan 6")
         let tempo = try XCTUnwrap(v.kort.first { $0.id == "tempo" })
         XCTAssertTrue(tempo.upplasning.hasPrefix("Swing tempo 2.90, target 2.5 to 3.1"), tempo.upplasning)
         let tapp = try XCTUnwrap(v.kort.first { $0.id == "tappad_hallning" })
         XCTAssertTrue(tapp.upplasning.contains("own baseline"), tapp.upplasning)
         XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt, off")
         let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
-        XCTAssertEqual(j.saker[0].upplasning, "Hip sway −2.4 cm, target from 0 cm, limit not read in original, FO · top · week 5")
+        XCTAssertEqual(j.saker[0].upplasning, "Hip sway −3.0 cm, target from −2.5 cm, FO · top · week 5")
         XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Hip shift to target, Spine angle loss +2.0°")
     }
 
@@ -128,14 +128,17 @@ final class VisningTests: XCTestCase {
         let v = Passvisning(katalog: k, pass: Demo.pass)
         let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" }?.info)
         XCTAssertEqual(sway.namn, "Hip sway")
-        XCTAssertEqual(sway.kalla, "Assumption from manufacturer (golf.com, golftec.co.za), not verified")
-        XCTAssertEqual(v.kort.first { $0.id == "tempo" }?.info?.kalla, "Manufacturer (blastmotion.com), not verified")
-        XCTAssertEqual(v.kort.first { $0.id == "early_extension" }?.info?.kalla, "Assumption, own baseline")
+        XCTAssertEqual(sway.kalla, "Assumption from manufacturer (help.sportsbox.ai, golf.com)")
+        XCTAssertEqual(v.kort.first { $0.id == "tempo" }?.info?.kalla, "Manufacturer (blastmotion.com)")
+        XCTAssertEqual(v.kort.first { $0.id == "early_extension" }?.info?.kalla,
+                       "Assumption from manufacturer (help.sportsbox.ai)")          // BESLUT B45
+        XCTAssertEqual(v.kort.first { $0.id == "tappad_hallning" }?.info?.kalla, "Assumption, own baseline")
+        XCTAssertEqual(v.kort.first { $0.id == "flying_elbow" }?.info?.kalla, "Assumption, own baseline")
         XCTAssertTrue(v.kort.allSatisfy { $0.info != nil })
         let fart = try XCTUnwrap(Infoblad.fran(k, matt: "handfart_max", vy: .fo))
         XCTAssertEqual(fart.kalla, "Assumption, own baseline, untested on the phone")
         XCTAssertEqual(sway.upplasning, "Hip sway. \(sway.vad) \(sway.varfor) + toward target · − away. "
-                       + "Source: Assumption from manufacturer (golf.com, golftec.co.za), not verified")
+                       + "Source: Assumption from manufacturer (help.sportsbox.ai, golf.com)")
         let genom = try XCTUnwrap(Infoblad.fran(k, matt: "genomsving_s", vy: .dtl))
         XCTAssertEqual(genom.kalla, "Assumption, own baseline, untested on the phone")
         XCTAssertEqual(Infoblad.fran(k, matt: "huvud_mot_bollen_topp", vy: .dtl)?.namn, "Head toward ball")
@@ -156,7 +159,7 @@ final class VisningTests: XCTestCase {
         let osaker = Pass(datum: Tal.dag(2027, 1, 12), klubba: "7i", svingar: svingar, osakerStart: 5)
         let kort = try XCTUnwrap(Passvisning(katalog: k, pass: [osaker]).kort.first { $0.id == "tempo" })
         XCTAssertEqual(kort.varde, "—")
-        XCTAssertEqual(kort.info?.kalla, "Manufacturer (blastmotion.com), not verified, \(Texter.startOsakerKalla)")
+        XCTAssertEqual(kort.info?.kalla, "Manufacturer (blastmotion.com), \(Texter.startOsakerKalla)")
         XCTAssertEqual(kort.upplasning, "\(kort.namn), not measured, \(kort.markning!.upplasning)")
         let idag = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: [osaker], attJobbaPa: nil)
         let rad = try XCTUnwrap(idag.rader.first { $0.id == "tempo" })
@@ -168,7 +171,52 @@ final class VisningTests: XCTestCase {
         XCTAssertNil(Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: [saker], attJobbaPa: nil)
             .rader.first { $0.id == "tempo" })
         XCTAssertEqual(Passvisning(katalog: k, pass: [saker]).kort.first { $0.id == "tempo" }?.info?.kalla,
-                       "Manufacturer (blastmotion.com), not verified")
+                       "Manufacturer (blastmotion.com)")                    // läst i original (BESLUT B45)
+    }
+
+    /// Spridningen mellan slagen (METOD M44, BESLUT B46): ett kort i passet och ett mått i
+    /// Progress, i samma vyer som felen, och inte på Today.
+    func testSpridningen() throws {
+        let k = try katalog()
+        let v = Passvisning(katalog: k, pass: Demo.pass)
+        let kort = try XCTUnwrap(v.kort.first { $0.id == "brost_bojning_traff_spridning" })
+        XCTAssertEqual(kort.namn, "Spine angle spread")
+        XCTAssertEqual(kort.rubrik, "DTL · impact")
+        XCTAssertEqual(kort.enhet, "°")
+        XCTAssertEqual(kort.markning, .egen)
+        XCTAssertEqual(kort.vy, .dtl)
+        XCTAssertNil(kort.geometri)
+        let nu = try XCTUnwrap(Demo.pass.last?.spridning("brost_bojning_traff", "dtl"))
+        let s = try XCTUnwrap(Demo.pass.last?.sammanfattning("brost_bojning_traff", "dtl"))
+        XCTAssertEqual(nu, (s.q3 - s.q1) / 1.349, accuracy: 1e-12)
+        XCTAssertEqual(kort.varde, Tal.tal(Avrundning.avrunda("brost_bojning_traff", nu), decimaler: 1))
+        guard case .baslinje? = kort.spann?.zon else { return XCTFail("spridningen utan egen baslinje") }
+        XCTAssertNil(kort.spann?.spridning)
+        XCTAssertNotNil(kort.skillnad)
+        XCTAssertEqual(kort.info?.namn, "Spine angle spread")
+        XCTAssertEqual(kort.info?.kalla, "Assumption, own baseline")
+        XCTAssertNotNil(v.kort.first { $0.id == "brost_bojning_adress_spridning" })
+        XCTAssertFalse(v.filtrerat(.fo).contains { $0.id == kort.id })
+        XCTAssertEqual(v.kort.last?.id, "axellutning")                     // det avstängda sist
+        let i = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: Demo.pass, attJobbaPa: nil)
+        XCTAssertFalse(i.rader.contains { $0.id.hasSuffix("_spridning") })
+        let u = Utvecklingsvisning(katalog: k, pass: Demo.pass, block: Demo.block)
+        let p = try XCTUnwrap(u.matt.first { $0.id == "brost_bojning_traff_spridning" })
+        XCTAssertEqual(p.punkter.count, 16)
+        XCTAssertFalse(p.harSerie1)
+        XCTAssertTrue(p.punkter.allSatisfy { $0.q1 == nil && $0.q3 == nil })
+        XCTAssertEqual(p.punkter.last!.pass, nu, accuracy: 1e-12)
+        XCTAssertEqual(p.rubrik, "DTL · impact")
+        XCTAssertEqual(p.namn, "Spine angle spread at impact")              // chipet skiljer P1 och P7
+        XCTAssertEqual(u.matt.first { $0.id == "brost_bojning_adress_spridning" }?.namn, "Spine angle spread at address")
+        XCTAssertEqual(p.manader.map { $0.text }, ["Oct", "Nov", "Dec", "Jan"])
+        guard case .baslinje? = p.band else { return XCTFail("spridningen utan egen baslinje i Progress") }
+        // Felen först, spridningen efter.
+        XCTAssertEqual(u.matt.suffix(2).map(\.id), ["brost_bojning_adress_spridning", "brost_bojning_traff_spridning"])
+        // Under åtta svingar: inget tal (METOD M44).
+        let tva = Pass(datum: Tal.dag(2027, 1, 10), klubba: "7i",
+                       svingar: [30.0, 31, 32, 33, 34, 35, 36].map { SvingMatt(vy: .dtl, matt: ["brost_bojning_traff": $0]) })
+        XCTAssertEqual(Mattkort.kort(k.spridning[1], nu: tva, tidigare: Demo.pass).varde, "—")
     }
 
     func testAccentenBaraForDetSomOvas() throws {
@@ -252,7 +300,7 @@ final class VisningTests: XCTestCase {
         XCTAssertThrowsError(try AttJobbaPa.las(json: "{")) { e in
             XCTAssertTrue(["att_jobba_pa: not valid JSON", "att_jobba_pa: file: invalid"].contains("\(e)"), "\(e)")
         }
-        let utan = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""markning": "B10","#, with: "")
+        let utan = AttJobbaPaFixtur.exempel.replacingOccurrences(of: #""markning": null,"#, with: "")
         XCTAssertThrowsError(try AttJobbaPa.las(json: utan)) { e in
             XCTAssertTrue("\(e)".hasSuffix("markning is missing"), "\(e)")
         }
@@ -299,7 +347,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(p.count, 16)
         let nu = p.last!
         XCTAssertEqual(nu.slag, 34)
-        XCTAssertEqual(nu.median("backen_sway_topp", "fo")!, -2.4, accuracy: 1e-6)
+        XCTAssertEqual(nu.median("backen_sway_topp", "fo")!, -3.0, accuracy: 1e-6)
         XCTAssertEqual(nu.serie1Median("backen_sway_topp", "fo")!, -4.0, accuracy: 1e-6)
         XCTAssertEqual(nu.median("backen_thrust_traff", "dtl")!, 2.6, accuracy: 1e-6)
         XCTAssertEqual(nu.median("tempo", "alla")!, 2.9, accuracy: 1e-6)
@@ -317,10 +365,10 @@ final class VisningTests: XCTestCase {
         let sway = try XCTUnwrap(k["sway_topp"])
         XCTAssertEqual(sway.namn, "Hip sway")             // kortets rubrik bär positionen (BESLUT B40)
         XCTAssertEqual(sway.rubrik, "FO · top · + to target")
-        XCTAssertEqual(sway.varde, "−2.4")
+        XCTAssertEqual(sway.varde, "−3.0")
         XCTAssertEqual(sway.enhet, "cm")
-        XCTAssertEqual(sway.skillnad, "+1.2 cm vs Jan 6")
-        XCTAssertEqual(sway.markning, .b10)
+        XCTAssertEqual(sway.skillnad, "+0.6 cm vs Jan 6")
+        XCTAssertNil(sway.markning)                       // kontrollerad gräns (BESLUT B45)
         XCTAssertEqual(sway.spann?.forra ?? 0, -3.6, accuracy: 1e-6)
 
         let tempo = try XCTUnwrap(k["tempo"])
@@ -371,11 +419,11 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(s.fel, "sway_topp")
         XCTAssertEqual(s.matt, "backen_sway_topp")
         XCTAssertEqual(s.nu, -5.7)
-        XCTAssertEqual(s.markning, "B10")
+        XCTAssertNil(s.markning)                               // kontrollerad gräns (BESLUT B45)
         XCTAssertEqual(s.ovning.tanke, "Leave the stick standing.")
         XCTAssertEqual(s.ovning.steg, "langsamt_med_foremal")
         XCTAssertEqual(s.klartNar.villkor, .minst)
-        XCTAssertEqual(s.klartNar.lo, 0)
+        XCTAssertEqual(s.klartNar.lo, -2.5)
         XCTAssertEqual(s.klartNar.passIRad, 2)
         XCTAssertEqual(s.foljdfel.map { $0.fel }, ["reverse_spine", "early_extension", "backens_resa_framat",
                                                    "tappad_hallning", "sway_gap"])
@@ -400,7 +448,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(sv.foljd.map { $0.varde }, ["+4.0", "+3.3", "13.8", "+5.9", "+16.5"])   // filens tal, inte avrundade om
         XCTAssertEqual(sv.steg.map { $0.namn }, ["Slow", "Half speed", "Full speed", "Varied"])
         XCTAssertEqual(sv.steg[0].lage, .nu)
-        XCTAssertEqual(sv.villkor, "First set ≥ 0 cm")
+        XCTAssertEqual(sv.villkor, "First set ≥ −2.5 cm")
     }
 
     func testFixturenArS5s() throws {
@@ -413,7 +461,7 @@ final class VisningTests: XCTestCase {
     func testVillkorenOchFormen() throws {
         func las(_ villkor: String, _ grans: String) throws -> AttJobbaPa.KlartNar {
             let json = AttJobbaPaFixtur.exempel.replacingOccurrences(
-                of: #""klart_nar": {"villkor": ">=", "grans": 0,"#, with: #""klart_nar": {"villkor": "\#(villkor)", "grans": \#(grans),"#)
+                of: #""klart_nar": {"villkor": ">=", "grans": -2.5,"#, with: #""klart_nar": {"villkor": "\#(villkor)", "grans": \#(grans),"#)
             return try AttJobbaPa.las(json: json).saker[0].klartNar
         }
         let mellan = try las("mellan", "[2.5, 3.1]")
@@ -438,14 +486,14 @@ final class VisningTests: XCTestCase {
             XCTAssertFalse("\(e)".contains("snabbt"))
         }
         // Formen är stängd: nu, spann, markning och fysik måste stå med, även som null.
-        for nyckel in [#""nu": -5.7,"#, #""spann": [0, null],"#, #""markning": "B10","#, #""fysik": null,"#] {
+        for nyckel in [#""nu": -5.7,"#, #""spann": [-2.5, null],"#, #""markning": null,"#, #""fysik": null,"#] {
             let utan = AttJobbaPaFixtur.exempel.replacingOccurrences(of: nyckel, with: "")
             XCTAssertNotEqual(utan, AttJobbaPaFixtur.exempel, nyckel)
             XCTAssertThrowsError(try AttJobbaPa.las(json: utan), nyckel)
         }
         // "klart när" med en decimal visas som den står: 12,5° blir inte 12°.
         let grader = AttJobbaPaFixtur.exempel
-            .replacingOccurrences(of: #""klart_nar": {"villkor": ">=", "grans": 0,"#,
+            .replacingOccurrences(of: #""klart_nar": {"villkor": ">=", "grans": -2.5,"#,
                                   with: #""klart_nar": {"villkor": "<=", "grans": 12.5,"#)
             .replacingOccurrences(of: #""matt": "backen_sway_topp""#, with: #""matt": "brost_bojning_tapp""#)
             .replacingOccurrences(of: #""enhet": "cm",\#n   "nu""#, with: #""enhet": "°",\#n   "nu""#)
@@ -466,15 +514,15 @@ final class VisningTests: XCTestCase {
         let s = v.saker[0]
         XCTAssertEqual(s.namn, "Hip sway")
         XCTAssertEqual(s.rubrik, "FO · top · week 5")
-        XCTAssertEqual(s.markning, .b10)
-        XCTAssertEqual(s.nu, "−2.4")
+        XCTAssertNil(s.markning)                              // kontrollerad gräns (BESLUT B45)
+        XCTAssertEqual(s.nu, "−3.0")
         guard case let .grans(lo, _)? = s.mal?.zon else { return XCTFail("målet utan spann") }
-        XCTAssertEqual(lo, 0)
+        XCTAssertEqual(lo, -2.5)
         XCTAssertEqual(s.foljd.first?.vag, ["Spine tilt"])
         XCTAssertEqual(s.steg[1].lage, .nu)
         XCTAssertEqual(s.steg[0].lage, .klart)
         XCTAssertEqual(s.tanke, "\u{201C}Leave the stick standing.\u{201D}")
-        XCTAssertEqual(s.villkor, "First set ≥ 0 cm")
+        XCTAssertEqual(s.villkor, "First set ≥ −2.5 cm")
         XCTAssertEqual(s.villkorUnder, "2 sessions in a row")
         XCTAssertNil(s.rorlighet)
         let t = v.saker[1]
@@ -548,15 +596,15 @@ final class VisningTests: XCTestCase {
         let sway = try XCTUnwrap(v.matt.first { $0.id == "sway_topp" })
         XCTAssertEqual(sway.punkter.count, 16)
         XCTAssertEqual(sway.rubrik, "FO · top")
-        XCTAssertEqual(sway.varde, "−2.4")
-        XCTAssertEqual(sway.skillnad, "+5.5 cm vs Oct 20")
+        XCTAssertEqual(sway.varde, "−3.0")
+        XCTAssertEqual(sway.skillnad, "+4.9 cm vs Oct 20")
         XCTAssertTrue(sway.harSerie1)
         XCTAssertEqual(sway.manader.map { $0.text }, ["Oct", "Nov", "Dec", "Jan"])
         XCTAssertEqual(sway.manader.map { $0.index }, [0, 3, 10, 13])
         XCTAssertEqual(sway.block.map { $0.index }, [4, 11])
         XCTAssertEqual(sway.block.map { $0.text }, ["B1", "B2"])
         guard case let .grans(lo, hi)? = sway.band else { return XCTFail("swayen utan gräns") }
-        XCTAssertEqual(lo, 0)
+        XCTAssertEqual(lo, -2.5)
         XCTAssertEqual(hi, .infinity)
         XCTAssertGreaterThanOrEqual(sway.axel.hi, 0)       // gränsen syns i diagrammet
         let resa = try XCTUnwrap(v.matt.first { $0.id == "backens_resa_framat" })
@@ -584,7 +632,7 @@ final class VisningTests: XCTestCase {
         }
         // Demosvingarna ligger på passets medianer.
         let fo = try Matt.mat(Demo.sving(.fo))
-        XCTAssertEqual(fo.matt["backen_sway_topp"]!, -2.4, accuracy: 0.05)
+        XCTAssertEqual(fo.matt["backen_sway_topp"]!, -3.0, accuracy: 0.05)
         XCTAssertEqual(fo.matt["backen_resa_framat"]!, 11.3, accuracy: 0.05)
         let dtl = try Matt.mat(Demo.sving(.dtl))
         XCTAssertEqual(dtl.matt["backen_thrust_traff"]!, 2.6, accuracy: 0.05)
@@ -617,7 +665,7 @@ final class VisningTests: XCTestCase {
         let g = Granskningsvisning(yta: y, forra: nil, forraDatum: Demo.datum[14], pass: Demo.pass.last!,
                                    matt: Granskningsvisning.matt(.fo))
         XCTAssertEqual(g.slag.count, 35)
-        XCTAssertEqual(g.slag[0], .init(nr: nil, text: "−2.4"))
+        XCTAssertEqual(g.slag[0], .init(nr: nil, text: "−3.0"))
         XCTAssertEqual(g.slag[1].nr, 1)
         XCTAssertEqual(g.forraDatum, "Jan 6")
         XCTAssertEqual(y.namn, "Hip sway")

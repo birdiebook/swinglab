@@ -76,6 +76,14 @@ struct PythonBedomning: Decodable {
     let z: Double?
 }
 
+/// Passets spridning mellan slagen för ett mått (METOD M44).
+struct PythonSpridning: Decodable {
+    let matt: String
+    let vy: String
+    let n: Int
+    let varde: Double?
+}
+
 /// Två påhittade pass och Pythons sammanfattning, jämförelse och bedömning.
 struct PythonSession: Decodable {
     let nu: [SvingMatt]
@@ -85,6 +93,8 @@ struct PythonSession: Decodable {
     /// grupp → mått → jämförelse
     let jamforelse: [String: [String: PythonJamforelse]]
     let bedomning: [PythonBedomning]
+    /// "nu"/"forra" → katalogens spridning (METOD M44)
+    let spridning: [String: [PythonSpridning]]
 }
 
 func avkoda<T: Decodable>(_ typ: T.Type, _ json: String) throws -> T {

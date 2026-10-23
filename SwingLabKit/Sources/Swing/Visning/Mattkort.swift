@@ -175,15 +175,54 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
                         spann: spann, geometri: geometri)
     }
 
-    /// Passets kort i katalogens ordning, de avstängda sist.
-    /// `ovas` = felen i Att jobba på (BESLUT B31).
-    public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass], ovas: Set<String> = []) -> [Mattkort] {
-        let fel = katalog.fel.filter { $0.aktiv } + katalog.fel.filter { !$0.aktiv }
-        return fel.map { f -> Mattkort in
-            var k = kort(f, nu: nu, tidigare: tidigare)
-            k.ovas = ovas.contains(f.id)
-            return k
+    /// Spridningens rubrik: "DTL · impact" (vyn och måttets fas). METOD M44
+    static func rubrik(_ post: Katalog.Spridningspost) -> String {
+        let e = Etiketter.etikett(post.matt)
+        return ([Etiketter.vy(post.vy)] + (e.fas.isEmpty ? [] : [e.fas])).joined(separator: " · ")
+    }
+
+    /// Passets spridning mellan slagen för ett mått som kort (METOD M44, BESLUT B46): talet är
+    /// passets robusta sd, förra passets är strecket och de tidigare passens spridning är den
+    /// egna baslinjen (M27, ett tal per pass). Samma kort och spann som felen, ingen ny vy.
+    public static func kort(_ post: Katalog.Spridningspost, nu: Pass, tidigare: [Pass]) -> Mattkort {
+        let e = Etiketter.etikett(post.matt)
+        let namn = Texter.spridningsnamn(e.namn)
+        var k: Mattkort
+        if let v = nu.spridning(post.matt, post.vy) {
+            let forra = tidigare.last
+            let f = forra?.spridning(post.matt, post.vy)
+            var skillnad: String? = nil
+            if let f, let d = forra?.datum {
+                let a = Avrundning.avrunda(post.matt, v)!, b = Avrundning.avrunda(post.matt, f)!
+                skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet), Tal.datum(d))
+            }
+            let bas = Baslinje.spann(tidigare.compactMap { $0.spridning(post.matt, post.vy) })
+            let spann = Spann(nu: v, spridning: nil, forra: f, gront: nil, baslinje: bas, decimaler: e.decimaler,
+                              enhet: e.enhet)
+            k = Mattkort(id: post.id, matt: post.matt, namn: namn, rubrik: rubrik(post), vy: Vy(rawValue: post.vy),
+                         markning: .egen, varde: Tal.tal(Avrundning.avrunda(post.matt, v), decimaler: e.decimaler),
+                         enhet: e.enhet, skillnad: skillnad, spann: spann, geometri: nil)
+        } else {
+            k = Mattkort(id: post.id, matt: post.matt, namn: namn, rubrik: rubrik(post), vy: Vy(rawValue: post.vy),
+                         markning: .egen, varde: "—", enhet: e.enhet, skillnad: nil, spann: nil, geometri: nil)
         }
+        k.info = Infoblad(post, namn: namn)
+        return k
+    }
+
+    /// Passets kort i katalogens ordning: felen, spridningen mellan slagen (METOD M44) och
+    /// de avstängda sist. `ovas` = felen i Att jobba på (BESLUT B31).
+    public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass], ovas: Set<String> = []) -> [Mattkort] {
+        func fel(_ f: [Katalog.Fel]) -> [Mattkort] {
+            f.map { f -> Mattkort in
+                var k = kort(f, nu: nu, tidigare: tidigare)
+                k.ovas = ovas.contains(f.id)
+                return k
+            }
+        }
+        return fel(katalog.fel.filter { $0.aktiv })
+            + katalog.spridning.map { kort($0, nu: nu, tidigare: tidigare) }
+            + fel(katalog.fel.filter { !$0.aktiv })
     }
 }
 

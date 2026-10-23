@@ -48,26 +48,13 @@ public struct Utveckling: Sendable {
     public init(_ fel: Katalog.Fel, pass: [Pass], block: [Date] = []) {
         let e = Etiketter.etikett(fel.matt)
         let grupp = fel.grupp
-        id = fel.id
-        namn = e.namn
-        info = Infoblad(fel, namn: e.namn)
         var r = [e.vy ?? Etiketter.vy(fel.vy)]
         if !e.fas.isEmpty { r.append(e.fas) }
-        rubrik = r.joined(separator: " · ")
-        markning = Markning.fran(fel)
-        enhet = e.enhet
-        punkter = pass.compactMap { p -> Passpunkt? in
+        let punkter = pass.compactMap { p -> Passpunkt? in
             guard let s = p.sammanfattning(fel.matt, grupp) else { return nil }
             return Passpunkt(datum: p.datum, pass: s.median, serie1: p.serie1Median(fel.matt, grupp), q1: s.q1, q3: s.q3)
         }
-        period = Utvecklingsvisning.periodText(klubba: pass.last?.klubba, datum: punkter.map(\.datum))
-        varde = Mattkort.text(punkter.last?.pass, e)
-        if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
-            let d = Avrundning.avrunda(fel.matt, b.pass)! - Avrundning.avrunda(fel.matt, a.pass)!
-            skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(d, decimaler: e.decimaler), e.enhet), Tal.datum(a.datum))
-        } else {
-            skillnad = nil
-        }
+        let band: Band?
         if let g = fel.gront, g.count == 2 {
             band = .grans(lo: g[0] ?? -Double.infinity, hi: g[1] ?? Double.infinity)
         } else if let sista = pass.lastIndex(where: { $0.sammanfattning(fel.matt, grupp) != nil }),
@@ -77,6 +64,50 @@ public struct Utveckling: Sendable {
             band = .baslinje(lo: b.lo, hi: b.hi)
         } else {
             band = nil
+        }
+        self.init(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: r.joined(separator: " · "),
+                  markning: Markning.fran(fel), info: Infoblad(fel, namn: e.namn), punkter: punkter, band: band,
+                  klubba: pass.last?.klubba, block: block)
+    }
+
+    /// Passets spridning mellan slagen över passen (METOD M44, BESLUT B46): en punkt per pass,
+    /// utan kvartiler och serie 1, och de tidigare passens spridning som egen baslinje.
+    public init(_ post: Katalog.Spridningspost, pass: [Pass], block: [Date] = []) {
+        let e = Etiketter.etikett(post.matt)
+        // Valet i Progress är ett chip med bara namnet: positionen skiljer adressens och
+        // träffens spridning åt ("Spine angle spread at impact", BESLUT B40).
+        let namn = Texter.felnamn(Texter.spridningsnamn(e.namn), fas: e.fas)
+        let punkter = pass.compactMap { p -> Passpunkt? in
+            p.spridning(post.matt, post.vy).map { Passpunkt(datum: p.datum, pass: $0, serie1: nil) }
+        }
+        var band: Band? = nil
+        if let b = Baslinje.spann(punkter.dropLast().map(\.pass)) {
+            band = .baslinje(lo: b.lo, hi: b.hi)
+        }
+        self.init(id: post.id, matt: post.matt, namn: namn, rubrik: Mattkort.rubrik(post), markning: .egen,
+                  info: Infoblad(post, namn: namn), punkter: punkter, band: band, klubba: pass.last?.klubba,
+                  block: block)
+    }
+
+    /// Det gemensamma: talet nu, skillnaden mot första passet, axeln, månaderna och blocken.
+    init(id: String, matt: String, namn: String, rubrik: String, markning: Markning?, info: Infoblad,
+         punkter: [Passpunkt], band: Band?, klubba: String?, block: [Date]) {
+        let e = Etiketter.etikett(matt)
+        self.id = id
+        self.namn = namn
+        self.info = info
+        self.rubrik = rubrik
+        self.markning = markning
+        enhet = e.enhet
+        self.punkter = punkter
+        self.band = band
+        period = Utvecklingsvisning.periodText(klubba: klubba, datum: punkter.map(\.datum))
+        varde = Mattkort.text(punkter.last?.pass, e)
+        if let a = punkter.first, let b = punkter.last, punkter.count > 1 {
+            let d = Avrundning.avrunda(matt, b.pass)! - Avrundning.avrunda(matt, a.pass)!
+            skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(d, decimaler: e.decimaler), e.enhet), Tal.datum(a.datum))
+        } else {
+            skillnad = nil
         }
         var varden = punkter.map(\.pass) + punkter.compactMap(\.serie1) + punkter.compactMap(\.q1)
             + punkter.compactMap(\.q3)
@@ -125,11 +156,14 @@ public struct Utvecklingsvisning: Sendable {
         period = Self.periodText(klubba: pass.last?.klubba, datum: pass.map(\.datum))
         let delar = (ejMatta > 0 ? [Texter.ejMatta(ejMatta)] : []) + (annanLangd > 0 ? [Texter.annanLangd(annanLangd)] : [])
         self.ejMatta = delar.isEmpty ? nil : delar.joined(separator: Texter.skilje)
-        matt = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
+        let fel = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
             var u = Utveckling(f, pass: pass, block: block)
             u.ovas = ovas.contains(f.id)
             return u
-        }.filter { !$0.punkter.isEmpty }
+        }
+        // Spridningen mellan slagen efter felen (METOD M44, BESLUT B46).
+        let spridning = katalog.spridning.map { Utveckling($0, pass: pass, block: block) }
+        matt = (fel + spridning).filter { !$0.punkter.isEmpty }
     }
 
     /// "7i · Oct–Jan · 16": klubban, månaderna och antalet ("Jan" inom en månad); "" utan datum.

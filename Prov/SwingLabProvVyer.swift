@@ -33,7 +33,9 @@ final class SwingLabProvVyer: XCTestCase {
 
     func testPasset() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass, ovas: Demo.attJobbaPa.ovas)
-        try rendera(PassetVy(visning: v), namn: "passet")
+        // @2x: med spridningens kort (METOD M44) blir hela passet högre än 8192 px i @3x, och då
+        // skriver ImageRenderer ingen PNG.
+        try rendera(PassetVy(visning: v), namn: "passet", skala: 2)
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl")
         // Största textstorleken (Dynamisk text): inget klipps, raderna bryts.
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl-stor", textstorlek: .accessibility5)
@@ -57,6 +59,9 @@ final class SwingLabProvVyer: XCTestCase {
         try rendera(UtvecklingVy(visning: v), namn: "utveckling")
         try rendera(UtvecklingVy(visning: v, valt: "backens_resa_framat"), namn: "utveckling-resa", accent: false)
         try rendera(UtvecklingVy(visning: v, valt: "tempo"), namn: "utveckling-tempo", accent: false)
+        // Spridningen mellan slagen (METOD M44, BESLUT B46): ett tal per pass, utan kvartiler.
+        try rendera(UtvecklingVy(visning: v, valt: "brost_bojning_traff_spridning"), namn: "utveckling-spridning",
+                    accent: false)
         try rendera(UtvecklingVy(visning: v), namn: "utveckling-stor", textstorlek: .accessibility5)
     }
 
@@ -83,7 +88,7 @@ final class SwingLabProvVyer: XCTestCase {
     /// ImageRenderer: innehållet i full längd, mörkt läge, @3x, och prövat mot formspråket.
     /// `accent`: om bilden ska bära accenten (det du övar på, BESLUT B31); nil = prövas inte.
     func rendera(_ vy: some View, namn: String, textstorlek: DynamicTypeSize = .large,
-                         accent: Bool? = true) throws {
+                         accent: Bool? = true, skala: CGFloat? = nil) throws {
         let innehall = vy
             .environment(\.dynamicTypeSize, textstorlek)
             .padding(.vertical, 16)
@@ -94,7 +99,7 @@ final class SwingLabProvVyer: XCTestCase {
             .environment(\.locale, Locale(identifier: "sv_SE"))
         let r = ImageRenderer(content: innehall)
         // De största textstorlekarna blir mycket långa; i @1x ryms de i en PNG.
-        r.scale = textstorlek.isAccessibilitySize ? 1 : 3
+        r.scale = skala ?? (textstorlek.isAccessibilitySize ? 1 : 3)
         r.proposedSize = ProposedViewSize(width: Self.bredd, height: nil)
         let bild = try XCTUnwrap(r.uiImage, "kunde inte rita \(namn)")
         let png = try XCTUnwrap(bild.pngData())

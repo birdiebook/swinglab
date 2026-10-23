@@ -1,6 +1,9 @@
 """Katalogen över fel (`katalog.json` i repots rot, BESLUT B6) och bedömningen
 av ett pass mot den. METOD M27
 
+Listan `spridning` är passets spridning mellan slagen för ett mått, ett tal per pass
+(METOD M44, BESLUT B46).
+
 Ett fel med gräns bedöms grönt, gult eller rött mot gränsen. Ett fel utan gräns
 (gront = null) bedöms mot den egna baslinjen: medianen och spridningen ur
 tidigare pass. En gräns som inte är kontrollerad i original (BESLUT B10) bär
@@ -9,6 +12,7 @@ tidigare pass. En gräns som inte är kontrollerad i original (BESLUT B10) bär
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from . import session as S
@@ -31,11 +35,13 @@ INFO = ("vad", "varfor", "tecken")
 MATT_FALT = ("matt", "vy", "positioner") + INFO   # och valfritt fel: felet vars accent måttet följer (B31)
 MATT_VALFRIA = ("fel", "status")               # status: "oprovad" = oprövat på telefonen (METOD M35–M37)
 MATT_STATUS = ("oprovad",)
+SPRIDNING_FALT = ("matt", "vy") + INFO            # METOD M44
+MIN_SPRIDNING = 8        # METOD M44: slag för passets spridning (8 räcker, Severin 2021, som M27)
 POSITIONER_FEL = "positioner ska vara en lista av " + ", ".join(POSITIONER) + " i svingens ordning"
 # Övningens id: stabilt när texten skrivs om, så att historiken känner igen den.
 OVNING_ID = __import__("re").compile(r"^[a-z0-9_]+$")
 
-MIN_BASLINJE = 8         # METOD M27: svingar i baslinjen (8 försök räcker, research 1 del 4)
+MIN_BASLINJE = 8         # METOD M27: svingar i baslinjen (8 slag räcker, Severin 2021)
 GRON_Z = 1.0             # METOD M27: inom 1 robust sd från baslinjen = grönt
 GUL_Z = 2.0              # METOD M27: inom 2 = gult, längre bort åt det sämre hållet = rött
 
@@ -122,6 +128,22 @@ def kontrollera(k: dict) -> list[str]:
         visade.add((e["vy"], e["matt"]))
         if not positionerna_ok(e["positioner"], tom=False):
             fel.append(f"{namn}: {POSITIONER_FEL}")
+    if not isinstance(k.get("spridning"), list):
+        return fel + ["katalogen: listan spridning saknas"]
+    spridda = set()
+    for i, e in enumerate(k["spridning"]):
+        namn = f"spridning {e.get('matt', i) if isinstance(e, dict) else i}"
+        if not isinstance(e, dict) or set(e) != set(SPRIDNING_FALT):
+            fel.append(f"{namn}: ska ha matt, vy, vad, varfor och tecken")
+            continue
+        fel += _info(namn, e)
+        if e["vy"] not in ("dtl", "fo"):
+            fel.append(f"{namn}: vy ska vara dtl eller fo")
+        elif e["matt"] not in MATT[e["vy"]]:
+            fel.append(f"{namn}: måttet finns inte i vyn")
+        if (e["vy"], e["matt"]) in spridda:
+            fel.append(f"{namn}: står två gånger")
+        spridda.add((e["vy"], e["matt"]))
     return fel
 
 
@@ -210,6 +232,21 @@ def bedom_varde(fel: dict, varde: float | None, baslinje: list[float]) -> dict:
     samre = z if fel["samre"] == "+" else -z if fel["samre"] == "-" else abs(z)
     ut.update(grund="baslinje", z=z,
               status="gron" if samre <= GRON_Z else "gul" if samre <= GUL_Z else "rod")
+    return ut
+
+
+def spridning(katalog: dict, svingar: list[dict]) -> list[dict]:
+    """Passets spridning mellan slagen för måtten i katalogens `spridning`: den robusta
+    sd:n (q3 − q1)/1,349 ur passets sammanfattning (METOD M25, M26), i katalogens ordning.
+    `n` är slagen med måttet i vyn; `varde` är None under MIN_SPRIDNING slag, där IQR/1,349
+    är skev (0,63σ vid tre slag). METOD M44"""
+    sammanf = S.sammanfatta_session(svingar)
+    ut = []
+    for e in katalog["spridning"]:
+        n = sum(1 for s in svingar if s["vy"] == e["vy"] and math.isfinite(s["matt"].get(e["matt"], math.nan)))
+        s = sammanf[e["vy"]].get(e["matt"])
+        ut.append({"matt": e["matt"], "vy": e["vy"], "n": n,
+                   "varde": S.robust_sd(s) if s and n >= MIN_SPRIDNING else None})
     return ut
 
 

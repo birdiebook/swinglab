@@ -231,10 +231,20 @@ def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> lis
             utan += 1
         dagar = (_datum(pass_ids[-1]) - _datum(o["fel_start"])).days if pass_ids else 0
         rorelse_i_blocket = any(u.get("tydlig") for u in upp_fel)
+        # Ett fel som inte är flaggat i det senaste passet efter valet är klart (BESLUT B45):
+        # gränsen kan ha flyttats (sway_topp, early_extension) eller felet är borta. "Klart
+        # när" och märkningen är låsta från valet, men ett grönt fel övas aldrig, så saken
+        # lämnar listan och rapporteras som klar, inte tyst borttagen.
+        sist = analyser[pass_ids[-1]] if pass_ids and pass_ids[-1] > o["senast_i_pass"] else None
+        ej_flaggat = sist is not None and any(b["id"] == fid and b["status"] == "gron"
+                                              for b in sist.get("bedomning", []))
+        skal = None
         if fid not in forra_fel:
             lage = "avslutad"
         elif uppfyllda >= kn.get("pass_i_rad", 1):
-            lage = "klart"
+            lage, skal = "klart", "klart_nar"
+        elif ej_flaggat:
+            lage, skal = "klart", "inte_flaggat"
         elif upp_fel and not rorelse_i_blocket and dagar >= FYSIK_DAGAR and o["fysik"] is None:
             lage = "fysik"
         elif not upp:
@@ -247,7 +257,7 @@ def ovningar(rot: Path, till: str | None = None, fore: str | None = None) -> lis
                  spridning=A.avrunda(o["matt"], spr) if spr is not None else None,
                  uppfoljning=upp, pass_sedan=len(upp), dagar_sedan_felet_valdes=dagar,
                  rorelse_sedan_felet_valdes=rorelse_i_blocket, uppfyllt_i_rad=uppfyllda,
-                 pass_utan_rorelse=utan, aktuell=fid in forra_fel, lage=lage)
+                 pass_utan_rorelse=utan, aktuell=fid in forra_fel, lage=lage, klart_skal=skal)
         ut.append(o)
     return ut
 

@@ -7,6 +7,8 @@ hänvisar hit (`// METOD M3`), och en konstant utan rad här är en bugg.
 **standard** · **forskning** ("ej läst i original" = bara hänvisningen eller
 sökmotorns sammanfattning är läst) · **tillverkare** (Sportsbox, GEARS,
 GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
+"Läst i original" betyder att sidan eller fulltexten är läst: för de flesta källor
+gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5a–5d).
 
 ---
 
@@ -174,8 +176,8 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   **0,35** (uppmätt 0,31 för ett frö, 95 % under 0,15). Med "typiskt" (5 px) märks 30
   av 48, och av de omärkta har högst **30 %** ett tempofel från starten över 0,25
   (uppmätt 4 av 18). "Dåligt" (10 px) märks alltid.
-- **Mätningens version:** 2 sedan denna start (`matt.MATVERSION`, Swift
-  `ShotMeasuring.version`). Ett slag eller pass mätt med en äldre (utan fältet = 1) mäts
+- **Mätningens version:** 2 sedan denna start, 3 sedan M41–M43 och spridningen (S1e)
+  (`matt.MATVERSION`, Swift `ShotMeasuring.version`). Ett slag eller pass mätt med en äldre (utan fältet = 1) mäts
   om, annars får DTL-historiken ett falskt tempohopp (≈ +1) och adressens mått flyttar
   sig: telefonen mäter om slaget när passet öppnas (MS14), och PC:ns `historik.py`
   listar passen vars `analys.json` har en äldre `matversion` (`kor_om` i minnet) så
@@ -195,12 +197,22 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 ## M5 — Tempot
 
 - tempo = (topp − start) / (träff − topp), baksvingen och nedsvingen i s.
-  Båda vyerna. Saknas starten, eller är den osäker (M40), saknas tempot.
+  Båda vyerna. Saknas starten, eller är den osäker (M40), saknas tempot och baksvingens
+  tid; nedsvingens tid (`nedsving_s` = träff − topp) räknas ändå, eftersom den inte
+  beror på starten (S1e).
 - **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), utanför gult,
-  aldrig rött. **tillverkare, ej läst i original.** Novosel 3:1 och Grober
-  2,8:1 (research 1 §1.9). Blasts topp är klubbans, vår är händernas, och vår
-  topp ligger ≈ 9 ms tidigt (M4), så tempot är troligen något lågt mot Blast.
-  Låg prioritet: inget belagt samband med utfallet.
+  aldrig rött. **tillverkare, läst i original** (research 5c §5). Blast definierar
+  inte toppen; vår är händernas högsta punkt och ligger ≈ 9 ms tidigt (M4), så tempot
+  är troligen något lågt mot Blast. Gränsen behålls (BESLUT B45), med låg prioritet:
+  **kvoten skiljer inte nivåer.** Grober 2006 (läst i original): proffs 2,5–3,5 med
+  medel nära 3,0, och amatörer har också medel 3,0, med större spridning. Novosel 3:1
+  är läst via Grober (boken ej läst), och Grobers 2,8:1 (2010) är en enda spelare.
+- **Nedsvingens tid** (`nedsving_s`, finns sedan S1) står i katalogens `matt` vid P7 i
+  båda vyerna (S1e), och tempokortet i passet visar baksvingens och nedsvingens
+  sekunder. Tour med driver: Sportsbox 0,26 s, Blast 0,23–0,32 s, AMM ≈ 0,25 s
+  (tillverkare, läst i original, research 5a, 5c); kortare nedsving med högre fart
+  (Madrid 2020, kunde inte läsas). Ingen gräns: egen baslinje. Tiden räknas från
+  den uppmätta toppen (≈ 9 ms tidig, M4) till klicket, också när starten saknas.
 - **Bakifrån (DTL)** syns takeawayn knappt (den går mot kameran), och händernas start
   (M4) kom sent eller saknades (utredningen 2026-10-23: ett importerat DTL-pass utan
   tempo på Today). Starten bakifrån tas därför ur posen (M40). Är den osäker saknas
@@ -211,10 +223,18 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - `brost_bojning_<fas>`: linjen höftmitt → axelmitt mot lodlinjen i bild,
   grader, **+ framåt mot bollen**. Adress, topp, träff, finish.
 - `brost_bojning_tapp` = adressens − träffens böjning, **+ = bröstet reste sig**
-  (loss of posture). Egen baslinje: 2D-felet (−6,5 ± 3,6° i flexion vid toppen,
-  Mears 2016) är lika stort som förlusten (research 1 §1.5).
-- Portat från Golf SG (`vinkel_fran_lod`). GolfTEC anger tour ≈ 40° i adressen
-  ("shoulder bend"), en annan definition. **tillverkare, ej läst i original.**
+  (loss of posture). Egen baslinje (BESLUT B45): Sportsbox Chest Bend (bröstkorgen i
+  3D mot lodlinjen, + framåt, **nollas inte** vid adressen) ger tour adress 39°/44° och
+  träff 35°/43° (driver/järn), alltså ett tapp på +4°/+1° (tillverkare, läst i
+  original, research 5a). Det är inte linjen höftmitt → axelmitt i bild, och tappet
+  är mindre än felet i 2D: Mears 2016 (läst i original, författarens manus) fann
+  2D-projektionen av markörerna −6,5 ± 3,6° från 3D i flexion vid toppen, och en
+  kamera ger 2–7° (research 5 §1.8). Yamamoto 2023 (läst i original): spridningen
+  mellan slagen i framåtlutningen hängde ihop med snittscore (r = 0,80), medelvinkeln
+  inte (r = −0,18); spridningen är M44.
+- Portat från Golf SG (`vinkel_fran_lod`). GolfTEC (Troyer) anger tour ≈ 40° framåt
+  i adressen ("shoulder bend", en sensor, inte linjen i bild). **tillverkare, läst i
+  original** (research 5c §1b).
 
 ## M7 — Bäckenets thrust (DTL)
 
@@ -223,21 +243,42 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - Tecknet följer av M1 och är provat på en påhittad sving (+3 cm mot bollen
   ger +3,0). Det rättar inte frågan i S0 om oktobers tal, som räknades i
   bildens råa x.
-- TPI: early extension = bäckenet mot bollen i bak- eller nedsvingen; exemplet
-  är mer än 3 tum (7,6 cm) vid träff. **tränare, ej läst i original.** Egen
-  baslinje i katalogen tills tecknet och exemplet är kontrollerade.
+- **Gräns i katalogen** (`early_extension`, BESLUT B45): ≤ +4,3 cm grönt, +4,3…+8,4
+  gult, över +8,4 rött. Sportsbox Pelvis Thrust (bäckenets mitt mellan höftlederna,
+  0 vid adressen, **+ mot bollen**, bara bakifrån, läst i original, research 5a) har
+  samma definition, nollpunkt och tecken som M7, och bakifrån ligger rörelsen mot
+  bollen i bildens plan. Sportsbox ideal vid träff −2,3…+4,3 cm (−0,9…+1,7 tum, för
+  en man av DeChambeaus storlek), tour +1,3 cm (SD 3,6 cm, klubban anges inte):
+  grönt till idealets övre gräns, rött över tour-medel + 2 SD (+0,5 + 2 × 1,4 tum =
+  8,4 cm). Båda gränserna är **antaganden** byggda på tillverkarens tal
+  (`grans_harledd`).
+- **Kroppslängden:** källan anger idealet för en man av DeChambeaus storlek och skalar
+  sina egna mått med längden; vi skalar inte om gränsen. M2 ger centimetrar ur
+  spelarens längd, så en kortare spelare med samma rörelse i proportion får ett mindre
+  tal, och gränsen blir då något generösare för honom. **antagande.**
+- **Perspektivet bakifrån:** kameran står bakom spelaren och ser bäckenet snett när det
+  vrider sig i nedsvingen; höftmitten i bild kan då flytta sig 1–2 cm "mot bollen" utan
+  att bäckenet gör det. Talet vid träffen kan alltså vara något för högt mot Sportsbox
+  3D-tal. Det prövas på riktiga DTL-pass (S3). **antagande.**
+- TPI: early extension = bäckenet mot bollen i nedsvingen (definitionen läst i
+  original, research 5c §2); 67 % av > 90 000 screenade, 1 % av tour. TPI:s exempel
+  (mer än 3 tum vid träff) anger varken mätsystem eller punkt, så det blir ingen gräns.
 
 ## M8 — Lyften (bäckenet och huvudet, båda vyerna)
 
 - `backen_lyft_<fas>`, `huvud_lyft_<fas>`: förflyttningen från adressen i
   höjdled, cm, **+ uppåt**. Topp, träff, finish. Huvudet är näsan.
+- Sportsbox Pelvis Lift och Head Lift har samma nollpunkt och tecken (läst i
+  original, research 5a). Tour bäcken: −4,3/−3,6 cm vid toppen, +2,3 cm vid träffen
+  (driver/järn). Bäckenets lägsta punkt i nedsvingen och lyftet därifrån: M43.
 
 ## M9 — Huvudet: mot bollen (DTL) och sway (FO)
 
 - `huvud_mot_bollen_<fas>` (DTL, + mot bollen) och `huvud_sway_<fas>` (FO,
   + mot målet): näsans förflyttning från adressen, cm. Topp, träff, finish.
-- Inget tourvärde hittat; bedöms bäst tillsammans med bröstets sway
-  (research 1 §1.2).
+- Sportsbox Head Sway, Lift och Thrust har samma tecken (läst i original, research
+  5a). Inget tourvärde hittat; bedöms bäst tillsammans med bröstets sway
+  (research 1 §1.2). Huvudets mått är bland de svagast belagda (research 5 §6).
 
 ## M10 — Bröstets thrust (DTL)
 
@@ -265,8 +306,8 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   toppens. Varje höjd tas där händerna första gången passerar den (baksvingen
   från starten till toppen, nedsvingen från toppen till träffen), linjärt mellan
   rutorna. **+ = utanför (mot bollen) = over the top.** Saknas en höjd saknas
-  måttet. **antagande:** TPI anger förekomsten (43,5 %) men ingen gräns i cm;
-  klubbans bana kommer i S7.
+  måttet. **antagande:** ingen gräns i cm hittad; förekomsten 43,5 % kommer från en
+  klinik som återger TPI utan källa (research 5c §2). Klubbans bana kommer i S7.
 - Uppmätt på påhittade svingar (händerna 4–6 m/s i nedsvingen): rutnätet med
   luckor ger −0,06 cm och utjämningen ytterligare −0,05 cm på 3,2 cm, ≈ 4 %.
 
@@ -277,47 +318,93 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   finish.
 - **Reverse spine** = negativ sidböjning vid toppen: överkroppen lutar mot
   målet. Katalogen tar `sidbojning_topp` med det sämre hållet nedåt och egen
-  baslinje. TPI kopplar felet till ländryggen. **tränare, ej läst i original.**
-- Sportsbox sidböjning vid träff 24–38° (proffs) är bröstkorgen i 3D, inte
-  linjen i bild (research 1 §1.4).
+  baslinje. TPI kopplar felet till ländryggen. **tränare, läst i original**
+  (definitionen, inga tal; research 5c §2).
+- Sportsbox Chest Side Bend är bröstkorgen i 3D mot vågrätt (+ = bakre sidan lägre),
+  inte linjen i bild: tour vid träff 32°/22° (driver/järn), PGA 24,1–37,5° med driver
+  (läst i original, research 5a). Mears 2016: 2D underskattar sidböjningen vid träff
+  med 8,7 ± 2,9° (läst i original). Ingen gräns.
+- **Finishen** (S1e): `sidbojning_finish` står i katalogens `matt` vid P10, framifrån:
+  i finishen vetter bröstet mot målet, och bakåtlutningen bort från målet ligger i
+  bildens plan. GolfTEC Shoulder Bend i finish: tour 32°, hcp 5–0 20,6°, 31+ 3,2°
+  (tillverkare, läst i original, bild; research 5c §1), det mått som skiljer grupperna
+  mest. GolfTEC mäter med sensorer i 3D, inte linjen höftmitt → axelmitt i bild, så
+  talen tas inte in: egen baslinje.
 
 ## M15 — Bäckenets sway (FO)
 
 - `backen_sway_<fas>`: höftmittens förflyttning från adressen längs X, cm,
   **+ mot målet**. Topp, träff, finish. Portat från Golf SG.
-- **Gräns vid toppen** (katalogen `sway_topp`): ≥ 0 grönt, −5…0 gult, under −5
-  rött. Sportsbox: låghandicap nära 0, höghandicap "flera tum" bort från
-  målet. GolfTEC: tour 3,9 tum (≈ 10 cm) mot målet. **tillverkare, ej läst i
-  original**; gränsen själv är ett **antagande** byggt på de två (research 1
-  §1.1). Ingen gräns vid träffen förrän definitionerna stämts av.
+- **Gräns vid toppen** (katalogen `sway_topp`, BESLUT B45): ≥ −2,5 grönt, −5…−2,5
+  gult, under −5 rött. Sportsbox Pelvis Sway (bäckenets mitt mellan höftlederna, 0
+  vid adressen, **+ mot målet**, läst i original, research 5a) har samma definition,
+  nollpunkt och tecken som M15, och framifrån ligger sidledet i bildens plan: det
+  som skiljer är 2D mot 3D. Tour vid P4: −1,5 cm med driver, 0,0 med järn (tabellen,
+  bild). Låghandicap nära 0, höghandicap "flera tum" bort (golf.com, läst i original,
+  inga tal). **tillverkare, läst i original**; gränsen är ett **antagande** byggt på
+  de två (`grans_harledd`): båda klubbornas tour-tal är gröna, så gränsen beror inte
+  på klubban. −2,5 cm ligger nära brusgolvet (≈ 2 cm, research 5 §1.8).
+- **Positionen är inte densamma:** måttets definition, nollpunkt och tecken är
+  Sportsbox, men inte toppen. Sportsbox TOP är där klubban byter riktning; vår topp är
+  händernas högsta punkt (M4) och ligger dessutom ≈ 9 ms tidigt. Kring toppen rör sig
+  bäckenet redan mot målet (låghandicappare börjar före toppen, golf.com), så vårt tal
+  blir systematiskt mer negativt än Sportsbox, i storleksordningen 1 cm per 20 ms.
+  Gränsen behålls; skillnaden mellan händernas och klubbans topp prövas på ett riktigt
+  FO-pass (S3, S7). **antagande.**
+- GolfTEC:s 3,9 tum mot målet vid toppen mäts på svanskotan, som flyttas mot målet när
+  höfterna vrids (research 5a §C, 5c §1): ett annat mått, och det tas inte in.
+- **Vid träffen:** tour +11,4 cm (driver), +12,2 cm (järn); proffs cirka 6 tum och
+  amatörer sällan över 2 tum (Golf Digest, mätt med Sportsbox). Inget fel vid träffen;
+  resan från toppen är M21.
 
 ## M16 — Bröstets sway (FO)
 
 - `brost_sway_<fas>`: axelmittens förflyttning från adressen längs X, cm,
-  + mot målet. Topp, träff, finish.
+  + mot målet. Topp, träff, finish. Sportsbox Chest Sway har samma nollpunkt och
+  tecken (läst i original, research 5a): tour −3,3/−0,3 cm vid toppen och −1,8/+3,3 cm
+  vid träffen (driver/järn).
 
 ## M17 — Axellinjens lutning (FO) — granskas
 
 - `axellinje_lutning_<fas>`: linjen bakre axel → främre axel mot vågrätt i
   bild, grader, **+ = bakre axeln lägre**. Adress och träff (vid toppen och i
   finishen är axlarna vridna förbi linjen). Portat från Golf SG.
-- **Definitionen granskas i S0.** Oktobers värde passar ingen källa (Golf SG,
-  HANDLED_PLAN §4): GolfTEC anger 39° ("shoulder tilt") och Sportsbox 24–38°
-  (bröstets sidböjning) för tour. Troligen för att axelpunkterna (akromion) är
-  opålitliga vid träffen (Wheat) och linjen i bild inte är bröstets sidböjning. **Måttet får ingen tour-gräns**, och felet i katalogen är
-  avstängt tills S0 är klar.
+- **Definitionen granskas i S0.** Referensen är **22–25° med järn** (BESLUT B45):
+  Sportsbox Chest Side Bend vid träff 22° med järn (32° med driver) har samma
+  nollpunkt och tecken (mot vågrätt, + = bakre sidan lägre) men är bröstkorgen i 3D,
+  och Meisters S-faktor (akromionlinjen mot horisontalplanet i 3D) är 25 ± 3° hos
+  proffs med järn 5 (forskning, läst i original, research 5b). GolfTEC:s 39° ("shoulder
+  tilt") har en oklar referens ("level (upright)") och jämförs inte. En 2D-linje blir
+  lägre än 3D (Mears: −8,7° i sidböjning vid träff), och axelpunkterna (akromion) är
+  opålitliga vid träffen (Wheat 2007, bara abstract). Ett lågt värde i oktobers mätning
+  (Golf SG, HANDLED_PLAN §4) är alltså delvis väntat. **Måttet får ingen tour-gräns**,
+  och felet i katalogen är avstängt tills S0 är klar.
 
 ## M18 — Höftlinjens lutning (FO)
 
 - `hoftlinje_lutning_<fas>`: linjen bakre höft → främre höft mot vågrätt,
   grader, + = bakre höften lägre. Adress, topp, träff. Portat från Golf SG.
+- Katalogens `matt` visar den vid P1, P4 och P7 (P4 och P7 sedan S1e), egen baslinje.
+  Sportsbox Pelvis Side Bend har samma nollpunkt och tecken (mot vågrätt, + = bakre
+  sidan lägre) men är bäckenet i 3D: tour −8° vid P4 och +8° vid P7 med båda klubborna
+  (läst i original, research 5a). Vid toppen är bäckenet vridet ≈ 40°, så linjen i bild
+  är förkortad; ingen gräns. Bäckenets lutning ↔ klubbfart r ≈ 0,5 (Han 2016, TWU,
+  kunde inte läsas).
 
 ## M19 — Sway gap vid träffen (FO)
 
 - `sway_gap_traff` = bäckenets sway − bröstets sway vid träffen, cm. **+ =
   bäckenet längre mot målet än bröstet** (bröstet bakom). Portat från Golf SG.
-- Sportsbox definition och tecken är oklara (ett japanskt exempel går inte
-  ihop med enkel subtraktion). Egen baslinje, ingen riktning (research 1 §1.3).
+- **Sportsbox Sway Gap** (läst i original, research 5a) är det vågräta avståndet
+  bröstets mitt − bäckenets mitt, **− = bröstet bakom**, och nollas inte vid adressen
+  (tour −1,4 tum vid P1). M19 är ändringen från adressen med motsatt tecken:
+  M19 = −(gap vid träff − gap vid adress). Det japanska exemplet går ihop: −6,9 +
+  (−0,1 − 2,9) = −9,9 cm. Ur tabellens sway (samma definition som M15, M16): tour vid
+  träff **+13,2 cm med driver, +8,9 cm med järn**.
+- **Riktningen** (BESLUT B45): + är tour-hållet, så katalogens `sway_gap` har
+  `samre: "-"` (mindre än den egna baslinjen är sämre). Ingen tour-gräns: den skiljer
+  4–6 cm mellan driver och järn, och katalogen bär ingen klubba; den egna baslinjen
+  med samma klubba gäller.
 
 ## M20 — Händerna vid träffen (FO)
 
@@ -331,8 +418,12 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - `backen_resa_framat` = bäckenets sway vid träffen − vid toppen, cm, + mot
   målet. Sway bakåt och för lite förskjutning framåt är samma tema, bäckenets
   väg (PLAN S1). Egen baslinje, sämre nedåt. **antagande.**
-- GolfTEC: tour 3,9 tum mot målet vid toppen och 1,6 tum vid träffen (en annan
-  referens än vår); Sportsbox tour +13 cm vid träffen är inte återfunnen.
+- Ur Sportsbox tabell (Pelvis Sway, samma definition som M15, läst i original,
+  research 5a): resan från toppen till träffen är tour +13,0 cm med driver (4,5 −
+  (−0,6) tum) och +12,2 cm med järn. Inte i research 5:s förslag till gränser; egen
+  baslinje. GolfTEC:s 3,9 och 1,6 tum (topp, träff) mäts på svanskotan och jämförs
+  inte. TPI (hanging back, läst i original): normalt "about four inches" närmare målet
+  vid träff än vid adressen, utan att kroppsdelen anges.
 
 ## M22 — Främre armbågen vid toppen (FO)
 
@@ -341,8 +432,8 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   handled med den andra, vilket duger för händernas läge men inte för en vinkel
   i armbågen. Är den främre handleden dold saknas måttet. För en högerspelare vänsterarmen. Framifrån ligger armen
   ungefär i bildens plan vid toppen; förkortningen gör vinkeln osäker, därför
-  egen baslinje. GolfTEC: 76° mot 10° är ett elevexempel, ingen norm.
-  **tillverkare, ej läst i original.**
+  egen baslinje. GolfTEC: 76° mot 10° är en demonstratör, ingen elev och ingen
+  norm (**tillverkare, läst i original**, research 5c §1b).
 
 ## M23 — Chicken wing (FO)
 
@@ -365,9 +456,9 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   passet (medelrang för lika värden), och **avvikare** = svingar mer än
   3 × 1,4826 × MAD från medianen (MAD = medianen av |x − medianen|; 1,4826 gör
   MAD till sd för normalfördelning). **standard** (Hampels regel).
-- Minst **3** svingar för en sammanfattning. Research: 8–10 svingar per pass
-  ger ett stabilt medel (Boise State, n = 10). **forskning, ej läst i
-  original.**
+- Minst **3** svingar för en sammanfattning. Severin m.fl. 2021 (University of
+  Arkansas, 10 motionärer, järn 6 och driver; **forskning, läst i original**, research
+  5b): 8 slag räcker för ett stabilt medel av rörelseomfång och toppfarter.
 - Tempot sammanfattas också över båda vyerna ihop (`alla`).
 - Portat från Golf SG (`sammanfatta`), med medelrang i stället för ordningsrang.
 
@@ -390,9 +481,10 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   baslinjens robusta sd (M26), där baslinjen är måttets värden ur tidigare pass
   i samma vy. Med `samre` = "+" räknas bara z uppåt som sämre, "−" bara nedåt,
   annars |z|. Upp till **1** = grönt, upp till **2** = gult, längre = rött.
-  Baslinjen kräver minst **8** svingar (research 1 del 4). **antagande.**
-- `kontrollerad: false` = källan är inte läst i original (BESLUT B10).
-  Gränsen används ändå, märkt. Ett fel med `aktiv: false` bedöms inte
+  Baslinjen kräver minst **8** svingar (Severin 2021, M25). **antagande.**
+- `kontrollerad: false` = källan i `kalla` är inte läst i original (BESLUT B10).
+  Gränsen används ändå, märkt. Efter research 5 är alla lästa utom flying elbows
+  (BESLUT B45). Ett fel med `aktiv: false` bedöms inte
   (axellutningen, M17).
 
 ## M28 — P-positionerna
@@ -488,8 +580,10 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 
 Mått som går att räkna ur dagens leder i en vy, ur jämförelsen med Sportsbox AI
 (`docs/research/4_sportsbox_matt.md`, PLAN S1b). **Definitionerna är våra.**
-Sportsbox motsvarighet är 3D ur en egen modell och **ej läst i original**
-(BESLUT B10), så talen jämförs inte med Sportsbox, bara pass mot pass. Alla har
+Sportsbox definitioner och tecken är lästa i original (research 5a): de linjära
+måtten (sway, lift, thrust) nollas vid adressen, vinklarna gör det inte (turn mot
+linjen genom fotlederna, bend mot lodlinjen, side bend mot vågrätt), och allt är 3D ur
+en egen modell. Talen här jämförs bara pass mot pass. Alla har
 egen baslinje (M27) och står i katalogens `matt` (BESLUT B32), två av dem med
 `fel` så att accenten följer felet. Farterna (M35–M37) bär `status: "oprovad"`
 i katalogen och märks så i granskningen. Python och Swift ger samma tal (BESLUT B12).
@@ -502,7 +596,8 @@ tal; med 0,8 px brus står spridningen per rad.
   lårets lutning** mot lodlinjen i bild, grader, **+ framåt mot bollen**. Bålen
   är höftmitt → axelmitt (M6), låret bakre knä → bakre höft (bakre benet ligger
   närmast kameran, M11). Adress, topp, träff (P1, P4, P7).
-- **Det är inte Sportsbox Pelvis Bend** (bäckenets lutning). Den kräver en punkt
+- **Sportsbox har ingen Pelvis Bend** (research 5a: varken som tracker eller i
+  tour-tabellen; research 4 §1 hade fel). Bäckenets lutning kräver en punkt
   på bäckenet utöver höftleden (korsbenet eller höftbenskammen), och den finns
   inte bland de 13 lederna: höftlederna syns som en punkt bakifrån och bär ingen
   lutning, och bålen ensam är bröstets böjning (M6). Medlet av bålens och lårets
@@ -524,8 +619,10 @@ tal; med 0,8 px brus står spridningen per rad.
 
 - `brost_lyft_<fas>`: axelmittens förflyttning från adressen i höjdled, cm,
   **+ uppåt**, som M8. Topp, träff, finish (P4, P7, P10; katalogen visar topp
-  och träff). Höjdled ligger i bildens plan i båda vyerna. Sportsbox: Chest
-  Lift. Bakifrån hör `brost_lyft_traff` till felet `tappad_hallning`.
+  och träff). Höjdled ligger i bildens plan i båda vyerna. Sportsbox Chest Lift har
+  samma nollpunkt och tecken (läst i original, research 5a): tour −2,0 cm vid toppen,
+  −2,8/−1,5 cm vid träffen (driver/järn), lägst vid P5. Bakifrån hör
+  `brost_lyft_traff` till felet `tappad_hallning`.
 - Uppmätt: inom 0,002 cm; med 0,8 px brus sd 0,07 cm, största 0,17.
 
 ## M32 — Handens lyft (båda vyerna)
@@ -542,7 +639,8 @@ tal; med 0,8 px brus står spridningen per rad.
 
 - `framre_kna_<fas>`: främre höft–knä–fotled, böjningen i grader, **0 = rakt
   ben**, som M11. Adress, topp, träff (P1, P4, P7). Sportsbox: Lead Knee
-  Flexion. Knäets sträckning mot träffen är det intressanta.
+  Flexion, som finns (läst i original, research 5a) men räknar 180° = rakt led, inte
+  0. Knäets sträckning mot träffen är det intressanta.
 - **Vyn:** böjningen ligger i bildens plan bakifrån, inte framifrån (där sker
   den i djupled och syns knappt). Bakifrån står främre benet bakom det bakre
   och skyms delvis. Måttet tas ändå i DTL: en skymd led får låg konfidens och
@@ -556,7 +654,9 @@ tal; med 0,8 px brus står spridningen per rad.
 
 - `framre_kna_sway_<fas>`, `bakre_kna_sway_<fas>`: knäets förflyttning från
   adressen längs X, cm, **+ mot målet**, som M15. Topp, träff, finish (P4, P7,
-  P10; katalogen visar topp och träff). Sportsbox: Lead/Trail Knee Sway.
+  P10; katalogen visar topp och träff). Sportsbox: Lead/Trail Knee Sway, som finns
+  med samma tecken (läst i original, research 5a); bland de svagast belagda (research
+  5 §6).
   `bakre_kna_sway_topp` (bakre knät glider bort från målet i baksvingen) hör
   till felet `sway_topp`.
 - Uppmätt: exakt (figurens knän står still på platåerna); med 0,8 px brus sd
@@ -567,7 +667,9 @@ tal; med 0,8 px brus står spridningen per rad.
 - `handfart_max`: greppets **största fart i nedsvingen** (toppen → träffen),
   **m/s med en decimal**, i bildens plan. `handfart_max_fore_traff_ms`: hur långt
   **före träffen** den största farten kommer, ms, + = före. Sportsbox: Max Hand
-  Speed och Hand Speed Max Timing (Johannes lista, **ej bekräftade**). Framifrån,
+  Speed och Hand Speed Max Timing finns (läst i original, research 5a): farten är
+  mittpunkten mellan händerna på skaftet, resultant i 3D, och tour med driver har
+  handens maxfart 69 ms före träffen. Framifrån,
   där handens båge i nedsvingen ligger närmast bildens plan; djupled (mot
   bollen) syns inte, så farten är en undre gräns för den verkliga.
 - **Utjämningen:** farten räknas på ett **rutnät i tiden, 1 ms**, inte i
@@ -609,8 +711,9 @@ tal; med 0,8 px brus står spridningen per rad.
 
 ## M36 — Genomsvingens tid (båda vyerna)
 
-- `genomsving_s` = finishen − träffen, s. Sportsbox: Follow Through Time
-  (Johannes lista, **ej bekräftad**).
+- `genomsving_s` = finishen − träffen, s. Sportsbox: Follow Through Time finns
+  (läst i original, research 5a), utan tour-tal. Inget samband med utfallet hittat:
+  det svagast belagda av dagens mått (research 5 §6).
 - **Finishen i tid:** första gången efter genomsvingens toppfart som handens
   fart faller under **10 %** av den, linjärt mellan två punkter på rutnätet.
   Toppfarten söks från träffen (uteslutet) till finishens fönster, **träffen
@@ -631,8 +734,9 @@ tal; med 0,8 px brus står spridningen per rad.
 - `framre_arm_vinkelfart_max`: linjen främre axel → **den egna** främre
   handleden (som M22 och M28; greppregeln ersätter inte), **största
   vinkelfarten i nedsvingen** (toppen → träffen), grader/s, som belopp, i
-  bildens plan. Vänsterarmen för en högerspelare. Sportsbox: Max Lead Arm
-  Speed (Johannes lista, **ej bekräftad**; Sportsbox mäter i 3D).
+  bildens plan. Vänsterarmen för en högerspelare. Sportsbox: armens största vridfart
+  finns (läst i original, research 5a: överarmen 1 005 °/s med driver, i 3D), inte
+  jämförbar med vinkeln i bild.
 - **Utjämningen och toppen:** som M35, på vinkeln atan2(dy, dx) ur de råa lägena; varje
   rutas vinkel räknas mot den första rutan i fönstret och läggs i (−180°,
   180°], så att ett varv förbi ±180° inte blir ett hopp (provat: 600 °/s genom
@@ -646,9 +750,10 @@ tal; med 0,8 px brus står spridningen per rad.
 
 Johannes beställning 2026-10-23: fler mått bakifrån (DTL) ur dagens leder i 2D
 (PLAN S1c). **Definitionerna är våra**, med egen baslinje (M27), i katalogens
-`matt` vid P4 utan `fel`, i Python och Swift med samma tal (BESLUT B12). Ingen
-Sportsbox-definition med samma innehåll är hittad (research 4; Sportsbox är **ej
-läst i original**, BESLUT B10).
+`matt` vid P4 utan `fel`, i Python och Swift med samma tal (BESLUT B12). Sportsbox
+Hand Thrust (DTL, 0 vid adressen, + mot bollen, läst i original, research 5a) har
+samma tecken som händernas djup (M38) men inget tour-tal; för armen mot axellinjen
+(M39) finns ingen Sportsbox-definition.
 
 - **Huvudet bakifrån fanns redan** och byggdes inte om: rörelsen mot och från
   bollen är `huvud_mot_bollen_<fas>` (M9) och upp och ned `huvud_lyft_<fas>` (M8,
@@ -662,8 +767,9 @@ läst i original**, BESLUT B10).
   förflyttning längs X från adressen till toppen, cm, **+ mot bollen** (bort från
   kroppen), − in mot och bakom kroppen. X bakifrån är djupled mot bollen (M1), samma
   axel som bäckenets thrust (M7). Måttet är händernas egen väg, inte händerna mot
-  bröstet: bröstets egen rörelse är `brost_thrust_topp` (M10). Om Sportsbox har en
-  Thrust för greppet (6 DoF, research 4) är okänt. **antagande.**
+  bröstet: bröstets egen rörelse är `brost_thrust_topp` (M10). Sportsbox Hand Thrust
+  (greppets mittpunkt, 0 vid adressen, + mot bollen) finns, utan tour-tal (läst i
+  original, research 5a). **antagande.**
 - Uppmätt (frön 0–19, utan brus): +0,02 cm i snitt, största 0,06 (toppen ligger
   ≈ 9 ms tidigt, M4, men händerna står still i X där); med 0,8 px brus sd 0,08 cm,
   största 0,22; med 2 px sd 0,21 cm.
@@ -692,6 +798,134 @@ läst i original**, BESLUT B10).
 - Uppmätt utan brus (frön 0–19, axellinjen 39 cm): −0,03° i snitt, största 0,10°
   (utjämningen sänker handleden i toppen, som M32); med 2 px brus sd 0,42°, största
   0,96°.
+
+## Tilläggen ur research 5 (S1e)
+
+Research 5 läste källorna i original (`docs/research/5_matt_i_original.md`) och
+rangordnade mått att ta in (§5). De billiga, ur dagens leder i en vy, i Python och
+Swift med samma tal (BESLUT B12, inom 10⁻⁶), i katalogens `matt` med positioner och
+utan `fel` (egen baslinje, M27; ingen av dem har en gräns med en källa som stämmer):
+
+| # (§5) | Mått | Var |
+|---|---|---|
+| 1 | Spridningen mellan slagen, först bröstets böjning | M44 |
+| 2 | Recentreringen | M41 |
+| 3 | Skiftets tidpunkt | M42 |
+| 4 | Bäckenets lägsta punkt och lyftet in i träffen | M43 |
+| 5 | Bröstets bakåtlutning i finishen (`sidbojning_finish`, fanns) | M14 |
+| 6 | Nedsvingens tid (`nedsving_s`, fanns) | M5 |
+| 7 | Höftlinjen vid topp och träff (`hoftlinje_lutning_topp`, `_traff`, fanns) | M18 |
+
+Inget av dem kräver en ändring i faserna (M4): M41–M43 använder toppen, adressens
+fönster och träffen som de är.
+
+## M41 — Bäckenets recentrering (FO)
+
+- `backen_recentrering`: bäckenets sway (M15) vid toppen minus dess **minsta** i
+  baksvingen, cm, **≥ 0, + = tillbaka mot målet** före toppen. Fönstret är adressens
+  slut (M4) → toppen: värdet i ögonblicket vid båda ändarna (M3) och de utjämnade
+  rutorna mellan dem. Visas vid P4 ("Hip recentering").
+- **Källan:** Sportsbox Recentering (läst i original, research 5a §A): bäckenets
+  största sway i baksvingen (P2–P3) minus dess sway vid toppen, där under 1 tum är "för
+  lite eller för sent"; proffs svajar 1–3 tum bakåt och recentrerar mellan P2 och P3.
+  Låghandicappare börjar flytta tillbaka före toppen (golf.com, läst i original). Ur
+  tour-tabellen: −4,1 cm vid P3 till −1,5 cm vid P4 med driver (2,5 cm), −2,0 till 0,0
+  med järn (2,0 cm).
+  Samma storlek som Sportsbox, med tecknet vänt så att + är mot målet; vårt fönster är
+  hela baksvingen, inte bara P2–P3 (P2 kräver klubban, S7). Ingen gräns: Sportsbox
+  "under 1 tum" är en indikator utan tal per nivå. **antagande.**
+- **Saknas** när bäckenet saknas vid en ände, eller när två tider i följd i fönstret
+  ligger mer än **0,10 s** isär (M3): den minsta punkten kan ligga i luckan.
+- **Uppmätt** (frön 0–19, figuren glider 3 cm extra bort mitt i baksvingen): utan brus
+  −0,002 cm i snitt, största 0,004; med 0,8 px brus +0,07 cm, sd 0,07, största 0,25; med
+  2 px +0,24 cm, sd 0,16; med 3 px +0,41 cm, sd 0,22, största 0,96; med 5 px +0,68 cm,
+  sd 0,37, största 1,6. Bruset drar talet uppåt: det minsta av brusiga punkter. Ett tal
+  under ≈ 0,5 cm skiljer sig inte från noll (research 5 §1.8: ≈ 2 cm i sway).
+
+## M42 — Skiftets tidpunkt (FO)
+
+- `backen_skifte_ms`: tiden från toppen tills höftmitten är **tillbaka i sitt
+  adressläge** längs X på väg mot målet, ms, linjärt mellan två värden i följd i
+  fönstret toppen → träffen (värdena som M41). **0** när bäckenet redan står i eller
+  framför adressläget vid toppen; **saknas** när det inte kommer tillbaka före
+  träffen, och vid en lucka som i M41. Visas vid P5 ("Hip shift timing"); i
+  granskningen står "—" för ett sådant slag.
+- **Censurerat:** ett slag där bäckenet inte är tillbaka före träffen har ett skifte
+  som är längre än nedsvingen, inte inget skifte. Passets median (M25) räknas bara
+  över slagen med ett tal, så PC:ns analys skriver antalet censurerade bredvid
+  (`skifte_ej_tillbaka`: FO-slag där bäckenet står bakom adressläget vid träffen, och
+  antalet mätta FO-slag, docs/FORMAT.md). Det enklaste ärliga: talet döljs inte, och
+  medianen tolkas med antalet. Telefonens pass visar inte skiftet (bara granskningen).
+- **Källan:** tidpunkten skiljer nivåerna, inte läget. Okuda 2010 (13 skickliga mot 17,
+  läst i original): de skickliga flyttade vikten till främre foten tidigare i
+  nedsvingen. Smith/Mears 2017 (22 låghandicappare): tre PCA-komponenter av
+  tryckcentrums och tyngdpunktens mönster förklarade **tillsammans** 74 % av klubbfarten
+  (justerat r² 0,742), starkast tryckcentrums tidpunkt och takt i sidled kring
+  nedsvingens början. **Tidig förflyttning av tyngdpunkten mot främre foten i sen
+  baksving var negativ**: tidigt är inte alltid bättre. Status: research 5b läste
+  artikeln i original via Loughboroughs arkiv, men §7 i sammanfattningen listar
+  "Smith/Mears 2017 (COG/COP)" som ej läst och 5d som 403; komponenternas r-värden
+  och vikter är inte kontrollerade, bara totalen och tecknen. Jones 2023 (104
+  amatörer, bara abstract): ett snabbt skifte framåt hörde ihop med lägre handicap.
+  Källorna mäter tryckcentrum och tyngdpunkt (kraftplattor, markörer), inte höftmitten;
+  vårt mått är en proxy. Ingen norm i ms. **antagande.**
+- **Uppmätt** (frön 0–19): passagen själv ligger inom 4 ms från figurens (sd 2 ms);
+  talet blir ≈ **9 ms för långt** (utan brus sd 2 ms, största 13; med 0,8 px brus
+  +10 ms, sd 6, största 26), eftersom toppen ligger ≈ 9 ms tidigt (M4). Jämförs pass mot
+  pass, där biasen är densamma.
+
+## M43 — Bäckenets lägsta punkt och lyftet in i träffen (båda vyerna)
+
+- `backen_lyft_min`: höftmittens **lägsta höjd** mellan toppen och träffen, från
+  adressen, cm, **+ upp, − ned** (M8). `backen_lyft_in_traff` = lyftet vid träffen
+  (`backen_lyft_traff`) − den lägsta punkten, cm, ≥ 0. Fönstret och luckan som M41.
+  Höjdled ligger i bildens plan i båda vyerna. Visas vid P5 och P7 ("Hip low point",
+  "Hip rise into impact").
+- **Källan:** Sportsbox Pelvis Lift (samma nollpunkt och tecken, läst i original,
+  research 5a): tour −4,3 cm vid toppen (driver), lägst vid P4–P5 (−4,3/−3,8 cm), +2,3
+  cm vid träffen. Indikatorn "Pelvis Lift at IMP" mäter lyftet från lägsta punkten i
+  nedsvingen ("max drop") till träffen, som `backen_lyft_in_traff`, men bara i 3D Pro
+  och utan publicerat tal per nivå. Tour-kurvan ger ≈ 6,6 cm (driver) och ≈ 5,8 cm
+  (järn) i lyft in i träffen, räknat ur tabellen; ingen gräns: en kurva av medel är
+  ingen norm, och klubban skiljer. **tillverkare** (kurvan), **antagande** (måttet).
+- **Uppmätt** (frön 0–19, figuren sjunker 3–4 cm extra mitt i nedsvingen): utan brus
+  +0,03 cm i snitt (utjämningen höjer en dal), största 0,09; med 0,8 px brus sd 0,07–0,12
+  cm, största 0,21; med 2 px sd 0,15–0,28 cm; med 3 px drar bruset den lägsta punkten
+  −0,12 cm (sd 0,22–0,28) och lyftet in i träffen +0,19 cm (sd 0,36–0,41); med 5 px
+  −0,29 och +0,40 cm (sd 0,34–0,67), största 1,3 cm. Bruset drar den lägsta punkten
+  nedåt och lyftet uppåt (det minsta av brusiga punkter).
+
+## M44 — Spridningen mellan slagen
+
+- **Ett tal per pass och mått:** den robusta sd:n **(q3 − q1)/1,349** ur passets
+  svingar i vyn (kvartilerna som M25, skalan som M26), i måttets enhet. **Under åtta
+  slag inget tal** ("—"): IQR/1,349 är skev när n är litet (≈ 0,63σ vid 3 slag och
+  0,84σ vid 8 för normalfördelade värden), och 8 slag räcker för ett stabilt medel
+  (Severin 2021, som baslinjen i M27). Talet `n` är det verkliga antalet slag med
+  måttet, också vid 1–2. Vid 8 slag är talet alltså fortfarande ≈ 16 % lågt; det
+  jämförs pass mot pass, med ungefär samma antal slag.
+- **Klubban:** på PC:n räknas spridningen per klubba när passets serier har olika
+  klubbor (`analys.json`, `spridning[].klubba`); klubban ändrar svingen. Telefonens
+  pass har en klubba. Måtten står i katalogens lista `spridning` (docs/FORMAT.md):
+  först bröstets böjning bakifrån i adressen och vid träffen (`brost_bojning_adress`,
+  `brost_bojning_traff`, M6).
+- **Källan:** Yamamoto 2023 (Front Sports Act Living, PMC10684732; 27
+  universitetsgolfare, 20 slag var, 2D-pose ur en kamera bakifrån; **forskning, läst i
+  original** enligt research 5d, medan 5b:s tabell C listar samma artikel som bara
+  abstract): sd mellan slagen i framåtlutningen mot snittscore r = 0,80, mot precision
+  r = 0,61; medelvinkeln r = −0,18. Det enda markörlösa 2D-fyndet med utfall. Studien
+  mätte linjen öra–höft; SwingLab läser inte öronen (M1) och tar höftmitt → axelmitt
+  (M6). Studiens egen posevalidering saknas, och vissa konfidensintervall i artikeln går
+  inte ihop med r-värdena (5d), så r = 0,80 är osäkert. Ingen norm.
+- **Robust sd, inte sd:** en felmärkt sving (Vision) drar sd med n − 1 långt; IQR tål
+  den. Yamamoto räknade sd, så talen jämförs inte med studiens.
+- **Visningen** (BESLUT B46): ett kort i passet ("Spine angle spread", vyns rubrik och
+  måttets fas) och ett mått i Progress, med samma kort och diagram som felen: talet,
+  förra passets spridning som streck och de tidigare passens spridning som egen
+  baslinje (M27 på ett tal per pass: medianen ± en robust sd, minst åtta pass med ett
+  tal). Inte på Today. PC:n skriver den i `analys.json` (`spridning`).
+- Python och Swift ger samma tal (påhittade pass, `session_fixtur`). **antagande**
+  (valet av mått och skalan).
 
 ---
 
@@ -1115,7 +1349,7 @@ värden i `CaptureTests`.
 - **Ändras fönstret eller utsnittet** (MS13) tas måtten och märkningen bort med
   lederna.
 - **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
-  posen, M40): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
   öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
   om med en äldre app. **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
@@ -1337,6 +1571,11 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
   block.
 - **Klart** när "klart när" hålls på första serien **2** pass i rad
   (`pass_i_rad`, alltid 2; research 3 §4 förslag 6). **antagande.**
+- **Klart** också när felet inte är flaggat (grönt) i det senaste passet efter valet
+  (`klart_skal: "inte_flaggat"`, BESLUT B45). "Klart när" och märkningen är låsta från
+  valet, men katalogens gräns kan flyttas (S1e flyttade swayens och early extensions),
+  och ett grönt fel övas aldrig. Saken lämnar då listan och rapporteras som klar, inte
+  tyst borttagen. **antagande.**
 - **Fysiken:** **42** dagar (sex veckor) från första gången felet valdes, utan
   någon tydlig rörelse sedan dess över alla övningar för felet, och treregeln
   inte prövad än → pröva treregeln (research 3 §4 förslag 6). **antagande.**

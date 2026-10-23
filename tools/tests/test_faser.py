@@ -163,8 +163,10 @@ class StartenBakifran(unittest.TestCase):
         r, _ = _mat_dold(seed=23, brus_px=10.0)
         self.assertIsNotNone(r["faser"]["start"])               # adressen räknas ändå från den
         self.assertTrue(r["faser"]["start_osaker"])
-        for k in ("tempo", "baksving_s", "nedsving_s"):
+        for k in ("tempo", "baksving_s"):
             self.assertNotIn(k, r["matt"])
+        # Nedsvingens tid beror inte på starten: toppen till klicket (METOD M5, S1e).
+        self.assertAlmostEqual(r["matt"]["nedsving_s"], r["faser"]["traff"] - r["faser"]["topp"], delta=1e-12)
 
     def test_utan_posen_tas_starten_ur_handerna_och_ar_osaker(self) -> None:
         d, _ = gen.sving("dtl", seed=24, brus_px=0.8, dolj=(("armbage_v", 0.0, 9.9), ("armbage_h", 0.0, 9.9),

@@ -75,6 +75,15 @@ public enum Etiketter {
             // Tilläggen bakifrån (PLAN S1c, METOD M38–M39).
             e("hand_djup_topp", "cm", T.top, tecken: true, plus: T.ball),
             e("framre_arm_plan_topp", "°", T.top, tecken: true),
+            // Tilläggen ur research 5 (PLAN S1e, METOD M41–M43) och mått som fanns (M5, M14, M18).
+            e("backen_recentrering", "cm", T.top),
+            e("backen_skifte_ms", "ms", T.afterTop),
+            e("backen_lyft_min", "cm", T.downswing, tecken: true),
+            e("backen_lyft_in_traff", "cm", T.impact, tecken: true),
+            e("sidbojning_finish", "°", T.finish, tecken: true, plus: T.awayFromTarget),
+            e("nedsving_s", "s", T.topToImpact),
+            e("hoftlinje_lutning_topp", "°", T.top, tecken: true),
+            e("hoftlinje_lutning_traff", "°", T.impact, tecken: true),
             // Huvudet (METOD M8, M9) i granskningen.
             e("huvud_mot_bollen_topp", "cm", T.top, tecken: true, plus: T.ball),
             e("huvud_mot_bollen_traff", "cm", T.impact, tecken: true, plus: T.ball),
@@ -94,6 +103,8 @@ public enum Etiketter {
             e("framre_armbage_topp", "°", T.top),
             // Granskningens mått vid en position (katalogens `matt`, METOD M29).
             e("brost_bojning_adress", "°", T.address),
+            // Spridningens kort (METOD M44): bröstets böjning vid träffen.
+            e("brost_bojning_traff", "°", T.impact),
             e("bakre_kna_adress", "°", T.address),
             e("stans_bredd", "", T.address),
             e("axellinje_lutning_adress", "°", T.address, tecken: true),

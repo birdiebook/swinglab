@@ -50,10 +50,12 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 + 43 + 40 + 34 = 626;
-        // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna)
-        // och positionerna (14 × 7 − 6 saknade = 92).
-        XCTAssertEqual(jamforda, 626)
+        // (58 + 50 + 45 + 36 + 48 + 36 + 55 + 54 + 45 + 55 + 57 + 45 + 43 + 37 = 664;
+        // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna;
+        // S1e: recentreringen och skiftet framifrån, bäckenets lägsta punkt och lyftet in i
+        // träffen i båda vyerna, utom där höften saknas i fönstret, och nedsvingens tid
+        // också utan säker start) och positionerna (14 × 7 − 6 saknade = 92).
+        XCTAssertEqual(jamforda, 664)
         XCTAssertEqual(positioner, 92)
     }
 
@@ -117,6 +119,29 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(Farter.rutnat(2.2, 2.5).count, 301)
     }
 
+    /// Tilläggen ur research 5 (PLAN S1e) på de påhittade svingarna: figurens tal inom bruset,
+    /// och inget tal när höften saknas i fönstret. METOD M41–M43
+    func testTillaggenUrResearch5() throws {
+        let fo = try Matt.mat(Sving.las(json: Fixturer.svingar[0].indata))
+        // Bäckenet glider 3 cm extra bort från målet mitt i baksvingen och kommer tillbaka.
+        XCTAssertGreaterThan(fo.matt["backen_recentrering"]!, 0.8)                      // METOD M41
+        XCTAssertGreaterThan(fo.matt["backen_skifte_ms"]!, 100)                         // METOD M42
+        XCTAssertLessThan(fo.matt["backen_skifte_ms"]!, 300)
+        let dtl = try Matt.mat(Sving.las(json: Fixturer.svingar[2].indata))
+        XCTAssertLessThan(dtl.matt["backen_lyft_min"]!, 0)                             // METOD M43
+        XCTAssertEqual(dtl.matt["backen_lyft_in_traff"]!, dtl.matt["backen_lyft_traff"]! - dtl.matt["backen_lyft_min"]!,
+                       accuracy: 1e-9)
+        XCTAssertNil(dtl.matt["backen_recentrering"])                                  // bara FO
+        let luckor = try Matt.mat(Sving.las(json: Fixturer.svingar[4].indata))         // fo_luckor
+        XCTAssertNil(luckor.matt["backen_lyft_min"])
+        XCTAssertNil(luckor.matt["backen_recentrering"])
+        let nara = try Matt.mat(Sving.las(json: Fixturer.svingar[10].indata))          // fo_nara_traff
+        XCTAssertNil(nara.matt["backen_skifte_ms"])                                     // inte tillbaka före träffen
+        XCTAssertEqual(try XCTUnwrap(Matt.forstaFramat([0, 1, 2], [-2, -1, 1])), 1.5, accuracy: 1e-12)
+        XCTAssertEqual(Matt.forstaFramat([0, 1], [0.5, 1]), 0)
+        XCTAssertNil(Matt.forstaFramat([0, 1], [-1, -0.5]))
+    }
+
     /// Luckan över toppfarten ger inget tal, och toppfarten nära träffen hittas. METOD M35
     func testToppfartenVidLuckaOchNaraTraffen() throws {
         let lucka = try Matt.mat(Sving.las(json: Fixturer.svingar[9].indata))
@@ -151,6 +176,7 @@ final class MattTests: XCTestCase {
         XCTAssertNil(r.faser.start)                                    // baksvingen 0,25 s
         XCTAssertNil(r.matt["tempo"])
         XCTAssertNil(r.matt["baksving_s"])
+        XCTAssertEqual(r.matt["nedsving_s"]!, r.faser.traff - r.faser.topp, accuracy: 1e-12)   // METOD M5: utan starten
         XCTAssertNil(r.matt["bakre_kna_adress"])
         XCTAssertEqual(r.matt["backen_thrust_traff"]!, 3.0, accuracy: 0.5)
         XCTAssertEqual(r.faser.adressTill, r.faser.topp - Faser.toppAdressS - 0.10, accuracy: 1e-12)
@@ -172,6 +198,7 @@ final class MattTests: XCTestCase {
             XCTAssertTrue(r.faser.startOsaker, namn)
             XCTAssertNil(r.matt["tempo"], namn)
             XCTAssertNil(r.matt["baksving_s"], namn)
+            XCTAssertEqual(r.matt["nedsving_s"]!, r.faser.traff - r.faser.topp, accuracy: 1e-12, namn)   // S1e
         }
         // Utan posen räcker inte händerna: deras start (M4) saknas med den dolda takeawayn.
         let s = try sving("dtl_dold")
@@ -210,8 +237,14 @@ final class MattTests: XCTestCase {
     }
 
     func testNamnenPerVy() {
-        XCTAssertEqual(Matt.namnFO.count, 54)
-        XCTAssertEqual(Matt.namnDTL.count, 43)
+        XCTAssertEqual(Matt.namnFO.count, 58)
+        XCTAssertEqual(Matt.namnDTL.count, 45)
+        // Tilläggen ur research 5 (PLAN S1e, METOD M41–M43).
+        for m in ["backen_recentrering", "backen_skifte_ms", "backen_lyft_min", "backen_lyft_in_traff"] {
+            XCTAssertTrue(Matt.namnFO.contains(m), m)
+        }
+        XCTAssertTrue(Matt.namnDTL.contains("backen_lyft_min"))
+        XCTAssertFalse(Matt.namnDTL.contains("backen_recentrering"))
         XCTAssertEqual(Set(Matt.namnFO).count, Matt.namnFO.count)
         XCTAssertEqual(Set(Matt.namnDTL).count, Matt.namnDTL.count)
         XCTAssertTrue(Matt.namnDTL.contains("backen_bojning_traff"))       // METOD M30

@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -128,6 +128,30 @@ bakifrån: förut +176 till +265 ms sen eller saknad, nu högst 0,14 fel på tem
 version (2): telefonen mäter om äldre slag och PC:ns historik säger vilka pass som ska köras om. I
 vyerna: tempot "—" i passet och på Today när slagen saknar säker start, och skälet i
 infobladets källrad. Kvar till ✓: ett riktigt DTL-pass på telefonen.
+
+## S1e — Källorna i original och mått ur research 5 (2026-10-23)
+
+Research 5 läste källorna i original ([docs/research/5_matt_i_original.md](docs/research/5_matt_i_original.md)).
+Beställningen: källstatusen i METOD och katalogen som research 5 läste den, rättelserna
+i §2 (Sportsbox vinklar är absoluta, sway gap är löst), gränserna i §4 där källan mäter
+samma sak som vi i 2D (samma definition, nollpunkt och tecken, och samma klubba), och
+de billiga måtten 1–7 i §5 ur dagens leder.
+
+**Klart när:** METOD och katalogen säger det research 5 läste, varje ändrad gräns har en
+rad i ett BESLUT, de nya måtten finns i Python och Swift med samma tal (B12), med
+METOD-rader och katalogens positioner, spridningen syns i passet och Progress, och
+Johannes har sett de nya måtten och spridningen på telefonen.
+
+**Byggt (grenen `s1e`).** Gränserna (BESLUT B45): `sway_topp` grönt från −2,5 cm,
+`early_extension` grönt till +4,3 och rött över +8,4 cm (Sportsbox, samma definition
+som M7), `sway_gap` med riktning men egen baslinje (tour-talet beror på klubban),
+`axellutning` avstängd med referensen 22–25° med järn, `tappad_hallning` och `tempo`
+oförändrade. Måtten: `backen_recentrering` (M41) och `backen_skifte_ms` (M42) framifrån,
+`backen_lyft_min` och `backen_lyft_in_traff` (M43) i båda vyerna, och i katalogens `matt`
+de som fanns: `sidbojning_finish`, `nedsving_s` och `hoftlinje_lutning_topp`/`_traff`.
+Spridningen mellan slagen (M44, BESLUT B46): katalogens lista `spridning`, ett kort i
+passet och ett mått i Progress med felens kort och diagram, bilden
+`utveckling-spridning` i simulatorprovet. Kvar till ✓: telefonen.
 
 ## S2 — Appskalet och första bygget
 

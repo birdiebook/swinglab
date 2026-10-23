@@ -281,6 +281,18 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
     a["tempo_vy"] = vy_alla
     a["session"] = sammanf
     a["forsta_serien"] = forsta
+    # Spridningen mellan slagen, ett tal per pass, mått och klubba (METOD M44, BESLUT B46):
+    # klubban ändrar svingen, så serier med olika klubbor blandas inte.
+    a["spridning"] = [dict(e, klubba=k, visat=avrunda(e["matt"], e["varde"]))
+                      for k in sorted({r.get("klubba") for r in slag if "matt" in r}, key=lambda x: x or "")
+                      for e in KAT.spridning(katalog, [{"vy": r["vy"], "matt": r["matt"]} for r in slag
+                                                       if "matt" in r and r.get("klubba") == k])]
+    # Skiftet (M42) saknas när bäckenet inte är tillbaka i adressläget vid träffen: antalet
+    # sådana slag (censurerade), så att passets median inte tyst bara gäller de andra.
+    a["skifte_ej_tillbaka"] = {"fo": sum(1 for r in slag if r["vy"] == "fo" and "matt" in r
+                                         and "backen_skifte_ms" not in r["matt"]
+                                         and r["matt"].get("backen_sway_traff", 0.0) < 0),
+                               "fo_matta": sum(1 for r in slag if r["vy"] == "fo" and "matt" in r)}
     a["baslinje"] = {"pass": list(baslinje_pass),
                      "svingar": {vy: sum(1 for s in tidigare if s["vy"] == vy) for vy in ("dtl", "fo")}}
     if forra is not None:

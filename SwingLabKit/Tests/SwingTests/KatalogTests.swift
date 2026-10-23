@@ -23,7 +23,8 @@ final class KatalogTests: XCTestCase {
                 namn = Matt.namn(vy)
             }
             XCTAssertTrue(namn.contains(f.matt), f.id)
-            XCTAssertFalse(f.kontrollerad, f.id)            // BESLUT B10: inget läst i original än
+            // BESLUT B10, B45: research 5 läste källorna; flying elbow har kvar en oläst.
+            XCTAssertEqual(f.kontrollerad, f.id != "flying_elbow", f.id)
         }
         let axel = try fel("axellutning")
         XCTAssertFalse(axel.aktiv)
@@ -36,7 +37,21 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
         XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
         // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, två följer ett fel.
-        XCTAssertEqual(k.matt.count, 41)
+        XCTAssertEqual(k.matt.count, 52)                    // S1e: elva till (METOD M41–M43, M5, M14, M18)
+        XCTAssertEqual(k.matt.first { $0.matt == "backen_recentrering" }?.positioner, ["P4"])   // METOD M41
+        XCTAssertEqual(k.matt.first { $0.matt == "backen_skifte_ms" }?.positioner, ["P5"])      // METOD M42
+        XCTAssertEqual(k.matt.filter { $0.matt == "backen_lyft_min" }.map { $0.vy }, ["dtl", "fo"])   // M43
+        XCTAssertEqual(k.matt.filter { $0.matt == "nedsving_s" }.map { $0.positioner }, [["P7"], ["P7"]])
+        // Gränserna ur research 5 (BESLUT B45).
+        XCTAssertEqual(try fel("sway_topp").gront, [-2.5, nil])
+        XCTAssertEqual(try fel("early_extension").gront, [nil, 4.3])
+        XCTAssertEqual(try fel("early_extension").gult, [4.3, 8.4])
+        XCTAssertTrue(try fel("early_extension").gransHarledd)
+        XCTAssertEqual(try fel("sway_gap").samre, "-")
+        XCTAssertNil(try fel("sway_gap").gront)
+        // Spridningen mellan slagen (METOD M44, BESLUT B46).
+        XCTAssertEqual(k.spridning.map { "\($0.vy)/\($0.matt)" }, ["dtl/brost_bojning_adress", "dtl/brost_bojning_traff"])
+        XCTAssertEqual(k.spridning.map(\.id), ["brost_bojning_adress_spridning", "brost_bojning_traff_spridning"])
         XCTAssertEqual(k.matt.first { $0.matt == "framre_arm_plan_topp" }?.positioner, ["P4"])   // METOD M39
         XCTAssertNil(k.matt.first { $0.matt == "hand_djup_topp" }?.fel)                         // METOD M38
         XCTAssertEqual(k.matt.first { $0.matt == "bakre_kna_sway_topp" }?.fel, "sway_topp")
@@ -76,7 +91,7 @@ final class KatalogTests: XCTestCase {
         ("\"vy\": \"bada\"", "\"vy\": \"sida\"", "tempo: vy ska vara"),
         ("\"status\": \"tillverkare\"", "\"status\": \"rykte\"", "sway_topp: status ska vara"),
         ("\"samre\": \"-\"", "\"samre\": \"x\"", "sway_topp: samre ska vara"),
-        ("\"gront\": [0, null]", "\"gront\": null", "sway_topp: gult utan gront"),
+        ("\"gront\": [-2.5, null]", "\"gront\": null", "sway_topp: gult utan gront"),
         ("\"id\": \"tempo\"", "\"id\": \"sway_topp\"", "sway_topp: id finns två gånger"),
         ("\"gront\": [2.5, 3.1]", "\"gront\": [2.5]", "tempo: gront ska vara"),
         ("\"positioner\": [\"P4\"]", "\"positioner\": [\"P2\"]", "sway_topp: positioner ska vara"),
@@ -98,13 +113,22 @@ final class KatalogTests: XCTestCase {
         ("\"varfor\": \"Shows a slide away", "\"varfor\": \"\", \"x\": \"Sliding away", "sway_topp: varfor ska vara en text"),
         ("\"status\": \"oprovad\"}", "\"status\": \"provad\"}",
          "matt genomsving_s: status ska vara oprovad"),
+        // Spridningen (METOD M44).
+        ("{\"matt\": \"brost_bojning_adress\", \"vy\": \"dtl\", \"vad\": \"The spread",
+         "{\"matt\": \"brost_bojning_adress\", \"vy\": \"fo\", \"vad\": \"The spread",
+         "spridning brost_bojning_adress: måttet finns inte i vyn"),
+        ("{\"matt\": \"brost_bojning_traff\", \"vy\": \"dtl\", \"vad\": \"The spread",
+         "{\"matt\": \"brost_bojning_adress\", \"vy\": \"dtl\", \"vad\": \"The spread",
+         "spridning brost_bojning_adress: står två gånger"),
+        ("\"tecken\": \"Degrees, robust", "\"x\": 1, \"tecken\": \"Degrees, robust",
+         "spridning brost_bojning_adress: ska ha matt"),
     ]
 
     /// BESLUT B41: varje fel och varje mått har infobladets tre fält, som test_katalog.py.
     func testInfobladetFinnsOveralt() throws {
         let k = try katalog()
         let poster = k.fel.map { ($0.id, $0.vad, $0.varfor, $0.tecken) } + k.matt.map { ($0.matt, $0.vad, $0.varfor, $0.tecken) }
-        XCTAssertEqual(poster.count, 53)
+        XCTAssertEqual(poster.count, 64)
         for (namn, vad, varfor, tecken) in poster {
             for t in [vad, varfor, tecken] {
                 XCTAssertFalse(t.trimmingCharacters(in: .whitespaces).isEmpty, namn)
@@ -143,11 +167,16 @@ final class KatalogTests: XCTestCase {
         XCTAssertThrowsError(try Katalog.las(json: andrad("\"matt\": [\n", "\"mått\": [\n"))) { e in
             XCTAssertTrue("\(e)".contains("matt"), "\(e)")
         }
+        XCTAssertThrowsError(try Katalog.las(json: andrad("\"spridning\": [\n", "\"spridningen\": [\n"))) { e in
+            XCTAssertTrue("\(e)".contains("spridning"), "\(e)")                 // METOD M44
+        }
     }
 
     func testSwayVidToppen() throws {
         let f = try fel("sway_topp")
-        let fall: [(Double, Bedomningsstatus)] = [(3, .gron), (0, .gron), (-0.1, .gul), (-5, .gul), (-5.01, .rod)]
+        // BESLUT B45: grönt från −2,5 cm (tour −1,5 med driver, 0,0 med järn).
+        let fall: [(Double, Bedomningsstatus)] = [(3, .gron), (0, .gron), (-1.5, .gron), (-2.5, .gron), (-2.6, .gul),
+                                                  (-5, .gul), (-5.01, .rod)]
         for (v, status) in fall {
             XCTAssertEqual(Bedomare.bedom(f, varde: v, baslinje: []).status, status, "\(v)")
         }
@@ -161,7 +190,7 @@ final class KatalogTests: XCTestCase {
     }
 
     func testBaslinjen() throws {
-        let f = try fel("early_extension")                  // samre "+"
+        let f = try fel("tappad_hallning")                  // samre "+", egen baslinje
         let bas = (0...8).map { Double($0) }                // median 4, spridning 4/1,349
         let spr = 4.0 / 1.349
         XCTAssertEqual(Bedomare.bedom(f, varde: 4 + 0.5 * spr, baslinje: bas).status, .gron)
@@ -190,5 +219,33 @@ final class KatalogTests: XCTestCase {
         }
         // Kvittot: passet prövar flera utfall, inte bara grönt.
         XCTAssertGreaterThanOrEqual(Set(b.map { $0.status }).count, 4)
+    }
+
+    /// Spridningen mellan slagen per pass, som Python (METOD M44, BESLUT B12).
+    func testSpridningenSomPython() throws {
+        let py = try avkoda(PythonSession.self, Fixturer.session)
+        let k = try katalog()
+        var jamforda = 0
+        for (namn, svingar) in [("nu", py.nu), ("forra", py.forra)] {
+            let s = Spridning.pass(k, svingar), p = try XCTUnwrap(py.spridning[namn])
+            XCTAssertEqual(s.map(\.matt), p.map(\.matt), namn)
+            XCTAssertEqual(s.map(\.n), p.map(\.n), namn)
+            for (a, b) in zip(s, p) {
+                XCTAssertEqual(a.varde == nil, b.varde == nil, "\(namn) \(a.matt)")
+                if let x = a.varde, let y = b.varde {
+                    XCTAssertEqual(x, y, accuracy: 1e-9, "\(namn) \(a.matt)")
+                    jamforda += 1
+                }
+            }
+        }
+        XCTAssertEqual(jamforda, 4)
+        // Under åtta svingar: inget tal, men det verkliga antalet (METOD M44).
+        let tva = [SvingMatt(vy: .dtl, matt: ["brost_bojning_traff": 30]), SvingMatt(vy: .dtl, matt: ["brost_bojning_traff": 31])]
+        XCTAssertNil(Spridning.pass(k, tva)[1].varde)
+        XCTAssertEqual(Spridning.pass(k, tva)[1].n, 2)
+        let sju = [30.0, 31, 32, 33, 34, 35, 36].map { SvingMatt(vy: .dtl, matt: ["brost_bojning_traff": $0]) }
+        XCTAssertNil(Spridning.pass(k, sju)[1].varde)
+        let atta = [30.0, 31, 32, 33, 34, 35, 36, 50].map { SvingMatt(vy: .dtl, matt: ["brost_bojning_traff": $0]) }
+        XCTAssertEqual(Spridning.pass(k, atta)[1].varde!, 3.5 / 1.349, accuracy: 1e-12)    // q1 31,75, q3 35,25
     }
 }

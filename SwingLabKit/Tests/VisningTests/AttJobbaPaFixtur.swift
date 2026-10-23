@@ -17,8 +17,8 @@ enum AttJobbaPaFixtur {
    "matt": "backen_sway_topp",
    "enhet": "cm",
    "nu": -5.7,
-   "spann": [0, null],
-   "markning": "B10",
+   "spann": [-2.5, null],
+   "markning": null,
    "ovning": {
     "id": "kapp_och_fotterna_ihop",
     "text": "Stick in the ground outside the trail hip. Swing to the top and stop: the hip turns, the stick stays put. Then feet together, 3/4 swings.",
@@ -26,7 +26,7 @@ enum AttJobbaPaFixtur {
     "kalla": "katalog",
     "steg": "langsamt_med_foremal"
    },
-   "klart_nar": {"villkor": ">=", "grans": 0, "pa": "forsta_serien", "pass_i_rad": 2},
+   "klart_nar": {"villkor": ">=", "grans": -2.5, "pa": "forsta_serien", "pass_i_rad": 2},
    "foljdfel": [
     {"fel": "reverse_spine", "namn": "Reverse spine: the upper body leans toward the target at the top", "vag": ["sway_topp", "reverse_spine"], "nu": 4.0, "enhet": "°"},
     {"fel": "early_extension", "namn": "Early extension: the pelvis moves toward the ball", "vag": ["sway_topp", "reverse_spine", "early_extension"], "nu": 3.3, "enhet": "cm"},
