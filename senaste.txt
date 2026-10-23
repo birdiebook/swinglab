@@ -1,20 +1,22 @@
-d41494a22efa9a72b73a16b9f645c96500d401d4 s3verktyg 2026-10-23T07:14:57Z run 39916329752
+ddd6fc53d01e5b3da61bf6e7cf4ece19b252f004 s1e 2026-10-23T07:15:24Z run 39916389990
 == swift-release
-GRÖNT: 200 test, 0 fel, 9 s i testerna, bygget 61 s
-Långsammast (av 200):
-      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  KlickTests.testSammaKlickSomPythonIBitar
+RÖTT: 203 test, 3 fel, 8 s i testerna, bygget 57 s
+  fel: MattTests.testNamnenPerVy
+  fel: VisningTests.testS5sExempelGarAttLasa
+Långsammast (av 203):
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  MattTests.testTillaggenMotSportsbox
+      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.2 s  KatalogTests.testKontrollernaSomPython
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
       0.2 s  FormatTests.testFixturernaGarAttLasa
       0.1 s  MatningTests.testSammaSomFilformatet
-      0.1 s  MattTests.testDePahittadeFormerna
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
-      0.1 s  VisningTests.testBlockenUrFilerna
+      0.1 s  InspelningTests.testKandaFrekvenserOchAndra
       0.1 s  FlikarTests.testLangdenIPassJson
-      0.1 s  VisningTests.testUtveckling
+      0.1 s  LinkTests.testSerienSparasForeKvittensenOchParasEfterOmstart
+      0.1 s  VardenaTests.testExponeringenLamnarAldrigFormatet
 
