@@ -243,6 +243,40 @@ def forslag_tid(position: str, positioner: dict) -> float | None:
     return p(position)
 
 
+# METOD M45: framifrån går skaftet genom vågrätt mellan positionerna före och efter. Ändarna,
+# vinkeln som är vågrätt (M46: 180 = bort från målet, 0 = mot målet) och åt vilket håll
+# vinkeln går i den speglade bilden: baksvingen medurs (minskar), nedsvingen moturs (ökar).
+SKAFT_VAGRATT = {"P2": ("P1", "P3", 180.0, -1.0), "P6": ("P5", "P7", 180.0, 1.0), "P8": ("P7", "P9", 0.0, 1.0)}
+
+
+def forslag_tid_skaft(position: str, marks: list[dict], x_tecken: float) -> float | None:
+    """Framifrån (FO): rutan där skaftets vinkel (M46), linjärt i tiden mellan de markerade
+    positionerna före och efter (P1 och P3 för P2, P5 och P7 för P6, P7 och P9 för P8), går
+    genom vågrätt, s relativt klicket (METOD M45). Vinkeln följer svingens håll (SKAFT_VAGRATT),
+    så att ett varv över ±180° räknas rätt. None när en ände saknas eller är hoppad, när
+    tiderna inte är i ordning, eller när vinkeln inte passerar vågrätt mellan ändarna."""
+    if position not in SKAFT_VAGRATT:
+        return None
+    fore, efter, vagratt, hall = SKAFT_VAGRATT[position]
+    pos = {m["position"]: m for m in marks if m.get("grepp") is not None and m.get("hosel") is not None}
+    if fore not in pos or efter not in pos:
+        return None
+    a, b = pos[fore], pos[efter]
+    ta, tb = float(a["t"]), float(b["t"])
+    if not tb > ta:
+        return None
+    s = float(x_tecken)
+
+    def vinkel(m):
+        return riktning((s * m["grepp"][0], m["grepp"][1]), (s * m["hosel"][0], m["hosel"][1]))
+    va, vb = vinkel(a), vinkel(b)
+    spann = ((vb - va) * hall) % 360.0
+    dit = ((vagratt - va) * hall) % 360.0
+    if not spann > 0 or dit > spann:
+        return None
+    return ta + (tb - ta) * dit / spann
+
+
 # --- flyktpunkten ----------------------------------------------------------------------
 
 def flyktpunkt(pinne, bredd: int, hojd: int) -> tuple[tuple[float, float], bool]:
@@ -402,14 +436,18 @@ YTAFIL = Path(__file__).resolve().parents[2] / "SwingLabKit" / "Tests" / "Captur
 FIXTUR_BREDD, FIXTUR_HOJD = 1080, 2880   # högre bild: greppet vid toppen står över mitten (M48)
 # Påhittade skaft per position: vinkeln grepp → hosel i den speglade bilden (y uppåt) och
 # längden i px. Bakifrån som i bild: P4 60–95 px, P2, P6 och P8 korta (skaftet pekar mot
-# kameran), så att spärren på osäkerheten prövas (M46); framifrån långa.
+# kameran), så att spärren på osäkerheten prövas (M46). Framifrån som i bild: de påhittade
+# svingarna har 400 px/m (0,25 cm/px), och grepp → hosel är 0,80 m (järn 7) = 320 px när
+# skaftet ligger i bildens plan; P2, P6 och P8 (parallellt med mållinjen) 310 px, adressen och
+# träffen (skaftet lutar mot kameran) 285–290 px, P3, P5 och P9 220–240 px och finishen
+# 160 px (METOD M49, 3D-provet).
 SATTA = {
     "dtl": {"P1": (-60.0, 330.0), "P2": (-35.0, 40.0), "P3": (100.0, 150.0), "P4": (-75.0, 80.0),
             "P5": (95.0, 150.0), "P6": (-40.0, 45.0), "P7": (-58.0, 300.0), "P8": (150.0, 35.0),
             "P9": (110.0, 150.0), "P10": (170.0, 120.0)},
-    "fo": {"P1": (-95.0, 430.0), "P2": (175.0, 320.0), "P3": (130.0, 250.0), "P4": (10.0, 260.0),
-           "P5": (100.0, 280.0), "P6": (175.0, 300.0), "P7": (-104.0, 430.0), "P8": (5.0, 310.0),
-           "P9": (80.0, 240.0), "P10": (-20.0, 200.0)},
+    "fo": {"P1": (-95.0, 285.0), "P2": (175.0, 310.0), "P3": (130.0, 220.0), "P4": (10.0, 280.0),
+           "P5": (100.0, 240.0), "P6": (175.0, 310.0), "P7": (-104.0, 290.0), "P8": (5.0, 310.0),
+           "P9": (80.0, 220.0), "P10": (-20.0, 160.0)},
 }
 # En påhittad riktpinne bakifrån (två tryck, bildens pixlar) för fallet dtl (M48).
 FIXTUR_PINNE = ((585.0, 2700.0), (560.0, 2100.0))
@@ -501,6 +539,11 @@ def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd:
             "andrad": "2026-10-23T12:00:00+02:00", "rutor": rutor}
 
 
+def _som_lista(marks: list[dict]) -> list[dict]:
+    return [{"position": m["position"], "t": m["t"], "grepp": list(m["grepp"]) if m["grepp"] else None,
+             "hosel": list(m["hosel"]) if m["hosel"] else None} for m in marks]
+
+
 def fixturer() -> dict:
     """Fallen för Swift: svingen (namnet i Fixturer.swift), markeringarna, riktpinnen och
     Pythons mått och osäkerheter; en fil i version 2 som Swift ska läsa; förslagen till P2,
@@ -511,19 +554,32 @@ def fixturer() -> dict:
         ut, sd = mat(marks, sv.vy, sv.x_tecken, FIXTUR_BREDD, FIXTUR_HOJD, sv, pinne=pinne, med_sd=True)
         fall.append({"sving": namn_, "bredd": FIXTUR_BREDD, "hojd": FIXTUR_HOJD,
                      "pinne": [list(q) for q in pinne] if pinne else None,
-                     "markeringar": [{"position": m["position"], "t": m["t"],
-                                      "grepp": list(m["grepp"]) if m["grepp"] else None,
-                                      "hosel": list(m["hosel"]) if m["hosel"] else None} for m in marks],
-                     "matt": ut, "sd": sd})
+                     "markeringar": _som_lista(marks), "matt": ut, "sd": sd})
     marks, _ = fixtur_markeringar("dtl")
     marks[0] = {**marks[0], "grepp_kalla": "handlederna_bekraftad"}
     fil = fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
     yta = []
-    for utsnitt, u, v in ((None, 0.5, 0.5), ((0.2, 0.1, 0.5, 0.6), 0.25, 0.75), ((0.0, 0.3, 0.9, 0.7), 0.031, 0.969)):
+    # Samma tryck, samma pixel i båda vyerna; framifrån ett utsnitt kring spelaren med plats för
+    # klubban vid toppen och i finishen.
+    for vy, utsnitt, u, v in (("dtl", None, 0.5, 0.5), ("dtl", (0.2, 0.1, 0.5, 0.6), 0.25, 0.75),
+                              ("dtl", (0.0, 0.3, 0.9, 0.7), 0.031, 0.969), ("fo", (0.15, 0.2, 0.7, 0.75), 0.62, 0.18),
+                              ("fo", (0.25, 0.3, 0.5, 0.55), 0.97, 0.03)):
         visad = visad_telefonen(utsnitt, 1080, 1920)
-        yta.append({"utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u, "v": v,
-                    "visad": visad, "punkt": list(yta_till_bild(u, v, visad))})
-    return {"fall": fall, "fil": fil, "yta": yta,
+        yta.append({"vy": vy, "utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u,
+                    "v": v, "visad": visad, "punkt": list(yta_till_bild(u, v, visad))})
+    # Framifrån: förslaget ur skaftets vinkel mellan de markerade positionerna (M45), på de
+    # påhittade svingarna och på ett skaft som inte når vågrätt (inget förslag).
+    skaft = []
+    for namn_ in ("fo", "fo_vanster"):
+        marks, sv = fixtur_markeringar(namn_)
+        for p in SKAFTETS:
+            skaft.append({"position": p, "x_tecken": sv.x_tecken, "markeringar": _som_lista(marks),
+                          "tid": forslag_tid_skaft(p, marks, sv.x_tecken)})
+    kort = [{"position": "P1", "t": -1.2, "grepp": (500.0, 1300.0), "hosel": (480.0, 1585.0)},
+            {"position": "P3", "t": -0.5, "grepp": (380.0, 1100.0), "hosel": (210.0, 1240.0)}]
+    skaft.append({"position": "P2", "x_tecken": 1.0, "markeringar": _som_lista(kort),
+                  "tid": forslag_tid_skaft("P2", kort, 1.0)})
+    return {"fall": fall, "fil": fil, "yta": yta, "forslag_skaft": skaft,
             "forslag": [{"position": p, "positioner": pos, "tid": forslag_tid(p, pos)}
                         for p, pos in (
                             ("P2", {"P1": -1.4, "P3": -0.5, "P4": -0.3}),

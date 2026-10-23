@@ -117,10 +117,108 @@ final class KlubbaMarkeringTests: XCTestCase {
         XCTAssertEqual(n.shownTime(measure: mv, impact: 0), -0.95, accuracy: 1e-12, "P2 mitt mellan P1 och P3")
     }
 
+    /// Framifrån (S7a-FO, BESLUT B56): samma märkning utan riktpinne, och P2 föreslås där
+    /// skaftets vinkel mellan P1 och P3 går genom vågrätt när båda är markerade; annars ur
+    /// kroppens positioner. METOD M45
+    func testFramifranForeslarRutanUrSkaftet() throws {
+        let mv = ShotMeasure(heightM: 1.8, heightAssumed: false, positions: ["P1": -1.2, "P3": -0.4, "P5": -0.1, "P7": 0])
+        var m = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .fo)
+        XCTAssertFalse(m.stickAvailable)
+        XCTAssertTrue(ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil).stickAvailable)
+        func skaft(_ vinkel: Double, _ langd: Double) -> (u: Double, v: Double) {
+            (0.5 + langd * cos(vinkel * .pi / 180) / 1080, 0.6 - langd * sin(vinkel * .pi / 180) / 1920)
+        }
+        // P1 (−95°, 285 px) markerad med två tryck; P3 saknas: förslaget ur kroppens positioner.
+        XCTAssertTrue(m.tap(u: 0.5, v: 0.6, t: -1.2))
+        let h1 = skaft(-95, 285)
+        XCTAssertTrue(m.tap(u: h1.u, v: h1.v, t: -1.2))
+        XCTAssertEqual(m.position, "P2")
+        XCTAssertEqual(m.shownTime(measure: mv, impact: 0), -0.8, accuracy: 1e-12, "P3 saknas: mitt mellan P1 och P3")
+        // P2 hoppas, P3 (130°, 220 px) markeras, och tillbaka till P2: P2:s hoppade ruta visas.
+        m.skip(t: -0.8)
+        XCTAssertTrue(m.tap(u: 0.5, v: 0.6, t: -0.4))
+        let h3 = skaft(130, 220)
+        XCTAssertTrue(m.tap(u: h3.u, v: h3.v, t: -0.4))
+        m.go(to: "P2")
+        XCTAssertEqual(m.shownTime(measure: mv, impact: 0), -0.8, accuracy: 1e-12, "den sparade rutan går före")
+        // Vinkeln går −95° → −180° → 130° (135° medurs) och är vågrät efter 85°.
+        let vantad = -1.2 + 0.8 * 85.0 / 135.0
+        // Med P3 markerad och P2 omarkerad: förslaget ur skaftet.
+        var n = ClubMarking(existing: [
+            KlubbMarkering(position: "P1", t: -1.2, grepp: KlubbPunkt(x: 540, y: 1152),
+                           hosel: KlubbPunkt(x: 540 + 285 * cos(-95 * .pi / 180), y: 1152 - 285 * sin(-95 * .pi / 180))),
+            KlubbMarkering(position: "P3", t: -0.4, grepp: KlubbPunkt(x: 540, y: 1152),
+                           hosel: KlubbPunkt(x: 540 + 220 * cos(130 * .pi / 180), y: 1152 - 220 * sin(130 * .pi / 180))),
+        ], width: 1080, height: 1920, crop: nil, view: .fo)
+        XCTAssertEqual(n.position, "P2")
+        XCTAssertEqual(n.shownTime(measure: mv, impact: 0), vantad, accuracy: 1e-9)
+        // Bakifrån gäller förslaget ur kroppen (skaftet pekar mot kameran där, M45).
+        let d = ClubMarking(existing: n.result, width: 1080, height: 1920, crop: nil, view: .dtl)
+        XCTAssertEqual(d.shownTime(measure: mv, impact: 0), -0.8, accuracy: 1e-12)
+        // En vänsterspelare speglas: samma tid.
+        let speglade = n.result.map { k in
+            KlubbMarkering(position: k.position, t: k.t, grepp: k.grepp.map { KlubbPunkt(x: 1080 - $0.x, y: $0.y) },
+                           hosel: k.hosel.map { KlubbPunkt(x: 1080 - $0.x, y: $0.y) })
+        }
+        let v = ClubMarking(existing: speglade, width: 1080, height: 1920, crop: nil, view: .fo, xTecken: -1)
+        XCTAssertEqual(v.shownTime(measure: mv, impact: 0), vantad, accuracy: 1e-9)
+        n.skip(t: vantad)
+        XCTAssertEqual(n.position, "P3")
+    }
+
+    /// Två parade telefoner (S2g): FO-slagets markerade P2, P6 och P8 blir DTL-markeringens
+    /// förslag på samma tid, förd över med träffens förskjutning, vem som än styr. METOD M45
+    func testDTLForeslarFOTidenMedTvaTelefoner() throws {
+        let klick = [3.0, 9.5, 16.25]
+        func serie(_ vy: Vy, _ forsk: Double, avstand: Double) -> LinkSeries {
+            LinkSeries(series: 1, localSeries: 1, passID: "20261103-180000", startHost: nil, frameRate: 240,
+                       clicks: klick.map { Click(time: $0 + forsk, strength: 1) }, view: vy, distance: avstand)
+        }
+        // DTL styr, FO följer: FO:s fil 0,8 s efter, FO 1,0 m längre från bollen.
+        let dtlStyr = PairEntry.make(lead: serie(.dtl, 0, avstand: 3), follower: serie(.fo, 0.8, avstand: 4),
+                                     followerModel: "iPhone14,5", before: [], after: [])
+        XCTAssertFalse(dtlStyr.uncertain)
+        XCTAssertEqual(ClubPairTime.partner(dtlStyr, view: .dtl, index: 1), 1)
+        XCTAssertEqual(ClubPairTime.partner(dtlStyr, view: .fo, index: 2), 2)
+        XCTAssertNil(ClubPairTime.partner(dtlStyr, view: .dtl, index: 7))
+        let fo = [KlubbMarkering(position: "P2", t: -0.82, grepp: KlubbPunkt(x: 1, y: 1), hosel: KlubbPunkt(x: 300, y: 1)),
+                  KlubbMarkering(position: "P6", t: -0.06, grepp: KlubbPunkt(x: 1, y: 1), hosel: KlubbPunkt(x: 300, y: 1)),
+                  KlubbMarkering(position: "P8", t: 0.3, grepp: nil, hosel: nil, hoppad: true),
+                  KlubbMarkering(position: "P4", t: -0.3, grepp: KlubbPunkt(x: 1, y: 1), hosel: KlubbPunkt(x: 300, y: 1))]
+        let t = ClubPairTime.dtlTimes(fo: fo, foClick: 9.5 + 0.8, dtlClick: 9.5, entry: dtlStyr)
+        XCTAssertEqual(Set(t.keys), ["P2", "P6"], "bara skaftets positioner, inte den hoppade")
+        // Klicket når FO 1/343 s senare än DTL: samma ögonblick ligger 1/343 s tidigare relativt
+        // FO:s klick, så DTL:s tid är FO:s + 1/343 s.
+        XCTAssertEqual(t["P2"] ?? .nan, -0.82 + 1.0 / 343, accuracy: 1e-6)
+        XCTAssertEqual(t["P6"] ?? .nan, -0.06 + 1.0 / 343, accuracy: 1e-6)
+        // FO styr, DTL följer: samma tider.
+        let foStyr = PairEntry.make(lead: serie(.fo, 0.8, avstand: 4), follower: serie(.dtl, 0, avstand: 3),
+                                    followerModel: "iPhone14,5", before: [], after: [])
+        XCTAssertEqual(ClubPairTime.partner(foStyr, view: .dtl, index: 1), 1)
+        let u = ClubPairTime.dtlTimes(fo: fo, foClick: 9.5 + 0.8, dtlClick: 9.5, entry: foStyr)
+        XCTAssertEqual(u["P2"] ?? .nan, t["P2"] ?? 0, accuracy: 1e-9)
+        // DTL-markeringen föreslår den tiden för P2, och kroppens förslag för de andra.
+        let mv = ShotMeasure(heightM: 1.8, heightAssumed: false, positions: ["P1": -1.2, "P3": -0.4])
+        var m = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .dtl)
+        XCTAssertEqual(m.shownTime(measure: mv, impact: 0, paired: t), -1.2)
+        m.skip(t: -1.2)
+        XCTAssertEqual(m.shownTime(measure: mv, impact: 0, paired: t), t["P2"] ?? 0, accuracy: 1e-12)
+        XCTAssertEqual(m.shownTime(measure: mv, impact: 0), -0.8, accuracy: 1e-12, "utan par: kroppens")
+        // Framifrån används inte FO-tiden från ett par (den är ju FO:s egen).
+        var f = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .fo)
+        f.skip(t: -1.2)
+        XCTAssertEqual(f.shownTime(measure: mv, impact: 0, paired: t), -0.8, accuracy: 1e-12)
+        // En osäker parning ger inget par.
+        var osaker = dtlStyr
+        osaker.uncertain = true
+        XCTAssertNil(ClubPairTime.partner(osaker, view: .dtl, index: 1))
+    }
+
     /// Trycken på ytan blir samma pixel som PC:n räknar ur `visad` (KlubbYtaFixturer.swift,
-    /// tools/pc/klubba.py), och det visade utsnittet är samma pixlar. METOD M45
+    /// tools/pc/klubba.py), och det visade utsnittet är samma pixlar, i båda vyerna. METOD M45
     func testTryckenArSammaPixelSomPC() throws {
         struct Yta: Decodable {
+            let vy: Vy
             let utsnitt: [Double]?
             let bredd: Int
             let hojd: Int
@@ -130,10 +228,11 @@ final class KlubbaMarkeringTests: XCTestCase {
             let punkt: [Double]
         }
         let fall = try JSONDecoder().decode([Yta].self, from: Data(KlubbYtaFixturer.json.utf8))
-        XCTAssertEqual(fall.count, 3)
+        XCTAssertEqual(fall.count, 5)
+        XCTAssertEqual(fall.filter { $0.vy == .fo }.count, 2, "framifrån prövas")
         for f in fall {
             let c = f.utsnitt.map { CropRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
-            let m = ClubMarking(existing: nil, width: f.bredd, height: f.hojd, crop: c)
+            let m = ClubMarking(existing: nil, width: f.bredd, height: f.hojd, crop: c, view: f.vy)
             let px = ClubMarking.shownCrop(c).pixels(width: f.bredd, height: f.hojd)
             XCTAssertEqual([px.x, px.y, px.width, px.height], f.visad)
             let p = try XCTUnwrap(m.imagePoint(u: f.u, v: f.v))

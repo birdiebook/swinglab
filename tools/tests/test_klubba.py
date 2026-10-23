@@ -139,12 +139,48 @@ class Mattet(unittest.TestCase):
         self.assertEqual(KL.forslag_tid("P4", pos), -0.3)
         self.assertIsNone(KL.forslag_tid("P3", {**pos, "P3": None}))
 
+    def test_forslaget_ur_skaftet_framifran(self) -> None:
+        """FO: rutan där skaftets vinkel, linjärt i tiden mellan positionerna före och efter, går
+        genom vågrätt (M45), åt svingens håll och över ±180°."""
+        g = (500.0, 1300.0)
+        p1 = _m("P1", g, _vid(g, -95, 285), -1.2)
+        p3 = _m("P3", g, _vid(g, 130, 220), -0.5)
+        # Baksvingen medurs: −95° → −180° → 130° är 135°, vågrätt bort från målet efter 85°.
+        self.assertAlmostEqual(KL.forslag_tid_skaft("P2", [p1, p3], 1.0), -1.2 + 0.7 * 85 / 135, delta=1e-9)
+        # Nedsvingen moturs: P5 100° → 180° → P7 −104° (256°), och P7 → 0° → P9 80°.
+        p5, p7, p9 = (_m("P5", g, _vid(g, 100, 240), -0.1), _m("P7", g, _vid(g, -104, 290), 0.0),
+                      _m("P9", g, _vid(g, 80, 220), 0.3))
+        self.assertAlmostEqual(KL.forslag_tid_skaft("P6", [p5, p7], 1.0), -0.1 + 0.1 * 80 / 156, delta=1e-9)
+        self.assertAlmostEqual(KL.forslag_tid_skaft("P8", [p7, p9], 1.0), 0.3 * 104 / 184, delta=1e-9)
+        # Speglat (vänsterspelare): samma tid.
+        spegel = [{**m, "grepp": (1080 - m["grepp"][0], m["grepp"][1]), "hosel": (1080 - m["hosel"][0], m["hosel"][1])}
+                  for m in (p1, p3)]
+        self.assertAlmostEqual(KL.forslag_tid_skaft("P2", spegel, -1.0), -1.2 + 0.7 * 85 / 135, delta=1e-9)
+        # Inget förslag: en ände saknas eller är hoppad, skaftet når inte vågrätt, tiderna i fel
+        # ordning, eller en position som inte är skaftets.
+        self.assertIsNone(KL.forslag_tid_skaft("P2", [p1], 1.0))
+        self.assertIsNone(KL.forslag_tid_skaft("P2", [p1, {**p3, "grepp": None, "hosel": None}], 1.0))
+        self.assertIsNone(KL.forslag_tid_skaft("P2", [p1, _m("P3", g, _vid(g, -150, 220), -0.5)], 1.0))
+        self.assertIsNone(KL.forslag_tid_skaft("P2", [p1, {**p3, "t": -1.3}], 1.0))
+        self.assertIsNone(KL.forslag_tid_skaft("P4", [p1, p3], 1.0))
+        # De påhittade svingarna: förslaget ligger mellan ändarna och nära rutan där skaftet satts.
+        marks, sv = KL.fixtur_markeringar("fo")
+        t = {m["position"]: m["t"] for m in marks}
+        for p, (a, b) in (("P2", ("P1", "P3")), ("P6", ("P5", "P7")), ("P8", ("P7", "P9"))):
+            f = KL.forslag_tid_skaft(p, marks, sv.x_tecken)
+            self.assertTrue(t[a] < f < t[b], p)
+
     def test_telefonens_tryck_ar_samma_pixel(self) -> None:
-        """Ett tryck på telefonens yta blir samma pixel som PC:n räknar ur `visad` (M45)."""
+        """Ett tryck på telefonens yta blir samma pixel som PC:n räknar ur `visad` (M45), i
+        båda vyerna: fixturerna har tryck på en FO-yta som SwingLabKit prövar."""
         self.assertEqual(KL.visad_telefonen(None, 1080, 1920), [0, 0, 1080, 1920])
         v = KL.visad_telefonen((0.2, 0.1, 0.5, 0.6), 1080, 1920)
         self.assertEqual(v, [135, 19, 702, 1498])
         self.assertEqual(KL.yta_till_bild(0.0, 1.0, v), (135.0, 19.0 + 1498.0))
+        fo = [y for y in KL.fixturer()["yta"] if y["vy"] == "fo"]
+        self.assertEqual(len(fo), 2)
+        self.assertEqual(fo[0]["visad"], [48, 168, 984, 1752])
+        self.assertEqual(fo[0]["punkt"], [48 + 0.62 * 984, 168 + 0.18 * 1752])
 
 
 class Formatet(unittest.TestCase):
@@ -307,6 +343,7 @@ class SwiftFixturerna(unittest.TestCase):
         self.assertEqual(data["fil"], ny["fil"])
         self.assertEqual(data["forslag"], ny["forslag"])
         self.assertEqual(data["yta"], ny["yta"])
+        self.assertEqual(data["forslag_skaft"], ny["forslag_skaft"])
         self.assertEqual(KL.YTAFIL.read_text(encoding="utf-8"), KL.swift_yta())
         for a, b in zip(data["fall"], ny["fall"], strict=True):
             self.assertEqual(a["markeringar"], b["markeringar"])

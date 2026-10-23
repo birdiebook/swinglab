@@ -10,9 +10,9 @@ import Capture
 /// dess linjer streckade), en växel som döljer dem, positionsraden P1–P10 som hoppar dit,
 /// och under videon slagets mått vid positionen. Menyn märker slaget "Detection wrong"
 /// (räknas inte i passets mått, går att ångra). B13: ingen figur, ingen förklarande text.
-/// Menyn öppnar också "Mark club" (S7a, bakifrån): klubban markeras för hand per position
-/// (`ClubMarkContent`), och det som är markerat syns som en tunn linje i rutan. METOD MS14,
-/// MS15, M45
+/// Menyn öppnar också "Mark club" (S7a, bakifrån och framifrån, BESLUT B47, B56): klubban
+/// markeras för hand per position (`ClubMarkContent`), och det som är markerat syns som en tunn
+/// linje i rutan. METOD MS14, MS15, M45
 struct ShotReviewView: View {
     let passID: String
     let shotID: String
@@ -57,7 +57,8 @@ struct ShotReviewView: View {
                     ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) },
                                     loupe: { LoupeImage(image: loupeImage?.frame == frame ? loupeImage?.image : nil, crop: $0) },
                                     marking: m, time: timeText(review, shot), ring: ring(review),
-                                    stick: stickMode ? stickPoints : (pass?.riktpinne(series: shot.series) ?? []),
+                                    stick: !m.stickAvailable ? [] : stickMode ? stickPoints
+                                        : (pass?.riktpinne(series: shot.series) ?? []),
                                     stickMode: stickMode, onTap: tapped, onMove: { g, u, v in change { $0.move(g, u: u, v: v) } },
                                     onStep: markingStep, onUndo: { change { $0.undo() } },
                                     onSkip: { change { $0.skip(t: review.frames[frame].t) } },
@@ -92,7 +93,7 @@ struct ShotReviewView: View {
                                   shaft: review.shaft(frame, marks: shot.klubba),
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
-                                  onMarkClub: pass.setup.view == .dtl ? startMarking : nil)
+                                  onMarkClub: startMarking)
                         .padding(.vertical, 8)
                 }
             } else {
@@ -238,13 +239,15 @@ struct ShotReviewView: View {
         return Tal.tecken(r.frames[frame].t - (s.impact - s.click.time), decimaler: 3) + " s"
     }
 
-    /// "Mark club": märkningen börjar på den första positionen utan markering. METOD M45
+    /// "Mark club": märkningen börjar på den första positionen utan markering, i passets vy
+    /// (framifrån utan riktpinne, P2/P6/P8 ur skaftets vinkel, BESLUT B56). METOD M45
     private func startMarking() {
-        guard let review, let shot else { return }
+        guard let review, let shot, let pass else { return }
         pause()
-        let serie = pass?.series.first { $0.nr == shot.series }
+        let serie = pass.series.first { $0.nr == shot.series }
         marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
-                              crop: serie?.activeCrop)
+                              crop: serie?.activeCrop, view: pass.setup.view,
+                              xTecken: pass.setup.hand == .hoger ? 1 : -1)
         seekToPosition()
     }
 
@@ -415,7 +418,7 @@ struct ReviewContent<Surface: View>: View {
     var onPosition: (String) -> Void = { _ in }
     var onOverlay: () -> Void = {}
     var onDetectionWrong: (Bool) -> Void = { _ in }
-    /// "Mark club" i menyn (S7a); nil = inte i den här vyn (framifrån väntar, PLAN S7a).
+    /// "Mark club" i menyn (S7a, båda vyerna); nil = ingen märkning (provets bilder).
     var onMarkClub: (() -> Void)? = nil
 
     /// Videons höjd i punkter; bredden följer utsnittets proportioner.

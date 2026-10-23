@@ -89,10 +89,12 @@ final class SwingLabProvPaket: XCTestCase {
 
     /// Påhittade markeringar av klubban (S7a) på ett slags leder: greppet vid handledernas mitt,
     /// hoseln längs en satt vinkel, vid P1, P4, P5, P6 och P7 (rutor ur tiderna), P8 hoppad.
+    /// Skaften är så långa som framifrån i provets bild 270 × 480 (grepp → hosel 0,80 m = 80 px
+    /// i bildens plan, SwingLabProvKlubba.sattaFO, METOD M49).
     static func markeringar(_ j: JointSeries) -> [KlubbMarkering] {
-        let satta: [(String, Double, Double, Double)] = [("P1", -1.2, -95, 140), ("P4", -0.3, 10, 120),
-                                                         ("P5", -0.12, 100, 120), ("P6", -0.05, 170, 120),
-                                                         ("P7", -0.01, -104, 140)]
+        let satta: [(String, Double, Double, Double)] = [("P1", -1.2, -95, 72), ("P4", -0.3, 10, 72),
+                                                         ("P5", -0.12, 100, 70), ("P6", -0.05, 170, 78),
+                                                         ("P7", -0.01, -104, 74)]
         var ut = satta.compactMap { (p, t, vinkel, langd) -> KlubbMarkering? in
             guard let f = j.frames.min(by: { abs($0.t - t) < abs($1.t - t) }) else { return nil }
             let h = [f.joints[5], f.joints[6]].compactMap { $0 }

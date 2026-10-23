@@ -1,8 +1,8 @@
 import Foundation
 import Swing
 
-/// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, METOD M45): Johannes går igenom
-/// P1–P10 i ordning, trycker på greppet (eller på ringen ur handlederna) och sedan på hoseln,
+/// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B56, METOD M45), bakifrån och
+/// framifrån: Johannes går igenom P1–P10 i ordning, trycker på greppet (eller på ringen ur handlederna) och sedan på hoseln,
 /// och positionen sparas av sig själv med rutans tid från första trycket. Han kan flytta en
 /// punkt, ångra eller hoppa över en position där klubban inte syns. Allt som avgör vad ett
 /// tryck blir bor här och prövas på Linux; App/ ritar ytan och förstoringsglaset.
@@ -52,6 +52,10 @@ public struct ClubMarking: Equatable, Sendable {
 
     public let width: Int
     public let height: Int
+    /// Vyn: P2, P6 och P8 föreslås olika (METOD M45), och riktpinnen hör bara till DTL (M48).
+    public let view: Vy
+    /// +1 eller −1: bildens x mot målet (FO) eller bollen (DTL), spelhanden (M1).
+    public let xTecken: Double
     /// Det visade utsnittet (`shownCrop`, på hela pixlar).
     public let crop: CropRect
     /// Positionen som märks nu (index i `order`); `order.count` = klar.
@@ -78,9 +82,12 @@ public struct ClubMarking: Equatable, Sendable {
 
     /// Märkningen av ett slag; `existing` = slagets markeringar. Börjar på den första
     /// positionen som saknar en markering (alla klara: P1).
-    public init(existing: [KlubbMarkering]?, width: Int, height: Int, crop: CropRect?) {
+    public init(existing: [KlubbMarkering]?, width: Int, height: Int, crop: CropRect?, view: Vy = .dtl,
+                xTecken: Double = 1) {
         self.width = width
         self.height = height
+        self.view = view
+        self.xTecken = xTecken
         self.crop = Self.shownCrop(crop).snapped(width: width, height: height)
         let m = Dictionary((existing ?? []).map { ($0.position, $0) }, uniquingKeysWith: { _, b in b })
         marks = m
@@ -279,11 +286,25 @@ public struct ClubMarking: Equatable, Sendable {
         frameT = s.frameT
     }
 
+    /// Riktpinnen (två tryck på en pinne längs mållinjen) gäller bara bakifrån. METOD M48
+    public var stickAvailable: Bool { view == .dtl }
+
     /// Rutans tid att visa för positionen: punkternas ruta, annars markeringens, annars
-    /// förslaget ur kroppens positioner (METOD M45, samma som PC:n), annars träffen.
-    public func shownTime(measure: ShotMeasure?, impact: Double) -> Double {
-        frameT ?? marks[position]?.t
-            ?? measure.flatMap { Klubba.forslagTid(position, positioner: $0.positions) } ?? impact
+    /// förslaget (`suggestedTime`), annars träffen.
+    public func shownTime(measure: ShotMeasure?, impact: Double, paired: [String: Double] = [:]) -> Double {
+        frameT ?? marks[position]?.t ?? suggestedTime(measure: measure, paired: paired) ?? impact
+    }
+
+    /// Förslaget till positionens ruta (METOD M45): för P2, P6 och P8 framifrån rutan där
+    /// skaftets vinkel mellan de markerade positionerna före och efter går genom vågrätt
+    /// (`Klubba.forslagTidSkaft`), bakifrån FO-slagets tid med två parade telefoner (`paired`,
+    /// `ClubPairTime`); annars kroppens positioner (samma som PC:n).
+    public func suggestedTime(measure: ShotMeasure?, paired: [String: Double] = [:]) -> Double? {
+        if Klubba.skaftets.contains(position) {
+            if view == .fo, let t = Klubba.forslagTidSkaft(position, marks: result, xTecken: xTecken) { return t }
+            if view == .dtl, let t = paired[position] { return t }
+        }
+        return measure.flatMap { Klubba.forslagTid(position, positioner: $0.positions) }
     }
 
     /// Tiden på hela sekunder, som pass.json sparar den (ISO 8601), så att en markering är
@@ -293,5 +314,38 @@ public struct ClubMarking: Equatable, Sendable {
     /// Senaste ändringen bland markeringarna, för paketets `andrad`.
     public static func lastChange(_ marks: [KlubbMarkering]?) -> Date? {
         marks?.compactMap(\.andrad).max()
+    }
+}
+
+
+/// P2, P6 och P8 bakifrån ur FO-slaget med två parade telefoner (S2g, METOD M45): framifrån
+/// syns "parallellt med marken" direkt, så DTL-markeringens förslag är FO-markeringens tid,
+/// förd över med parningens förskjutning. Tiderna i markeringarna är s relativt varje telefons
+/// eget klick; filtiderna hänger ihop genom träffens förskjutning (`PairEntry.hitOffset`,
+/// följarens filtid = den styrandes + den, METOD MS6), så att ljudets olika väg till
+/// telefonerna inte flyttar tiden.
+public enum ClubPairTime {
+    /// Klicket i den andra telefonens serie som parades med klicket `index` i den här
+    /// telefonens serie, eller nil (inte parat, eller parningen osäker). `view` = den här
+    /// telefonens vy; den styrandes klick är `a` i parningen, följarens `b`.
+    public static func partner(_ entry: PairEntry, view: Vy, index: Int) -> Int? {
+        guard !entry.uncertain else { return nil }
+        let foljare = entry.follower.view == view
+        return entry.pairing.pairs.first { (foljare ? $0.b : $0.a) == index }.map { foljare ? $0.a : $0.b }
+    }
+
+    /// FO-markeringarnas P2, P6 och P8 som tider för DTL-slaget, s relativt DTL-klicket.
+    /// `foClick` och `dtlClick` = de parade klickens tid i var sin fil; `entry` = parningen
+    /// (vilken telefon som styr står i `entry.follower.view`). Hoppade och osatta positioner
+    /// tas inte med.
+    public static func dtlTimes(fo: [KlubbMarkering], foClick: Double, dtlClick: Double,
+                                entry: PairEntry) -> [String: Double] {
+        // Följarens filtid = den styrandes + hitOffset.
+        let foTillDtl = entry.follower.view == .fo ? -entry.hitOffset : entry.hitOffset
+        var ut: [String: Double] = [:]
+        for m in fo where Klubba.skaftets.contains(m.position) && m.markerad {
+            ut[m.position] = foClick + m.t + foTillDtl - dtlClick
+        }
+        return ut
     }
 }

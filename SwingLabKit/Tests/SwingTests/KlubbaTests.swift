@@ -27,7 +27,14 @@ private struct Fixtur: Decodable {
         let positioner: [String: Double?]
         let tid: Double?
     }
+    struct Skaft: Decodable {
+        let position: String
+        let x_tecken: Double
+        let markeringar: [Fall.M]
+        let tid: Double?
+    }
     struct Yta: Decodable {
+        let vy: String
         let utsnitt: [Double]?
         let bredd: Int
         let hojd: Int
@@ -39,6 +46,7 @@ private struct Fixtur: Decodable {
     let fall: [Fall]
     let fil: KlubbFil
     let forslag: [Forslag]
+    let forslag_skaft: [Skaft]
     let yta: [Yta]
 }
 
@@ -84,6 +92,23 @@ final class KlubbaTests: XCTestCase {
             let pos = c.positioner.compactMapValues { $0 }
             let t = Klubba.forslagTid(c.position, positioner: pos)
             if let v = c.tid { XCTAssertEqual(t ?? .nan, v, accuracy: 1e-12, c.position) } else { XCTAssertNil(t) }
+        }
+    }
+
+    /// Framifrån: rutan där skaftets vinkel mellan positionerna före och efter går genom vågrätt
+    /// (METOD M45), samma tid som Python; ingen när en ände saknas eller vinkeln inte når dit.
+    func testForslagetUrSkaftetFramifran() throws {
+        let fall = try fixtur().forslag_skaft
+        XCTAssertEqual(fall.count, 7)
+        XCTAssertGreaterThanOrEqual(fall.filter { $0.tid == nil }.count, 2)
+        for c in fall {
+            let marks = c.markeringar.map { m in
+                KlubbMarkering(position: m.position, t: m.t, grepp: m.grepp.map { KlubbPunkt(x: $0[0], y: $0[1]) },
+                               hosel: m.hosel.map { KlubbPunkt(x: $0[0], y: $0[1]) },
+                               hoppad: m.grepp == nil ? true : nil)
+            }
+            let t = Klubba.forslagTidSkaft(c.position, marks: marks, xTecken: c.x_tecken)
+            if let v = c.tid { XCTAssertEqual(t ?? .nan, v, accuracy: 1e-9, c.position) } else { XCTAssertNil(t, c.position) }
         }
     }
 

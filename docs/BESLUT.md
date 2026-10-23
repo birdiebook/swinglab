@@ -1151,3 +1151,41 @@ B47 och s6c börjar på B48.
   är prövat (simulatorn har ingen Claude-app). Efter 600 s är texten borta ur urklippet och
   Ask får tryckas igen.
 - **Omprövas:** efter telefonprovet med Claude-appen på rangen.
+
+## B56 — Klubban framifrån i appen: samma märkning, ingen riktpinne, P2/P6/P8 ur skaftets vinkel
+*2026-10-23 · prövas · PLAN.md S7a · METOD M45, M46, M49 · Johannes beställning (S7a-FO)*
+
+- **Valt:** "Mark club" i granskningen också för FO-serier, med samma flöde som bakifrån (B47):
+  grepp och hosel vid P1–P10 med förstoringsglaset (3 ×), ringen ur handlederna som greppets
+  förslag, sparning av sig själv när hoseln satts, ångra och positionsraden. `ClubMarking`
+  bär vyn och spelhanden. Riktpinnen visas inte framifrån: där ligger mållinjen i bildens plan,
+  och inget FO-mått behöver flyktpunkten (M48, M49).
+- **P2, P6 och P8 framifrån** är rutan där skaftet är vågrätt i bild (M45). Förslaget är
+  kroppens (mitt mellan positionerna, som bakifrån) tills ändarna är markerade; när P1 och P3
+  (P5 och P7, P7 och P9) är markerade föreslås rutan där skaftets vinkel, linjärt i tiden
+  mellan dem, går genom vågrätt, åt svingens håll (`Klubba.forslagTidSkaft`,
+  `klubba.forslag_tid_skaft`, samma tal i Python och Swift, B12). Ordningen P1–P10 är
+  densamma, så förslaget ur skaftet gäller när Johannes går tillbaka till en position eller
+  märker om ett slag.
+- **Två parade telefoner:** M45 tar DTL:s P2/P6/P8 ur FO-serien. Logiken finns i SwingLabKit
+  (`ClubPairTime`: det parade klicket ur `par.json`:s parning och FO-markeringens tid förd
+  över med träffens förskjutning, MS6), och `ClubMarking` föreslår den tiden bakifrån. **Inte
+  inkopplat i appen:** FO-telefonens markeringar finns bara på FO-telefonen, och ingen väg för
+  dem till DTL-telefonen finns än (länken bär bara serierna och klicken, B21–B22). PC:n
+  märker inte P-positioner (B44), så förslaget prövas bara i Swift.
+- **Uppställningen framifrån:** "Facing the player, at hip height, aimed square to the target
+  line" (appens uppställning, String Catalog, B33). Mätt i 3D (M49): höjden flyttar casting
+  2,3° per 0,2 m och sidoläget längs mållinjen casting 1,6° och skaftlutningen 0,7° per
+  0,1 m, medan vridningen på plats flyttar varje mått högst 0,2° per grad. Alla FO-mått har
+  egen baslinje, så det som räknas är att uppställningen är densamma pass mot pass.
+- **Bortvalt:** att ta P2 framifrån ur kroppens tider även när ändarna är markerade (skaftets
+  vinkel säger mer om just den svingen), en annan märkordning framifrån (P1, P3, P2 …) som
+  hade gett förslaget ur skaftet varje gång men bryter "P1–P10 i ordning" (B47), riktpinnen
+  framifrån, och att skicka markeringarna mellan telefonerna i det här steget (ett nytt
+  meddelande på länken eller en import av paketet, prövas inte utan två telefoner).
+- **Kostnad:** samma 26–35 tryck per sving som bakifrån (M45), utan riktpinnens två.
+  Kamerans rullning går 1:1 in i skaftets vinkel, toppen och skaftlutningen (inte i casting);
+  lodlinjen (MS17) rättar den inte än.
+- **Omprövas:** när Johannes markerat FO-svingar på telefonen (förslagets avstånd i rutor till
+  den ruta han valde), när två telefoner används på riktigt (vägen för FO:s markeringar), och
+  när lodlinjen rättar rullningen.

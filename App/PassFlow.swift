@@ -116,6 +116,11 @@ struct SetupView: View {
                     Text("On the hands' line, at hand height, aimed along the target line")
                         .typsnitt(13)
                         .foregroundStyle(Theme.secondary)
+                } else {
+                    // Uppställningen framifrån: mitt för spelaren, vinkelrätt mot mållinjen (METOD M49).
+                    Text("Facing the player, at hip height, aimed square to the target line")
+                        .typsnitt(13)
+                        .foregroundStyle(Theme.secondary)
                 }
                 Picker("Hand", selection: $setup.hand) {
                     Text("Right").tag(Hand.hoger)

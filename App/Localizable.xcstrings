@@ -419,6 +419,17 @@
         }
       }
     },
+    "Facing the player, at hip height, aimed square to the target line": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facing the player, at hip height, aimed square to the target line"
+          }
+        }
+      }
+    },
     "Finish": {
       "extractionState": "manual",
       "localizations": {

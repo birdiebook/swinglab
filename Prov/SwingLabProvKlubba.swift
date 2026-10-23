@@ -1,4 +1,5 @@
-// SIMULATORPROVET FÖR KLUBBANS MÄRKNING (PLAN S7a, BESLUT B47, METOD M45–M49).
+// SIMULATORPROVET FÖR KLUBBANS MÄRKNING (PLAN S7a, BESLUT B47, B56, METOD M45–M49), bakifrån och
+// framifrån (testMarkeraKlubbanFramifran).
 //
 // Vad som bevisas här, på provets PÅHITTADE film och PÅHITTADE leder (SwingDemo:s DTL-sving;
 // inga riktiga svingar, CLAUDE.md: Dataregeln):
@@ -209,6 +210,151 @@ final class SwingLabProvKlubba: XCTestCase {
         }
         try rita(PassScreenContent(pass: last, visning: v, images: bilder, overlays: linjer, analysis: AnalysisState(),
                                    editable: false), "klubba-passet")
+    }
+
+    /// Satta skaft framifrån (S7a-FO, BESLUT B56): vinkeln grepp → hosel (grader, y uppåt, +X mot
+    /// målet) och längden i px i bilden 270 × 480, som de påhittade svingarna (1080 × 1920,
+    /// 400 px/m) skalade en fjärdedel: grepp → hosel 0,80 m är 80 px i bildens plan, P2, P6 och
+    /// P8 78 px, adressen och träffen 72–74 px (skaftet lutar mot kameran), P3 och P9 62 px och
+    /// finishen 45 px (METOD M49). Finishen är för kort för spärren (M46).
+    static let sattaFO: [String: (Double, Double)] = [
+        "P1": (-95, 72), "P2": (178, 78), "P3": (130, 62), "P4": (10, 72), "P5": (100, 70),
+        "P6": (178, 78), "P7": (-104, 74), "P8": (2, 78), "P9": (80, 62), "P10": (-20, 45)]
+
+    /// Framifrån: ett FO-pass märks genom appens logik utan riktpinne; P2, P6 och P8 tas efter
+    /// ändarna och föreslås där skaftets vinkel går genom vågrätt (METOD M45); måtten ur M49;
+    /// bilderna klubba-fo-granskning (träffen med skaftlinjen) och klubba-fo-markera (P6 med
+    /// glaset och utan riktpinnen).
+    func testMarkeraKlubbanFramifran() async throws {
+        let rot = try tmp("klubba-fo-\(UUID().uuidString)")
+        let store = Store(root: rot, exportFolder: rot.appending(path: "Export"))
+        var pass = store.newPass(setup: PassSetup(view: .fo, club: "j7", distance: 3, hand: .hoger),
+                                 at: Date(timeIntervalSince1970: 1_792_848_612))
+        let fil = PassState.videoPath(nr: 1)
+        let film = store.url(fil, in: pass.id)
+        try await SyntheticMovie.write(to: film, sound: .lpcm, seconds: 8.2, flashes: Self.klick)
+        let serie = try await SeriesMaker.make(url: film, nr: 1, file: fil, source: .recording, club: "j7",
+                                               start: pass.created, startHost: nil, microphone: nil)
+        XCTAssertEqual(serie.clicks.count, 2)
+        pass.series.append(serie)
+        pass.syncShots()
+        var leder: [String: JointSeries] = [:]
+        for i in pass.shots.indices {
+            let s = pass.shots[i]
+            pass.shots[i].verdict = .swing
+            let j = SwingLabProvPaket.leder(DemoSving.fo(sway: (-6, 6, 14)), klick: s.click.time,
+                                            ljudet: pass.setup.soundDelay, width: serie.uprightWidth,
+                                            height: serie.uprightHeight)
+            leder[s.id] = j
+            pass.shots[i].joints = try store.writeJoints(j, shot: s.id, in: pass.id)
+            pass.shots[i].jointFrames = j.frames.count
+        }
+        store.save(pass)
+        pass = store.measured(try XCTUnwrap(store.load(pass.id)))
+        XCTAssertTrue(pass.shots.allSatisfy { $0.measure?.ok == true }, "båda mätta")
+
+        // 1. Märkningen av slag 1 framifrån, ändarna före P2, P6 och P8.
+        let s1 = pass.shots[0]
+        let j1 = try XCTUnwrap(leder[s1.id])
+        let review = ShotReview(series: j1, crop: serie.activeCrop)
+        var m = ClubMarking(existing: s1.klubba, width: review.width, height: review.height, crop: serie.activeCrop,
+                            view: .fo, xTecken: 1)
+        XCTAssertFalse(m.stickAvailable, "riktpinnen bara bakifrån")
+        var tryck = 0
+        var satt: [String: Double] = [:]
+        for p in ["P1", "P3", "P2", "P4", "P5", "P7", "P6", "P9", "P8", "P10"] {
+            m.go(to: p)
+            XCTAssertEqual(m.position, p)
+            let ts = m.shownTime(measure: s1.measure, impact: s1.impact - s1.click.time)
+            if Klubba.skaftets.contains(p) {
+                let ur = try XCTUnwrap(Klubba.forslagTidSkaft(p, marks: m.result, xTecken: 1), "\(p): ändarna är markerade")
+                XCTAssertEqual(ts, ur, accuracy: 1e-12, "\(p): förslaget ur skaftet")
+                let kropp = try XCTUnwrap(Klubba.forslagTid(p, positioner: s1.measure?.positions ?? [:]))
+                print(String(format: "PROV: framifrån %@ föreslås %.4f s ur skaftet (kroppens mitt %.4f s)", p, ts, kropp))
+            }
+            let k = try XCTUnwrap(review.index(nearestT: ts))
+            let tk = review.frames[k].t
+            let (vinkel, langd) = try XCTUnwrap(Self.sattaFO[p])
+            let f = review.frames[k].joints
+            let h = [f[5], f[6]].compactMap { $0 }
+            let ring = KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
+            // P1: greppet ur ringen; övriga ett fritt tryck ovanför ringen (skaftet når kanten åt
+            // sidan vid P8 och i finishen).
+            let g = p == "P1" ? ring : KlubbPunkt(x: ring.x, y: ring.y - 16)
+            let hosel = KlubbPunkt(x: g.x + langd * cos(vinkel * .pi / 180), y: g.y - langd * sin(vinkel * .pi / 180))
+            let ug = m.surfacePoint(g), uh = m.surfacePoint(hosel)
+            XCTAssertTrue(m.tap(u: ug.u, v: ug.v, t: tk, ring: ring), "\(p): greppet")
+            XCTAssertEqual(m.gripSource, p == "P1" ? Klubba.kallaRing : Klubba.kalla, p)
+            XCTAssertTrue(m.tap(u: uh.u, v: uh.v, t: tk), "\(p): hoseln")
+            XCTAssertNotNil(m.marks[p], "\(p): sparad av sig själv")
+            tryck += 2
+            satt[p] = tk
+        }
+        XCTAssertEqual(m.result.map(\.position), Klubba.positioner)
+        print("PROV: klubban framifrån: \(tryck) tryck för P1–P10 utan steg, ingen riktpinne")
+        pass.setClubMarks(m.result, shot: s1.id, joints: j1)
+        store.save(pass)
+        let last = try XCTUnwrap(store.load(pass.id))
+        XCTAssertEqual(last.shots[0].klubba, m.result, "markeringarna står i pass.json")
+
+        // 2. Måtten framifrån (METOD M46, M49) och P2, P6 och P8 som rutorna som valdes.
+        let mv = try XCTUnwrap(last.shots[0].measure)
+        for (p, (vinkel, langd)) in Self.sattaFO {
+            let k = Klubba.nyckel("skaft_vinkel", p)
+            if 2.0.squareRoot() * Klubba.tryckPx / langd * 180 / .pi > Klubba.maxSD {
+                XCTAssertNil(mv.values[k], "\(p): för kort för spärren")
+            } else {
+                XCTAssertEqual(mv.values[k] ?? .nan, vinkel, accuracy: 0.01, p)
+            }
+        }
+        XCTAssertEqual(mv.values["skaft_topp"] ?? .nan, 10, accuracy: 0.01)
+        XCTAssertEqual(mv.values["skaft_lutning_traff"] ?? .nan, 14, accuracy: 0.01)
+        let p5 = try XCTUnwrap(mv.values["skaft_arm_p5"], "casting vid P5")
+        let p6 = try XCTUnwrap(mv.values["skaft_arm_p6"], "casting vid P6")
+        XCTAssertTrue((0.0...180.0).contains(p5) && (0.0...180.0).contains(p6))
+        XCTAssertNil(mv.values["skaftplan_p1"], "bakifrån-måtten finns inte framifrån")
+        XCTAssertNil(mv.klubbaFlyktpunktAntagen, "ingen flyktpunkt framifrån")
+        for p in Klubba.skaftets { XCTAssertEqual(mv.positions[p] ?? .nan, satt[p] ?? 0, accuracy: 1e-9, p) }
+        print("PROV: klubban framifrån P1–P10: " + Klubba.positioner.map { p in
+            "\(p) \(mv.values[Klubba.nyckel("skaft_vinkel", p)].map { String(format: "%.2f", $0) } ?? "–")"
+        }.joined(separator: ", ") + String(format: "; toppen %.2f, armen P5 %.2f, P6 %.2f, lutningen %.2f",
+                                           mv.values["skaft_topp"] ?? .nan, p5, p6, mv.values["skaft_lutning_traff"] ?? .nan))
+
+        // 3. Granskningen vid träffen med skaftlinjen och klubbmåtten under videon.
+        let pos = review.positions(mv)
+        let k7 = try XCTUnwrap(pos.first { $0.name == "P7" }?.index ?? nil)
+        for p in Klubba.skaftets { XCTAssertNotNil(pos.first { $0.name == p }?.index ?? nil, "\(p) går att välja") }
+        let shaft = try XCTUnwrap(review.shaft(k7, marks: last.shots[0].klubba), "skaftlinjen i rutan")
+        let rader = ReviewRows.rows(pass: last, shot: last.shots[0], position: "P7", baseline: [:])
+        XCTAssertTrue(rader.contains { $0.matt == "skaft_lutning_traff" })
+        XCTAssertTrue(rader.contains { $0.matt == "skaft_vinkel_p7" })
+        print("PROV: granskningen framifrån vid P7: \(rader.filter { $0.matt.hasPrefix("skaft") }.map { "\($0.namn) \($0.varde)" })")
+        let still7 = try await XCTUnwrapAsync(try await ShotImages.frame(pass: last, shot: last.shots[0], store: store,
+                                                                          at: review.frames[k7].pts))
+        try rita(ReviewContent(surface: Image(decorative: still7, scale: 1).resizable(), review: review, number: 1,
+                               frame: k7, position: "P7", positions: pos, rows: rader, impact: s1.impact - s1.click.time,
+                               shaft: shaft, editable: false), "klubba-fo-granskning")
+
+        // 4. Märkningsläget för slag 2 vid P6: greppet satt, fingret på hoseln med glaset, ingen
+        // riktpinne.
+        let s2 = last.shots[1]
+        let r2 = ShotReview(series: try XCTUnwrap(leder[s2.id]), crop: serie.activeCrop)
+        var m2 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .fo,
+                             xTecken: 1)
+        for p in ["P1", "P2", "P3", "P4", "P5"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
+        XCTAssertEqual(m2.position, "P6")
+        let k6 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
+        let f6 = r2.frames[k6].joints
+        let g6 = KlubbPunkt(x: ((f6[5]?.x ?? 0) + (f6[6]?.x ?? 0)) / 2 + 20, y: ((f6[5]?.y ?? 0) + (f6[6]?.y ?? 0)) / 2)
+        let ug = m2.surfacePoint(g6)
+        XCTAssertTrue(m2.tap(u: ug.u, v: ug.v, t: r2.frames[k6].t))
+        let (v6, l6) = try XCTUnwrap(Self.sattaFO["P6"])
+        let uh = m2.surfacePoint(KlubbPunkt(x: g6.x + l6 * cos(v6 * .pi / 180), y: g6.y - l6 * sin(v6 * .pi / 180)))
+        let hel = try await fullFrame(store.url(fil, in: last.id), at: r2.frames[k6].pts)
+        let tid = Tal.tecken(r2.frames[k6].t - (s2.impact - s2.click.time), decimaler: 3) + " s"
+        try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
+                                 loupe: { LoupeImage(image: hel, crop: $0) }, marking: m2, time: tid,
+                                 previewTouch: uh), "klubba-fo-markera")
     }
 
     // MARK: Hjälp

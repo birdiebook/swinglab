@@ -112,6 +112,34 @@ public enum Klubba {
         }
     }
 
+    /// Framifrån går skaftet genom vågrätt mellan positionerna före och efter: ändarna, vinkeln
+    /// som är vågrätt (M46: 180 = bort från målet, 0 = mot målet) och vinkelns håll i den
+    /// speglade bilden (baksvingen medurs, nedsvingen moturs). Som `klubba.SKAFT_VAGRATT`. METOD M45
+    public static let skaftVagratt: [String: (fore: String, efter: String, vagratt: Double, hall: Double)] = [
+        "P2": ("P1", "P3", 180, -1), "P6": ("P5", "P7", 180, 1), "P8": ("P7", "P9", 0, 1)]
+
+    /// Framifrån (FO): rutan där skaftets vinkel (M46), linjärt i tiden mellan de markerade
+    /// positionerna före och efter, går genom vågrätt, s relativt klicket (METOD M45). nil när en
+    /// ände saknas eller är hoppad, tiderna inte är i ordning eller vinkeln inte passerar
+    /// vågrätt. Som `klubba.forslag_tid_skaft`.
+    public static func forslagTidSkaft(_ position: String, marks: [KlubbMarkering], xTecken: Double) -> Double? {
+        guard let r = skaftVagratt[position] else { return nil }
+        var pos: [String: KlubbMarkering] = [:]
+        for m in marks where m.grepp != nil && m.hosel != nil { pos[m.position] = m }
+        guard let a = pos[r.fore], let b = pos[r.efter], b.t > a.t else { return nil }
+        func vinkel(_ m: KlubbMarkering) -> Double {
+            riktning(Punkt(xTecken * m.grepp!.x, m.grepp!.y), Punkt(xTecken * m.hosel!.x, m.hosel!.y))
+        }
+        func mod360(_ x: Double) -> Double {
+            let v = x.truncatingRemainder(dividingBy: 360)
+            return v < 0 ? v + 360 : v
+        }
+        let va = vinkel(a), vb = vinkel(b)
+        let spann = mod360((vb - va) * r.hall), dit = mod360((r.vagratt - va) * r.hall)
+        guard spann > 0, dit <= spann else { return nil }
+        return a.t + (b.t - a.t) * dit / spann
+    }
+
     /// Mållinjens flyktpunkt i bild och om den är antagen (METOD M48): där riktpinnens linje
     /// skär bildens vågräta mittlinje, eller bildens mitt (antagen) utan pinne eller med en
     /// nästan vågrät. Som `klubba.flyktpunkt`.
