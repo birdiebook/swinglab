@@ -114,9 +114,14 @@ class AppensPaket(unittest.TestCase):
             self.assertEqual(d["format"], KL.FORMAT)
             for s in p.slag:
                 self.assertEqual([m["position"] for m in s.klubba_markeringar], self.facit["slag"][s.id]["klubba"])
-            klipp = [r["t_klipp"] for r in d["rutor"]]
-            self.assertTrue(all(t is not None for t in klipp) if fil.parent.name == "med-klipp"
-                            else all(t is None for t in klipp))
+            # t_klipp bara när rutan ligger i klippet (FORMAT.md), aldrig utan klipp.
+            slag = {x.id: x for x in p.slag}
+            klipp = [(r["t_klipp"], slag[r["slag"]]) for r in d["rutor"]]
+            if fil.parent.name == "med-klipp":
+                self.assertTrue(any(t is not None for t, _ in klipp))
+                self.assertTrue(all(P.i_klippet(s, t) for t, s in klipp if t is not None))
+            else:
+                self.assertTrue(all(t is None for t, _ in klipp))
             print(f"PAKET: {fil.parent.name} klubba.json: {len(d['rutor'])} rutor lästa av markera_klubba.py och paket.py")
 
     def test_session_py_kor_utan_fel_och_ger_swifts_matt(self) -> None:
