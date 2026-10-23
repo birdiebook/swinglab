@@ -128,16 +128,28 @@ struct ClubMarkContent<Surface: View>: View {
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
     }
 
-    /// Glaset: ytan förstorad kring fingret med ett hårkors där fingret är, ovanför fingret
-    /// (under det nära överkanten). METOD M45
+    /// Glaset: ytan förstorad kring fingret med ett hårkors där fingret är och de satta
+    /// punkterna, bredvid fingret där det inte täcker en satt punkt. METOD M45
     private func loupe(_ t: (u: Double, v: Double), size: CGSize) -> some View {
         let s = Self.loupeSize
         let lc = marking.loupeCrop(u: t.u, v: t.v)
         let cx = (marking.crop.x + t.u * marking.crop.width - lc.x) / lc.width
         let cy = (marking.crop.y + t.v * marking.crop.height - lc.y) / lc.height
         let fx = CGFloat(t.u) * size.width, fy = CGFloat(t.v) * size.height
-        let y = fy - s - 40 >= 0 ? fy - s - 40 : fy + 40
-        let x = min(max(0, fx - s / 2), max(0, size.width - s))
+        // Ovanför fingret, annars under, till vänster eller höger: där glaset ryms och inte
+        // täcker en satt punkt (greppet ligger ofta rakt ovanför hoseln).
+        let satta = [marking.grip, marking.hosel].compactMap { $0 }.map { k -> CGPoint in
+            let l = marking.surfacePoint(k)
+            return CGPoint(x: CGFloat(l.u) * size.width, y: CGFloat(l.v) * size.height)
+        }
+        let kandidater = [CGPoint(x: fx - s / 2, y: fy - s - 40), CGPoint(x: fx - s / 2, y: fy + 40),
+                          CGPoint(x: fx - s - 40, y: fy - s / 2), CGPoint(x: fx + 40, y: fy - s / 2)]
+        func ryms(_ o: CGPoint) -> Bool { o.x >= 0 && o.y >= 0 && o.x + s <= size.width && o.y + s <= size.height }
+        func tacker(_ o: CGPoint) -> Bool {
+            satta.contains { CGRect(x: o.x - 8, y: o.y - 8, width: s + 16, height: s + 16).contains($0) }
+        }
+        let vald = kandidater.first { ryms($0) && !tacker($0) } ?? kandidater.first(where: ryms) ?? kandidater[0]
+        let x = min(max(0, vald.x), max(0, size.width - s)), y = min(max(0, vald.y), max(0, size.height - s))
         return ZStack {
             surface(lc)
             Canvas { c, z in
