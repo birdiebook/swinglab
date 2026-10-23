@@ -1,0 +1,21 @@
+1080f1cb3485274cd1efcde33d8e982bd6312b5f s1d 2026-10-23T06:42:49Z run 39913002646
+== swift-release
+RÖTT: 198 test, 2 fel, 8 s i testerna, bygget 53 s
+  fel: FormatTests.testFixturernaGarAttLasa
+Långsammast (av 198):
+      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.3 s  MattTests.testVarjeSvingGerPythonsTal
+      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.2 s  MatningTests.testSammaSomFilformatet
+      0.2 s  LederTests.testSaknadeLederArOsakert
+      0.2 s  InspelningTests.testRutnatetVidSkurarAvTappadeRutor
+      0.2 s  MattTests.testPositionernaIOrdning
+      0.2 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  MattTests.testTillaggenMotSportsbox
+      0.1 s  MattTests.testDePahittadeFormerna
+      0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
+
