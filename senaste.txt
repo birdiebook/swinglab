@@ -1,20 +1,21 @@
-29d6bd94970407ef504ab8031988ea6742f2aa69 s6c 2026-10-23T12:08:17Z run 39950815440
+a7312b86937601399accea8722c762c819906c62 s7a 2026-10-23T12:09:21Z run 39951001485
 == swift-release
-GRÖNT: 238 test, 0 fel, 23 s i testerna, bygget 65 s
-Långsammast (av 238):
-      4.4 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      4.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.6 s  TreDTests.testTidenForEttPass
-      1.6 s  TreDTests.testUtanBrusSomPythonOchExakt
-      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.7 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.5 s  TreDTests.testSparrenHopparOver
-      0.4 s  TreDTests.testDelstegenSomPython
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+RÖTT: 230 test, 1 fel, 9 s i testerna, bygget 47 s
+  fel: KlubbaTests.testSparrenOchHoppade
+Långsammast (av 230):
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  InspelningTests.testRutnatetTalSkakning
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
+      0.2 s  KatalogTests.testKontrollernaSomPython
+      0.1 s  MatningTests.testPassetsMattOchDetectionWrong
+      0.1 s  VisningTests.testUtvecklingMedBlandadeVyer
+      0.1 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  VisningTests.testUtveckling
+      0.1 s  VisningTests.testUpplasningen
+      0.1 s  PaketTests.testPaketetUrPassetsMapp
 
