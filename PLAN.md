@@ -296,8 +296,10 @@ skillen). TestFlight-vägen via GitHub är bevisad.
 Send to PC och Import focus, två telefoner, flikarna och Me:s längd), S0 på
 hemdatorn, märkta rutor ur riktiga klipp för S7.
 
-**Nästa autonoma:** S6a är byggd på grenen `s6a` (PC: två paket → 3D med
-självkalibrering, trenden utan markörer) och väntar på granskning och landning.
+**S6a landat (PC):** två paket → 3D med självkalibrering per uppställning,
+vridningen och X-factor som trend utan markörer (B37–B39 prövas). Väntar på
+riktiga pass med två telefoner och markörerna; i appen återstår lodlinjen i
+manifestet (B39) och trendvyn (S6b).
 
 ## Idéer — inte planerade
 
