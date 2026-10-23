@@ -214,7 +214,7 @@ public struct ClubMarking: Equatable, Sendable {
         }
         if grip != nil, hosel != nil, let f = frameT {
             marks[position] = KlubbMarkering(position: position, t: f, grepp: grip, hosel: hosel,
-                                             greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: now)
+                                             greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: Self.sekund(now))
         }
         return true
     }
@@ -223,7 +223,7 @@ public struct ClubMarking: Equatable, Sendable {
     private mutating func spara(now: Date) {
         guard let g = grip, let h = hosel, let f = frameT else { return }
         marks[position] = KlubbMarkering(position: position, t: f, grepp: g, hosel: h,
-                                         greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: now)
+                                         greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: Self.sekund(now))
         index += 1
         load()
     }
@@ -253,7 +253,8 @@ public struct ClubMarking: Equatable, Sendable {
     public mutating func skip(t: Double, now: Date = Date()) {
         guard !done else { return }
         history.append(snapshot())
-        marks[position] = KlubbMarkering(position: position, t: t, grepp: nil, hosel: nil, hoppad: true, andrad: now)
+        marks[position] = KlubbMarkering(position: position, t: t, grepp: nil, hosel: nil, hoppad: true,
+                                         andrad: Self.sekund(now))
         index += 1
         load()
     }
@@ -284,6 +285,10 @@ public struct ClubMarking: Equatable, Sendable {
         frameT ?? marks[position]?.t
             ?? measure.flatMap { Klubba.forslagTid(position, positioner: $0.positions) } ?? impact
     }
+
+    /// Tiden på hela sekunder, som pass.json sparar den (ISO 8601), så att en markering är
+    /// densamma när den lästs tillbaka.
+    static func sekund(_ d: Date) -> Date { Date(timeIntervalSince1970: d.timeIntervalSince1970.rounded(.down)) }
 
     /// Senaste ändringen bland markeringarna, för paketets `andrad`.
     public static func lastChange(_ marks: [KlubbMarkering]?) -> Date? {

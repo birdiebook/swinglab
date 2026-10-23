@@ -93,7 +93,7 @@ final class SwingLabProvKlubba: XCTestCase {
             let h = [f[5], f[6]].compactMap { $0 }
             let ring = KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
             // P1: greppet ur ringen (ett tryck på den); övriga ett fritt tryck bredvid handlederna.
-            let g = p == "P1" ? ring : KlubbPunkt(x: ring.x + 2, y: ring.y - 1)
+            let g = p == "P1" ? ring : KlubbPunkt(x: ring.x + 20, y: ring.y - 1)   // utanför ringen
             let hosel = KlubbPunkt(x: g.x + langd * cos(vinkel * .pi / 180), y: g.y - langd * sin(vinkel * .pi / 180))
             let ug = m.surfacePoint(g), uh = m.surfacePoint(hosel)
             XCTAssertTrue(m.tap(u: ug.u, v: ug.v, t: tk, ring: ring), "\(p): greppet")
@@ -102,7 +102,7 @@ final class SwingLabProvKlubba: XCTestCase {
                 XCTAssertFalse(m.tap(u: uh.u, v: uh.v, t: review.frames[k + 1].t), "\(p): hoseln på en annan ruta")
             }
             XCTAssertTrue(m.tap(u: uh.u, v: uh.v, t: tk), "\(p): hoseln")
-            XCTAssertNotEqual(m.position, p, "\(p): sparad av sig själv")
+            XCTAssertTrue(m.done || m.position != p, "\(p): sparad av sig själv")
             tryck += 2
             satt[p] = (g, tk)
         }
