@@ -1,20 +1,20 @@
-c571139e612f111561189ec72ed777732115191b s3verktyg 2026-10-23T08:37:56Z run 39925747292
+0e6871590b693d42d07bdd3079997e50ba191e60 main 2026-10-23T08:45:24Z run 39926682336
 == swift-release
-GRÖNT: 215 test, 0 fel, 8 s i testerna, bygget 59 s
-Långsammast (av 215):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+GRÖNT: 218 test, 0 fel, 8 s i testerna, bygget 61 s
+Långsammast (av 218):
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  MattTests.testVarjeSvingGerPythonsTal
       0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  FormatTests.testFixturernaGarAttLasa
+      0.2 s  MattTests.testVarjeSvingGerPythonsTal
       0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
-      0.2 s  VisningTests.testUtvecklingMedBlandadeVyer
+      0.2 s  KatalogTests.testKontrollernaSomPython
+      0.2 s  InspelningTests.testRutnatetTalSkakning
+      0.2 s  FormatTests.testFixturernaGarAttLasa
+      0.1 s  VisningTests.testMatytanGerMattetsTal
       0.1 s  MatningTests.testSammaSomFilformatet
+      0.1 s  MattTests.testToppfartenVidLuckaOchNaraTraffen
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
-      0.1 s  MatningTests.testLangdenOchDenAntagnaSkalan
-      0.1 s  KatalogTests.testKontrollernaSomPython
-      0.1 s  MattTests.testStartenBakifranUrPosen
-      0.1 s  VisningTests.testIdagVisarDenForstaSaken
+      0.1 s  MatningTests.testMattenArS1s
 
