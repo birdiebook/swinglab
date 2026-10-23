@@ -1,20 +1,20 @@
-0b3e2e7c3447f8afe33b82b909a0d71fab9a2354 s7a 2026-10-23T12:17:51Z run 39952014586
+226b3a48a881768d8c7a776d3733144a95723326 s5b 2026-10-23T12:21:14Z run 39952390907
 == swift-release
-GRÖNT: 230 test, 0 fel, 9 s i testerna, bygget 69 s
-Långsammast (av 230):
+GRÖNT: 228 test, 0 fel, 9 s i testerna, bygget 82 s
+Långsammast (av 228):
       1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      1.0 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
       0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.5 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  KatalogTests.testKontrollernaSomPython
-      0.2 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.3 s  MattTests.testVarjeSvingGerPythonsTal
+      0.2 s  KatalogTests.testKontrollernaSomPython
       0.2 s  FormatTests.testFixturernaGarAttLasa
-      0.2 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.2 s  ClaudeKontextTests.testUnderlagetOchSvaretTillbaka
       0.1 s  MatningTests.testSammaSomFilformatet
       0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
       0.1 s  VisningTests.testUtveckling
-      0.1 s  MattTests.testLuckanIArmenKringGransen
-      0.1 s  MatningTests.testLangdenOchDenAntagnaSkalan
+      0.1 s  MattTests.testStartenBakifranUrPosen
+      0.1 s  VisningTests.testGranskningensSlag
 
