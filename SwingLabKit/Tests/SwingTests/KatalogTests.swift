@@ -37,7 +37,7 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "backen_resa_p5" }?.fel, "backens_resa_framat")
         XCTAssertNil(k.matt.first { $0.matt == "stans_bredd" }?.fel)
         // Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37): 23 mått, två följer ett fel.
-        XCTAssertEqual(k.matt.count, 52)                    // S1e: elva till (METOD M41–M43, M5, M14, M18)
+        XCTAssertEqual(k.matt.count, 62)                    // S7a: tio klubbmått (METOD M46–M49)
         XCTAssertEqual(k.matt.first { $0.matt == "backen_recentrering" }?.positioner, ["P4"])   // METOD M41
         XCTAssertEqual(k.matt.first { $0.matt == "backen_skifte_ms" }?.positioner, ["P5"])      // METOD M42
         XCTAssertEqual(k.matt.filter { $0.matt == "backen_lyft_min" }.map { $0.vy }, ["dtl", "fo"])   // M43
@@ -128,7 +128,7 @@ final class KatalogTests: XCTestCase {
     func testInfobladetFinnsOveralt() throws {
         let k = try katalog()
         let poster = k.fel.map { ($0.id, $0.vad, $0.varfor, $0.tecken) } + k.matt.map { ($0.matt, $0.vad, $0.varfor, $0.tecken) }
-        XCTAssertEqual(poster.count, 64)
+        XCTAssertEqual(poster.count, 74)
         for (namn, vad, varfor, tecken) in poster {
             for t in [vad, varfor, tecken] {
                 XCTAssertFalse(t.trimmingCharacters(in: .whitespaces).isEmpty, namn)

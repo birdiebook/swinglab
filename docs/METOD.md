@@ -493,8 +493,17 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   Adress** = adressens fönster (M4; tiden för videon är fönstrets mitt, måtten
   är fönstrets medel), **P4 Topp** = toppen (M4), **P7 Träff** = klicket (M4),
   **P10 Finish** = finishens fönster (M4, tiden i mitten). P2, P6 och P8
-  definieras av klubbskaftet och kommer med S7. **tränare** (P-systemet, 10
-  positioner), **antagande** (hur de mäts ur lederna).
+  definieras av klubbskaftet: rutan som Johannes väljer när han markerar klubban (S7a,
+  M45). **tränare** (P-systemet, 10 positioner), **antagande** (hur de mäts ur lederna).
+- **Sportsbox positioner** (research 5a, läst i original): hjälpcentret listar ADR, BCH,
+  TOP, DCH, IMP, FCH och FIN, och tour-tabellen P1–P8 och P10, alltså också BAH (P3) och
+  DAH (P5). Utskrivningen av förkortningarna (BCH = backswing club horizontal, BAH =
+  backswing arm horizontal, DAH = downswing arm horizontal, DCH = downswing club
+  horizontal, FCH = follow-through club horizontal) är **antagande**: 5a ger bara
+  förkortningarna och P-numren. TOP är där klubban byter riktning (FO), IMP sista bilden
+  före träffen. SwingLabs P4 är händernas högsta punkt och P7 klicket (M4), inte
+  Sportsbox; P3, P5 och P9 är armen vågrät i bild (nedan), och P2, P6 och P8 skaftet
+  parallellt med marken, valt för ögat (M45).
 - **Armen vågrät:** linjen axel → den **egna** handleden har vinkeln 0 mot
   vågrätt i bildens plan, åt vilket håll armen än pekar. Det mäts som
   **höjden** h = axelns y − handledens y (px, y nedåt, **+ = handleden över
@@ -926,6 +935,120 @@ fönster och träffen som de är.
   tal). Inte på Today. PC:n skriver den i `analys.json` (`spridning`).
 - Python och Swift ger samma tal (påhittade pass, `session_fixtur`). **antagande**
   (valet av mått och skalan).
+
+## Klubban ur handmarkerade punkter (S7a)
+
+Johannes markerar klubban för hand i granskningen (PLAN S7a, BESLUT B47): på en ruta per
+P-position trycker han på **greppet** (skaftet mitt mellan händerna) och **hoseln** (där
+skaftet går in i huvudet, GolfPose punkt, BESLUT B44). Markeringarna är träningsdata för
+S7:s detektor och ger klubbmåtten direkt. Måtten räknas per markerad sving i Python
+(`tools/pc/klubba.py`) och Swift (`Swing/Klubba.swift`) med samma tal (BESLUT B12, inom
+10⁻⁶, `KlubbFixturer.swift`). Punkterna står i hela bildens pixlar och x speglas som
+lederna (M1), så att +X pekar mot bollen (DTL) eller målet (FO); vinklarna räknas med y
+uppåt. Passet visar medianen och n över de markerade svingarna (även en eller två), som
+egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak att öva.
+
+## M45 — Klubbans rutor: P1–P10 och märkningen
+
+- **P1, P3, P4, P5, P7, P9 och P10** föreslås där kroppen ger dem (M28): rutan närmast
+  positionens tid. **P2, P6 och P8** definieras av skaftet parallellt med marken
+  (P-systemet, **tränare**; Sportsbox BCH, DCH och FCH, research 5a, se M28). Appen
+  föreslår rutan mitt emellan kroppens tider: P2 mitt mellan baksvingens start (annars P1)
+  och P3 (annars P4), P6 mitt mellan P5 (annars P4) och P7, P8 mitt mellan P7 och P9
+  (annars P10) (`klubba.forslag_tid`, `Klubba.forslagTid`). Johannes stegar ruta för ruta
+  framåt och bakåt tills skaftet ser parallellt ut och trycker; rutan han valde blir P2, P6
+  eller P8 för den svingen (`positioner` i analysen och slagets mått). **antagande**
+  (mittpunkten är bara en start; parallellt bedöms för ögat i 2D).
+- **Markeringen** (`KlubbMarkering`): positionen, rutans tid (s relativt klicket, Visions
+  rutor), greppet och hoseln i hela bildens pixlar och källan `klick`; en position där
+  klubban inte syns hoppas över (`hoppad`) och har inga punkter. Sparas i `pass.json`
+  (`slag[].klubba`) och i paketet som `klubba.json` (`swinglab-klubba/2`, FORMAT.md).
+- **Märkningen på telefonen** (`ClubMarking`, DTL först): ytan visar seriens utsnitt
+  vidgat med **15 %** per sida (som MF6), ett tryck sätter greppet och nästa hoseln, ett
+  tryck inom **5 %** av ytans bredd från en satt punkt flyttar den, och ett tryck närmare
+  ytans kant än **3 %** (eller utanför bilden) blir ingen punkt. Förstoringsglaset visar
+  **3 ×** kring fingret med ett hårkors. Ångra tar tillbaka det senaste (en punkt, en flytt,
+  en klar eller hoppad position). **antagande** (gränserna, valda för ett finger på en
+  telefon; oprövade på telefonen).
+- **Tryck per sving:** två punkter och "Next" per position, alltså **30** för P1–P10, och
+  för P2, P6 och P8 några steg till (förslaget ligger oftast några rutor fel): uppskattat
+  **35–45** tryck per sving; en hoppad position är ett tryck.
+
+## M46 — Skaftets vinkel vid varje position (båda vyerna)
+
+- `skaft_vinkel_p1` … `skaft_vinkel_p10`: vektorn grepp → hosel mot vågrätt i bild,
+  grader i (−180°, 180°], **0 = vågrätt mot +X** (bollen DTL, målet FO), **+ = hoseln över
+  greppet** (moturs med y uppåt). I katalogen en rad `skaft_vinkel` per vy med alla tio
+  positioner; granskningen visar positionens värde (`Klubba.nyckel`). **räkning** i 2D:
+  inget antagande utöver punkterna. Bakifrån är skaftet förkortat när det pekar mot
+  kameran (P2, P6, P8), så vinkeln där är bildens, inte rummets.
+- **Osäkerheten:** ett tryck antas osäkert **3 px** (1 sd per led, i hela bildens
+  pixlar; **antagande**, förstoringsglaset). En linje mellan två tryck L px isär har då
+  vinkelns sd **√2·3/L** radianer: 4,1° vid 60 px, 2,4° vid 100 px, 0,8° vid 300 px
+  (`klubba.osakerhet`). En relation mellan två linjer (M47) har roten ur summan av
+  kvadraterna. **Spärren:** ett skaft kortare än **60 px** i bild ger inget mått (sd över
+  4°). Vid träffen bakifrån (P7 DTL) ligger skaftet ofta nästan mot kameran och kan bli
+  kort i bild; då saknas måttet hellre än att visa brus. Hunter 2022 (Sci Rep 12:14012,
+  läst i original, research 5d) fann 2D-skaftvinklar mot Vicon r > 0,9 utom i adressen;
+  ingen siffra för handmarkering.
+
+## M47 — Skaftplanet bakifrån: P1, P2 och P6 (DTL)
+
+- `skaftplan_p1`: linjen genom hoseln och greppet vid P1, förlängd, och dess vinkel mot
+  marken i bild sedd från bollens sida (hoseln åt +X), grader, typiskt 50–65°. Det är
+  linjen som P2 och P6 jämförs med ("shaft plane", P-systemet, **tränare**, ej läst i
+  original). **räkning** i bild.
+- `skaft_mot_plan_p2`: skaftets linje vid P2 mot P1-linjen, båda mätta från bollens sida,
+  i (−90°, 90°], **+ = brantare**, − = flatare. P2 i P-systemet är skaftet parallellt med
+  mållinjen; bakifrån pekar det då mot kameran, så linjen i bild är förkortad och beror på
+  kamerans höjd. **antagande** (att bildens linje bär planet); egen baslinje.
+- `skaft_plan_p6`: vinkeln vid hoseln i adressen (≈ bollen) från P1-linjen till hoseln
+  vid P6, grader, **+ = över planet** (hoseln utanför linjen, mot bollens sida uppåt),
+  − = under (innanför). Ett tal i grader, oberoende av skalan; hoseln måste ligga minst
+  60 px från adressens hosel. **Källan räcker inte:** Morrison 2018 (Proc IMechE P
+  232(4):295–304, läst i original, research 5b och 5 §5 punkt 11) mätte leveransplanet i
+  3D (bladmittens bana från mitten av nedsvingen till träff, anpassad till ett plan) och
+  fann att avvikelsen från det förklarade 57 % av spridningen i träffpunkt. Det är inte
+  P1-linjen i bild och inte P6, så måttet är ett **antagande** med egen baslinje och
+  Morrisons tal gäller det inte.
+
+## M48 — Skaftet vid toppen bakifrån: across the line och laid off (DTL)
+
+- `skaft_riktning_topp`: vinkeln vid greppet vid P4 från riktningen **grepp → bildens
+  mitt** till skaftet grepp → hosel, grader, **+ = across the line** (huvudet åt bollens
+  sida), − = laid off.
+- **Vad som syns i 2D:** across the line och laid off är skaftets riktning i rummet mot
+  mållinjen (P-systemet: parallellt vid toppen). Bakifrån pekar ett parallellt skaft rakt
+  från kameran, och i bild pekar det då mot **flyktpunkten**, som är bildens mitt om
+  kameran står på mållinjen med axeln längs den och mitten är den optiska axeln. Därför
+  jämförs skaftet med riktningen mot bildens mitt, inte med lodlinjen. **antagande**
+  (kamerans uppställning: på mållinjen, axeln längs linjen, i höfthöjd; en telefon som
+  vrids eller lutas flyttar flyktpunkten). Storleken är bildens vinkel, inte rummets:
+  förkortningen gör den större än i rummet, och den går inte att räkna om utan djup.
+  Talet jämförs pass mot pass med samma uppställning; egen baslinje.
+- Saknas när greppet inte står minst **5 %** av bildhöjden över mitten (riktningen mot
+  mitten blir då liten eller vänder): kameran står för högt för måttet. **antagande.**
+
+## M49 — Klubban framifrån: toppen, armen och skaftlutningen (FO)
+
+Framifrån ligger mållinjen i bildens plan, så skaftets lutning mot vågrätt och lodrätt
+syns direkt; djupled (mot och från kameran) syns inte. Byggs i Python och Swift nu;
+appens märkning framifrån kommer i nästa steg (PLAN S7a).
+
+- `skaft_topp`: vektorn grepp → hosel mot vågrätt vid P4, grader, **0 = parallellt med
+  marken mot målet**, **+ = kort av parallellt** (huvudet över greppet), − = förbi
+  parallellt. Ett skaft som pekar mot eller från kameran (across eller laid off) förkortas
+  i x, och lutningen blir då större i bild än i rummet. **antagande** (2D), egen baslinje.
+- `skaft_arm_p5`, `skaft_arm_p6` (casting): vinkeln mellan främre armen (handleden →
+  axeln, svingens utjämnade leder vid markeringens tid, M3; den egna handleden, som M22)
+  och skaftet (grepp → hosel), grader i [0°, 180°]: **180° = arm och skaft i linje**,
+  mindre = mer vinkling i handleden. Casting är att vinkeln ökar tidigt i nedsvingen
+  (research 5d K: Chu 2010 och Joyce 2016, bara abstract; Sportsbox "lwrist angle arm
+  parallel", bara rubriken). Ingen norm med samma definition; egen baslinje. Saknas när
+  axeln eller handleden saknas vid tiden. **antagande** (definitionen i 2D).
+- `skaft_lutning_traff`: skaftet hosel → grepp mot lodlinjen vid P7, grader, **+ = greppet
+  mot målet** (framåtlutning), − = bakåt. **räkning** i bild; egen baslinje (ingen norm
+  läst i original med samma definition).
 
 ---
 

@@ -899,3 +899,40 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   spridningen på Today (Today visar felen).
 - **Omprövas:** när fler mått ska få sin spridning (en rad i listan), eller när riktiga
   pass visar att spridningen behöver en egen gräns.
+
+## B47 — Klubban markeras för hand i appen: P1–P10, grepp och hosel, samma data som PC:ns
+*2026-10-23 · prövas · PLAN.md S7a · METOD M45–M49 · Johannes beställning*
+
+- **Valt:** i granskningen ett läge "Mark club" (DTL först): Johannes går igenom P1–P10,
+  trycker på greppet och sedan på hoseln med ett förstoringsglas och hårkors, kan flytta en
+  punkt, ångra och hoppa över en position där klubban inte syns. P2, P6 och P8 är rutan han
+  väljer när skaftet ser parallellt med marken ut, från ett förslag mitt mellan kroppens
+  tider (M45). Markeringarna sparas i `pass.json` (`slag[].klubba`, valfritt) och följer med
+  i paketet som `klubba.json` i formatet **`swinglab-klubba/2`** (FORMAT.md), som
+  `markera_klubba.py` och `samla_klubba.py` läser som PC:ns egna. 2–3 markerade svingar per
+  pass räcker; passet visar hur många.
+- **Varför version 2:** telefonens markering har inget klipp att peka in i när paketet
+  skickas utan klipp och ingen S3-förskjutning, och den tar P-positioner, inte PC:ns
+  rutval; dessutom har den två punkter, inte tre. Version 2 tillåter därför `val` P1–P10,
+  `t_klipp` och `forskjutning_ms` som null och en markerad ruta utan skaftets mitt. Allt
+  annat är som version 1, så en fil i version 1 är en giltig fil i version 2 med ett annat
+  formatnamn; PC:n läser båda och skriver 2. **Bortvalt:** ett eget telefonformat (två
+  läsare för samma träningsdata) och tre punkter på telefonen (mitten tar ett tryck till per
+  position och behövs bara som kontroll för ett böjt skaft).
+- **Måtten** (M46–M49): skaftets vinkel i bild vid varje position och, bakifrån,
+  skaftplanet vid P1, skaftet mot planet vid P2, across/laid off vid toppen och hoseln mot
+  planet vid P6; framifrån skaftet vid toppen, armen mot skaftet vid P5 och P6 (casting)
+  och skaftlutningen vid träffen. De står bland slagets mått (telefonens `ShotMeasure`,
+  PC:ns `analys.json`), i katalogens `matt` med positioner och vy, utan `fel`, och
+  passet visar medianen och n över de markerade svingarna. **Med få svingar är de en
+  trend, inte en sak att öva**: inget fel, ingen gräns och ingen accent (skillen
+  `svinganalys`). Ingen källa har samma definition i 2D (Morrisons leveransplan är 3D och
+  ett annat plan, M47), så alla har egen baslinje.
+- **Ingen ommätning:** mätversionen (`MATVERSION` 3) ändras inte. Inget befintligt mått
+  ändras; klubbmåtten är nya namn som bara finns på slag med markeringar och räknas om när
+  markeringarna ändras (telefonen mäter om slaget, PC:n räknar dem i varje `session.py`).
+  Ett pass utan markeringar får samma tal som förut.
+- **Kostnad:** cirka 35–45 tryck per sving (M45); punkterna är osäkra med några pixlar,
+  därför spärren på 60 px (M46). DTL:s across/laid off vilar på kamerans uppställning (M48).
+- **Omprövas:** när Johannes markerat svingar på telefonen (gränserna för kanten och
+  greppet, M45), när FO-läget byggs, och när S7:s detektor föreslår punkterna.

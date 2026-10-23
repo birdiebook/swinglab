@@ -59,8 +59,11 @@ public struct ClubMarking: Equatable, Sendable {
         self.width = width
         self.height = height
         self.crop = Self.shownCrop(crop).snapped(width: width, height: height)
-        marks = Dictionary((existing ?? []).map { ($0.position, $0) }, uniquingKeysWith: { _, b in b })
-        index = Self.order.firstIndex { marks[$0] == nil } ?? 0
+        let m = Dictionary((existing ?? []).map { ($0.position, $0) }, uniquingKeysWith: { _, b in b })
+        marks = m
+        index = Self.order.firstIndex { m[$0] == nil } ?? 0
+        grip = nil
+        hosel = nil
         load()
     }
 

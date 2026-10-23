@@ -7,6 +7,7 @@ import unittest
 from _hjalp import gen
 from pc import att_jobba_pa as AJ
 from pc import katalog as K
+from pc import klubba as KL
 from pc import session as S
 
 
@@ -47,7 +48,7 @@ class Formen(unittest.TestCase):
         self.assertEqual(kopplat["backen_resa_p5"], "backens_resa_framat")
         self.assertIsNone(kopplat["stans_bredd"])
         # Tilläggen mot Sportsbox (PLAN S1b, METOD M30–M37) och ur research 5 (PLAN S1e).
-        self.assertEqual(len(k["matt"]), 52)
+        self.assertEqual(len(k["matt"]), 62)
         self.assertEqual(kopplat["bakre_kna_sway_topp"], "sway_topp")
         self.assertIsNone(kopplat["backen_bojning_traff"])       # visar inte early extension (METOD M30)
         self.assertEqual(matt[("dtl", "brost_lyft_traff")], ["P7"])
@@ -80,9 +81,14 @@ class Formen(unittest.TestCase):
         self.assertEqual(matt[("dtl", "huvud_lyft_traff")], ["P7"])
         self.assertEqual(matt[("fo", "huvud_lyft_topp")], ["P4"])
         self.assertIsNone(kopplat["huvud_mot_bollen_traff"])
-        # Varje position utom P2, P6 och P8 (klubban, S7) visar något.
-        alla = {p for v in pos.values() for p in v} | {p for v in matt.values() for p in v}
-        self.assertEqual(alla, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
+        # Varje position utom P2, P6 och P8 visar något ur kroppen; de tre bara klubbans mått (S7a).
+        kroppen = {p for v in pos.values() for p in v} | {p for (vy, m), v in matt.items() for p in v
+                                                          if m not in KL.katalognamn(vy)}
+        self.assertEqual(kroppen, {"P1", "P3", "P4", "P5", "P7", "P9", "P10"})
+        self.assertEqual(matt[("dtl", "skaft_vinkel")], list(KL.POSITIONER))
+        self.assertEqual(matt[("dtl", "skaft_mot_plan_p2")], ["P2"])
+        self.assertEqual(matt[("fo", "skaft_arm_p6")], ["P6"])
+        self.assertTrue(all("fel" not in m for m in k["matt"] if m["matt"] in KL.katalognamn(m["vy"])))
 
     def test_kallorna_efter_research_5(self) -> None:
         """BESLUT B10, B45: research 5 läste källorna i original 2026-10-23. Bara flying elbow
@@ -131,7 +137,7 @@ class Formen(unittest.TestCase):
             self.assertTrue(e["vad"].endswith(".") and e["varfor"].endswith("."), namn)
             for f in K.INFO:                                     # inga värdeord (BESLUT B13)
                 self.assertIsNone(AJ.vardeord(e[f]), f"{namn}.{f}")
-        self.assertEqual(len(k["fel"]) + len(k["matt"]), 64)
+        self.assertEqual(len(k["fel"]) + len(k["matt"]), 74)
         for e in k["spridning"]:
             for f in K.INFO:
                 self.assertTrue(e[f].strip() and len(e[f]) <= 120, e["matt"])

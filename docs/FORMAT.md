@@ -87,7 +87,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 |---|---|
 | `cm_per_px` | Skalan (METOD M2). |
 | `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4), och `start_osaker` (bool): bakifrån saknas starten eller bär den inget tempo; framifrån alltid `false` (METOD M40). |
-| `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). |
+| `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). I analysen och på telefonen dessutom `P2`, `P6` och `P8` när klubban är markerad där: rutan Johannes valde (S7a, METOD M45). |
 | `matt` | Måtten per namn (METOD M5–M24, M29, M30–M39). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), m/s (`fart`) och °/s (`vinkelfart`). |
 
 Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
@@ -115,7 +115,7 @@ där varje fel har:
 | `ovning_id` | text | Övningens stabila id (`a–z`, `0–9`, `_`). Historiken känner igen övningen på det, inte på texten, så att en omskriven formulering inte nollställer steget. Samma id i katalogen och `tools/pc/kedjor.json` betyder samma text. |
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
-| `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"`, `"P3"`, `"P4"`, `"P5"`, `"P7"`, `"P9"`, `"P10"`, utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
+| `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"` … `"P10"` (P2, P6 och P8 för klubbans mått, S7a), utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
 | `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp och early_extension, BESLUT B45); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
 | `vad` | text | Infobladet (BESLUT B41): en mening på engelska, vad som mäts och mellan vilka punkter. |
 | `varfor` | text | Infobladet: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
@@ -128,7 +128,7 @@ och `positioner`, och valfritt `fel` och `status`; inga andra fält:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
-| `matt` | text | Måttets namn; måste finnas i vyn. Ett mått (i en vy) står bara en gång i katalogen, som fel eller här. |
+| `matt` | text | Måttets namn; måste finnas i vyn, eller vara ett av klubbans mått (`klubba.katalognamn`, `Klubba.katalognamn`, METOD M46–M49). `skaft_vinkel` är ett mått per position: granskningen visar `skaft_vinkel_p4` vid P4 osv. Ett mått (i en vy) står bara en gång i katalogen, som fel eller här. |
 | `vy` | text | `"dtl"` eller `"fo"`. |
 | `positioner` | lista | Som felens, men aldrig tom. |
 | `vad` | text | Som felens: en mening på engelska, vad som mäts och mellan vilka punkter. |
@@ -142,6 +142,10 @@ robusta sd:n ur passets svingar i vyn, och inget tal under 8 slag (METOD M44, BE
 B46). Passet visar den som ett kort och Progress som ett mått över passen. Varje post har exakt `matt`, `vy`
 (`"dtl"` eller `"fo"`, måttet måste finnas i vyn, en gång), `vad`, `varfor` och
 `tecken` (som felens).
+
+Klubbans mått (S7a, BESLUT B47) står i `matt` utan `fel`; passet visar de specifika
+(inte `skaft_vinkel`) som kort med medianen och n över de markerade svingarna, när
+minst ett slag har måttet.
 
 Granskningen vid en position visar felen och måtten vars `positioner` har den,
 i den vy som spelas. Måttets värde är svingens, räknat vid positionens tid
@@ -209,6 +213,15 @@ med utsnitt: telefonen för Visions punkter ur rutan tillbaka. PC:n kan låta
 MediaPipe se samma ruta (`paket.utsnitt_px`) och föra punkterna tillbaka med
 `paket.fran_utsnittet`. Klippen är passthrough och inte beskurna; de är kapade vid
 fönstret.
+
+**Klubbans markeringar** (S7a, BESLUT B47): `klubba.json` i zippens rot, i formatet
+`swinglab-klubba/2` (nedan, "Klubbans märkning"), när något slag i paketet har markeringar.
+Telefonen skriver en ruta per markerad eller hoppad position: `id` `<vy>-<slag>-<P>`, `fil`
+= paketets namn, `val` = positionen, `t` = Visions tid, `t_klipp` = `t + klick_i_klipp_s`
+när klippet följer med (annars null), `forskjutning_ms` och `t_ruta` null, `visad` =
+utsnittet som märkningen visade, `skaft_mitt` null och `forslag` tom. PC:n
+(`paket.py`) läser den till varje slags markeringar; en fil som inte går att läsa stoppar
+inte paketet (`Paket.klubba_fel`, i analysen `klubba.fel`).
 
 Övriga fält (`telefon`, `ljusprov.json`, `vision`) läses inte än; `enhet.json` läses
 bara för brännvidden i 3D (ovan). `par.json` ligger i paketet när passets mapp har den (S2g) och läses
@@ -297,6 +310,7 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
 | `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |
 | `spridning[]` | ett per mått i katalogens `spridning` och klubba i passet: `matt`, `vy`, `klubba`, `n` (slagen med måttet i vyn och klubban), `varde` (den robusta sd:n, `null` under 8 slag) och `visat` (avrundat), METOD M44 |
+| `klubba` | klubbans mått ur markeringarna (S7a, METOD M46–M49): `markerade` (slag med klubban markerad, per vy), `matt[]` (per vy och mått med minst ett slag: `matt`, `vy`, `n`, `median`, `visat`) och `fel` (per vy: `klubba.json` som inte gick att läsa). Slagen bär måtten i `matt`, P2/P6/P8 i `positioner` och `klubba_markerad` (bool) |
 | `skifte_ej_tillbaka` | `fo`: FO-slag där bäckenet står bakom adressläget vid träffen, så att skiftet saknas (censurerat, METOD M42), och `fo_matta`: mätta FO-slag |
 | `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
 | `forra` | `null`, eller `pass` och `jamforelse` (METOD M26) per grupp |
@@ -487,7 +501,8 @@ att_jobba_pa/<pass>.json      sparad och kontrollerad med historik.py spara-att-
 `historik.py minne` skriver `"format": "swinglab-minne/1"`: passen, varje fels
 väg genom vintern (`varde`, `forsta_serien`, `status` per pass), 3D-trenden (`tre_d`:
 per mått en rad per pass med median, `pass`, `median`, `kvartiler`, `n`, `lage`; S6a,
-METOD MK7) och en rad per
+METOD MK7), klubbans mått (`klubba`: per mått en rad per pass med `pass`, `vy`, `median` och
+`n`; S7a, METOD M46) och en rad per
 fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
 `valt_i_pass`, `fel_start`, `forra_ovningar` (id:n), `klart_nar` och `markning` (från valet), `steg`,
 `uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),
@@ -523,14 +538,25 @@ enligt OpenCV, s), `joints` (VIDEO-läget) och, i tidsparningens fönster, `join
 | `slag[]` | per slag: `fil`, `id`, `vy`; med klipp `tidsparning` (`forskjutning_ms`, `rutor`, `kvot`, `rest_ms_median`, och `ffprobe_start_ms` när ffprobe finns, MF1) och `rutor_parade`; `varning` när δ inte stämmer med start_time; och `vision_fel`, `mediapipe_fel` eller `hoppat` (inget klipp, eller tidsparningen tvetydig eller avvikande, med skälet) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` |
 
-## Klubbans märkning: `swinglab-<pass>-klubba.json` (utanför repot)
+## Klubbans märkning: `swinglab-klubba/2` (utanför repot)
 
-`tools/pc/markera_klubba.py` skriver den bredvid paketet (en video: `<video>-klubba.json`),
-efter varje ruta (BESLUT B44, METOD MF5–MF6). Samma fil läses när verktyget körs igen;
-en ruta med samma id, fil, förskjutning och tid behåller sin märkning.
+`tools/pc/markera_klubba.py` skriver den bredvid paketet som `swinglab-<pass>-klubba.json`
+(en video: `<video>-klubba.json`), efter varje ruta (BESLUT B44, METOD MF5–MF6). Samma fil
+läses när verktyget körs igen; en ruta med samma id, fil, förskjutning och tid behåller sin
+märkning. Telefonen skriver samma format som `klubba.json` i paketet (ovan, S7a, BESLUT
+B47), och `tools/pc/samla_klubba.py <paket|märkfiler> --ut <mapp>` samlar båda per pass till
+en träningsmapp utanför repot (`<pass>.json` och `index.json`) för S7.
+
+**Version 2** (S7a) ändrar tre saker mot version 1 och är annars samma: `val` får också
+vara `P1` … `P10` (telefonens markering vid en position), `t_klipp` och `forskjutning_ms`
+får vara `null` (inget klipp i paketet, ingen S3-förskjutning), och en `markerad` ruta
+kräver bara `grepp` och `klubbhuvud` (telefonen trycker två punkter; `skaft_mitt` är `null`).
+En fil i version 1 är alltså giltig i version 2; PC:n (`klubba.kontrollera`, `las`) läser
+båda och skriver version 2, och SwingLabKit (`KlubbFil.las`) läser båda. Formatets ägare
+är `tools/pc/klubba.py`.
 
 ```json
-{"format": "swinglab-klubba/1", "pass": "20261103-180000",
+{"format": "swinglab-klubba/2", "pass": "20261103-180000",
  "kalla": ["swinglab-20261103-180000-dtl.zip", "swinglab-20261103-180000-fo.zip"],
  "punkter": ["grepp", "skaft_mitt", "klubbhuvud"], "andrad": "2026-11-03T21:15:00+01:00",
  "rutor": [{"id": "fo-s03-topp", "fil": "swinglab-20261103-180000-fo.zip", "vy": "fo", "slag": "s03",
@@ -544,21 +570,21 @@ en ruta med samma id, fil, förskjutning och tid behåller sin märkning.
 
 | Fält | Krav och betydelse |
 |---|---|
-| `format` | `"swinglab-klubba/1"` |
+| `format` | `"swinglab-klubba/2"` (läses också `"swinglab-klubba/1"`) |
 | `pass` | passet (`yyyyMMdd-HHmmss`), eller `null` för en video utan paket |
 | `kalla` | filerna som rutorna kommer ur (namnen) |
 | `punkter` | exakt `["grepp", "skaft_mitt", "klubbhuvud"]` |
 | `andrad` | senaste sparningen, ISO 8601 |
 | `rutor[].id` | unikt: `<vy>-<slag>-<val>` (`-jamn-1` …), eller `video-01` …; en ny ruta med en gammal rutas id men en annan tid får `-2` |
 | `fil`, `vy`, `slag` | paketets (eller videons) namn, `"dtl"`/`"fo"`/`null`, slagets id eller `null` |
-| `val` | `adress`, `topp`, `tidig_nedsving` eller `jamn` (MF5) |
+| `val` | `adress`, `topp`, `tidig_nedsving` eller `jamn` (PC:ns rutval, MF5), eller `P1` … `P10` (telefonens markering, M45; bara version 2) |
 | `t` | Visions tid, s relativt klicket (`null` för en video) |
-| `t_klipp` | den valda tiden i klippet, s: `t + klick_i_klipp_s` för ett paket, tiden jämnt över klippet för en video |
-| `forskjutning_ms` | S3:s förskjutning för slaget (MF1): rutan läses på OpenCV:s tid `t_klipp + forskjutning_ms / 1000`; 0 för en video |
+| `t_klipp` | den valda tiden i klippet, s: `t + klick_i_klipp_s` för ett paket, tiden jämnt över klippet för en video; `null` (version 2) när paketet inte har klippet |
+| `forskjutning_ms` | S3:s förskjutning för slaget (MF1): rutan läses på OpenCV:s tid `t_klipp + forskjutning_ms / 1000`; 0 för en video; `null` (version 2) när den inte är känd (telefonen) |
 | `t_ruta` | rutans egen tid enligt OpenCV (s), eller `null` innan den lästs |
 | `bredd`, `hojd` | hela den upprätta bilden i px |
 | `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
-| `status` | `omarkerad`, `markerad` (alla tre punkterna satta) eller `hoppad` |
+| `status` | `omarkerad`, `markerad` (alla tre punkterna satta; i version 2 räcker `grepp` och `klubbhuvud`) eller `hoppad` |
 | `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla": "klick"}` i hela bildens pixlar, eller `{"syns_inte": true}` |
 | `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`); de blir aldrig en punkt av sig själva |
 

@@ -97,14 +97,15 @@ public struct Katalog: Decodable, Sendable {
         }
     }
 
-    /// Felets och måttens positioner: en lista ur alla tio (P2, P6 och P8 för klubbans mått,
-    /// METOD M45), utan dubbletter och i svingens ordning. Ett fel får ha en tom lista
-    /// (tempot), ett mått inte. Som `katalog.positionerna_ok`.
+    /// Felets och måttens positioner: en lista ur `Positioner.namn`, utan dubbletter och
+    /// i svingens ordning. Ett fel får ha en tom lista (tempot), ett mått inte. Klubbans
+    /// mått får alla tio (P2, P6 och P8 ur markeringen, METOD M45). Som `katalog.positionerna_ok`.
     static let positionerFel = "positioner ska vara en lista av "
-        + Klubba.positioner.joined(separator: ", ") + " i svingens ordning"
+        + Positioner.namn.joined(separator: ", ") + " i svingens ordning"
 
-    static func positionernaOK(_ p: [String], tom: Bool) -> Bool {
-        let i = p.compactMap { Klubba.positioner.firstIndex(of: $0) }
+    static func positionernaOK(_ p: [String], tom: Bool, klubba: Bool = false) -> Bool {
+        let alla = klubba ? Klubba.positioner : Positioner.namn
+        let i = p.compactMap { alla.firstIndex(of: $0) }
         guard i.count == p.count, tom || !p.isEmpty else { return false }
         return i == Array(Set(i)).sorted()
     }
@@ -244,7 +245,8 @@ public struct Katalog: Decodable, Sendable {
             }
             if visade.contains("\(e.vy)/\(e.matt)") { fel.append("\(namn): står redan i katalogen") }
             visade.insert("\(e.vy)/\(e.matt)")
-            if !positionernaOK(e.positioner, tom: false) { fel.append("\(namn): \(positionerFel)") }
+            let klubba = Vy(rawValue: e.vy).map { Klubba.katalognamn($0).contains(e.matt) } ?? false
+            if !positionernaOK(e.positioner, tom: false, klubba: klubba) { fel.append("\(namn): \(positionerFel)") }
         }
         var spridda = Set<String>()
         for e in k.spridning {

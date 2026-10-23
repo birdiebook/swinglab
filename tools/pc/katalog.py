@@ -19,8 +19,10 @@ from . import klubba as KL
 from . import session as S
 from .matt import MATT
 
-# Katalogens positioner: alla tio, P2, P6 och P8 för klubbans mått (S7a, METOD M45).
-POSITIONER = KL.POSITIONER
+from .positioner import POSITIONER
+
+# Klubbans mått får också stå vid P2, P6 och P8, som skaftet definierar (S7a, METOD M45).
+POSITIONER_KLUBBA = KL.POSITIONER
 
 KATALOG = Path(__file__).resolve().parents[2] / "katalog.json"
 # Måtten ur två kameror (S6a): en egen fil som bara PC:n läser. BESLUT B37
@@ -53,12 +55,14 @@ class KatalogFel(ValueError):
     pass
 
 
-def positionerna_ok(p, tom: bool) -> bool:
+def positionerna_ok(p, tom: bool, klubba: bool = False) -> bool:
     """En lista av positionerna (BESLUT B32), utan dubbletter och i svingens
-    ordning. Ett fel får ha en tom lista (tempot: hela svingen), ett mått inte."""
-    if not isinstance(p, list) or not all(isinstance(x, str) and x in POSITIONER for x in p):
+    ordning. Ett fel får ha en tom lista (tempot: hela svingen), ett mått inte. Klubbans
+    mått får alla tio (P2, P6 och P8 kommer ur markeringen, METOD M45), kroppens inte."""
+    alla = POSITIONER_KLUBBA if klubba else POSITIONER
+    if not isinstance(p, list) or not all(isinstance(x, str) and x in alla for x in p):
         return False
-    i = [POSITIONER.index(x) for x in p]
+    i = [alla.index(x) for x in p]
     return (tom or len(p) > 0) and i == sorted(set(i))
 
 
@@ -129,7 +133,8 @@ def kontrollera(k: dict) -> list[str]:
         if (e["vy"], e["matt"]) in visade:
             fel.append(f"{namn}: står redan i katalogen")
         visade.add((e["vy"], e["matt"]))
-        if not positionerna_ok(e["positioner"], tom=False):
+        klubba = e["vy"] in ("dtl", "fo") and e["matt"] in KL.katalognamn(e["vy"])
+        if not positionerna_ok(e["positioner"], tom=False, klubba=klubba):
             fel.append(f"{namn}: {POSITIONER_FEL}")
     if not isinstance(k.get("spridning"), list):
         return fel + ["katalogen: listan spridning saknas"]
