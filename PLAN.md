@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S2 · S3 · S4 · S5 · S6 · S7 · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -82,6 +82,28 @@ anpassning på ett rutnät om 1 ms (`tools/pc/farter.py`, `Swing/Farter.swift`);
 toppen saknas vid en lucka eller i rutnätets ände. Katalogen har 23 nya `matt`
 med positioner, två med `fel`, och farterna med `status: "oprovad"` (märkningen
 "untested", BESLUT B11). Kvar till ✓: synas i granskningen på telefonen.
+
+## S1c — Fler mått bakifrån (Johannes 2026-10-23)
+
+Beställningen: fler mått för en telefon bakifrån (DTL), små tillägg i 2D ur dagens
+leder, som S1b: huvudets rörelse mot och från bollen och upp och ned vid P4 och P7
+(adressen = 0), händernas djup vid toppen mot adressen, och främre armen mot
+axellinjen vid toppen (+ = över axelplanet), eller varför lederna inte bär den. Och:
+varför Today saknade Tempo för ett importerat DTL-pass med två slag.
+
+**Klart när:** måtten finns i Python och Swift med samma tal (B12), med METOD-rader,
+i katalogens `matt` med positioner och `vy: dtl`, utan `fel`, med engelska namn
+(B30, B33), och syns i granskningen vid P4 på telefonen.
+
+**Byggt (grenen `s1c`).** Huvudet bakifrån fanns redan med andra id:n och är orört:
+`huvud_mot_bollen_*` (M9) och `huvud_lyft_*` (M8, båda vyerna), utan rader i
+katalogens `matt`. Nytt: `hand_djup_topp` (M38, cm, + mot bollen, "Hand depth") och
+`framre_arm_plan_topp` (M39, grader, + över axelplanet, "Lead arm plane"), som
+saknas när axellinjen vid toppen är kortare än 15 cm i bild (axlarna skymmer
+varandra). Den påhittade DTL-figuren kan vrida axlarna vid toppen (`axel_dx`,
+`axel_dz`); fixturerna `dtl` och `dtl_vanster` gör det. Tempot: klicket finns i
+varje slag, så det är baksvingens start som saknas; bakifrån syns takeawayn knappt
+(METOD M5), oprövat på riktiga DTL-pass. Kvar till ✓: synas i granskningen på telefonen.
 
 ## S2 — Appskalet och första bygget
 
