@@ -1,20 +1,20 @@
-48b41e9c247062f2dcf12b144e92067189979e1e s1e 2026-10-23T07:20:22Z run 39916895346
+31e9bafc9338d03ee54b84f5df128c288c27a7d2 main 2026-10-23T07:24:47Z run 39917373868
 == swift-release
-GRÖNT: 203 test, 0 fel, 9 s i testerna, bygget 51 s
-Långsammast (av 203):
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
-      0.3 s  KatalogTests.testKontrollernaSomPython
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  MattTests.testDePahittadeFormerna
-      0.2 s  MattTests.testPositionernaIOrdning
-      0.1 s  VisningTests.testMatytanGerMattetsTal
-      0.1 s  MattTests.testPositionernaSaknasNarArmenAldrigBlirVagrat
-      0.1 s  FormatTests.testFixturernaGarAttLasa
-      0.1 s  MatningTests.testSammaSomFilformatet
-      0.1 s  FlikarTests.testPassetMatsMedSinEgenLangd
+GRÖNT: 213 test, 0 fel, 7 s i testerna, bygget 36 s
+Långsammast (av 213):
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.2 s  MatningTests.testPassetsMattOchDetectionWrong
+      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.2 s  KatalogTests.testKontrollernaSomPython
+      0.1 s  VisningTests.testUtvecklingMedBlandadeVyer
+      0.1 s  VisningTests.testIngaSvenskaTeckenIVisningen
+      0.1 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.1 s  MattTests.testVarjeSvingGerPythonsTal
+      0.1 s  KlickTests.testTvaKlickNaraBlirEtt
+      0.1 s  MattTests.testRaLuckaLangreAnMaxLuckaSaknas
+      0.1 s  VisningTests.testNamnenEfterKroppsdelOchVad
+      0.1 s  InspelningTests.testSegmenterarenKlipperVidSammaProvSomSegments
 
