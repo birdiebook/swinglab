@@ -1,0 +1,53 @@
+{
+  "om": "Lodlinjen ur en PÅHITTAD telefon (S6b, METOD MS17, BESLUT B39): gravitationen i enhetens ram (CoreMotion, g), filens EXIF-orientering och det fält `serier[].lodlinje` som telefonen ska skriva (uppåt i kamerans ram i den upprätta bilden, fyra decimaler), eller null när telefonen inte ska skriva det. Läses av SwingLabKit (LodlinjeTests.swift) och av PC:n (test_lodlinje.py), så att kontraktet prövas åt båda håll.",
+  "fall": [
+    {
+      "namn": "staende_rak",
+      "orientering": 6,
+      "gravitation": [0.0, -1.0, 0.0],
+      "lodlinje": [0.0, -1.0, 0.0]
+    },
+    {
+      "namn": "staende_lutar",
+      "orientering": 6,
+      "gravitation": [0.069078, -0.987856, -0.139173],
+      "lodlinje": [-0.0691, -0.9879, -0.1392]
+    },
+    {
+      "namn": "liggande_rak",
+      "orientering": 1,
+      "gravitation": [-1.0, 0.0, 0.0],
+      "lodlinje": [0.0, -1.0, 0.0]
+    },
+    {
+      "namn": "liggande_lutar",
+      "orientering": 1,
+      "gravitation": [-0.994829, 0.052137, 0.087156],
+      "lodlinje": [0.0521, -0.9948, 0.0872]
+    },
+    {
+      "namn": "liggande_andra_hallet",
+      "orientering": 3,
+      "gravitation": [0.993916, 0.034708, -0.104528],
+      "lodlinje": [-0.0347, -0.9939, -0.1045]
+    },
+    {
+      "namn": "staende_upp_och_ned",
+      "orientering": 8,
+      "gravitation": [0.087103, 0.995588, -0.034899],
+      "lodlinje": [0.0871, -0.9956, -0.0349]
+    },
+    {
+      "namn": "liggande_telefon_i_staende_fil",
+      "orientering": 6,
+      "gravitation": [-0.993768, -0.086943, -0.069756],
+      "lodlinje": null
+    },
+    {
+      "namn": "upp_och_ned_i_staende_fil",
+      "orientering": 6,
+      "gravitation": [-0.034852, 0.998021, -0.052336],
+      "lodlinje": null
+    }
+  ]
+}

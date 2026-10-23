@@ -631,7 +631,7 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   skattas med kamerorna.
 
 ## B39 — Lodlinjen: valfritt fält i manifestet, annars kamerornas vågräta
-*2026-10-22 · prövas · METOD MK3 · följdjobb för appen*
+*2026-10-22 · prövas · METOD MK3, MS17 · appen skriver fältet sedan S6b (2026-10-23)*
 
 - **Valt:** `serier[].lodlinje` i `manifest.json` (docs/FORMAT.md): uppåt (−gravitationen,
   i g) i kamerans ram i den upprätta bilden, valfritt. PC:n använder det när någon vy
@@ -642,11 +642,19 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
   En vänd vektor vänder annars måtten tyst (höfterna vid träffen −36° mot +36°).
 - **Varför:** felbudgeten visar att 0,5–3° fel i lodlinjen inte syns (vridningen mäts
   mot adressen), så antagandet räcker tills appen skriver fältet.
-- **Följdjobb (appen, inte S6a):** spara `CMDeviceMotion.gravity` vid seriens start,
-  vriden till den upprätta bildens axlar, i `serier[].lodlinje`, och visa i
-  uppställningen om telefonen lutar åt sidan.
+- **Appen (S6b, METOD MS17):** `CMDeviceMotion.gravity` i 30 Hz under serien. Medianen
+  tas över sekunden före seriens första klick, inte vid starten: där har någon nyss
+  tryckt på telefonen. Är den sekunden inte stilla tas seriens stilla sekunder, när de är
+  eniga. Telefonen som rör sig (spridningen över 1°) får inget fält. Logiken ligger i
+  SwingLabKit (`Plumb`), appen ger bara proven, och `pass.json` sparar gravitationen i
+  enhetens ram; manifestet vrider den med filens orientering. Telefonen skriver bara ett
+  fält som PC:ns kontroll tar och som lutar högst 45° från bildens överkant. Ingen ny
+  tillåtelse: `CMMotionManager` kräver inget `NSMotionUsageDescription`.
+- **Följdjobb:** visa i uppställningen om telefonen lutar åt sidan (en vy, inte S6b).
 - **Bortvalt:** att kräva fältet (då går dagens paket inte), och lodlinjen ur kroppen
-  (fötterna och höfterna i adressen lutar med hållningen).
+  (fötterna och höfterna i adressen lutar med hållningen). I appen: provet vid seriens
+  start (telefonen gungar av trycket), och råa prov i `pass.json` (300 kB per serie, och
+  medianen är densamma).
 - **Omprövas:** när appen skriver fältet; då jämförs de två på riktiga pass.
 
 ## B40 — Måttens namn: kroppsdel och vad, positionen bara där den behövs

@@ -66,7 +66,7 @@ class Serie:
     fonster: tuple[float, float] | None = None
     utsnitt: tuple[float, float, float, float] | None = None
     # Uppåt (−gravitationen) i kamerans ram i den upprätta bilden: x höger, y ned,
-    # z framåt ur linsen. Valfri, nytt i S6a; appen skriver den inte än. METOD MK3
+    # z framåt ur linsen. Valfri, nytt i S6a; telefonen skriver den sedan S6b. METOD MK3, MS17
     lodlinje: tuple[float, float, float] | None = None
     # Lodlinjen fanns men gick inte att använda: skälet, utan värden. Stoppar aldrig
     # paketet (BESLUT B37, B39). METOD MK3

@@ -297,10 +297,29 @@ typiskt brus är kalibreringens fel 5° i snitt, upp till 14° (B38).
   S6_FELBUDGET §7; markörerna (pinnen i bältet, staven över ryggen) och facitet med
   pinnarna (§8); S3:s mätning av posemodellens 2D-fel, som avgör om trenden bär
   (B14). Klart när ovan är inte nått: det kräver markörerna.
-- **Appen (följdjobb):** lodlinjen ur `CMDeviceMotion` i `serier[].lodlinje` (B39),
-  och vyn för trenden med läget (S6b), då måtten flyttar in i `katalog.json` (B37).
+- **Appen (följdjobb):** vyn för trenden med läget (S6b), då måtten flyttar in i
+  `katalog.json` (B37). Lodlinjen i manifestet: S6b-1 nedan.
 - **PC:n:** markörernas läge (S6b), och mattan eller en kalibrering som skattar
   posemodellens fasta avvikelse om S3 visar att den är stor (B38).
+
+### S6b — Appen: lodlinjen, sedan trendvyn (2026-10-23, grenen `s6b`)
+
+**S6b-1, lodlinjen (gjort):** appen läser `CMDeviceMotion.gravity` i 30 Hz under varje
+serie (App/Motion.swift) och ger bara proven. SwingLabKit (`Plumb`, Lodlinje.swift) tar
+medianen över sekunden före seriens första klick, eller seriens stilla sekunder, spärrar
+en telefon som rör sig (spridningen över 1°), sparar gravitationen i `pass.json` och
+vrider den i manifestet till kamerans ram med filens orientering: `serier[].lodlinje`
+står med bara när PC:ns kontroll tar den och den lutar högst 45°. Gamla pass och pass utan
+rörelse (simulatorn, Bilder) paketeras som förut. Samma påhittade telefoner i stående och
+liggande (`tools/tests/fixturer/lodlinje.json`) prövas i Swift och genom `paket.py`;
+simulatorprovet visar ett paket utan fältet och ett med injicerade prov, båda lästa av
+PC:n. Ingen ny tillåtelse behövs. METOD MS17, BESLUT B39.
+
+**Oprövat på telefonen:** att `gravity` och dess tid är det som antas (enhetens ram,
+värdklockan), spridningen på ett riktigt stativ (spärren 1°), och att PC:ns 3D blir
+densamma eller bättre med fältet än med kamerornas vågräta (B39 omprövas).
+
+**Återstår (S6b-2):** trendvyn med läget, och visa i uppställningen om telefonen lutar.
 
 ## S7 — Klubban
 

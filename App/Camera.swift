@@ -20,6 +20,8 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         let started: Date
         let pressure: Pressure
         let ok: Bool
+        /// Gravitationen under serien (S6b): lodlinjen räknas ur den i SwingLabKit. METOD MS17
+        var gravity: [GravitySample] = []
     }
 
     let session = AVCaptureSession()
@@ -130,6 +132,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         seriesStart = Date()
         seriesPressure = pressure
         phase = .recording
+        GravityRecorder.shared.start()                                // lodlinjen (S6b), METOD MS17
         queue.async { [self] in output.startRecording(to: url, recordingDelegate: self) }
     }
 
@@ -206,7 +209,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         }
         if !ok { problem = String(localized: "The recording was interrupted.") }
         let f = Finished(url: url, startHost: startHosts.removeValue(forKey: url), started: seriesStart,
-                         pressure: seriesPressure, ok: ok)
+                         pressure: seriesPressure, ok: ok, gravity: GravityRecorder.shared.stop())
         if phase == .recording { phase = .ready }
         if let w = seriesWaiter {
             seriesWaiter = nil

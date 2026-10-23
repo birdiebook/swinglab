@@ -98,12 +98,15 @@ public struct PackageManifest: Codable, Equatable, Sendable {
         /// redigering (hela filen, hela bilden). METOD MS13
         public var window: TimeWindow?
         public var crop: CropRect?
+        /// Uppåt (−gravitationen) i kamerans ram i den upprätta bilden, g (`Plumb.field`);
+        /// står bara med när telefonen stod still (S6b, BESLUT B39). METOD MS17
+        public var plumb: [Double]? = nil
 
         enum CodingKeys: String, CodingKey {
             case nr, source = "kalla", club = "klubba", startLocal = "start_lokal", startHost = "start_vard_s"
             case duration = "langd_s", frames = "rutor", format, exposure = "exponering", audio = "ljud"
             case pressure = "tryck", orientation = "orientering", orientationSuspect = "orientering_misstankt"
-            case window = "fonster", crop = "utsnitt"
+            case window = "fonster", crop = "utsnitt", plumb = "lodlinje"
         }
     }
 
@@ -221,7 +224,8 @@ public struct PackageManifest: Codable, Equatable, Sendable {
     /// PC:n kräver lederna för varje slag; klippen bara med `includeClips`, när klippet
     /// finns (`hasClip`) och klicket hittades i det. Fönstret och utsnittet plattas ut per
     /// serie, klampade som de läses (`activeWindow`, `activeCrop`); en serie utan redigering
-    /// får inga fält. METOD MS12, MS13
+    /// får inga fält. Lodlinjen vrids till kamerans ram och står bara med när telefonen stod
+    /// still (`Plumb.field`). METOD MS12, MS13, MS17
     public static func make(pass: PassState, app: AppInfo, phone: PhoneInfo, created: Date, timeZone: TimeZone,
                             includeClips: Bool, clipDurations: [String: Double] = [:],
                             hasJoints: (ShotRecord) -> Bool = { $0.joints != nil },
@@ -246,7 +250,8 @@ public struct PackageManifest: Codable, Equatable, Sendable {
             return Series(nr: s.nr, source: s.source, club: s.club, startLocal: timestamp(s.start, timeZone: timeZone),
                           startHost: finite(s.startHost), duration: finite(s.duration),
                           frames: rutor, format: fmt, exposure: exp, audio: s.audio, pressure: s.pressure,
-                          orientation: s.orientation, orientationSuspect: misstankt, window: fonster, crop: s.activeCrop)
+                          orientation: s.orientation, orientationSuspect: misstankt, window: fonster, crop: s.activeCrop,
+                          plumb: Plumb.field(s.plumb, exif: s.orientation))
         }
         let nr = Set(pass.series.map(\.nr))
         let slag = pass.shots.filter { (s: ShotRecord) -> Bool in

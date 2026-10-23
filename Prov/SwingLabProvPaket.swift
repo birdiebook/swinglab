@@ -10,6 +10,11 @@
 //           /tmp/swinglab_prov/paket/, där kompilera.yml låter PC:ns tools/pc/paket.py och
 //           session.py läsa dem (tools/tests/test_appens_paket.py): kontraktet mellan
 //           telefon och PC prövas med de byte appen skrev, inte med en kopia av formatet.
+//   lodlinjen (S6b) simulatorn har ingen rörelse: paketet med klipp har ingen lodlinje och
+//           går ändå (som ett gammalt pass). Före paketet utan klipp får serien injicerade
+//           gravitationsprov ur en påhittad stående telefon, räknade med samma
+//           `SeriesRecord.setPlumb` som inspelningen (App/RecordView.swift), och PC:n läser
+//           fältet (test_appens_paket.py). METOD MS17, BESLUT B39
 //   tillbaka `att_jobba_pa.json` kontrolleras och sparas (Store.importFocus), en felaktig
 //           fil sparas inte, och den senaste läses när appen startar om (BESLUT B28).
 
@@ -192,6 +197,16 @@ final class SwingLabProvPaket: XCTestCase {
                   + "klippet \(String(format: "%.4f", langd)) s")
         }
 
+        // Lodlinjen (S6b): simulatorn har ingen rörelse, så paketet med klipp har ingen.
+        XCTAssertNil(manifest.series.first?.plumb, "inga rörelseprov i simulatorn: ingen lodlinje")
+        // Injicerade prov ur en påhittad stående telefon (tools/tests/fixturer/lodlinje.json,
+        // "staende_lutar"), 4 s i 30 Hz, utan värdklocka: seriens stilla sekunder.
+        var medLod = try XCTUnwrap(store.load(pass.id))
+        let g = [0.069078, -0.987856, -0.139173]
+        medLod.series[0].setPlumb((0..<120).map { GravitySample(host: 50 + Double($0) / 30, x: g[0], y: g[1], z: g[2]) })
+        XCTAssertEqual(medLod.series[0].plumb?.basis, .still)
+        try store.write(medLod)
+
         // Utan klipp: samma namn, inga klipp.
         let utanExport = try await Export.package(passID: pass.id, store: store, includeClips: false)
         let utanUrl = try tillPC(utanExport, "utan-klipp")
@@ -199,6 +214,10 @@ final class SwingLabProvPaket: XCTestCase {
         XCTAssertEqual(utan.names, ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json"])
         let utanM = try JSONDecoder().decode(PackageManifest.self, from: utan.data(named: "manifest.json"))
         XCTAssertTrue(utanM.shots.allSatisfy { $0.clip == nil })
+        let lodlinje = try XCTUnwrap(utanM.series.first?.plumb, "lodlinjen ur de injicerade proven")
+        XCTAssertEqual(lodlinje, [-0.0691, -0.9879, -0.1392], "uppåt i kamerans ram, som fixturen")
+        print("PROV: lodlinjen i paketet utan klipp \(lodlinje) (orientering \(utanM.series[0].orientation)); "
+              + "med klipp ingen (simulatorn)")
 
         // Swifts mått på samma leder som facit för PC:ns (BESLUT B12).
         var facit: [String: Any] = [:]
@@ -210,7 +229,8 @@ final class SwingLabProvPaket: XCTestCase {
                   + "(satt \(sway[s.id]!)), \(r.matt.count) mått")
             XCTAssertEqual(r.matt["backen_sway_topp"] ?? .nan, sway[s.id]!, accuracy: 0.5)
         }
-        let f: [String: Any] = ["pass": pass.id, "spelarens_langd_m": Self.langd, "slag": facit]
+        let f: [String: Any] = ["pass": pass.id, "spelarens_langd_m": Self.langd, "slag": facit,
+                                "lodlinje": ["med-klipp": NSNull(), "utan-klipp": lodlinje] as [String: Any]]
         try JSONSerialization.data(withJSONObject: f, options: [.sortedKeys, .prettyPrinted])
             .write(to: URL(fileURLWithPath: Self.ut + "/facit.json"))
     }

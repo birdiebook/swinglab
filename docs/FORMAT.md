@@ -190,8 +190,10 @@ formatet i `enhet.json`; ett synfält utanför 10–170° räknas som saknat (ME
 `"lodlinje": [x, y, z]`, uppåt (−gravitationen) i g i kamerans ram i den **upprätta**
 bilden: x åt höger, y nedåt, z framåt ur linsen. Längden ska vara 0,8–1,2 (telefonen i
 vila på stativet); PC:n normerar den. En telefon som står rak och vågrät ger ungefär
-`[0, -1, 0]`. **Appen skriver den inte än** (följdjobb, B39): utan den tar PC:n uppåt ur
-kamerornas vågräta. Fältet är **mjukt**: fel längd, fel form eller uppåt som inte pekar
+`[0, -1, 0]`. **Telefonen skriver den** (S6b, METOD MS17) med fyra decimaler när den
+stod still sekunden före seriens första klick (eller under seriens stilla sekunder); rörde den sig, saknades rörelsen (simulatorn) eller
+är serien importerad ur Bilder står fältet inte med, och PC:n tar uppåt ur kamerornas
+vågräta. Gamla paket utan fältet läses som förut. Fältet är **mjukt**: fel längd, fel form eller uppåt som inte pekar
 mot bildens överkant (y ≥ 0) stoppar aldrig paketet; PC:n använder det då inte och
 skriver skälet utan värden i `tre_d.kalibrering[].lodlinje_fel`.
 

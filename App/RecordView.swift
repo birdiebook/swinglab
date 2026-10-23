@@ -293,6 +293,7 @@ struct RecordView: View {
         s.format = camera.chosen
         s.exposure = camera.exposure
         s.pressure = f.pressure
+        s.setPlumb(f.gravity)                                           // lodlinjen (S6b), METOD MS17
         pass.series.removeAll { $0.file == file }
         pass.series.append(s)
         store.save(pass)

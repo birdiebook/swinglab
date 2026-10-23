@@ -188,12 +188,15 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
     /// Fönstret och utsnittet ur redigeraren (S2i, `Edit.swift`); nil = aldrig redigerad:
     /// hela filen och hela bilden. Ett pass.json från före S2i saknar fältet. METOD MS13
     public var edit: SeriesEdit?
+    /// Telefonens lodlinje under inspelningen (S6b, `Lodlinje.swift`); nil = inga rörelseprov
+    /// (simulatorn, en import ur Bilder) eller ett pass.json från före S6b. METOD MS17
+    public var plumb: PlumbRecord?
 
     public init(nr: Int, source: SeriesSource, club: String, file: String, start: Date, startHost: Double?,
                 duration: Double, bytes: Int64, timing: FrameTiming, clicks: [Click], orientation: UInt32,
                 uprightWidth: Int, uprightHeight: Int, audio: AudioInfo? = nil, format: CameraFormat? = nil,
                 exposure: ExposureRecord? = nil, pressure: Pressure? = nil, markedSlowMotion: Bool? = nil,
-                edit: SeriesEdit? = nil) {
+                edit: SeriesEdit? = nil, plumb: PlumbRecord? = nil) {
         self.nr = nr
         self.source = source
         self.club = club
@@ -213,6 +216,7 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
         self.pressure = pressure
         self.markedSlowMotion = markedSlowMotion
         self.edit = edit
+        self.plumb = plumb
     }
 
     /// Serien ur det som lästs ur filen. METOD MS3, MS7

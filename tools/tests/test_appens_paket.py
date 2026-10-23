@@ -89,6 +89,15 @@ class AppensPaket(unittest.TestCase):
                           f"telefonens längd {s.klipp_langd_s:.4f} s")
             else:
                 self.assertTrue(all(s.klipp is None for s in p.slag))
+            # Lodlinjen (S6b, METOD MS17): inga rörelseprov i simulatorn i paketet med klipp,
+            # injicerade prov i paketet utan; båda läses, och fältet tas av PC:ns kontroll.
+            vantad = self.facit.get("lodlinje", {}).get(fil.parent.name)
+            self.assertIsNone(serie.lodlinje_fel, f"{fil.parent.name}: lodlinjen användes inte")
+            if vantad is None:
+                self.assertIsNone(serie.lodlinje, f"{fil.parent.name}: ingen lodlinje")
+            else:
+                self.assertEqual(serie.lodlinje, tuple(vantad))
+                print(f"PAKET: {fil.parent.name} lodlinjen {list(serie.lodlinje)} läst av paket.py")
             print(f"PAKET: {fil.parent.name}/{fil.name} läst av paket.py: {len(p.slag)} slag, "
                   f"{sum(1 for s in p.slag if s.klipp)} klipp")
 

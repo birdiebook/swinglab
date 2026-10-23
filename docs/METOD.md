@@ -1118,6 +1118,48 @@ värden i `CaptureTests`.
   Store mäts med appens egen väg, två påhittade filer, flikarna ritas med talen, accenten
   bara på det som övas, och en ny längd i Jag rör inga gamla pass.
 
+## MS17 — Lodlinjen på telefonen (S6b)
+
+- **Proven:** `CMDeviceMotion.gravity` (CoreMotions skattning av gravitationen ur
+  accelerometern och gyrot, i g, enhetens ram: x åt höger i stående, y mot skärmens
+  överkant, z ut ur skärmen) var **1/30 s** från seriens start till filen är klar
+  (App/Motion.swift). Tiden är `CMLogItem.timestamp` på värdklockan, samma som seriens
+  `startHost` (BESLUT B19), så att provets tid i filen är `host − startHost`.
+  **tillverkare** (Apples CoreMotion), **antagande** (takten: 30 prov i fönstret nedan).
+  Kräver ingen tillåtelse: `NSMotionUsageDescription` gäller rörelseaktiviteten och
+  stegen (`CMMotionActivityManager`, `CMPedometer`), inte `CMMotionManager`.
+  **tillverkare, ej läst i original.**
+- **Medianen** per axel över **1,0 s** före seriens första klick (stativet står still och
+  ingen har rört telefonen sedan starten), med minst **10** prov. Är fönstret inte stilla,
+  saknas klicket eller värdklockan: seriens **stillastående sekunder** (sekunden från
+  första provet, var och en med minst 10 prov och stilla), när de är eniga med varandra.
+  **antagande.**
+- **Spärren för rörelse:** spridningen, den största vinkeln mellan ett prov och
+  medianen, över **1,0°** är rörelse. Rör sig telefonen i fönstret och i de stilla
+  sekunderna, eller är de stilla sekunderna inte eniga (stativet flyttat mitt i serien),
+  sparas `rorelse` i `pass.json` och fältet skrivs inte; PC:n tar då kamerornas vågräta
+  (MK3). Felbudgeten ger 0,5–3° fel i lodlinjen under slumpfelet (S6_FELBUDGET §6.5), så
+  1° är en telefon som vrider sig, inte brus. **antagande** (kalibreras på telefonen:
+  `spread` står i `pass.json`).
+- **Kamerans ram** (docs/FORMAT.md): uppåt = −gravitationen. Bakre kamerans lagrade bild
+  (EXIF 1) är sensorns liggande bild med telefonens överkant åt vänster: höger = −y,
+  ned = −x, framåt ur linsen = −z i enhetens ram. Filens EXIF-orientering (MS7) vrider
+  den till den upprätta bilden: 6 (stående, appens läge) 90° medurs, 3 ett halvt varv,
+  8 90° moturs. En rak stående telefon ger `[0, -1, 0]`. **standard** (CoreMotions och
+  AVFoundations ramar), prövad åt båda håll med påhittade telefoner i stående och
+  liggande (`tools/tests/fixturer/lodlinje.json`: `LodlinjeTests.swift` och
+  `test_lodlinje.py` mot `paket.lodlinjen`). **Oprövad på telefonen.**
+- **Fältet skrivs** med fyra decimaler (0,006°) bara när PC:ns kontroll tar det (längden
+  0,8–1,2 g och y < 0, MK3) och uppåt lutar högst **45°** från bildens överkant. Mer är en
+  telefon som stod i en annan orientering än filens (liggande i en stående fil), där
+  lederna inte heller står upp (MS7). **räkning** (45° är gränsen mellan två
+  orienteringar).
+- **Vad som provas var.** Linux (`LodlinjeTests`): ramen i fyra orienteringar, medianen,
+  fönstret, spärren, manifestet med och utan fältet och ett gammalt pass. Simulatorn
+  (`SwingLabProvPaket`, ingen rörelse): ett pass utan lodlinje paketeras och läses av
+  PC:n, och injicerade prov skrivs rätt och läses av `paket.py`. Telefonen: att
+  `gravity` och tiden är det som antas här, och spridningen på stativet.
+
 ---
 
 # Tolkningen (S5)
