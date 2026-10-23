@@ -126,8 +126,8 @@ final class ClaudeTests: XCTestCase {
         let h = try XCTUnwrap(Self.facit["historiker"]?.somLista?.first)
         let (passen, filer, skapad) = try historik(try XCTUnwrap(h["historik"]))
         let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, filer: filer, skapad: skapad, katalog: k))
-        XCTAssertLessEqual(u.text.utf8.count - ClaudeKallor.instruktion.utf8.count, 8 * 1024)
-        XCTAssertLessEqual(u.text.utf8.count, 16 * 1024)
+        XCTAssertLessThanOrEqual(u.text.utf8.count - ClaudeKallor.instruktion.utf8.count, 8 * 1024)
+        XCTAssertLessThanOrEqual(u.text.utf8.count, 16 * 1024)
     }
 
     func testJSONLasningOchSkrivning() throws {
