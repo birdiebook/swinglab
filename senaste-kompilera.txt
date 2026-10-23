@@ -1,26 +1,26 @@
-0b2a10cb04a4474f763822338c7d7e4322ec50d3 s5b 2026-10-23T13:15:18Z run 39957905922 kompilera
-Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+7dd88b0279cdd667fe6122431643bbd0ea41a489 s6c 2026-10-23T13:21:05Z run 39958970294 kompilera
+Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 31 test, 0 fel, 74 s i testerna
-Långsammast (av 31):
-     15.4 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+GRÖNT: 32 test, 0 fel, 80 s i testerna
+Långsammast (av 32):
+     43.4 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      5.5 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      5.0 s  SwingLabProvInspelning.testFilmenMedLPCM
-      4.9 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      4.0 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      3.6 s  SwingLabProvInspelning.testFilmenMedAAC
-      3.4 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      2.9 s  SwingLabProvInspelning.testLjusprovetsLasning
-      2.7 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      2.4 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      2.4 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      2.1 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      2.1 s  SwingLabProvInspelning.testKvittotUrFilen
-      2.0 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      3.9 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      3.4 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      2.7 s  SwingLabProvInspelning.testFilmenMedLPCM
+      2.2 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      1.5 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      1.4 s  SwingLabProvInspelning.testFilmenMedAAC
+      1.3 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      1.3 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      1.3 s  SwingLabProvInspelning.testKvittotUrFilen
+      1.2 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      1.2 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.2 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      1.2 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -54,11 +54,11 @@ PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Len
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.064 ms, osäkerhet 0.226 ms, 30 prov
+PROV: link klocka θ 0.028 ms, osäkerhet 0.212 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.7 MB, topp 58.8 MB (+0.1 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 55.7 MB, topp 56.3 MB (+0.7 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1490565 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -79,6 +79,7 @@ PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666
 PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
+PROV: TreD 4 slag på 0.46 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: skrev jobba.png (1170×4618 px)
 PROV: skrev jobba-stor.png (390×4467 px)
 PROV: flikarna Idag: Sat, Jan 9 · 7i · 8, sway −2.3 cm, 7 rader, fokus ["Hip sway", "Trail elbow flare"]
@@ -103,7 +104,6 @@ PROV: skrev passet-dtl.png (1170×4894 px)
 PROV: skrev passet-dtl-stor.png (390×3151 px)
 PROV: skrev utveckling.png (1170×2212 px)
 PROV: skrev utveckling-resa.png (1170×2212 px)
-PROV: skrev utveckling-tempo.png (1170×2212 px)
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
 GRÖNT: paket.py och session.py läste paketen som appen skrev
