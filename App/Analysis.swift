@@ -210,6 +210,25 @@ enum ShotImages {
         return crop.map { cropped(bild, $0) } ?? bild
     }
 
+    /// Hela den upprätta rutan vid tiden t i seriens fil (eller klippet), i full upplösning
+    /// och med toleransen 0: förstoringsglaset i märkningen visar den (S7a, METOD M45).
+    static func fullFrame(pass: PassState, shot: ShotRecord, store: Store, at t0: Double) async throws -> CGImage? {
+        guard let serie = pass.series.first(where: { $0.nr == shot.series }) else { return nil }
+        var url = store.url(serie.file, in: pass.id)
+        var t = t0
+        if !FileManager.default.fileExists(atPath: url.path) {
+            guard let clip = shot.clip, let offset = clipOffset(shot) else { return nil }
+            url = store.url(clip, in: pass.id)
+            t = t0 + offset
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let g = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        g.appliesPreferredTrackTransform = true
+        g.requestedTimeToleranceBefore = .zero
+        g.requestedTimeToleranceAfter = .zero
+        return try await g.image(at: CMTime(seconds: max(0, t), preferredTimescale: 48_000)).image
+    }
+
     /// Den upprätta bilden skuren till utsnittet (normaliserat, origo uppe till vänster).
     static func cropped(_ image: CGImage, _ crop: CropRect) -> CGImage {
         let px = crop.pixels(width: image.width, height: image.height)

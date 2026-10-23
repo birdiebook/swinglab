@@ -36,9 +36,17 @@ struct ShotReviewView: View {
     @State private var pendingFrame: Int?
     /// Märkningen av klubban (S7a); nil = granskningen.
     @State private var marking: ClubMarking?
-    @State private var touch: (u: Double, v: Double)?
-    @State private var dragging: ClubMarking.Point?
     @State private var series: JointSeries?
+    /// Riktpinnen: nästa två tryck sätter den (S7a, METOD M48).
+    @State private var stickMode = false
+    @State private var stickPoints: [KlubbPunkt] = []
+    /// Rutan som stillbild för glaset (toleransen 0), och vilken ruta den är.
+    @State private var loupeImage: (frame: Int, image: CGImage)?
+    /// Ett steg till en annan ruta när punkter är satta: frågan om de ska tömmas.
+    @State private var pendingStep: Int?
+    @State private var askDiscard = false
+    /// Sparningen utanför huvudtråden; bara den senaste skrivs.
+    @State private var saveCount = 0
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -46,15 +54,33 @@ struct ShotReviewView: View {
         Group {
             if let shot, let review, let m = marking {
                 ScrollView {
-                    ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) }, marking: m,
-                                    time: timeText(review, shot), touch: touch, onTouch: touchMoved,
-                                    onRelease: touchEnded, onStep: step, onUndo: { change { $0.undo() } },
+                    ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) },
+                                    loupe: { LoupeImage(image: loupeImage?.frame == frame ? loupeImage?.image : nil, crop: $0) },
+                                    marking: m, time: timeText(review, shot), ring: ring(review),
+                                    stick: stickMode ? stickPoints : (pass?.riktpinne(series: shot.series) ?? []),
+                                    stickMode: stickMode, onTap: tapped, onMove: { g, u, v in change { $0.move(g, u: u, v: v) } },
+                                    onStep: markingStep, onUndo: { change { $0.undo() } },
                                     onSkip: { change { $0.skip(t: review.frames[frame].t) } },
-                                    onNext: { change { $0.confirm(t: review.frames[frame].t) } },
+                                    onNext: { change { $0.advance() } }, onStick: toggleStick,
                                     onPosition: { p in change { $0.go(to: p) } }, onClose: closeMarking)
                         .padding(.vertical, 8)
                 }
-                .scrollDisabled(touch != nil)
+                .task(id: frame) { await readLoupe() }
+                .confirmationDialog(Text("Clear the points?"), isPresented: Binding(
+                    get: { pendingStep != nil }, set: { if !$0 { pendingStep = nil } }), titleVisibility: .visible) {
+                    Button("Clear", role: .destructive) {
+                        let n = pendingStep ?? 0
+                        pendingStep = nil
+                        if var m = marking {
+                            m.clearPoints()
+                            marking = m
+                        }
+                        step(n)
+                    }
+                }
+                .confirmationDialog(Text("Discard the grip?"), isPresented: $askDiscard, titleVisibility: .visible) {
+                    Button("Discard", role: .destructive) { finishMarking() }
+                }
             } else if let pass, let shot, let review {
                 ScrollView {
                     ReviewContent(surface: CroppedPlayerSurface(player: player, crop: review.crop), review: review,
@@ -222,54 +248,133 @@ struct ShotReviewView: View {
         seekToPosition()
     }
 
-    /// Rutan för positionen som märks: markeringens, annars förslaget ur kroppens tider.
+    /// Rutan för positionen som märks: punkternas, markeringens, annars förslaget ur kroppens
+    /// positioner (METOD M45).
     private func seekToPosition() {
         guard let m = marking, !m.done, let review, let shot else { return }
-        let t = ClubMarking.suggestedTime(m.position, measure: shot.measure, existing: m.result,
-                                          impact: shot.impact - shot.click.time)
-        seek(review.index(nearestT: t) ?? frame)
+        seek(review.index(nearestT: m.shownTime(measure: shot.measure, impact: shot.impact - shot.click.time)) ?? frame)
     }
 
-    /// En ändring i märkningen; sparas i passet när positionen bytts eller ångrats, och
-    /// rutan följer positionen.
-    private func change(_ f: (inout ClubMarking) -> Void) {
-        guard var m = marking else { return }
-        let fore = m.position
-        let foreMarks = m.result
-        f(&m)
-        marking = m
-        if m.result != foreMarks { saveMarks(m.result) }
-        if m.position != fore || m.done { seekToPosition() }
+    /// Ringen ur handlederna i rutan (förslaget till greppet, BESLUT B47): handledernas mitt,
+    /// eller den som syns.
+    private func ring(_ r: ShotReview) -> KlubbPunkt? {
+        guard r.frames.indices.contains(frame) else { return nil }
+        let h = [5, 6].compactMap { i -> PoseJoint? in
+            guard i < r.frames[frame].joints.count, let j = r.frames[frame].joints[i], j.c >= Sving.minKonfidens else {
+                return nil
+            }
+            return j
+        }
+        guard !h.isEmpty else { return nil }
+        return KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
     }
 
-    private func saveMarks(_ marks: [KlubbMarkering]) {
-        guard var p = pass, let series else { return }
-        p.setClubMarks(marks, shot: shotID, joints: series)
+    /// Ett tryck: riktpinnens punkt i det läget, annars nästa punkt i rutan.
+    private func tapped(_ u: Double, _ v: Double) {
+        guard let m = marking, let review, review.frames.indices.contains(frame) else { return }
+        if stickMode {
+            guard let p = m.imagePoint(u: u, v: v) else { return }
+            stickPoints.append(p)
+            if stickPoints.count == 2 { saveStick(stickPoints) }
+            return
+        }
+        let t = review.frames[frame].t
+        let r = ring(review)
+        change { $0.tap(u: u, v: v, t: t, ring: r) }
+    }
+
+    /// Riktpinnen (valfri, en gång per serie): två tryck på en pinne på marken, parallell med
+    /// mållinjen; ett tryck på knappen när den finns tar bort den. METOD M48
+    private func toggleStick() {
+        guard let shot else { return }
+        if stickMode {
+            stickMode = false
+            stickPoints = []
+        } else if pass?.riktpinne(series: shot.series) != nil {
+            saveStick(nil)
+        } else {
+            stickMode = true
+            stickPoints = []
+        }
+    }
+
+    private func saveStick(_ pinne: [KlubbPunkt]?) {
+        guard var p = pass, let shot, let series else { return }
+        stickMode = false
+        stickPoints = []
+        let id = shotID, nr = shot.series
+        p.setRiktpinne(pinne, series: nr) { s in s.id == id ? series : store.joints(s.joints ?? "", in: p.id) }
         store.save(p)
         pass = p
     }
 
-    private func touchMoved(_ u: Double, _ v: Double) {
-        if touch == nil { dragging = marking?.grab(u: u, v: v) }
-        touch = (u, v)
-    }
-
-    /// Fingret släpptes: en dragen punkt flyttas dit, annars sätter trycket nästa punkt (inget
-    /// nära kanten, METOD M45).
-    private func touchEnded(_ u: Double, _ v: Double) {
-        if let d = dragging {
-            change { $0.move(d, u: u, v: v) }
+    /// Ett steg i rutorna: med punkter satta på en annan ruta frågas först om de ska tömmas.
+    private func markingStep(_ n: Int) {
+        if marking?.hasPoints == true {
+            pendingStep = n
         } else {
-            change { $0.tap(u: u, v: v) }
+            step(n)
         }
-        touch = nil
-        dragging = nil
     }
 
+    /// En ändring i märkningen; sparas i passet när markeringarna ändrats, och rutan följer
+    /// positionen (efter ett ångra den sparade rutan).
+    private func change(_ f: (inout ClubMarking) -> Void) {
+        guard var m = marking else { return }
+        let fore = (m.position, m.frameT)
+        let foreMarks = m.result
+        f(&m)
+        marking = m
+        if m.result != foreMarks { saveMarks(m.result) }
+        if m.position != fore.0 || m.frameT != fore.1 || m.done { seekToPosition() }
+    }
+
+    /// Markeringarna sparas och slaget mäts om utanför huvudtråden; bara den senaste
+    /// sparningen skrivs (METOD MS14).
+    private func saveMarks(_ marks: [KlubbMarkering]) {
+        guard let p = pass, let series else { return }
+        saveCount += 1
+        let nr = saveCount, id = shotID
+        Task {
+            let q = await Task.detached(priority: .userInitiated) { () -> PassState in
+                var q = p
+                q.setClubMarks(marks, shot: id, joints: series)
+                return q
+            }.value
+            // Bara slaget byts in, så att en riktpinne som sparats under tiden står kvar.
+            guard nr == saveCount, var cur = pass, let i = cur.shots.firstIndex(where: { $0.id == id }),
+                  let ny = q.shots.first(where: { $0.id == id }) else { return }
+            cur.shots[i] = ny
+            store.save(cur)
+            pass = cur
+        }
+    }
+
+    /// Glasets stillbild för rutan, ur filen med toleransen 0.
+    private func readLoupe() async {
+        guard marking != nil, let p = pass, let s = shot, let review, review.frames.indices.contains(frame) else { return }
+        let k = frame
+        if loupeImage?.frame == k { return }
+        if let img = try? await ShotImages.fullFrame(pass: p, shot: s, store: store,
+                                                     at: (review.seekTime(k) ?? review.frames[k].pts)) {
+            loupeImage = (k, img)
+        }
+    }
+
+    /// Done: en ensam punkt på positionen ger en fråga; annars stängs märkningen.
     private func closeMarking() {
-        if let m = marking { saveMarks(m.result) }
+        if let m = marking, m.grip != nil, m.hosel == nil {
+            askDiscard = true
+            return
+        }
+        finishMarking()
+    }
+
+    private func finishMarking() {
+        askDiscard = false
         marking = nil
-        touch = nil
+        stickMode = false
+        stickPoints = []
     }
 }
 
@@ -280,7 +385,7 @@ enum ReviewRows {
                      ovas: Set<String> = []) -> [Positionsrad] {
         guard let k = AppKatalog.katalog, let m = shot.measure else { return [] }
         return Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values, baslinje: baseline,
-                                   ovas: ovas)
+                                   ovas: ovas, flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true)
     }
 }
 

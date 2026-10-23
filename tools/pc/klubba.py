@@ -397,6 +397,8 @@ def mat(marks: list[dict], vy: str, x_tecken: float, bredd: int, hojd: int, svin
 # --- fixturerna för Swift (BESLUT B12) -------------------------------------------------
 
 FIXTURFIL = Path(__file__).resolve().parents[2] / "SwingLabKit" / "Tests" / "SwingTests" / "KlubbFixturer.swift"
+# Trycken på ytan till bildens pixlar, för märkningens logik (Capture, ClubMarking).
+YTAFIL = Path(__file__).resolve().parents[2] / "SwingLabKit" / "Tests" / "CaptureTests" / "KlubbYtaFixturer.swift"
 FIXTUR_BREDD, FIXTUR_HOJD = 1080, 2880   # högre bild: greppet vid toppen står över mitten (M48)
 # Påhittade skaft per position: vinkeln grepp → hosel i den speglade bilden (y uppåt) och
 # längden i px. Bakifrån som i bild: P4 60–95 px, P2, P6 och P8 korta (skaftet pekar mot
@@ -550,6 +552,22 @@ def swift_kalla() -> str:
     ])
 
 
+def swift_yta() -> str:
+    data = json.dumps(fixturer()["yta"], ensure_ascii=False, indent=1, sort_keys=True)
+    return "\n".join([
+        "// GENERERAD av tools/pc/klubba.py --swift. Ändra inte för hand: kör skriptet igen.",
+        "//",
+        "// Tryck på telefonens yta och pixeln PC:n räknar ur `visad` (METOD M45, BESLUT B12).",
+        "",
+        "enum KlubbYtaFixturer {",
+        "    static let json = #\"\"\"",
+        data,
+        "\"\"\"#",
+        "}",
+        "",
+    ])
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Klubbmåtten och Swift-fixturerna (METOD M45–M49).")
     ap.add_argument("--swift", action="store_true", help=f"skriv {FIXTURFIL.name}")
@@ -557,7 +575,8 @@ def main(argv=None) -> int:
     if not a.swift:
         ap.error("ange --swift")
     FIXTURFIL.write_text(swift_kalla(), encoding="utf-8")
-    print(f"Skrev {FIXTURFIL}")
+    YTAFIL.write_text(swift_yta(), encoding="utf-8")
+    print(f"Skrev {FIXTURFIL} och {YTAFIL}")
     return 0
 
 

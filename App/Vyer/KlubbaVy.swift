@@ -3,31 +3,63 @@ import Swing
 import Capture
 
 /// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, METOD M45), DTL först: rutan för
-/// positionen, ett tryck på greppet och sedan på hoseln med förstoringsglaset under fingret,
-/// flytta en punkt genom att dra den, ångra, hoppa över en position där klubban inte syns,
-/// och P1–P10 i ordning. B13: svartvitt, bara punkterna och linjen mellan dem; raden under
-/// ytan säger vilken punkt nästa tryck sätter. Allt som avgör vad ett tryck blir står i
-/// `ClubMarking` (SwingLabKit). Innehållet tar sina värden utifrån, så att provet kan rita
-/// det med en stillbild och ett finger på ytan.
-struct ClubMarkContent<Surface: View>: View {
-    /// Ytan för ett utsnitt: videon i appen, en stillbild i provet. Samma yta ritas i glaset.
+/// positionen, ett tryck på greppet (eller på ringen ur handlederna) och sedan på hoseln, och
+/// positionen sparas av sig själv; förstoringsglaset under fingret, en punkt flyttas genom att
+/// dra den mer än 4 pt, ångra, hoppa över en position där klubban inte syns, och P1–P10 i
+/// ordning. Riktpinnen (valfri, en gång per serie) sätts med två tryck. B13: svartvitt, bara
+/// punkterna och linjen mellan dem. Allt som avgör vad ett tryck blir står i `ClubMarking`
+/// (SwingLabKit). Innehållet tar sina värden utifrån, så att provet kan rita det med en
+/// stillbild och ett finger på ytan.
+struct ClubMarkContent<Surface: View, Loupe: View>: View {
+    /// Ytan för ett utsnitt: videon i appen, en stillbild i provet.
     let surface: (CropRect) -> Surface
+    /// Glasets yta för ett utsnitt: rutan som stillbild ur filen (toleransen 0).
+    let loupe: (CropRect) -> Loupe
     let marking: ClubMarking
     /// "−0.250 s" från träffen.
     let time: String
-    /// Fingret på ytan (0–1 i utsnittet): glaset visas där.
-    var touch: (u: Double, v: Double)? = nil
-    var onTouch: (Double, Double) -> Void = { _, _ in }
-    var onRelease: (Double, Double) -> Void = { _, _ in }
+    /// Ringen ur handlederna i rutan (förslaget till greppet), i hela bildens pixlar.
+    var ring: KlubbPunkt? = nil
+    /// Riktpinnens punkter (0–2) och om nästa tryck sätter den.
+    var stick: [KlubbPunkt] = []
+    var stickMode = false
+    /// Ett finger på ytan för provets bild (0–1 i utsnittet); i appen fingret självt.
+    var previewTouch: (u: Double, v: Double)? = nil
+    var onTap: (Double, Double) -> Void = { _, _ in }
+    var onMove: (ClubMarking.Point, Double, Double) -> Void = { _, _, _ in }
     var onStep: (Int) -> Void = { _ in }
     var onUndo: () -> Void = {}
     var onSkip: () -> Void = {}
     var onNext: () -> Void = {}
+    var onStick: () -> Void = {}
     var onPosition: (String) -> Void = { _ in }
     var onClose: () -> Void = {}
 
+    /// Fingret: var det började, var det är, och punkten det tog (en flytt). Nollställs när
+    /// gesten slutar eller ScrollView tar över den.
+    struct Drag: Equatable {
+        var start: CGPoint
+        var now: CGPoint
+        var grabbed: ClubMarking.Point?
+    }
+
+    @GestureState private var drag: Drag? = nil
+
     static var stageHeight: CGFloat { 460 }
     static var loupeSize: CGFloat { 124 }
+
+    /// Var glaset ska visa: den dragna punktens nya plats, annars fingret.
+    private func shown(_ size: CGSize) -> (u: Double, v: Double)? {
+        guard let d = drag else { return previewTouch }
+        let u = Double(d.now.x / max(1, size.width)), v = Double(d.now.y / max(1, size.height))
+        guard let g = d.grabbed, let o = punkt(g) else { return (u, v) }
+        let dx = Double(d.now.x - d.start.x), dy = Double(d.now.y - d.start.y)
+        guard ClubMarking.isDrag(dx: dx, dy: dy) else { return (u, v) }
+        let s = marking.surfacePoint(o)
+        return (s.u + dx / Double(max(1, size.width)), s.v + dy / Double(max(1, size.height)))
+    }
+
+    private func punkt(_ p: ClubMarking.Point) -> KlubbPunkt? { p == .grip ? marking.grip : marking.hosel }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -41,7 +73,7 @@ struct ClubMarkContent<Surface: View>: View {
             GeometryReader { geo in
                 ZStack(alignment: .topLeading) {
                     surface(marking.crop)
-                    ClubPoints(marking: marking)
+                    ClubPoints(marking: marking, ring: marking.next == .grip && !stickMode ? ring : nil, stick: stick)
                     if !time.isEmpty {
                         Text(verbatim: time)
                             .typsnitt(11, .medium, siffror: true)
@@ -49,14 +81,36 @@ struct ClubMarkContent<Surface: View>: View {
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    if let t = touch { loupe(t, size: geo.size) }
+                    if let t = shown(geo.size) { loupeView(t, size: geo.size) }
                 }
                 .contentShape(.rect)
-                .gesture(DragGesture(minimumDistance: 0).onChanged { d in
-                    onTouch(Double(d.location.x / max(1, geo.size.width)), Double(d.location.y / max(1, geo.size.height)))
-                }.onEnded { d in
-                    onRelease(Double(d.location.x / max(1, geo.size.width)), Double(d.location.y / max(1, geo.size.height)))
-                })
+                .gesture(DragGesture(minimumDistance: 0)
+                    .updating($drag) { v, state, _ in
+                        if state == nil {
+                            let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
+                                                        width: Double(geo.size.width), height: Double(geo.size.height))
+                            state = Drag(start: v.startLocation, now: v.location,
+                                         grabbed: stickMode ? nil : marking.grab(u: s.u, v: s.v))
+                        } else {
+                            state?.now = v.location
+                        }
+                    }
+                    .onEnded { v in
+                        let w = Double(geo.size.width), h = Double(geo.size.height)
+                        let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
+                                                    width: w, height: h)
+                        let e = ClubMarking.surface(x: Double(v.location.x), y: Double(v.location.y), width: w, height: h)
+                        let dx = Double(v.location.x - v.startLocation.x), dy = Double(v.location.y - v.startLocation.y)
+                        // En satt punkt flyttas först när fingret rört sig mer än 4 pt, och behåller
+                        // avståndet mellan finger och punkt. METOD M45
+                        if !stickMode, let g = marking.grab(u: s.u, v: s.v), ClubMarking.isDrag(dx: dx, dy: dy),
+                           let o = punkt(g) {
+                            let p = marking.surfacePoint(o)
+                            onMove(g, p.u + dx / w, p.v + dy / h)
+                        } else {
+                            onTap(e.u, e.v)
+                        }
+                    })
             }
             .background(Theme.cam)
             .clipped()
@@ -73,7 +127,9 @@ struct ClubMarkContent<Surface: View>: View {
                 Text(verbatim: marking.done ? "" : marking.position)
                     .typsnitt(15, .semibold, siffror: true)
                     .foregroundStyle(Theme.text)
-                if let n = marking.next, !marking.done {
+                if stickMode {
+                    Text("Stick").typsnitt(13, .medium).foregroundStyle(Theme.secondary).padding(.leading, 6)
+                } else if let n = marking.next, !marking.done {
                     Text(n == .grip ? LocalizedStringKey("Grip") : LocalizedStringKey("Hosel"))
                         .typsnitt(13, .medium)
                         .foregroundStyle(Theme.secondary)
@@ -84,7 +140,7 @@ struct ClubMarkContent<Surface: View>: View {
                     Text("Not visible").typsnitt(14, .medium).foregroundStyle(Theme.secondary).frame(minHeight: 40)
                 }
                 .buttonStyle(.plain)
-                .disabled(marking.done)
+                .disabled(marking.done || stickMode)
             }
             .padding(.top, 8)
 
@@ -93,13 +149,20 @@ struct ClubMarkContent<Surface: View>: View {
             HStack(spacing: 12) {
                 Button(action: onUndo) {
                     Text("Undo").typsnitt(16, .medium).foregroundStyle(marking.canUndo ? Theme.text : Theme.tertiary)
-                        .frame(minWidth: 72, minHeight: 52)
+                        .frame(minWidth: 64, minHeight: 52)
                 }
                 .buttonStyle(.plain)
                 .disabled(!marking.canUndo)
-                Button(marking.done ? LocalizedStringKey("Done") : LocalizedStringKey("Next"), action: marking.done ? onClose : onNext)
+                Button(action: onStick) {
+                    Text("Stick").typsnitt(16, .medium)
+                        .foregroundStyle(stickMode || stick.count == 2 ? Theme.text : Theme.secondary)
+                        .frame(minWidth: 56, minHeight: 52)
+                }
+                .buttonStyle(.plain)
+                Button(marking.done ? LocalizedStringKey("Done") : LocalizedStringKey("Next"),
+                       action: marking.done ? onClose : onNext)
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!marking.done && marking.next != nil)
+                    .disabled(!marking.done && (marking.grip == nil || marking.hosel == nil))
             }
             .padding(.top, 10)
         }
@@ -123,28 +186,29 @@ struct ClubMarkContent<Surface: View>: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text(verbatim: p))
+                .accessibilityValue(nu ? Text("current") : m?.hoppad == true ? Text("skipped")
+                                    : m?.markerad == true ? Text("marked") : Text(verbatim: ""))
+                .accessibilityAddTraits(nu ? .isSelected : [])
             }
         }
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
     }
 
-    /// Glaset: ytan förstorad kring fingret med ett hårkors där fingret är och de satta
-    /// punkterna, bredvid fingret där det inte täcker en satt punkt. METOD M45
-    private func loupe(_ t: (u: Double, v: Double), size: CGSize) -> some View {
+    /// Glaset: rutan förstorad 3 × i punkter kring fingret, med hårkorset och de satta
+    /// punkterna, bredvid fingret där det inte täcker fingret eller en satt punkt. METOD M45, M46
+    private func loupeView(_ t: (u: Double, v: Double), size: CGSize) -> some View {
         let s = Self.loupeSize
-        let lc = marking.loupeCrop(u: t.u, v: t.v)
+        let lc = marking.loupeCrop(u: t.u, v: t.v, surfaceWidthPt: Double(size.width), loupePt: Double(s))
         let cx = (marking.crop.x + t.u * marking.crop.width - lc.x) / lc.width
         let cy = (marking.crop.y + t.v * marking.crop.height - lc.y) / lc.height
         let fx = CGFloat(t.u) * size.width, fy = CGFloat(t.v) * size.height
-        // Ovanför fingret, annars under, till vänster eller höger: där glaset ryms och inte
-        // täcker en satt punkt (greppet ligger ofta rakt ovanför hoseln).
         let satta = [marking.grip, marking.hosel].compactMap { $0 }.map { k -> CGPoint in
             let l = marking.surfacePoint(k)
             return CGPoint(x: CGFloat(l.u) * size.width, y: CGFloat(l.v) * size.height)
         }
         let kandidater = [CGPoint(x: fx - s / 2, y: fy - s - 40), CGPoint(x: fx - s / 2, y: fy + 40),
                           CGPoint(x: fx - s - 40, y: fy - s / 2), CGPoint(x: fx + 40, y: fy - s / 2)]
-        // Inom ytan (skjuten in från kanten), och inte över fingret eller en satt punkt.
         func inom(_ o: CGPoint) -> CGPoint {
             CGPoint(x: min(max(0, o.x), max(0, size.width - s)), y: min(max(0, o.y), max(0, size.height - s)))
         }
@@ -153,11 +217,9 @@ struct ClubMarkContent<Surface: View>: View {
             return (satta + [CGPoint(x: fx, y: fy)]).contains { r.contains($0) }
         }
         let vald = kandidater.map(inom).first { !tacker($0) } ?? inom(kandidater[0])
-        let x = vald.x, y = vald.y
         return ZStack {
-            surface(lc)
+            loupe(lc)
             Canvas { c, z in
-                // De satta punkterna och linjen syns också i glaset, förstorade.
                 func q(_ k: KlubbPunkt) -> CGPoint {
                     CGPoint(x: CGFloat((k.x / Double(marking.width) - lc.x) / lc.width) * z.width,
                             y: CGFloat((k.y / Double(marking.height) - lc.y) / lc.height) * z.height)
@@ -175,7 +237,7 @@ struct ClubMarkContent<Surface: View>: View {
         .frame(width: s, height: s)
         .clipShape(Circle())
         .overlay(Circle().stroke(Theme.text, lineWidth: 1))
-        .offset(x: x, y: y)
+        .offset(x: vald.x, y: vald.y)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -193,15 +255,39 @@ struct ClubMarkContent<Surface: View>: View {
     }
 }
 
-/// Punkterna som är satta på positionen: greppet fyllt, hoseln ihålig, och en tunn linje mellan dem.
+/// Glasets yta: rutan som stillbild, skuren till glasets utsnitt; svart innan den lästs.
+struct LoupeImage: View {
+    let image: CGImage?
+    let crop: CropRect
+
+    var body: some View {
+        if let image {
+            Image(decorative: ShotImages.cropped(image, crop), scale: 1).resizable().interpolation(.none)
+        } else {
+            Color.black
+        }
+    }
+}
+
+/// Punkterna som är satta på positionen (greppet fyllt, hoseln ihålig, en tunn linje mellan
+/// dem), ringen ur handlederna som förslag till greppet (streckad), och riktpinnen.
 struct ClubPoints: View {
     let marking: ClubMarking
+    var ring: KlubbPunkt? = nil
+    var stick: [KlubbPunkt] = []
 
     var body: some View {
         Canvas { c, s in
             func p(_ q: KlubbPunkt) -> CGPoint {
                 let l = marking.surfacePoint(q)
                 return CGPoint(x: CGFloat(l.u) * s.width, y: CGFloat(l.v) * s.height)
+            }
+            if stick.count == 2 { c.linje(p(stick[0]), p(stick[1]), Theme.secondary, 1, streckad: [4, 4]) }
+            for q in stick { c.prick(p(q), 2.5, Theme.secondary) }
+            if let r = ring {
+                let m = p(r), radie = CGFloat(ClubMarking.grabRadius) * s.width
+                c.stroke(Path(ellipseIn: CGRect(x: m.x - radie, y: m.y - radie, width: 2 * radie, height: 2 * radie)),
+                         with: .color(Theme.text), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
             }
             if let g = marking.grip, let h = marking.hosel { c.linje(p(g), p(h), Theme.text, 1.2) }
             if let g = marking.grip { c.prick(p(g), 3.5, Theme.text) }

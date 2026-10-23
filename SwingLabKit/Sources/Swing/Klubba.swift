@@ -29,15 +29,22 @@ public struct KlubbMarkering: Codable, Equatable, Sendable {
     public var hoppad: Bool?
     /// Varifrån punkterna kommer: "klick" (ett tryck). BESLUT B44
     public var kalla: String
+    /// Greppets källa när den är en annan: "handlederna_bekraftad" = ringen ur handlederna,
+    /// bekräftad med ett tryck på den (BESLUT B47). nil = `kalla`.
+    public var greppKalla: String?
+    /// När markeringen sattes eller ändrades (paketets `andrad`). nil = okänt (före granskningen).
+    public var andrad: Date?
 
     public init(position: String, t: Double, grepp: KlubbPunkt?, hosel: KlubbPunkt?, hoppad: Bool? = nil,
-                kalla: String = Klubba.kalla) {
+                kalla: String = Klubba.kalla, greppKalla: String? = nil, andrad: Date? = nil) {
         self.position = position
         self.t = t
         self.grepp = grepp
         self.hosel = hosel
         self.hoppad = hoppad
         self.kalla = kalla
+        self.greppKalla = greppKalla
+        self.andrad = andrad
     }
 
     /// Både greppet och hoseln är satta och positionen är inte hoppad.
@@ -51,19 +58,29 @@ public enum Klubba {
     public static let skaftets = ["P2", "P6", "P8"]
     /// Varje punkt är ett tryck. BESLUT B44
     public static let kalla = "klick"
+    /// Greppet ur ringen vid handlederna, bekräftat med ett tryck på den. BESLUT B47
+    public static let kallaRing = "handlederna_bekraftad"
+    /// Punkternas källor i formatet (`klubba.KALLOR`).
+    public static let kallor = [kalla, kallaRing]
     /// Antagen osäkerhet per tryck, px i hela bilden (1 sd). METOD M46
     public static let tryckPx = 3.0
-    /// Kortare skaft i bild ger inget mått (vinkeln ±4° med `tryckPx`). METOD M46
-    public static let minSkaftPx = 60.0
+    /// Ett mått vars skattade osäkerhet ur trycken är större saknas, grader. METOD M46
+    public static let maxSD = 4.0
+    /// Steget i de centrala differenserna för osäkerheten, px. METOD M46
+    public static let stegPx = 0.5
+    /// Riktpinnens linje måste gå så mycket av bildhöjden i y. METOD M48
+    public static let pinneMinDy = 0.05
     /// Greppet ska stå så mycket av bildhöjden över bildens mitt vid toppen. METOD M48
     public static let centrumMarginal = 0.05
 
     /// Mått per position: skaft_vinkel_p1 … _p10. METOD M46
     public static let perPosition = ["skaft_vinkel"]
-    public static let mattDTL = ["skaftplan_p1", "skaft_mot_plan_p2", "skaft_riktning_topp", "skaft_plan_p6"]
+    public static let mattDTL = ["skaftplan_p1", "skaft_riktning_topp", "skaft_plan_p6"]
     public static let mattFO = ["skaft_topp", "skaft_arm_p5", "skaft_arm_p6", "skaft_lutning_traff"]
 
     public static func specifika(_ vy: Vy) -> [String] { vy == .dtl ? mattDTL : mattFO }
+    /// Måtten som vilar på flyktpunkten bakifrån (METOD M48).
+    public static let flyktpunktsmatt = ["skaft_riktning_topp"]
 
     /// Måttets namn vid en position: skaft_vinkel vid P4 → skaft_vinkel_p4. METOD M46
     public static func nyckel(_ matt: String, _ position: String) -> String {
@@ -79,20 +96,32 @@ public enum Klubba {
     public static func katalognamn(_ vy: Vy) -> [String] { perPosition + specifika(vy) }
 
     /// Rutan som föreslås för en position, s relativt klicket (METOD M45): kroppens
-    /// positioner där de är, P2 mitt mellan starten (annars P1) och P3 (annars P4), P6 mitt
-    /// mellan P5 (annars P4) och P7, P8 mitt mellan P7 och P9 (annars P10). nil när en ände
-    /// saknas. Samma som `klubba.forslag_tid`.
-    public static func forslagTid(_ position: String, positioner p: [String: Double], start: Double?) -> Double? {
+    /// positioner där de är, P2 mitt mellan P1 och P3 (annars P4), P6 mitt mellan P5 (annars
+    /// P4) och P7, P8 mitt mellan P7 och P9 (annars P10). nil när en ände saknas. Bara
+    /// positionerna, så att telefonen och PC:n föreslår samma ruta (`klubba.forslag_tid`).
+    public static func forslagTid(_ position: String, positioner p: [String: Double]) -> Double? {
         func mitt(_ a: Double?, _ b: Double?) -> Double? {
             guard let a, let b else { return nil }
             return (a + b) / 2
         }
         switch position {
-        case "P2": return mitt(start ?? p["P1"], p["P3"] ?? p["P4"])
+        case "P2": return mitt(p["P1"], p["P3"] ?? p["P4"])
         case "P6": return mitt(p["P5"] ?? p["P4"], p["P7"])
         case "P8": return mitt(p["P7"], p["P9"] ?? p["P10"])
         default: return p[position]
         }
+    }
+
+    /// Mållinjens flyktpunkt i bild och om den är antagen (METOD M48): där riktpinnens linje
+    /// skär bildens vågräta mittlinje, eller bildens mitt (antagen) utan pinne eller med en
+    /// nästan vågrät. Som `klubba.flyktpunkt`.
+    public static func flyktpunkt(_ pinne: [KlubbPunkt]?, bredd: Int, hojd: Int) -> (punkt: KlubbPunkt, antagen: Bool) {
+        let mitt = KlubbPunkt(x: Double(bredd) / 2.0, y: Double(hojd) / 2.0)
+        guard let pinne, pinne.count == 2 else { return (mitt, true) }
+        let a = pinne[0], b = pinne[1]
+        guard abs(b.y - a.y) >= pinneMinDy * Double(hojd) else { return (mitt, true) }
+        let u = (mitt.y - a.y) / (b.y - a.y)
+        return (KlubbPunkt(x: a.x + u * (b.x - a.x), y: mitt.y), false)
     }
 
     // MARK: måtten
@@ -113,62 +142,92 @@ public enum Klubba {
         grader(atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y))
     }
 
-    /// En vinkel mellan två linjer (utan riktning) i (−90, 90], som Pythons `_wrap90`.
-    static func wrap90(_ d: Double) -> Double {
-        var r = (d + 90.0).truncatingRemainder(dividingBy: 180.0)
-        if r < 0 { r += 180.0 }
-        r -= 90.0
-        return r == -90.0 ? 90.0 : r
+    static func wrap180(_ d: Double) -> Double {
+        var r = (d + 180.0).truncatingRemainder(dividingBy: 360.0)
+        if r < 0 { r += 360.0 }
+        r -= 180.0
+        return r == -180.0 ? 180.0 : r
     }
 
-    /// Vinkelns osäkerhet (1 sd, grader) för en linje mellan två tryck `langdPx` isär:
-    /// √2·σ/L radianer. METOD M46
-    public static func osakerhet(_ langdPx: Double, tryckPx: Double = tryckPx) -> Double {
-        langdPx > 0 ? grader(2.0.squareRoot() * tryckPx / langdPx) : .infinity
+    /// Måttets osäkerhet (1 sd, grader) av tryckens: varje punkt osäker `tryckPx` i x och y,
+    /// oberoende, genom måttets egen geometri (centrala differenser med `stegPx`). METOD M46
+    public static func osakerhet(_ f: ([Punkt]) -> Double, _ punkter: [Punkt], tryckPx: Double = tryckPx) -> Double {
+        var s2 = 0.0
+        for i in punkter.indices {
+            for k in 0..<2 {
+                var plus = punkter, minus = punkter
+                if k == 0 {
+                    plus[i].x += stegPx
+                    minus[i].x -= stegPx
+                } else {
+                    plus[i].y += stegPx
+                    minus[i].y -= stegPx
+                }
+                let d = wrap180(f(plus) - f(minus)) / (2.0 * stegPx)
+                s2 += (d * tryckPx) * (d * tryckPx)
+            }
+        }
+        return s2.squareRoot()
     }
 
-    /// Klubbmåtten för ett slag ur dess markeringar (METOD M46–M49). x speglas med
-    /// `xTecken` (+X mot bollen eller målet, M1). `sving` = slagets sving för armen i FO;
-    /// utan den saknas skaft_arm_*. Ett mått saknas när en punkt saknas eller skaftet är
-    /// kortare än `minSkaftPx` i bild. Samma som `klubba.mat`.
-    public static func mat(_ marks: [KlubbMarkering], vy: Vy, xTecken: Double, bredd: Int, hojd: Int,
-                           sving: Sving? = nil) -> [String: Double] {
+    /// Klubbmåtten och deras osäkerhet ur trycken (METOD M46–M49). x speglas med `xTecken`
+    /// (+X mot bollen eller målet, M1). `sving` = slagets sving för armen i FO; `pinne` =
+    /// seriens riktpinne för flyktpunkten bakifrån (M48). Ett mått saknas när en punkt saknas
+    /// eller dess osäkerhet är över `maxSD`. Samma som `klubba.mat`.
+    public static func matMedSD(_ marks: [KlubbMarkering], vy: Vy, xTecken: Double, bredd: Int, hojd: Int,
+                                sving: Sving? = nil, pinne: [KlubbPunkt]? = nil)
+        -> (matt: [String: Double], sd: [String: Double]) {
         let s = xTecken
+        func spegel(_ q: KlubbPunkt) -> Punkt { Punkt(s * q.x, q.y) }
         var pos: [String: (t: Double, g: Punkt, h: Punkt)] = [:]
         for m in marks where m.hoppad != true && positioner.contains(m.position) {
             guard let gp = m.grepp, let hp = m.hosel else { continue }
-            let g = Punkt(s * gp.x, gp.y), h = Punkt(s * hp.x, hp.y)
-            guard (h - g).langd >= minSkaftPx else { continue }
-            pos[m.position] = (m.t, g, h)
+            pos[m.position] = (m.t, spegel(gp), spegel(hp))
         }
-        var ut: [String: Double] = [:]
-        for (p, q) in pos { ut[nyckel("skaft_vinkel", p)] = riktning(q.g, q.h) }            // METOD M46
+        var ut: [String: Double] = [:], sd: [String: Double] = [:]
+        func matt(_ namn: String, _ f: ([Punkt]) -> Double, _ punkter: [Punkt]) {
+            let o = osakerhet(f, punkter)
+            if o <= maxSD {
+                ut[namn] = f(punkter)
+                sd[namn] = o
+            }
+        }
+        for (p, q) in pos { matt(nyckel("skaft_vinkel", p), { riktning($0[0], $0[1]) }, [q.g, q.h]) }   // METOD M46
         switch vy {
         case .dtl:
             if let p1 = pos["P1"] {
                 // Skaftplanet vid P1, vinkeln mot marken sedd från bollens sida. METOD M47
-                let g = p1.g, h = p1.h
-                let plan = grader(atan2(-(g.y - h.y), h.x - g.x))
-                ut["skaftplan_p1"] = plan
-                if let p2 = pos["P2"] {
-                    ut["skaft_mot_plan_p2"] = wrap90(grader(atan2(-(p2.g.y - p2.h.y), p2.h.x - p2.g.x)) - plan)
-                }
-                if let p6 = pos["P6"], (p6.h - h).langd >= minSkaftPx {
-                    ut["skaft_plan_p6"] = -vinkelMellan(upp(h, g), upp(h, p6.h))                // METOD M47
+                matt("skaftplan_p1", { x in grader(atan2(-(x[0].y - x[1].y), x[1].x - x[0].x)) }, [p1.g, p1.h])
+                if let p6 = pos["P6"] {
+                    // Bara P1:s punkter och hoseln vid P6: skaftets längd vid P6 spelar ingen roll.
+                    matt("skaft_plan_p6", { x in -vinkelMellan(upp(x[1], x[0]), upp(x[1], x[2])) },
+                         [p1.g, p1.h, p6.h])                                                        // METOD M47
                 }
             }
             if let p4 = pos["P4"] {
-                // Mot bildens mitt: ett skaft parallellt med mållinjen, kameran på linjen. METOD M48
-                let c = Punkt(s * Double(bredd) / 2.0, Double(hojd) / 2.0)
-                if c.y - p4.g.y >= centrumMarginal * Double(hojd) {
-                    ut["skaft_riktning_topp"] = vinkelMellan(upp(p4.g, c), upp(p4.g, p4.h))
+                // Mot flyktpunkten (riktpinnen, annars bildens mitt). METOD M48
+                let pin = pinne.flatMap { $0.count == 2 ? $0.map(spegel) : nil }
+                func topp(_ x: [Punkt]) -> Double {
+                    var c = Punkt(s * Double(bredd) / 2.0, Double(hojd) / 2.0)
+                    if pin != nil {
+                        let f = flyktpunkt([KlubbPunkt(x: x[2].x, y: x[2].y), KlubbPunkt(x: x[3].x, y: x[3].y)],
+                                           bredd: bredd, hojd: hojd)
+                        if !f.antagen { c = Punkt(f.punkt.x, f.punkt.y) }
+                    }
+                    let g = x[0]
+                    guard c.y - g.y >= centrumMarginal * Double(hojd) else { return .nan }
+                    return vinkelMellan(upp(g, c), upp(g, x[1]))
                 }
+                let punkter = [p4.g, p4.h] + (pin ?? [])
+                if topp(punkter).isFinite { matt("skaft_riktning_topp", topp, punkter) }
             }
         case .fo:
-            if let p4 = pos["P4"] { ut["skaft_topp"] = riktning(p4.g, p4.h) }                // METOD M49
+            if let p4 = pos["P4"] { matt("skaft_topp", { riktning($0[0], $0[1]) }, [p4.g, p4.h]) }    // METOD M49
             if let p7 = pos["P7"] {
-                let d = upp(p7.h, p7.g)
-                ut["skaft_lutning_traff"] = grader(atan2(d.x, d.y))                           // METOD M49
+                matt("skaft_lutning_traff", { x in                                                    // METOD M49
+                    let d = upp(x[1], x[0])
+                    return grader(atan2(d.x, d.y))
+                }, [p7.g, p7.h])
             }
             if let sv = sving {
                 let axel = Faser.jamna(sv.t, sv.led(.axelF)), hand = Faser.jamna(sv.t, sv.led(.handledF))
@@ -176,15 +235,25 @@ public enum Klubba {
                     guard let q = pos[p] else { continue }
                     let a = Faser.vid(sv.t, axel, q.t), w = Faser.vid(sv.t, hand, q.t)
                     guard a.hel, w.hel else { continue }
-                    let arm = Punkt(a.x - w.x, -(a.y - w.y)), skaft = upp(q.g, q.h)
-                    let la = arm.langd, ls = skaft.langd
-                    guard la > 0 else { continue }
-                    let cosv = (arm.x * skaft.x + arm.y * skaft.y) / (la * ls)
-                    ut["skaft_arm_\(p.lowercased())"] = grader(acos(max(-1.0, min(1.0, cosv))))   // METOD M49
+                    let arm = Punkt(a.x - w.x, -(a.y - w.y))
+                    guard arm.langd > 0 else { continue }
+                    matt("skaft_arm_\(p.lowercased())", { x in                                       // METOD M49
+                        let skaft = upp(x[0], x[1])
+                        let la = arm.langd, ls = skaft.langd
+                        guard ls > 0 else { return .nan }
+                        let cosv = (arm.x * skaft.x + arm.y * skaft.y) / (la * ls)
+                        return grader(acos(max(-1.0, min(1.0, cosv))))
+                    }, [q.g, q.h])
                 }
             }
         }
-        return ut
+        return (ut, sd)
+    }
+
+    /// Klubbmåtten (utan osäkerheten), som `klubba.mat`.
+    public static func mat(_ marks: [KlubbMarkering], vy: Vy, xTecken: Double, bredd: Int, hojd: Int,
+                           sving: Sving? = nil, pinne: [KlubbPunkt]? = nil) -> [String: Double] {
+        matMedSD(marks, vy: vy, xTecken: xTecken, bredd: bredd, hojd: hojd, sving: sving, pinne: pinne).matt
     }
 }
 
@@ -392,9 +461,11 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         for r in rutor where Klubba.positioner.contains(r.val) {
             guard let t = r.t else { continue }
             let hoppad = r.status == "hoppad"
+            var gk: String? = nil
+            if case let .klick(_, _, k)? = r.punkter.grepp, k != Klubba.kalla { gk = k }
             ut[r.slag ?? "", default: []].append(KlubbMarkering(
                 position: r.val, t: t, grepp: hoppad ? nil : r.punkter.grepp?.punkt,
-                hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil))
+                hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil, greppKalla: gk))
         }
         return ut
     }
@@ -403,12 +474,12 @@ public struct KlubbFil: Codable, Equatable, Sendable {
     /// eller förskjutning (paketet fyller i klipptiden), `visad` = det granskningen visade.
     public static func ruta(_ m: KlubbMarkering, vy: Vy, slag: String, fil: String, bredd: Int, hojd: Int,
                             visad: [Int], tKlipp: Double?) -> Ruta {
-        func p(_ q: KlubbPunkt?) -> Punkt? { q.map { .klick(x: $0.x, y: $0.y, kalla: m.kalla) } }
+        func p(_ q: KlubbPunkt?, _ kalla: String) -> Punkt? { q.map { .klick(x: $0.x, y: $0.y, kalla: kalla) } }
         let hoppad = m.hoppad == true
         return Ruta(id: "\(vy.rawValue)-\(slag)-\(m.position)", fil: fil, vy: vy.rawValue, slag: slag, val: m.position,
                     t: m.t, tKlipp: tKlipp, forskjutningMs: nil, tRuta: nil, bredd: bredd, hojd: hojd, visad: visad,
                     status: hoppad ? "hoppad" : (m.markerad ? "markerad" : "omarkerad"),
-                    punkter: Punkter(grepp: hoppad ? nil : p(m.grepp), skaftMitt: nil,
-                                     klubbhuvud: hoppad ? nil : p(m.hosel)))
+                    punkter: Punkter(grepp: hoppad ? nil : p(m.grepp, m.greppKalla ?? m.kalla), skaftMitt: nil,
+                                     klubbhuvud: hoppad ? nil : p(m.hosel, m.kalla)))
     }
 }

@@ -17,19 +17,29 @@ private struct Fixtur: Decodable {
         let sving: String
         let bredd: Int
         let hojd: Int
+        let pinne: [[Double]]?
         let markeringar: [M]
         let matt: [String: Double]
-        let osakerhet: [String: Double]
+        let sd: [String: Double]
     }
     struct Forslag: Decodable {
         let position: String
         let positioner: [String: Double?]
-        let start: Double?
         let tid: Double?
+    }
+    struct Yta: Decodable {
+        let utsnitt: [Double]?
+        let bredd: Int
+        let hojd: Int
+        let u: Double
+        let v: Double
+        let visad: [Int]
+        let punkt: [Double]
     }
     let fall: [Fall]
     let fil: KlubbFil
     let forslag: [Forslag]
+    let yta: [Yta]
 }
 
 final class KlubbaTests: XCTestCase {
@@ -53,16 +63,16 @@ final class KlubbaTests: XCTestCase {
                                hosel: m.hosel.map { KlubbPunkt(x: $0[0], y: $0[1]) },
                                hoppad: m.grepp == nil ? true : nil)
             }
-            let swift = Klubba.mat(marks, vy: sv.vy, xTecken: sv.xTecken, bredd: fall.bredd, hojd: fall.hojd, sving: sv)
-            XCTAssertEqual(Set(swift.keys), Set(fall.matt.keys), fall.sving)
+            let pinne = fall.pinne.map { $0.map { KlubbPunkt(x: $0[0], y: $0[1]) } }
+            let swift = Klubba.matMedSD(marks, vy: sv.vy, xTecken: sv.xTecken, bredd: fall.bredd, hojd: fall.hojd,
+                                        sving: sv, pinne: pinne)
+            XCTAssertEqual(Set(swift.matt.keys), Set(fall.matt.keys), fall.sving)
             for (k, v) in fall.matt {
-                XCTAssertEqual(swift[k] ?? .nan, v, accuracy: 1e-6, "\(fall.sving) \(k)")
-            }
-            for (l, v) in fall.osakerhet {
-                XCTAssertEqual(Klubba.osakerhet(Double(l)!), v, accuracy: 1e-9)
+                XCTAssertEqual(swift.matt[k] ?? .nan, v, accuracy: 1e-6, "\(fall.sving) \(k)")
+                XCTAssertEqual(swift.sd[k] ?? .nan, fall.sd[k] ?? .nan, accuracy: 1e-6, "\(fall.sving) sd \(k)")
             }
             // Utan svingen saknas bara armens mått (FO).
-            let utan = Klubba.mat(marks, vy: sv.vy, xTecken: sv.xTecken, bredd: fall.bredd, hojd: fall.hojd)
+            let utan = Klubba.mat(marks, vy: sv.vy, xTecken: sv.xTecken, bredd: fall.bredd, hojd: fall.hojd, pinne: pinne)
             XCTAssertEqual(Set(utan.keys), Set(fall.matt.keys).subtracting(["skaft_arm_p5", "skaft_arm_p6"]))
         }
         XCTAssertNotNil(f.fall.first { $0.sving == "fo" }?.matt["skaft_arm_p5"], "armen prövas")
@@ -72,7 +82,7 @@ final class KlubbaTests: XCTestCase {
     func testForslagetForP2P6P8() throws {
         for c in try fixtur().forslag {
             let pos = c.positioner.compactMapValues { $0 }
-            let t = Klubba.forslagTid(c.position, positioner: pos, start: c.start)
+            let t = Klubba.forslagTid(c.position, positioner: pos)
             if let v = c.tid { XCTAssertEqual(t ?? .nan, v, accuracy: 1e-12, c.position) } else { XCTAssertNil(t) }
         }
     }
@@ -92,6 +102,8 @@ final class KlubbaTests: XCTestCase {
         let swiftFil = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? NSDictionary)
         XCTAssertEqual(swiftFil, pyFil)
         // En ruta byggd ur markeringen blir samma rad som Pythons.
+        XCTAssertEqual(m[0].greppKalla, Klubba.kallaRing, "ringen ur handlederna, bekräftad")
+        XCTAssertNil(m[1].greppKalla)
         let r0 = KlubbFil.ruta(m[0], vy: .dtl, slag: "s03", fil: f.fil.rutor[0].fil, bredd: f.fil.rutor[0].bredd,
                                hojd: f.fil.rutor[0].hojd, visad: f.fil.rutor[0].visad, tKlipp: nil)
         XCTAssertEqual(r0, f.fil.rutor[0])
@@ -105,22 +117,33 @@ final class KlubbaTests: XCTestCase {
 
     func testSparrenOchHoppade() {
         let g = KlubbPunkt(x: 500, y: 900)
-        let kort = KlubbMarkering(position: "P7", t: 0, grepp: g, hosel: KlubbPunkt(x: 500, y: 900 + Klubba.minSkaftPx - 1))
+        let kort = KlubbMarkering(position: "P7", t: 0, grepp: g, hosel: KlubbPunkt(x: 500, y: 959))
         let hoppad = KlubbMarkering(position: "P1", t: -1, grepp: g, hosel: KlubbPunkt(x: 900, y: 1300), hoppad: true)
         XCTAssertTrue(Klubba.mat([kort, hoppad], vy: .dtl, xTecken: 1, bredd: 1080, hojd: 1920).isEmpty)
+        let r = Klubba.matMedSD([KlubbMarkering(position: "P4", t: 0, grepp: g, hosel: KlubbPunkt(x: 500, y: 962))],
+                                vy: .dtl, xTecken: 1, bredd: 1080, hojd: 1920)
+        XCTAssertEqual(r.sd["skaft_vinkel_p4"] ?? .nan, 2.0.squareRoot() * 3 / 62 * 180 / .pi, accuracy: 1e-6)
         XCTAssertFalse(hoppad.markerad)
         XCTAssertEqual(Klubba.nyckel("skaft_vinkel", "P10"), "skaft_vinkel_p10")
-        XCTAssertEqual(Klubba.namn(.dtl).count, 14)
+        XCTAssertEqual(Klubba.namn(.dtl).count, 13)
+        // Flyktpunkten ur riktpinnen, och antagen utan den.
+        XCTAssertTrue(Klubba.flyktpunkt(nil, bredd: 1080, hojd: 1920).antagen)
+        let f = Klubba.flyktpunkt([KlubbPunkt(x: 600, y: 1800), KlubbPunkt(x: 580, y: 1400)], bredd: 1080, hojd: 1920)
+        XCTAssertFalse(f.antagen)
+        XCTAssertEqual(f.punkt.x, 600 - 20.0 * 840 / 400, accuracy: 1e-9)
     }
 
     /// Katalogen visar skaftets vinkel vid varje position med positionens värde (METOD M46).
     func testGranskningensRadVidEnPosition() throws {
         let k = try Katalog.las(json: Fixturer.katalog)
-        let rader = Positionsmatt.rader(k, vy: .dtl, position: "P2", varden: ["skaft_vinkel_p2": -35.04,
-                                                                               "skaft_mot_plan_p2": -25.0])
-        XCTAssertEqual(rader.map(\.matt), ["skaft_vinkel_p2", "skaft_mot_plan_p2"])
+        let rader = Positionsmatt.rader(k, vy: .dtl, position: "P2", varden: ["skaft_vinkel_p2": -35.04])
+        XCTAssertEqual(rader.map(\.matt), ["skaft_vinkel_p2"])
         XCTAssertEqual(rader[0].namn, "Shaft angle")
         XCTAssertEqual(rader[0].varde, "−35.0")
         XCTAssertEqual(rader[0].enhet, "°")
+        // Bakifrån utan riktpinne säger källraden att flyktpunkten är antagen (METOD M48).
+        let topp = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["skaft_riktning_topp": 12],
+                                       flyktpunktAntagen: true).first { $0.matt == "skaft_riktning_topp" }
+        XCTAssertTrue(topp?.info?.kalla.hasSuffix(Texter.flyktpunktAntagen) == true)
     }
 }

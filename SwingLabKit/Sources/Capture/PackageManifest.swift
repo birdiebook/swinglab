@@ -101,12 +101,15 @@ public struct PackageManifest: Codable, Equatable, Sendable {
         /// Uppåt (−gravitationen) i kamerans ram i den upprätta bilden, g (`Plumb.field`);
         /// står bara med när telefonen stod still (S6b, BESLUT B39). METOD MS17
         public var plumb: [Double]? = nil
+        /// Riktpinnen bakifrån: två punkter [x, y] i hela bildens pixlar (S7a, METOD M48);
+        /// står bara med när Johannes satt den.
+        public var riktpinne: [[Double]]? = nil
 
         enum CodingKeys: String, CodingKey {
             case nr, source = "kalla", club = "klubba", startLocal = "start_lokal", startHost = "start_vard_s"
             case duration = "langd_s", frames = "rutor", format, exposure = "exponering", audio = "ljud"
             case pressure = "tryck", orientation = "orientering", orientationSuspect = "orientering_misstankt"
-            case window = "fonster", crop = "utsnitt", plumb = "lodlinje"
+            case window = "fonster", crop = "utsnitt", plumb = "lodlinje", riktpinne
         }
     }
 
@@ -251,7 +254,8 @@ public struct PackageManifest: Codable, Equatable, Sendable {
                           startHost: finite(s.startHost), duration: finite(s.duration),
                           frames: rutor, format: fmt, exposure: exp, audio: s.audio, pressure: s.pressure,
                           orientation: s.orientation, orientationSuspect: misstankt, window: fonster, crop: s.activeCrop,
-                          plumb: Plumb.field(s.plumb, exif: s.orientation))
+                          plumb: Plumb.field(s.plumb, exif: s.orientation),
+                          riktpinne: s.riktpinne.flatMap { $0.count == 2 ? $0.map { [$0.x, $0.y] } : nil })
         }
         let nr = Set(pass.series.map(\.nr))
         let slag = pass.shots.filter { (s: ShotRecord) -> Bool in
@@ -379,7 +383,8 @@ public enum PassPackage {
     /// när klippet följer med och rutan ligger i det, [0; klippets längd) (samma ruta i
     /// klippet, MS12), annars null; `visad` = det
     /// granskningen visade (seriens utsnitt vidgat för märkningen, i px). METOD M45
-    public static func clubFile(pass: PassState, manifest: PackageManifest) -> KlubbFil? {
+    public static func clubFile(pass: PassState, manifest: PackageManifest,
+                                timeZone: TimeZone = .current) -> KlubbFil? {
         let slag = Dictionary(pass.shots.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let serier = Dictionary(pass.series.map { ($0.nr, $0) }, uniquingKeysWith: { a, _ in a })
         var rutor: [KlubbFil.Ruta] = []
@@ -394,7 +399,11 @@ public enum PassPackage {
             }
         }
         guard !rutor.isEmpty else { return nil }
-        return KlubbFil(pass: pass.id, kalla: [fileName(pass)], andrad: manifest.created, rutor: rutor)
+        // När markeringarna senast ändrades; utan tid (före granskningen) paketets tid.
+        let andrad = ClubMarking.lastChange(manifest.shots.flatMap { m in slag[m.id]?.klubba ?? [] })
+        return KlubbFil(pass: pass.id, kalla: [fileName(pass)],
+                        andrad: andrad.map { PackageManifest.timestamp($0, timeZone: timeZone) } ?? manifest.created,
+                        rutor: rutor)
     }
 
     /// Tiden i klippet när den ligger bland klippets rutor, [0; längd); annars nil. METOD MS12

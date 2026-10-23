@@ -111,6 +111,12 @@ struct SetupView: View {
                     Text("FO").tag(Vy.fo)
                 }
                 .pickerStyle(.segmented)
+                if setup.view == .dtl {
+                    // Uppställningen bakifrån: kameran i skaftplanet (METOD M47, M48).
+                    Text("On the hands' line, at hand height, aimed along the target line")
+                        .typsnitt(13)
+                        .foregroundStyle(Theme.secondary)
+                }
                 Picker("Hand", selection: $setup.hand) {
                     Text("Right").tag(Hand.hoger)
                     Text("Left").tag(Hand.vanster)

@@ -34,8 +34,11 @@ public struct Positionsrad: Identifiable, Equatable, Sendable {
 public enum Positionsmatt {
     /// `varden` = slagets mått, `baslinje` = måttens värden i tidigare pass (den egna
     /// baslinjen, METOD M27), `ovas` = felen i Att jobba på.
+    /// `flyktpunktAntagen` = bakifrån utan riktpinne: källraden för across/laid off säger att
+    /// flyktpunkten är antagen (METOD M48).
     public static func rader(_ k: Katalog, vy: Vy, position: String, varden: [String: Double],
-                             baslinje: [String: [Double]] = [:], ovas: Set<String> = []) -> [Positionsrad] {
+                             baslinje: [String: [Double]] = [:], ovas: Set<String> = [],
+                             flyktpunktAntagen: Bool = false) -> [Positionsrad] {
         var ut: [Positionsrad] = []
         for f in k.fel where f.vy == vy.rawValue && f.positioner.contains(position) {
             var r = rad(f.matt, varden: varden, gront: f.gront, aktiv: f.aktiv, markning: Markning.fran(f),
@@ -54,6 +57,10 @@ public enum Positionsmatt {
                         baslinje: baslinje[nyckel] ?? [], under: nil)
             r.ovas = m.fel.map { ovas.contains($0) } ?? false
             r.info = Infoblad(m, namn: r.namn)
+            if flyktpunktAntagen, Klubba.flyktpunktsmatt.contains(m.matt), let b = r.info {
+                r.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
+                                  kalla: "\(b.kalla), \(Texter.flyktpunktAntagen)")
+            }
             ut.append(r)
         }
         return ut

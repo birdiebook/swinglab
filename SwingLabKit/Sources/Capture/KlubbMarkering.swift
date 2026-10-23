@@ -2,10 +2,12 @@ import Foundation
 import Swing
 
 /// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, METOD M45): Johannes går igenom
-/// P1–P10 i ordning, trycker på greppet och sedan på hoseln, kan flytta en punkt, ångra eller
-/// hoppa över en position där klubban inte syns. Allt som avgör vad ett tryck blir bor här
-/// och prövas på Linux; App/ ritar ytan och förstoringsglaset. Koordinaterna på ytan är
-/// 0–1 i det visade utsnittet (`shownCrop`), punkterna sparas i hela bildens pixlar.
+/// P1–P10 i ordning, trycker på greppet (eller på ringen ur handlederna) och sedan på hoseln,
+/// och positionen sparas av sig själv med rutans tid från första trycket. Han kan flytta en
+/// punkt, ångra eller hoppa över en position där klubban inte syns. Allt som avgör vad ett
+/// tryck blir bor här och prövas på Linux; App/ ritar ytan och förstoringsglaset.
+/// Koordinaterna på ytan är 0–1 i det visade utsnittet (`shownCrop`), punkterna sparas i
+/// hela bildens pixlar.
 public struct ClubMarking: Equatable, Sendable {
     /// Vilken punkt.
     public enum Point: String, Equatable, Sendable { case grip, hosel }
@@ -16,10 +18,15 @@ public struct ClubMarking: Equatable, Sendable {
     /// Ett tryck närmare ytans kant än så (andel av bredden och höjden) blir ingen punkt:
     /// fingret täcker kanten och glaset visar inget utanför bilden. METOD M45
     public static let edge = 0.03
-    /// Ett tryck så här nära en satt punkt (andel av ytans bredd) flyttar den. METOD M45
+    /// Ett tryck så här nära en satt punkt eller ringen (andel av ytans bredd) tar den. METOD M45
     public static let grabRadius = 0.05
-    /// Förstoringsglaset förstorar så mycket. METOD M45
+    /// Fingret måste röra sig så här långt (punkter på skärmen) för att ett tryck på en satt
+    /// punkt ska bli en flytt; annars är det ett tryck. METOD M45
+    public static let dragThresholdPt = 4.0
+    /// Förstoringsglaset förstorar så mycket, mätt i punkter på skärmen. METOD M45, M46
     public static let loupeZoom = 3.0
+    /// En punkt hör till rutan när tiderna skiljer mindre än så, s (lederna avrundas till 0,1 ms).
+    public static let sameFrame = 1e-4
 
     /// Utsnittet som märkningen visar: seriens vidgat med `marginal` per sida, inom bilden.
     public static func shownCrop(_ crop: CropRect?) -> CropRect {
@@ -30,12 +37,22 @@ public struct ClubMarking: Equatable, Sendable {
         return CropRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
     }
 
+    /// Fingrets plats i ytan (punkter) som ytans koordinater 0–1.
+    public static func surface(x: Double, y: Double, width: Double, height: Double) -> (u: Double, v: Double) {
+        (x / max(1, width), y / max(1, height))
+    }
+
+    /// Ett drag är en flytt när fingret rört sig mer än `dragThresholdPt` punkter.
+    public static func isDrag(dx: Double, dy: Double) -> Bool {
+        (dx * dx + dy * dy).squareRoot() > dragThresholdPt
+    }
+
     /// Positionerna i ordning.
     public static let order = Klubba.positioner
 
     public let width: Int
     public let height: Int
-    /// Det visade utsnittet (`shownCrop`).
+    /// Det visade utsnittet (`shownCrop`, på hela pixlar).
     public let crop: CropRect
     /// Positionen som märks nu (index i `order`); `order.count` = klar.
     public private(set) var index: Int
@@ -44,6 +61,10 @@ public struct ClubMarking: Equatable, Sendable {
     /// Punkterna på positionen som märks nu, i hela bildens pixlar.
     public private(set) var grip: KlubbPunkt?
     public private(set) var hosel: KlubbPunkt?
+    /// Greppets källa: ett fritt tryck eller ringen ur handlederna.
+    public private(set) var gripSource = Klubba.kalla
+    /// Rutans tid (s relativt klicket) där första punkten sattes; positionen sparas med den.
+    public private(set) var frameT: Double?
     private var history: [Snapshot] = []
 
     struct Snapshot: Equatable, Sendable {
@@ -51,6 +72,8 @@ public struct ClubMarking: Equatable, Sendable {
         let marks: [String: KlubbMarkering]
         let grip: KlubbPunkt?
         let hosel: KlubbPunkt?
+        let gripSource: String
+        let frameT: Double?
     }
 
     /// Märkningen av ett slag; `existing` = slagets markeringar. Börjar på den första
@@ -64,6 +87,7 @@ public struct ClubMarking: Equatable, Sendable {
         index = Self.order.firstIndex { m[$0] == nil } ?? 0
         grip = nil
         hosel = nil
+        frameT = nil
         load()
     }
 
@@ -71,16 +95,22 @@ public struct ClubMarking: Equatable, Sendable {
     public var position: String { done ? Self.order[Self.order.count - 1] : Self.order[index] }
     /// Nästa tryck sätter den punkten; nil när båda är satta.
     public var next: Point? { grip == nil ? .grip : hosel == nil ? .hosel : nil }
+    public var hasPoints: Bool { grip != nil || hosel != nil }
     public var canUndo: Bool { !history.isEmpty }
     /// Markeringarna i positionernas ordning.
     public var result: [KlubbMarkering] { Self.order.compactMap { marks[$0] } }
 
-    private func snapshot() -> Snapshot { Snapshot(index: index, marks: marks, grip: grip, hosel: hosel) }
+    private func snapshot() -> Snapshot {
+        Snapshot(index: index, marks: marks, grip: grip, hosel: hosel, gripSource: gripSource, frameT: frameT)
+    }
 
     private mutating func load() {
         let m = done ? nil : marks[position]
-        grip = m?.hoppad == true ? nil : m?.grepp
-        hosel = m?.hoppad == true ? nil : m?.hosel
+        let satt = m?.hoppad != true
+        grip = satt ? m?.grepp : nil
+        hosel = satt ? m?.hosel : nil
+        gripSource = m?.greppKalla ?? Klubba.kalla
+        frameT = m?.t
     }
 
     // MARK: ytan
@@ -102,79 +132,133 @@ public struct ClubMarking: Equatable, Sendable {
     /// Ytans proportioner, bredd / höjd i bildpunkter.
     public var aspect: Double { crop.width * Double(width) / (crop.height * Double(height)) }
 
+    private func avstand(_ p: KlubbPunkt, _ u: Double, _ v: Double) -> Double {
+        let s = surfacePoint(p)
+        return ((s.u - u) * (s.u - u) + (s.v - v) * (s.v - v) / (aspect * aspect)).squareRoot()
+    }
+
     /// Den satta punkten närmast ytans punkt inom `grabRadius`, eller nil.
     public func grab(u: Double, v: Double) -> Point? {
         var bast: (Point, Double)? = nil
         for (namn, p) in [(Point.grip, grip), (.hosel, hosel)] {
             guard let p else { continue }
-            let s = surfacePoint(p)
-            let d = ((s.u - u) * (s.u - u) + (s.v - v) * (s.v - v) * (1 / aspect) * (1 / aspect)).squareRoot()
+            let d = avstand(p, u, v)
             if d <= Self.grabRadius, d < (bast?.1 ?? .infinity) { bast = (namn, d) }
         }
         return bast?.0
     }
 
-    /// Förstoringsglasets utsnitt kring ytans punkt: kvadratiskt i bildpunkter, 1/`loupeZoom`
-    /// av ytans bredd, inom bilden.
-    public func loupeCrop(u: Double, v: Double) -> CropRect {
-        let w = crop.width / Self.loupeZoom
+    /// Förstoringsglasets utsnitt kring ytans punkt, kvadratiskt i bildpunkter och inom bilden:
+    /// ett glas `loupePt` punkter brett över en yta `surfaceWidthPt` punkter bred förstorar
+    /// då exakt `loupeZoom` gånger. METOD M45, M46
+    public func loupeCrop(u: Double, v: Double, surfaceWidthPt: Double, loupePt: Double) -> CropRect {
+        let w = crop.width * loupePt / (Self.loupeZoom * max(1, surfaceWidthPt))
         let h = w * Double(width) / Double(height)
         let cx = crop.x + u * crop.width, cy = crop.y + v * crop.height
         let x = min(max(0, cx - w / 2), 1 - w), y = min(max(0, cy - h / 2), 1 - h)
         return CropRect(x: x, y: y, width: w, height: h)
     }
 
+    /// Förstoringen som glaset ger: glasets bredd i punkter genom den del av ytan det visar.
+    public func loupeMagnification(_ lc: CropRect, surfaceWidthPt: Double, loupePt: Double) -> Double {
+        loupePt / (lc.width / crop.width * surfaceWidthPt)
+    }
+
     // MARK: handlingarna
 
-    /// Ett tryck: sätter nästa punkt. Svarar om något ändrades (inte nära kanten, inte när
-    /// båda punkterna redan är satta). METOD M45
+    /// Ett tryck i rutan med tiden `t`: sätter nästa punkt. Greppet tas ur ringen (`ring`,
+    /// handledernas mitt) när trycket träffar den, annars där trycket är. När hoseln är satt
+    /// sparas positionen med rutans tid från första trycket och nästa position tas. Svarar om
+    /// något ändrades: inget nära kanten, inget när båda är satta, och inget på en annan ruta
+    /// än den första punktens (den rutan töms först, `clearPoints`). METOD M45
     @discardableResult
-    public mutating func tap(u: Double, v: Double) -> Bool {
-        guard !done, let p = imagePoint(u: u, v: v), let n = next else { return false }
+    public mutating func tap(u: Double, v: Double, t: Double, ring: KlubbPunkt? = nil, now: Date = Date()) -> Bool {
+        guard !done, let n = next else { return false }
+        if let f = frameT, abs(f - t) > Self.sameFrame { return false }
+        if n == .grip, let r = ring, avstand(r, u, v) <= Self.grabRadius {
+            history.append(snapshot())
+            grip = r
+            gripSource = Klubba.kallaRing
+            frameT = t
+            return true
+        }
+        guard let p = imagePoint(u: u, v: v) else { return false }
         history.append(snapshot())
-        if n == .grip { grip = p } else { hosel = p }
+        if n == .grip {
+            grip = p
+            gripSource = Klubba.kalla
+            frameT = t
+        } else {
+            hosel = p
+            frameT = frameT ?? t
+            spara(now: now)
+        }
         return true
     }
 
-    /// Flyttar en satt punkt dit fingret släpptes; inget nära kanten.
+    /// Flyttar en satt punkt dit (inget nära kanten). En sparad position sparas om på samma
+    /// ruta. Ett flyttat grepp är ett fritt tryck.
     @discardableResult
-    public mutating func move(_ point: Point, u: Double, v: Double) -> Bool {
+    public mutating func move(_ point: Point, u: Double, v: Double, now: Date = Date()) -> Bool {
         guard !done, let p = imagePoint(u: u, v: v) else { return false }
         switch point {
         case .grip:
             guard grip != nil else { return false }
             history.append(snapshot())
             grip = p
+            gripSource = Klubba.kalla
         case .hosel:
             guard hosel != nil else { return false }
             history.append(snapshot())
             hosel = p
         }
+        if grip != nil, hosel != nil, let f = frameT {
+            marks[position] = KlubbMarkering(position: position, t: f, grepp: grip, hosel: hosel,
+                                             greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: now)
+        }
         return true
     }
 
-    /// Positionen klar med båda punkterna på rutan med tiden `t` (s relativt klicket), och
-    /// nästa position. Svarar false när en punkt saknas.
+    /// Positionen sparad med punkterna och rutans tid, och nästa position.
+    private mutating func spara(now: Date) {
+        guard let g = grip, let h = hosel, let f = frameT else { return }
+        marks[position] = KlubbMarkering(position: position, t: f, grepp: g, hosel: h,
+                                         greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: now)
+        index += 1
+        load()
+    }
+
+    /// Nästa position utan ändring (en sparad position som visades). Svarar false när
+    /// positionen har en ensam punkt.
     @discardableResult
-    public mutating func confirm(t: Double) -> Bool {
-        guard !done, let g = grip, let h = hosel else { return false }
+    public mutating func advance() -> Bool {
+        guard !done, grip == nil || hosel != nil else { return false }
         history.append(snapshot())
-        marks[position] = KlubbMarkering(position: position, t: t, grepp: g, hosel: h)
         index += 1
         load()
         return true
     }
 
-    /// Klubban syns inte: positionen hoppas över (sparas som hoppad) och nästa.
-    public mutating func skip(t: Double) {
+    /// Tömmer punkterna på positionen (inför ett steg till en annan ruta, efter en fråga).
+    public mutating func clearPoints() {
+        guard hasPoints || frameT != nil else { return }
+        history.append(snapshot())
+        grip = nil
+        hosel = nil
+        gripSource = Klubba.kalla
+        frameT = nil
+    }
+
+    /// Klubban syns inte i rutan med tiden `t`: positionen hoppas över (sparas som hoppad).
+    public mutating func skip(t: Double, now: Date = Date()) {
         guard !done else { return }
         history.append(snapshot())
-        marks[position] = KlubbMarkering(position: position, t: t, grepp: nil, hosel: nil, hoppad: true)
+        marks[position] = KlubbMarkering(position: position, t: t, grepp: nil, hosel: nil, hoppad: true, andrad: now)
         index += 1
         load()
     }
 
-    /// Till en position (raden P1–P10): dess markering laddas för att ändras.
+    /// Till en position (raden P1–P10): dess markering laddas, med sin ruta.
     public mutating func go(to position: String) {
         guard let i = Self.order.firstIndex(of: position), i != index else { return }
         history.append(snapshot())
@@ -182,20 +266,27 @@ public struct ClubMarking: Equatable, Sendable {
         load()
     }
 
-    /// Ångrar det senaste: en punkt, en flytt, en klar eller hoppad position.
+    /// Ångrar det senaste: en punkt, en flytt, en sparad eller hoppad position. Rutan att visa
+    /// är då `frameT` (den sparade) när den finns.
     public mutating func undo() {
         guard let s = history.popLast() else { return }
         index = s.index
         marks = s.marks
         grip = s.grip
         hosel = s.hosel
+        gripSource = s.gripSource
+        frameT = s.frameT
     }
 
-    /// Rutans tid att visa för positionen: markeringens, annars förslaget ur kroppens tider
-    /// (METOD M45) ur slagets mått, annars träffen.
-    public static func suggestedTime(_ position: String, measure: ShotMeasure?, existing: [KlubbMarkering]?,
-                                     impact: Double) -> Double {
-        if let m = existing?.first(where: { $0.position == position }) { return m.t }
-        return measure.flatMap { Klubba.forslagTid(position, positioner: $0.positions, start: $0.start) } ?? impact
+    /// Rutans tid att visa för positionen: punkternas ruta, annars markeringens, annars
+    /// förslaget ur kroppens positioner (METOD M45, samma som PC:n), annars träffen.
+    public func shownTime(measure: ShotMeasure?, impact: Double) -> Double {
+        frameT ?? marks[position]?.t
+            ?? measure.flatMap { Klubba.forslagTid(position, positioner: $0.positions) } ?? impact
+    }
+
+    /// Senaste ändringen bland markeringarna, för paketets `andrad`.
+    public static func lastChange(_ marks: [KlubbMarkering]?) -> Date? {
+        marks?.compactMap(\.andrad).max()
     }
 }

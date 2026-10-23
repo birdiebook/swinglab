@@ -306,11 +306,14 @@ class SwiftFixturerna(unittest.TestCase):
         ny = KL.fixturer()
         self.assertEqual(data["fil"], ny["fil"])
         self.assertEqual(data["forslag"], ny["forslag"])
+        self.assertEqual(data["yta"], ny["yta"])
+        self.assertEqual(KL.YTAFIL.read_text(encoding="utf-8"), KL.swift_yta())
         for a, b in zip(data["fall"], ny["fall"], strict=True):
             self.assertEqual(a["markeringar"], b["markeringar"])
             self.assertEqual(set(a["matt"]), set(b["matt"]))
             for k in a["matt"]:
                 self.assertAlmostEqual(a["matt"][k], b["matt"][k], delta=1e-9)
+                self.assertAlmostEqual(a["sd"][k], b["sd"][k], delta=1e-9)
         self.assertIn("fo_vanster", gen.FIXTURSVINGAR)
 
 

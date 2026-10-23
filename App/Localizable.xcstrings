@@ -177,6 +177,28 @@
         }
       }
     },
+    "Clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        }
+      }
+    },
+    "Clear the points?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the points?"
+          }
+        }
+      }
+    },
     "Close": {
       "extractionState": "manual",
       "localizations": {
@@ -261,6 +283,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Detection wrong"
+          }
+        }
+      }
+    },
+    "Discard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard"
+          }
+        }
+      }
+    },
+    "Discard the grip?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard the grip?"
           }
         }
       }
@@ -716,6 +760,17 @@
         }
       }
     },
+    "On the hands' line, at hand height, aimed along the target line": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the hands' line, at hand height, aimed along the target line"
+          }
+        }
+      }
+    },
     "Orientation suspect": {
       "extractionState": "manual",
       "localizations": {
@@ -954,6 +1009,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Start session"
+          }
+        }
+      }
+    },
+    "Stick": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stick"
           }
         }
       }
@@ -1211,6 +1277,17 @@
         }
       }
     },
+    "current": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "current"
+          }
+        }
+      }
+    },
     "foljare.json could not be saved.": {
       "extractionState": "manual",
       "localizations": {
@@ -1229,6 +1306,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "installningar.json could not be saved."
+          }
+        }
+      }
+    },
+    "marked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "marked"
           }
         }
       }
@@ -1284,6 +1372,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "set 1"
+          }
+        }
+      }
+    },
+    "skipped": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "skipped"
           }
         }
       }

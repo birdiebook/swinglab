@@ -83,8 +83,10 @@ public enum Texter {
         return n
     }()
 
-    /// Passets rad under rubriken: slagen med klubban markerad (PLAN S7a): "2 club marked".
-    public static func klubbMarkerade(_ n: Int) -> String { "\(n) club marked" }
+    /// Passets rad under rubriken: slagen med klubban markerad (PLAN S7a): "2 with club marked".
+    public static func klubbMarkerade(_ n: Int) -> String { "\(n) with club marked" }
+    /// Källraden när flyktpunkten bakifrån är bildens mitt (ingen riktpinne, METOD M48).
+    public static let flyktpunktAntagen = "assumed: vanishing point at the picture center"
     /// Kortets n: de markerade svingarna som måttet är medianen av (METOD M46).
     public static func n(_ n: Int) -> String { "n\u{00A0}\(n)" }
 

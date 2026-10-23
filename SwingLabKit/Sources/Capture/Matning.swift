@@ -26,9 +26,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     public var startUncertain: Bool?
     /// Mätningens version (`ShotMeasuring.version`); nil = 1, mätt före S1d.
     public var version: Int?
-    /// Baksvingens start (s relativt klicket), för förslaget till P2 (METOD M45); nil = saknas
-    /// eller mätt före S7a.
-    public var start: Double?
+    /// Bakifrån med klubban markerad: flyktpunkten är bildens mitt (ingen riktpinne), så
+    /// across/laid off vid toppen märks "assumed" (METOD M48); nil = inte aktuellt.
+    public var klubbaFlyktpunktAntagen: Bool?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -74,7 +74,8 @@ public enum ShotMeasuring {
 
     /// Slagets mått ur dess leder. `height` = Johannes längd i m, nil = standarden (antagen).
     /// Ett slag som inte går att mäta får `problem` i stället för måtten. METOD MS14
-    public static func measure(_ s: JointSeries, shot: ShotRecord, setup: PassSetup, height: Double?) -> ShotMeasure {
+    public static func measure(_ s: JointSeries, shot: ShotRecord, setup: PassSetup, height: Double?,
+                               pinne: [KlubbPunkt]? = nil) -> ShotMeasure {
         let h = height ?? assumedHeightM
         var ut = ShotMeasure(heightM: h, heightAssumed: height == nil)
         ut.version = version
@@ -87,12 +88,13 @@ public enum ShotMeasuring {
             }
             ut.values = r.matt.filter { $0.value.isFinite }
             ut.startUncertain = r.faser.startOsaker ? true : nil
-            ut.start = r.faser.start.flatMap { $0.isFinite ? $0 : nil }
             // Klubbans mått ur markeringarna (S7a, METOD M46–M49) bland slagets mått, och rutan
             // han valde för P2, P6 och P8 som slagets position (M45). Samma som PC:ns analys.
             if let marks = shot.klubba, !marks.isEmpty {
+                ut.klubbaFlyktpunktAntagen = setup.view == .dtl
+                    ? Klubba.flyktpunkt(pinne, bredd: s.width, hojd: s.height).antagen : nil
                 for (k, v) in Klubba.mat(marks, vy: setup.view, xTecken: sv.xTecken, bredd: s.width, hojd: s.height,
-                                         sving: sv) where v.isFinite {
+                                         sving: sv, pinne: pinne) where v.isFinite {
                     ut.values[k] = v
                 }
                 for m in marks where Klubba.skaftets.contains(m.position) && m.markerad {
@@ -141,7 +143,8 @@ extension PassState {
         var andrat = false
         for i in shots.indices where needsMeasure(shots[i], height: height) {
             guard let s = joints(shots[i]) else { continue }
-            shots[i].measure = ShotMeasuring.measure(s, shot: shots[i], setup: setup, height: height)
+            shots[i].measure = ShotMeasuring.measure(s, shot: shots[i], setup: setup, height: height,
+                                                     pinne: riktpinne(series: shots[i].series))
             andrat = true
         }
         return andrat
@@ -155,7 +158,25 @@ extension PassState {
         shots[i].klubba = marks.isEmpty ? nil : marks.sorted {
             (Klubba.positioner.firstIndex(of: $0.position) ?? 99) < (Klubba.positioner.firstIndex(of: $1.position) ?? 99)
         }
-        shots[i].measure = ShotMeasuring.measure(joints, shot: shots[i], setup: setup, height: heightM)
+        shots[i].measure = ShotMeasuring.measure(joints, shot: shots[i], setup: setup, height: heightM,
+                                                 pinne: riktpinne(series: shots[i].series))
+    }
+
+    /// Seriens riktpinne (S7a, METOD M48), nil = ingen.
+    public func riktpinne(series nr: Int) -> [KlubbPunkt]? {
+        series.first { $0.nr == nr }?.riktpinne
+    }
+
+    /// Riktpinnen i en serie (två tryck), eller nil för att ta bort den; slagen i serien med
+    /// markeringar mäts om. METOD M48
+    public mutating func setRiktpinne(_ pinne: [KlubbPunkt]?, series nr: Int, joints: (ShotRecord) -> JointSeries?) {
+        guard let k = series.firstIndex(where: { $0.nr == nr }) else { return }
+        series[k].riktpinne = pinne.flatMap { $0.count == 2 ? $0 : nil }
+        for i in shots.indices where shots[i].series == nr && shots[i].klubba != nil {
+            guard let j = joints(shots[i]) else { continue }
+            shots[i].measure = ShotMeasuring.measure(j, shot: shots[i], setup: setup, height: heightM,
+                                                     pinne: series[k].riktpinne)
+        }
     }
 
     /// Slagen som räknas och har klubban markerad (S7a): passet visar antalet.

@@ -191,6 +191,9 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
     /// Telefonens lodlinje under inspelningen (S6b, `Lodlinje.swift`); nil = inga rörelseprov
     /// (simulatorn, en import ur Bilder) eller ett pass.json från före S6b. METOD MS17
     public var plumb: PlumbRecord?
+    /// Riktpinnen bakifrån (S7a): två tryck i hela bildens pixlar på en pinne på marken,
+    /// parallell med mållinjen, för flyktpunkten; nil = ingen (bildens mitt, antagen). METOD M48
+    public var riktpinne: [KlubbPunkt]?
 
     public init(nr: Int, source: SeriesSource, club: String, file: String, start: Date, startHost: Double?,
                 duration: Double, bytes: Int64, timing: FrameTiming, clicks: [Click], orientation: UInt32,
