@@ -87,6 +87,25 @@ final class SwingLabProvPaket: XCTestCase {
         return JointSeries(width: width, height: height, frames: frames)
     }
 
+    /// Påhittade markeringar av klubban (S7a) på ett slags leder: greppet vid handledernas mitt,
+    /// hoseln längs en satt vinkel, vid P1, P4, P5, P6 och P7 (rutor ur tiderna), P8 hoppad.
+    static func markeringar(_ j: JointSeries) -> [KlubbMarkering] {
+        let satta: [(String, Double, Double, Double)] = [("P1", -1.2, -95, 140), ("P4", -0.3, 10, 120),
+                                                         ("P5", -0.12, 100, 120), ("P6", -0.05, 170, 120),
+                                                         ("P7", -0.01, -104, 140)]
+        var ut = satta.compactMap { (p, t, vinkel, langd) -> KlubbMarkering? in
+            guard let f = j.frames.min(by: { abs($0.t - t) < abs($1.t - t) }) else { return nil }
+            let h = [f.joints[5], f.joints[6]].compactMap { $0 }
+            guard !h.isEmpty else { return nil }
+            let g = KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
+            let hosel = KlubbPunkt(x: min(Double(j.width), max(0, g.x + langd * cos(vinkel * .pi / 180))),
+                                   y: min(Double(j.height), max(0, g.y - langd * sin(vinkel * .pi / 180))))
+            return KlubbMarkering(position: p, t: f.t, grepp: g, hosel: hosel)
+        }
+        ut.append(KlubbMarkering(position: "P8", t: 0.2, grepp: nil, hosel: nil, hoppad: true))
+        return ut
+    }
+
     /// Slaget som en sving i filformatet, som PC:ns `paket.till_sving` gör det: t_klick =
     /// träffen − klicket, en saknad led med konfidensen 0. Swifts mått på den är facit för
     /// PC:ns mått på samma byte (BESLUT B12).
@@ -139,6 +158,10 @@ final class SwingLabProvPaket: XCTestCase {
             pass.shots[i].clipFlagged = m.flagged
         }
         pass.vision = VisionStats()
+        // Klubbans markeringar på slag 1 (S7a, BESLUT B47): följer med som klubba.json, och PC:n
+        // räknar samma klubbmått som Swift (facit.json). P8 hoppas över.
+        let led1 = try XCTUnwrap(store.joints(try XCTUnwrap(pass.shots[0].joints), in: pass.id))
+        pass.shots[0].klubba = Self.markeringar(led1)
         // Den styrande telefonen med en följare (S2g): rollen i manifestet och par.json, som
         // S2g:s egen kod skriver den (Store.savePair), följer med i paketet.
         pass.setup.role = .lead
@@ -224,7 +247,14 @@ final class SwingLabProvPaket: XCTestCase {
         for s in manifest.shots {
             let j = try JSONDecoder().decode(JointSeries.self, from: med.data(named: s.joints))
             let r = try Matt.mat(try Self.sving(j, shot: s, vy: manifest.view, hand: manifest.hand))
-            facit[s.id] = ["matt": r.matt, "sway_satt": sway[s.id]!] as [String: Any]
+            let sv = try Self.sving(j, shot: s, vy: manifest.view, hand: manifest.hand)
+            var matt = r.matt
+            if let marks = pass.shots.first(where: { $0.id == s.id })?.klubba {
+                for (k, v) in Klubba.mat(marks, vy: manifest.view, xTecken: sv.xTecken, bredd: j.width, hojd: j.height,
+                                         sving: sv) { matt[k] = v }
+            }
+            facit[s.id] = ["matt": matt, "sway_satt": sway[s.id]!,
+                           "klubba": (pass.shots.first { $0.id == s.id }?.klubba ?? []).map(\.position)] as [String: Any]
             print("PROV: \(s.id) Swift backen_sway_topp \(String(format: "%.3f", r.matt["backen_sway_topp"] ?? .nan)) cm "
                   + "(satt \(sway[s.id]!)), \(r.matt.count) mått")
             XCTAssertEqual(r.matt["backen_sway_topp"] ?? .nan, sway[s.id]!, accuracy: 0.5)

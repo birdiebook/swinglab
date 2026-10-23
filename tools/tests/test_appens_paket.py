@@ -101,6 +101,24 @@ class AppensPaket(unittest.TestCase):
             print(f"PAKET: {fil.parent.name}/{fil.name} läst av paket.py: {len(p.slag)} slag, "
                   f"{sum(1 for s in p.slag if s.klipp)} klipp")
 
+    def test_klubbans_markeringar_last_som_pcns(self) -> None:
+        """klubba.json som appen skrev (S7a, BESLUT B47): formatet swinglab-klubba/2 som
+        markera_klubba.py läser, och markeringarna per slag som paket.py ger analysen."""
+        from pc import klubba as KL
+        from pc import markera_klubba as MK
+        for fil in (self.med[0], self.utan[0]):
+            p = P.las(fil)
+            self.assertIsNone(p.klubba_fel, f"{fil.parent.name}: {p.klubba_fel}")
+            d = MK.las_paket(fil)
+            self.assertEqual(KL.kontrollera(d), [])
+            self.assertEqual(d["format"], KL.FORMAT)
+            for s in p.slag:
+                self.assertEqual([m["position"] for m in s.klubba_markeringar], self.facit["slag"][s.id]["klubba"])
+            klipp = [r["t_klipp"] for r in d["rutor"]]
+            self.assertTrue(all(t is not None for t in klipp) if fil.parent.name == "med-klipp"
+                            else all(t is None for t in klipp))
+            print(f"PAKET: {fil.parent.name} klubba.json: {len(d['rutor'])} rutor lästa av markera_klubba.py och paket.py")
+
     def test_session_py_kor_utan_fel_och_ger_swifts_matt(self) -> None:
         for fil in (self.med[0], self.utan[0]):
             with tempfile.TemporaryDirectory() as ut:

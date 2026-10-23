@@ -175,6 +175,13 @@ När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
   användes inte): säg det i en rad, och att talen därför är osäkrare. En uppställning
   med `hoppat` i `tre_d.kalibrering[]` är inte mätt: säg vilken serie och skälet.
 
+## Klubbans mått (S7a)
+
+Klubbmåtten (`analys.klubba`, `skaft_*`, METOD M46–M49) finns bara på svingar som
+Johannes markerat för hand, ofta 2–3 per pass: rapportera dem som en rad med median och
+n, och med få svingar som **trend, inte en sak att öva** (BESLUT B47); de väljs aldrig i
+`att_jobba_pa.json`.
+
 ## Det Claude inte får göra
 
 - **Mäta själv.** Inget tal skattas ur kontaktarket, videon eller lederna.

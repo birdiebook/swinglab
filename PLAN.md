@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S7 · S7a · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -403,6 +403,44 @@ topp och tidig nedsving, i båda vyerna.
 nedsving och några jämna, båda vyerna) och läses med S3:s tidsförskjutning, Johannes
 klickar grepp, skaftets mitt och hoseln på en lokal sida, och märkningen sparas bredvid
 paketet (`swinglab-klubba/1`, FORMAT.md).
+
+### S7a — Klubban markerad för hand i appen (Johannes 2026-10-23)
+
+Beställningen: klubban markeras för hand i appen, som en enklare väg före den tränade
+detektorn. Markeringarna ger klubbmått direkt och blir träningsdata. Alla P-positioner
+P1–P10. DTL först i appen; FO i nästa steg, men datamodellen och formatet vyoberoende
+redan nu. Greppet är skaftet mitt mellan händerna och klubbhuvudet hoseln (B44). P2, P6
+och P8 är skaftet parallellt med marken: appen föreslår en ruta mellan kroppens tider,
+Johannes stegar till den ruta där skaftet ser parallellt ut, och den rutan blir positionen
+för svingen. Ett tryck nära kanten eller utanför bilden blir ingen punkt. 2–3 svingar per
+pass räcker, och passet visar hur många som är markerade.
+
+**Klart när:** måtten ur markeringarna finns i Python och Swift med samma tal (B12, inom
+10⁻⁶), med METOD-rader, katalogens positioner och vy och egen baslinje; formatet läses åt
+båda håll mot `markera_klubba.py`; simulatorprovet ritar granskningen med skaftlinjen och
+märkningsläget med förstoringsglaset; och Johannes har markerat 2–3 svingar i ett riktigt
+DTL-pass på telefonen och sett måtten i passet.
+
+**Byggt (grenen `s7a`).** BESLUT B47, METOD M45–M49 (och M28 med P2, P6, P8 och Sportsbox
+positioner). Datamodellen `KlubbMarkering` (position, rutans tid, greppet och hoseln i hela
+bildens pixlar, källan `klick`, hoppad) i `Swing/Klubba.swift`, sparad i `pass.json`
+(`slag[].klubba`, valfri) och i paketet som `klubba.json` i formatet `swinglab-klubba/2`
+(FORMAT.md; version 1 är en delmängd och läses av båda). Ägaren på PC:n är
+`tools/pc/klubba.py`; `markera_klubba.py` skriver nu version 2, `paket.py` läser
+markeringarna, analysen lägger klubbmåtten bland slagets mått med P2/P6/P8 och `klubba`
+(median och n), historikens minne bär dem, och `tools/pc/samla_klubba.py` samlar telefonens
+och PC:ns markeringar till en träningsmapp utanför repot. Måtten: skaftets vinkel vid varje
+position (båda vyerna); DTL skaftplanet vid P1, skaftet mot planet vid P2, across/laid off
+vid toppen och hoseln mot planet vid P6; FO skaftet vid toppen, armen mot skaftet vid P5 och
+P6 (casting) och skaftlutningen vid träffen. Appen: "Mark club" i granskningens meny (DTL),
+`ClubMarking` i SwingLabKit (trycken, kanten, flytt, ångra, hoppa, förslaget),
+`App/Vyer/KlubbaVy.swift` (ytan, förstoringsglaset, P1–P10), skaftlinjen i granskningen,
+P2/P6/P8 i positionsraden när de är markerade, och passets rad "N club marked" och korten
+med median och n. Prov: `tools/tests/test_klubba.py`, `KlubbaTests`, `KlubbaMarkeringTests`,
+`Prov/SwingLabProvKlubba.swift` (bilderna `klubba-granskning`, `klubba-markera`,
+`klubba-markera-utan-finger`, `klubba-passet`), och paketprovet bär markeringar som PC:n
+läser (`test_appens_paket.py`). Mätversionen är oförändrad (B47). **Kvar:** telefonen
+(trycken, glaset, gränserna 3 % och 5 %), och FO-läget i appen.
 
 ## S8 — Bollen vid adressen
 
