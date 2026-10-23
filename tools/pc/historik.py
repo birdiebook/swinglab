@@ -29,6 +29,7 @@ if __package__ in (None, ""):
 
 from . import analys as A  # noqa: E402
 from . import att_jobba_pa as AJP  # noqa: E402
+from . import matt as M  # noqa: E402
 from . import session as S  # noqa: E402
 
 ROT = Path(__file__).resolve().parents[2] / "data" / "historik"
@@ -71,6 +72,12 @@ def spara_analys(rot: Path, analys: dict) -> Path:
     p = pass_mapp(rot, analys["pass"]) / "analys.json"
     A.skriv(analys, p)
     return p
+
+
+def kor_om(rot: Path = ROT) -> list[str]:
+    """Passen vars analys mättes med en äldre version av måtten (`matversion` saknas =
+    1): kör session.py igen för dem, annars hoppar talen mellan passen (METOD M40)."""
+    return [p for p in lista(rot) if las_analys(rot, p).get("matversion", 1) < M.MATVERSION]
 
 
 def tidigare(rot: Path, pass_id: str) -> list[str]:
@@ -263,7 +270,8 @@ def minne(rot: Path = ROT, till: str | None = None) -> dict:
             fel.setdefault(b["id"], []).append({"pass": p, "varde": b["visat"], "forsta_serien": b["forsta_serien"],
                                                 "status": b["status"]})
     return {"format": MINNE, "till": pass_ids[-1] if pass_ids else None, "pass": passen, "fel": fel,
-            "tre_d": tre_d, "ovningar": ovningar(rot, till)}
+            "tre_d": tre_d, "ovningar": ovningar(rot, till),
+            "kor_om": [p for p in kor_om(rot) if p in pass_ids]}
 
 
 def main(argv=None) -> int:
@@ -278,8 +286,9 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     rot = Path(a.rot)
     if a.kommando == "lista":
+        gamla = set(kor_om(rot))
         for p in lista(rot):
-            print(p)
+            print(p + ("  (äldre mätning: kör session.py igen)" if p in gamla else ""))
         return 0
     if a.kommando == "minne":
         print(json.dumps(minne(rot, a.till), ensure_ascii=False, indent=1))

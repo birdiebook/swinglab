@@ -236,7 +236,10 @@ public enum Faser {
     /// Baksvingens start bakifrån ur armarnas och axlarnas pose (indexerad med
     /// Led.rawValue), redan utjämnad: sista gången före toppen som posen var inom
     /// poseAndel av vägen från adressen till toppen (men minst brusK gånger
-    /// skakningen i adressen), som medelavstånd över lederna. Ger starten och om den
+    /// skakningen i adressen), som medelavstånd över lederna. Starten är osäker när
+    /// adressen skakar mer än osakerAndel av vägen, när rutorna kring den ligger mer än
+    /// maxLuckaS isär (en led saknas över starten), och när klippet börjar efter toppen −
+    /// maxBaksvingS och adressens fönster är klippets första ruta. Ger starten och om den
     /// är osäker, eller nil när posen inte räcker. METOD M40
     public static func startUrPosen(_ t: [Double], _ pose: [[Punkt]], topp: Double) -> (start: Double, osaker: Bool)? {
         guard let a = adressensFonster(t, pose, topp: topp) else { return nil }
@@ -270,7 +273,10 @@ public enum Faser {
         let k0 = seq[m], k1 = seq[m + 1]
         let s = t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0])
         guard topp - s >= minBaksvingS else { return nil }
-        return (s, sigma > osakerAndel * vag)
+        let osaker = sigma > osakerAndel * vag
+            || t[k1] - t[k0] > maxLuckaS
+            || (t[0] > topp - maxBaksvingS && a.k == 0)
+        return (s, osaker)
     }
 
     /// Toppen, starten, adressen och finishen ur händernas bana g, redan
@@ -300,9 +306,9 @@ public enum Faser {
             if let p = startUrPosen(t, pose, topp: topp) {
                 start = p.start
                 osaker = p.osaker
-            } else {                                                 // posen räcker inte: händerna, osäkert
-                start = startUrHanderna(t, g, topp: topp)
-                osaker = start != nil
+            } else {                                                 // posen räcker inte: händerna, och bakifrån
+                start = startUrHanderna(t, g, topp: topp)            // är en sådan start, eller ingen, osäker
+                osaker = true
             }
         } else {
             start = startUrHanderna(t, g, topp: topp)

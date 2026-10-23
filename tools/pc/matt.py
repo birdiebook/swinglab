@@ -46,6 +46,7 @@ BEN = HOFTHOJD - FOTLEDSHOJD     # höftmitt–fotledsmitt, FO
 CHICKEN = (0.05, 0.15)           # METOD M23: s efter träffen
 HANDBANA_NIVAER = (0.25, 0.50, 0.75)   # METOD M13: andel av höjden från adress till topp
 AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
+MATVERSION = 2                   # METOD M40: mätningens version; 2 = starten bakifrån ur posen
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")

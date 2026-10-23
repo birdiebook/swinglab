@@ -472,26 +472,45 @@ def facit_start_3d(s3) -> float:
 
 
 def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.75, brus_px: float = 0.8,
-               saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2) -> tuple[dict, dict]:
+               saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2, variera: bool = False,
+               profil: str | None = None) -> tuple[dict, dict]:
     """(svingen som dict i filformatet, facit) för en påhittad 3D-sving (`tre_d/sving.py`)
     sedd bakifrån av en kamera DOLD_KAMERA[0] m bakom spelaren på höjden `hojd` m. Händerna
     går först mot kameran och syns knappt i bilden, och står kameran över dem ser de ut
-    att sjunka innan de stiger (METOD M40). Facit: starten på den verkliga banan
+    att sjunka innan de stiger (METOD M40). `variera` = en slumpad sving (längd, tempo
+    och vinklar, `slumpa_sving`) i stället för grundsvingen; då gäller inte `baksving`.
+    `profil` = posemodellens brus ur `tre_d/kamera.py` ("bra", "typiskt", …) i stället
+    för vitt brus om `brus_px`: fast avvikelse, vandring, utliggare och skymda leder
+    (konfidens under 0,3 = saknad, METOD M1). Facit: starten på den verkliga banan
     (`facit_start_3d`), toppen och träffen ur svingens tider, och tempot därur."""
     from .tre_d import kamera as KM
     from .tre_d import sving as S3
     rng = np.random.default_rng(seed)
-    s3 = S3.Sving(langd=1.80, t_start=1.0, baksving=baksving, efter=0.8)   # finishens fönster i klippet
+    if variera:
+        s3 = S3.slumpa_sving(rng)
+        s3.t_start, s3.efter = 1.0, 0.8
+        s3.__post_init__()
+    else:
+        s3 = S3.Sving(langd=1.80, t_start=1.0, baksving=baksving, efter=0.8)   # finishens fönster i klippet
     t = np.arange(int(round(fran * FREKVENS)), int(s3.t_slut * FREKVENS) + 1) / FREKVENS
     t = t[rng.random(len(t)) >= saknas]
-    uv = KM.placera(180, DOLD_KAMERA[0], hojd).projicera(s3.leder(t))     # högerspelaren: x mot bollen
-    if brus_px:
-        uv = uv + rng.normal(0, brus_px, uv.shape)
-    konfidens = rng.uniform(0.55, 1.0, uv.shape[:2])
-    rutor = [{"t": round(float(t[i]), 6),
-              "leder": [[round(float(uv[i, j, 0]), decimaler), round(float(uv[i, j, 1]), decimaler),
-                         round(float(konfidens[i, j]), 2)] for j in range(13)]} for i in range(len(t))]
-    d = {"format": 1, "vy": "dtl", "hand": "hoger", "x_mot_bollen": 1, "spelarens_langd_m": s3.langd,
+    kam = KM.placera(180, DOLD_KAMERA[0], hojd)                            # högerspelaren: x mot bollen
+    if profil:
+        uv, konfidens, _ = KM.observera(kam, s3, t, KM.BRUS[profil], rng)
+    else:
+        uv = kam.projicera(s3.leder(t))
+        if brus_px:
+            uv = uv + rng.normal(0, brus_px, uv.shape)
+        konfidens = rng.uniform(0.55, 1.0, uv.shape[:2])
+
+    def led(i: int, j: int) -> list:
+        if not np.isfinite(uv[i, j]).all():
+            return [0.0, 0.0, 0.0]
+        return [round(float(uv[i, j, 0]), decimaler), round(float(uv[i, j, 1]), decimaler),
+                round(float(konfidens[i, j]), 2)]
+
+    rutor = [{"t": round(float(t[i]), 6), "leder": [led(i, j) for j in range(13)]} for i in range(len(t))]
+    d = {"format": 1, "vy": "dtl", "hand": "hoger", "x_mot_bollen": 1, "spelarens_langd_m": round(s3.langd, 4),
          "t_klick": round(s3.t_traff, 6), "rutor": rutor}
     start = facit_start_3d(s3)
     facit = {"_start": start, "_topp": s3.t_topp, "_traff": s3.t_traff,
@@ -588,7 +607,7 @@ FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decima
 def fixtursving(namn: str) -> str:
     vy, hand, seed, brus, dolj, ovrigt = FIXTURSVINGAR[namn]
     if ovrigt.get("dold"):
-        return till_json(sving_dold(seed=seed, brus_px=brus, fran=FRAN_S, decimaler=1)[0])
+        return till_json(sving_dold(seed=seed, brus_px=brus, fran=0.0, decimaler=1)[0])   # hela klippet (M40)
     return till_json(sving(vy, hand, seed=seed, brus_px=brus, dolj=dolj, fran=FRAN_S, decimaler=1, **ovrigt)[0])
 
 

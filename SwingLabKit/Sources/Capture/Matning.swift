@@ -24,6 +24,8 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     public var problem: String?
     /// Baksvingens start är osäker bakifrån, och tempot saknas (METOD M40); nil = säker.
     public var startUncertain: Bool?
+    /// Mätningens version (`ShotMeasuring.version`); nil = 1, mätt före S1d.
+    public var version: Int?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -43,6 +45,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
 public enum ShotMeasuring {
     /// Längden när Johannes inte angett någon, m: skalan märks då antagen. METOD MS14
     public static let assumedHeightM = 1.80
+    /// Mätningens version: ett slag mätt med en äldre mäts om. 2 = starten bakifrån ur
+    /// posen (METOD M40). Samma som PC:ns `matt.MATVERSION`. METOD MS14
+    public static let version = 2
     /// Längderna som går att välja i appen, cm (inom formatets 1,0–2,5 m). METOD MS14
     public static let heightChoicesCm = 140...210
 
@@ -68,6 +73,7 @@ public enum ShotMeasuring {
     public static func measure(_ s: JointSeries, shot: ShotRecord, setup: PassSetup, height: Double?) -> ShotMeasure {
         let h = height ?? assumedHeightM
         var ut = ShotMeasure(heightM: h, heightAssumed: height == nil)
+        ut.version = version
         do {
             let sv = try sving(s, view: setup.view, hand: setup.hand, heightM: h, impact: shot.impact - shot.click.time)
             let r = try Matt.mat(sv)
@@ -97,11 +103,13 @@ extension ShotRecord {
 }
 
 extension PassState {
-    /// Slaget har leder men inga mått, eller mått med en annan längd än den som gäller nu.
+    /// Slaget har leder men inga mått, mått med en annan längd än den som gäller nu, eller
+    /// mått från en äldre version av mätningen (METOD MS14, M40).
     public func needsMeasure(_ shot: ShotRecord, height: Double?) -> Bool {
         guard shot.joints != nil else { return false }
         guard let m = shot.measure else { return true }
         return m.heightAssumed != (height == nil) || m.heightM != (height ?? ShotMeasuring.assumedHeightM)
+            || (m.version ?? 1) < ShotMeasuring.version
     }
 
     /// Mäter (om) slagen som behöver det med passets egen längd (`heightM`, METOD MS16).

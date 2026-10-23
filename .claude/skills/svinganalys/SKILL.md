@@ -42,6 +42,8 @@ Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
    ```
    python3 tools/pc/historik.py minne
    ```
+   Står pass i `kor_om` mättes de med en äldre version av måtten (METOD M40): kör
+   session.py igen för dem (paketen) och läs minnet på nytt, innan du jämför.
 3. **Läs.** `analys.json` (`kandidater`, `bedomning`, `forra`, `tempo_vy`,
    `tre_d`), minnet (med `tre_d`, 3D-trenden pass för pass), och kontaktarken med
    Read-verktyget. Fråga Johannes det som bara han

@@ -179,6 +179,27 @@ final class MattTests: XCTestCase {
         let g = zip(b[Led.handledF.rawValue], b[Led.handledB.rawValue]).map { Punkt.mitt($0, $1) }
         XCTAssertNil(try Faser.hitta(s.t, g, tKlick: s.tKlick).start)
         XCTAssertFalse(try Matt.mat(sving("fo")).faser.startOsaker)
+        // Bakifrån utan start (baksvingen 0,25 s) är starten osäker. METOD M40
+        let kort = try Matt.mat(sving("dtl_kort"))
+        XCTAssertNil(kort.faser.start)
+        XCTAssertTrue(kort.faser.startOsaker)
+
+        // En led borta över starten (0,18 s, mer än maxLuckaS): osäker. METOD M40
+        var leder = s.leder
+        for k in s.t.indices where s.t[k] >= 1.02 && s.t[k] <= 1.20 { leder[Led.armbageB.rawValue][k] = .saknad }
+        let lucka = try Matt.mat(Sving(vy: s.vy, hand: s.hand, xTecken: s.xTecken, langdM: s.langdM, tKlick: s.tKlick,
+                                       t: s.t, leder: leder))
+        XCTAssertTrue(lucka.faser.startOsaker)
+        XCTAssertNil(lucka.matt["tempo"])
+
+        // Klippet börjar 0,1 s före takeawayn: adressens fönster är klippets första ruta. METOD M40
+        func fran(_ t0: Double) throws -> SvingResultat {
+            let k = s.t.indices.filter { s.t[$0] >= t0 }
+            return try Matt.mat(Sving(vy: s.vy, hand: s.hand, xTecken: s.xTecken, langdM: s.langdM, tKlick: s.tKlick,
+                                      t: k.map { s.t[$0] }, leder: s.leder.map { l in k.map { l[$0] } }))
+        }
+        XCTAssertTrue(try fran(0.9).faser.startOsaker)
+        XCTAssertFalse(try fran(0.2).faser.startOsaker)                // börjar före toppen − 1,5 s
     }
 
     func testLangLuckaTarBortMattenIFasen() throws {

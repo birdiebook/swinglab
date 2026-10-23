@@ -188,6 +188,16 @@ final class MatningTests: XCTestCase {
         // En ny längd mäter om; en annan dom räknas inte.
         XCTAssertTrue(p.needsMeasure(p.shots[0], height: 1.9))
         XCTAssertFalse(p.needsMeasure(p.shots[0], height: nil))
+        // En äldre mätning (utan version = 1, före S1d) mäts om, en nyare inte. METOD MS14, M40
+        XCTAssertEqual(p.shots[0].measure?.version, ShotMeasuring.version)
+        var gammal = p
+        gammal.shots[0].measure?.version = nil
+        XCTAssertTrue(gammal.needsMeasure(gammal.shots[0], height: nil))
+        gammal.shots[0].measure?.version = ShotMeasuring.version + 1
+        XCTAssertFalse(gammal.needsMeasure(gammal.shots[0], height: nil))
+        gammal.shots[0].measure?.version = nil
+        XCTAssertTrue(gammal.measureShots(height: nil) { serier[$0.id] })
+        XCTAssertEqual(gammal.shots[0].measure?.version, ShotMeasuring.version)
         XCTAssertTrue(p.measureShots(height: 1.9) { serier[$0.id] })
         XCTAssertEqual(p.measuredHeight?.heightM, 1.9)
         p.setVerdict(.notSwing, shot: "s01")

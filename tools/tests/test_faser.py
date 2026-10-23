@@ -1,6 +1,7 @@
 """Utjämningen och faserna (METOD M3, M4) på ojämna tider."""
 from __future__ import annotations
 
+import json
 import math
 import unittest
 
@@ -185,6 +186,72 @@ class StartenBakifran(unittest.TestCase):
             _, facit = gen.sving("dtl", seed=seed, brus_px=0.8)
             self.assertFalse(r["faser"]["start_osaker"])
             self.assertAlmostEqual(r["faser"]["start"], facit["_start"], delta=0.030)
+
+    def test_dtl_utan_start_ar_osaker(self) -> None:
+        r = M.mat(fm.fran_dict(gen.sving("dtl", start=1.95)[0]))          # baksvingen 0,25 s
+        self.assertIsNone(r["faser"]["start"])
+        self.assertTrue(r["faser"]["start_osaker"])
+        fo = M.mat(fm.fran_dict(gen.sving("fo", start=1.95)[0]))
+        self.assertIsNone(fo["faser"]["start"])
+        self.assertFalse(fo["faser"]["start_osaker"])                    # framifrån M4 som förut
+
+    def _dold_fixtur(self) -> dict:
+        return json.loads(gen.fixtursving("dtl_dold"))
+
+    def test_lucka_over_starten_ar_osaker(self) -> None:
+        """En led borta 0,18 s över starten (mer än MAX_LUCKA_S) flyttade starten tyst."""
+        d = self._dold_fixtur()
+        self.assertFalse(M.mat(fm.fran_dict(d))["faser"]["start_osaker"])
+        for r in d["rutor"]:
+            if 1.02 <= r["t"] <= 1.20:
+                r["leder"][4] = [0.0, 0.0, 0.0]                              # bakre armbågen
+        r = M.mat(fm.fran_dict(d))
+        self.assertTrue(r["faser"]["start_osaker"])
+        self.assertNotIn("tempo", r["matt"])
+
+    def test_klipp_som_borjar_strax_fore_takeawayn_ar_osakert(self) -> None:
+        for t0, osaker in ((0.9, True), (0.2, False)):                   # toppen − 1,5 s ≈ 0,25 s
+            d = self._dold_fixtur()
+            d["rutor"] = [r for r in d["rutor"] if r["t"] >= t0]
+            self.assertEqual(M.mat(fm.fran_dict(d))["faser"]["start_osaker"], osaker, t0)
+
+    def _fel(self, **kw) -> list[tuple[bool, float, float]]:
+        """(osäker, tempofelet från starten, hela tempofelet) för slumpade svingar, frön 30–41
+        och kameran på 0,8 / 1,0 / 1,4 / 1,6 m. Tempofelet från starten räknas med den
+        mätta toppen och träffen, så att toppens fel (M4) inte kommer med."""
+        ut = []
+        for hojd in (0.8, 1.0, 1.4, 1.6):
+            for seed in range(30, 42):
+                d, facit = gen.sving_dold(seed=seed, hojd=hojd, variera=True, **kw)
+                r = M.mat(fm.fran_dict(d))
+                f = r["faser"]
+                self.assertIsNotNone(f["start"], (hojd, seed))
+                ned = f["traff"] - f["topp"]
+                ut.append((f["start_osaker"], (facit["_start"] - f["start"]) / ned,
+                           r["matt"].get("tempo", math.nan) - facit["tempo"]))
+        return ut
+
+    def test_noggrannheten_pa_andra_fron(self) -> None:
+        """0,8 px brus: ingen osäker, tempofelet från starten högst 0,15 (uppmätt 0,13) och
+        hela tempofelet högst 0,20 (uppmätt 0,15). METOD M40"""
+        for osaker, e_start, e_hel in self._fel(brus_px=0.8):
+            self.assertFalse(osaker)
+            self.assertLessEqual(abs(e_start), 0.15)
+            self.assertLessEqual(abs(e_hel), 0.20)
+
+    def test_tre_px_markeras_inte(self) -> None:
+        """Posemodellens brus "bra" (3 px): ingen märks osäker, och tempofelet från starten
+        är högst 0,35 (uppmätt 0,31 för ett frö, 95 % under 0,15). METOD M40"""
+        for osaker, e_start, _ in self._fel(profil="bra"):
+            self.assertFalse(osaker)
+            self.assertLessEqual(abs(e_start), 0.35)
+
+    def test_fem_px_omarkta_fel(self) -> None:
+        """Posemodellens brus "typiskt" (5 px): av de omärkta har högst 30 % ett tempofel från
+        starten över 0,25 (uppmätt 4 av 18), och minst 10 av 48 är omärkta (uppmätt 18). METOD M40"""
+        omarkta = [abs(e) for osaker, e, _ in self._fel(profil="typiskt") if not osaker]
+        self.assertGreaterEqual(len(omarkta), 10)
+        self.assertLessEqual(sum(e > 0.25 for e in omarkta) / len(omarkta), 0.30)
 
     def test_fo_ar_oforandrad(self) -> None:
         for namn, (start, topp, tempo) in FO_LAST.items():

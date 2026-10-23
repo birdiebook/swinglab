@@ -174,8 +174,11 @@ def start_ur_posen(t: np.ndarray, B: np.ndarray, topp: float) -> tuple[float | N
     """Baksvingens start bakifrån ur armarnas och axlarnas pose B (n, 13, 2), redan
     utjämnad: sista gången före toppen som posen var inom POSE_ANDEL av vägen från
     adressen till toppen (men minst BRUS_K gånger skakningen i adressen), som
-    medelavstånd över lederna. Ger (starten, osäker) eller (None, False) när posen
-    inte räcker. METOD M40"""
+    medelavstånd över lederna. Starten är osäker när adressen skakar mer än
+    OSAKER_ANDEL av vägen, när rutorna kring den ligger mer än MAX_LUCKA_S isär (en
+    led saknas över starten), och när klippet börjar efter toppen − MAX_BAKSVING_S och
+    adressens fönster är klippets första ruta (adressen kan ha börjat före klippet).
+    Ger (starten, osäker) eller (None, False) när posen inte räcker. METOD M40"""
     a = _adressens_fonster(t, B, topp)
     if a is None:
         return None, False
@@ -197,7 +200,10 @@ def start_ur_posen(t: np.ndarray, B: np.ndarray, topp: float) -> tuple[float | N
     s = float(t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0]))
     if topp - s < MIN_BAKSVING_S:
         return None, False
-    return s, sigma > OSAKER_ANDEL * vag
+    osaker = (sigma > OSAKER_ANDEL * vag
+              or t[k1] - t[k0] > MAX_LUCKA_S
+              or (t[0] > topp - MAX_BAKSVING_S and k_ref == 0))
+    return s, bool(osaker)
 
 
 def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float, pose: np.ndarray | None = None) -> Faser:
@@ -217,9 +223,9 @@ def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float, pose: np.ndarray |
     start, osaker = None, False
     if pose is not None:
         start, osaker = start_ur_posen(t, pose, topp)
-        if start is None:                              # posen räcker inte: händerna, osäkert
-            start = _start_ur_handerna(t, G, topp, ok)
-            osaker = start is not None
+        if start is None:                              # posen räcker inte: händerna, och bakifrån
+            start = _start_ur_handerna(t, G, topp, ok)  # är en sådan start, eller ingen, osäker
+            osaker = True
     else:
         start = _start_ur_handerna(t, G, topp, ok)
 

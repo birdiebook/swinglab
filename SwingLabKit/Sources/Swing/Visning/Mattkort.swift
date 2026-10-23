@@ -72,6 +72,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public var ovas = false
     /// Infobladet som ett tryck på kortet öppnar (BESLUT B41).
     public var info: Infoblad? = nil
+    /// Tempot saknas för att starten är osäker bakifrån: VoiceOver säger det (METOD M40).
+    public var ejMatt = false
 
     public init(id: String, matt: String, namn: String, rubrik: String, vy: Vy?, markning: Markning?,
                 varde: String, enhet: String, skillnad: String?, spann: Spann?, geometri: Geometri?) {
@@ -91,6 +93,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     /// Kortet i ord för VoiceOver: "Sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, …".
     public var upplasning: String {
         var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet == ": 1" ? "" : enhet))"]
+        if ejMatt { d.append(Texter.ejMatt) }
         if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
         if let k = skillnad { d.append(k) }
         if let m = markning { d.append(m.upplasning) }
@@ -114,7 +117,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         k.info = Infoblad(fel, namn: k.namn)
         if k.startOsaker(nu), let b = k.info {                     // METOD M40
             k.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
-                              kalla: "\(b.kalla); \(Texter.startOsakerKalla)")
+                              kalla: "\(b.kalla), \(Texter.startOsakerKalla)")
+            k.ejMatt = true
         }
         return k
     }

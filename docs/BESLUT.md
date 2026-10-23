@@ -727,8 +727,11 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **I vyerna:** tempot visas som "—" i passet och på Today när passets slag saknar
   säker start, och infobladets källrad säger varför (METOD M40). Inget nytt ord på
   skärmen (B13): förklaringen står bara i bladet (B41).
-- **Kostnad:** gränserna är antaganden. Pass som mättes före S1d mäts inte om
-  (bara när längden ändras, MS14), så deras DTL-tempo har kvar M4:s start.
+- **Mätningens version** (METOD M40, MS14): måtten bär version 2. Telefonen mäter om
+  ett slag med en äldre när passet öppnas, och PC:ns historik säger vilka pass som ska
+  köras om med session.py, så att DTL-historiken inte får ett falskt tempohopp.
+- **Kostnad:** gränserna är antaganden. Gamla pass på PC:n måste köras om för hand
+  (paketen behövs), och på telefonen mäts varje gammalt pass om en gång när det öppnas.
 - **Omprövas:** när S3 mätt posemodellens brus på golf och ett riktigt DTL-pass
   prövats (`faser.start` och `start_osaker` i PC:ns `analys.json`), och om en
   waggle visar sig flytta adressens fönster.

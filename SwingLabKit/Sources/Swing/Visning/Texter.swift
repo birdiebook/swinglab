@@ -184,6 +184,8 @@ public enum Texter {
     public static let oprovadKalla = "untested on the phone"
     /// Tempot saknas för att baksvingens start är osäker bakifrån (METOD M40).
     public static let startOsakerKalla = "no tempo when the start is unclear from behind"
+    /// VoiceOver för ett mått som saknas i passet: "Swing tempo, not measured".
+    public static let ejMatt = "not measured"
 
     /// Gränsen är ett antagande byggt på en tillverkares tal (sway_topp, METOD M15).
     public static let antagandeFran = "Assumption from"

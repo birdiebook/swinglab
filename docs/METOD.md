@@ -158,17 +158,35 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - **Osäker start:** är adressens skakning (roten ur) över **1,5 %** av
   medelavståndet vid toppen är starten **osäker**: den står kvar (adressens fönster
   räknas från den), men tempot, baksvingen och nedsvingen saknas, och
-  `faser.start_osaker` är sant. Räcker inte posen (färre än 4 leder) tas starten ur
-  händerna (M4) och märks osäker. Uppmätt: "dåligt" brus (10 px) märks alltid
-  osäkert, "typiskt" 3–7 av 12 svingar per kamerahöjd, "bra" aldrig; bland de omärkta med
-  "bra" och "typiskt" är 95 % av tempofelen från starten under 0,25 och det största
-  0,34. Gränsen är ett **antagande** tills S3 mätt posemodellens brus på golf.
+  `faser.start_osaker` är sant. Starten är också osäker när rutorna kring den ligger
+  mer än **0,10 s** isär (M3:s `MAX_LUCKA_S`: en led saknas över starten, och
+  interpolationen flyttade den tyst: uppmätt upp till 0,27 på tempot med bakre armbågen borta 0,18 s, frön 30–41), och när klippet börjar
+  efter toppen − 1,5 s och adressens fönster är klippets första ruta (adressen kan ha
+  börjat före klippet). Räcker inte posen (färre än 4 leder) tas starten ur händerna
+  (M4) och märks osäker, och bakifrån utan start är `start_osaker` också sant (FO som
+  förut: falskt). Gränsen 1,5 % är ett **antagande** tills S3 mätt posemodellens brus
+  på golf.
+- **Taken i testerna** (`test_faser.StartenBakifran`, slumpade svingar med frön 30–41,
+  kameran 0,8 / 1,0 / 1,4 / 1,6 m, 48 svingar; tempofelet från starten räknas med den
+  mätta toppen och träffen): med 0,8 px brus märks ingen, tempofelet från starten högst
+  **0,15** (uppmätt 0,13) och hela tempot högst **0,20** (uppmätt 0,15). Med
+  posemodellens brus "bra" (3 px) märks ingen och tempofelet från starten är högst
+  **0,35** (uppmätt 0,31 för ett frö, 95 % under 0,15). Med "typiskt" (5 px) märks 30
+  av 48, och av de omärkta har högst **30 %** ett tempofel från starten över 0,25
+  (uppmätt 4 av 18). "Dåligt" (10 px) märks alltid.
+- **Mätningens version:** 2 sedan denna start (`matt.MATVERSION`, Swift
+  `ShotMeasuring.version`). Ett slag eller pass mätt med en äldre (utan fältet = 1) mäts
+  om, annars får DTL-historiken ett falskt tempohopp (≈ +1) och adressens mått flyttar
+  sig: telefonen mäter om slaget när passet öppnas (MS14), och PC:ns `historik.py`
+  listar passen vars `analys.json` har en äldre `matversion` (`kor_om` i minnet) så
+  att session.py körs igen.
 - **På telefonen:** slaget sparar flaggan (`ShotMeasure.startUncertain`), och passet
   räknar slagen med osäker start (`Pass.osakerStart`). Saknas passets tempo och har
   passet sådana slag visar tempokortet och Today-raden "—" (Today utan spann), och
   infobladets källrad slutar med "no tempo when the start is unclear from behind".
   Har bara en del av slagen osäker start är tempot medianen av de övriga. Svartvitt
-  och utan värdeord (BESLUT B13).
+  och utan värdeord (BESLUT B13). VoiceOver säger "Swing tempo, not measured"
+  (`Texter.ejMatt`).
 - **Två telefoner:** när båda vyerna filmar tar 3D-måtten redan FO:s start (MK6),
   och tempot tas ur en vy (MT9). Det behövs ingen ny väg för starten.
 - **Oprovat på telefonen:** riktiga DTL-pass, waggle och forward press (en waggle
@@ -186,7 +204,7 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - **Bakifrån (DTL)** syns takeawayn knappt (den går mot kameran), och händernas start
   (M4) kom sent eller saknades (utredningen 2026-10-23: ett importerat DTL-pass utan
   tempo på Today). Starten bakifrån tas därför ur posen (M40). Är den osäker saknas
-  tempot och `faser.start_osaker` är sant; vyerna visar då "–" (M40).
+  tempot och `faser.start_osaker` är sant; vyerna visar då "—" (M40).
 
 ## M6 — Bröstets böjning och tappad hållning (DTL)
 
@@ -1096,6 +1114,10 @@ värden i `CaptureTests`.
   inte får en axel med samma tal i båda ändar. **räkning.**
 - **Ändras fönstret eller utsnittet** (MS13) tas måtten och märkningen bort med
   lederna.
+- **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
+  posen, M40): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
+  om med en äldre app. **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
   samma sving, samma sving som filformatet, längden och den antagna skalan, slag som
   inte går att mäta, passets median med och utan "Detection wrong", omätningen, gamla
@@ -1385,7 +1407,8 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
 ## MT9 — Tempot med två telefoner
 
 - Gruppen `alla` (tempot och varje fel med vy `bada`) tas ur **en** vy: den
-  med flest mätta slag, FO vid lika. Baslinjen för de felen tas ur samma vy.
+  med flest slag med tempo, FO vid lika (ett slag bakifrån utan säker start har mått
+  men inget tempo, M40). Baslinjen för de felen tas ur samma vy.
   Vyerna läggs aldrig ihop: när båda telefonerna filmar är det samma svingar,
   och n blir dubbelt. **antagande**; parning slag för slag (`par` i
   manifestet) väntar.

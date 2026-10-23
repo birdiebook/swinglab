@@ -86,7 +86,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 | Fält | Betydelse |
 |---|---|
 | `cm_per_px` | Skalan (METOD M2). |
-| `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4), och `start_osaker` (bool): starten finns men bär inget tempo (bakifrån, METOD M40). |
+| `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4), och `start_osaker` (bool): bakifrån saknas starten eller bär den inget tempo; framifrån alltid `false` (METOD M40). |
 | `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). |
 | `matt` | Måtten per namn (METOD M5–M24, M29, M30–M39). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), m/s (`fart`) och °/s (`vinkelfart`). |
 
@@ -283,9 +283,10 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | Fält | Innehåll |
 |---|---|
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
+| `matversion` | måttens version (`matt.MATVERSION`, 2 sedan METOD M40); saknas = 1, kör session.py igen |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
 | `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
-| `tempo_vy` | vyn som gruppen `alla` tas ur (METOD MT9) |
+| `tempo_vy` | vyn som gruppen `alla` tas ur: flest slag med tempo (METOD MT9) |
 | `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
 | `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |
 | `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
@@ -483,4 +484,5 @@ fel som fått en övning (`ovningar[]`): `ovning` (senaste texten), `ovning_id`,
 `uppfoljning` (första serien, uppfyllt, rörelse och tydlig per pass),
 `pass_utan_rorelse`, `dagar_sedan_felet_valdes`, `rorelse_sedan_felet_valdes`,
 `aktuell` och `lage` (`avslutad`, `klart`, `fysik`, `ny`, `byt_ovning`,
-`fortsatt`; METOD MT4, MT5).
+`fortsatt`; METOD MT4, MT5), och `kor_om`: passen vars analys har en äldre
+`matversion` (METOD M40), som ska köras om med session.py.

@@ -66,6 +66,19 @@ class Historiken(unittest.TestCase):
     def lage(self, till=None) -> dict:
         return {o["fel"]: o for o in H.ovningar(self.rot, till)}["sway_topp"]
 
+    def test_aldre_matning_kors_om(self) -> None:
+        """Ett pass utan `matversion` (= 1, före S1d) eller med en äldre ska köras om med
+        session.py; ett med dagens inte. METOD M40"""
+        self.pass_("20261103-180000", -5.0)                          # utan matversion
+        a = _analys("20261106-180000", -5.0)
+        a["matversion"] = H.M.MATVERSION
+        H.spara_analys(self.rot, a)
+        a = _analys("20261110-180000", -5.0)
+        a["matversion"] = H.M.MATVERSION - 1
+        H.spara_analys(self.rot, a)
+        self.assertEqual(H.kor_om(self.rot), ["20261103-180000", "20261110-180000"])
+        self.assertEqual(H.minne(self.rot, till="20261106-180000")["kor_om"], ["20261103-180000"])
+
     def test_tom_historik(self) -> None:
         self.assertEqual(H.lista(self.rot), [])
         self.assertEqual(H.baslinje(self.rot, "20261103-180000"), ([], []))

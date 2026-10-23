@@ -142,8 +142,8 @@ public struct Idagvisning: Sendable {
 
         /// "Sway −2.4 cm, target from 0 cm"
         public var upplasning: String {
-            let m = spann?.upplasning ?? ""
-            return (varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet))") + (m.isEmpty ? "" : ", \(m)")
+            guard let s = spann else { return "\(namn), \(Texter.ejMatt)" }        // tempot utan start (M40)
+            return "\(namn) \(Tal.medEnhet(varde, enhet))" + (s.upplasning.isEmpty ? "" : ", \(s.upplasning)")
         }
     }
 

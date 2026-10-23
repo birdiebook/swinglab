@@ -124,7 +124,8 @@ armbågarna och handlederna) mot adressens stillaste fönster, bakåt från topp
 bakifrån: förut +176 till +265 ms sen eller saknad, nu högst 0,14 fel på tempot med
 0,8 px brus. Skakar adressen eller räcker inte posen är starten osäker
 (`faser.start_osaker`) och tempot saknas. Fixturerna `dtl_dold`, `dtl_osaker` och
-`dtl_utan_pose`; `test_faser.StartenBakifran` (gränsen 0,15 och FO:s tal låsta). I
+`dtl_utan_pose`; `test_faser.StartenBakifran` (gränsen 0,15 och FO:s tal låsta). Måtten bär en
+version (2): telefonen mäter om äldre slag och PC:ns historik säger vilka pass som ska köras om. I
 vyerna: tempot "—" i passet och på Today när slagen saknar säker start, och skälet i
 infobladets källrad. Kvar till ✓: ett riktigt DTL-pass på telefonen.
 

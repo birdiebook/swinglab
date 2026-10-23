@@ -118,6 +118,11 @@ class TempotMedTvaTelefoner(unittest.TestCase):
         self.assertEqual(A.tempo_vy(self.rader(5, 5)), "fo")
         self.assertEqual(A.tempo_vy(self.rader(0, 3)), "fo")
 
+    def test_slag_utan_tempo_raknas_inte(self) -> None:
+        """Bakifrån utan säker start har slaget mått men inget tempo (METOD M40)."""
+        r = self.rader(3, 5) + [{"vy": "dtl", "matt": {"backen_thrust_traff": 1.0}}] * 4
+        self.assertEqual(A.tempo_vy(r), "fo")
+
     def test_alla_ar_bara_den_vyn(self) -> None:
         s = A.sammanfatta_pass(self.rader(6, 5), "dtl")
         self.assertEqual(s["alla"]["tempo"]["n"], 6)

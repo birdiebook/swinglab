@@ -90,6 +90,7 @@ class Fixturerna(unittest.TestCase):
             self.assertNotIn("tempo", osaker["matt"])
         kort = json.loads(self.f["svingar"]["dtl_kort"][1])
         self.assertIsNone(kort["faser"]["start"])
+        self.assertTrue(kort["faser"]["start_osaker"])              # bakifrån utan start (M40)
         self.assertNotIn("tempo", kort["matt"])
         self.assertNotIn("bakre_kna_adress", kort["matt"])        # konfidens 0,29
         self.assertIn("backen_thrust_traff", kort["matt"])         # konfidens 0,3

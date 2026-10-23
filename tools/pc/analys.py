@@ -99,10 +99,11 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
 
 
 def tempo_vy(rader: list[dict]) -> str:
-    """Vyn som tempot (och varje fel med vy "bada") tas ur: den med flest mätta
-    slag, FO vid lika. Vyerna läggs aldrig ihop, för då räknas samma sving två
-    gånger när båda telefonerna filmar. METOD MT9"""
-    n = {vy: sum(1 for r in rader if r["vy"] == vy and "matt" in r) for vy in ("dtl", "fo")}
+    """Vyn som tempot (och varje fel med vy "bada") tas ur: den med flest slag med
+    tempo, FO vid lika. Ett slag utan säker start bakifrån har inget tempo (METOD M40)
+    och räknas inte. Vyerna läggs aldrig ihop, för då räknas samma sving två gånger när
+    båda telefonerna filmar. METOD MT9"""
+    n = {vy: sum(1 for r in rader if r["vy"] == vy and "tempo" in r.get("matt", {})) for vy in ("dtl", "fo")}
     return "dtl" if n["dtl"] > n["fo"] else "fo"
 
 
@@ -267,7 +268,7 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
     if len({p.vy for p in paket}) != len(paket):
         raise ValueError("två paket med samma vy")
     slag = [r for p in sorted(paket, key=lambda p: p.vy) for r in mat_paket(p, langd_m)]
-    a = {"format": FORMAT, "pass": pass_id,
+    a = {"format": FORMAT, "pass": pass_id, "matversion": M.MATVERSION,
          "skapad": skapad or dt.datetime.now().astimezone().isoformat(timespec="seconds"),
          "paket": [{"fil": p.fil, "vy": p.vy, "slag": len(p.slag),
                     "klipp": sum(1 for s in p.slag if s.klipp)} for p in paket],
