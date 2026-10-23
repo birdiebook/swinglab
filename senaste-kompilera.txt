@@ -1,26 +1,26 @@
-f8ebf3fe10b08bbc0fd999f3133ffc4ca4d51247 s6a 2026-10-22T23:29:46Z run 39871462230 kompilera
+1377979edda4ae0b1d8e10604f6092a29ac68ecd s6a 2026-10-23T00:08:50Z run 39875146305 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 31 test, 0 fel, 89 s i testerna
+GRÖNT: 31 test, 0 fel, 95 s i testerna
 Långsammast (av 31):
-     41.2 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-      7.5 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+     26.5 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      4.3 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      3.4 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      2.9 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
-      2.8 s  SwingLabProvSlag.testSteg6Klippet
-      2.4 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
-      2.2 s  SwingLabProvInspelning.testFilmenMedLPCM
-      2.2 s  SwingLabProvInspelning.testFilmenMedAAC
-      2.2 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      1.6 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      1.3 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      1.3 s  SwingLabProv.testAppenStartarMedStartvyn
-      1.3 s  SwingLabProvInspelning.testKvittotUrFilen
+      6.6 s  SwingLabProvInspelning.testFilmenMedLPCM
+      5.4 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      5.4 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      4.4 s  SwingLabProvInspelning.testLuckaILjudet
+      4.3 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      4.0 s  SwingLabProvInspelning.testKvittotUrFilen
+      3.8 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      3.5 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      3.4 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      3.3 s  SwingLabProvInspelning.testFilmenMedAAC
+      2.9 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      2.9 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      2.4 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -54,11 +54,11 @@ PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Len
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.030 ms, osäkerhet 0.184 ms, 30 prov
+PROV: link klocka θ 0.039 ms, osäkerhet 0.165 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 55.6 MB, topp 55.6 MB (+0.0 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.3 MB, topp 58.4 MB (+0.1 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1490565 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
