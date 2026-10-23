@@ -1,15 +1,15 @@
-3b4dbec341b5c7b5e14612980f8e6a09b99e02a9 s5b 2026-10-23T12:13:01Z run 39951529060 kompilera
+a7312b86937601399accea8722c762c819906c62 s7a 2026-10-23T12:15:16Z run 39951001427 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 RÖTT: arkiveringen gick inte igenom
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Claude/ClaudeSvar.swift:39:28: error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:306:9: error: overlapping accesses to 'p', but modification requires exclusive access; consider copying to a local variable
 ** ARCHIVE FAILED **
 
 == prov
 RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Claude/ClaudeSvar.swift:39:28: error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:306:9: error: overlapping accesses to 'p', but modification requires exclusive access; consider copying to a local variable
 
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Claude/ClaudeSvar.swift:39:28: error: value of type '(Int, Int) -> String' has no member 'unicodeScalars'
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:306:9: error: overlapping accesses to 'p', but modification requires exclusive access; consider copying to a local variable
 ** TEST FAILED **
 == provets mätningar (påhittad film)
 
