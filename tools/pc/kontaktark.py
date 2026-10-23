@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from .faser import ADRESS, FINISH, TOPP_ADRESS_S
+from .klipp import VridenFel
 from .paket import i_klippet, las_ur_zip
 
 BREDD = 180                # METOD MT7: px per ruta i arket
@@ -40,26 +41,55 @@ def verktyg() -> str | None:
         return None
 
 
+def _ppm(b: bytes) -> np.ndarray | None:
+    """En binär PPM (P6, 8 bitar) → (h, w, 3) uint8, eller None."""
+    delar, pos = [], 0
+    while len(delar) < 4:
+        while pos < len(b) and b[pos:pos + 1].isspace():
+            pos += 1
+        if b[pos:pos + 1] == b"#":
+            pos = b.find(b"\n", pos) + 1
+            continue
+        slut = pos
+        while slut < len(b) and not b[slut:slut + 1].isspace():
+            slut += 1
+        delar.append(b[pos:slut])
+        pos = slut
+    if delar[0] != b"P6" or delar[3] != b"255":
+        return None
+    w, h = int(delar[1]), int(delar[2])
+    data = b[pos + 1:pos + 1 + w * h * 3]
+    return np.frombuffer(data, np.uint8).reshape(h, w, 3).copy() if len(data) == w * h * 3 else None
+
+
 def las_ruta(klipp: Path, t: float, bredd: int, hojd: int, satt: str) -> np.ndarray | None:
-    """Rutan närmast t (s i klippet) som (hojd, bredd, 3) uint8, eller None."""
+    """Rutan vid t (s i klippet) som (hojd, bredd, 3) uint8, eller None. Bilden ska stå
+    upprätt som lederna: ligger den ner kastas klipp.VridenFel (METOD MF1)."""
+    from .klipp import kontrollera_upprat
     t = max(0.0, t)
     if satt == "ffmpeg":
         r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.4f}", "-i", str(klipp), "-frames:v", "1",
-                            "-vf", f"scale={bredd}:{hojd}", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:"],
-                           capture_output=True, timeout=60)
-        if r.returncode != 0 or len(r.stdout) < bredd * hojd * 3:
+                            "-f", "image2pipe", "-vcodec", "ppm", "pipe:"], capture_output=True, timeout=60)
+        img = _ppm(r.stdout) if r.returncode == 0 and r.stdout else None
+        if img is None:
             return None
-        return np.frombuffer(r.stdout[:bredd * hojd * 3], np.uint8).reshape(hojd, bredd, 3).copy()
-    import cv2
-    v = cv2.VideoCapture(str(klipp))
-    try:
-        v.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
-        ok, bild = v.read()
-    finally:
-        v.release()
-    if not ok:
-        return None
-    return cv2.cvtColor(cv2.resize(bild, (bredd, hojd)), cv2.COLOR_BGR2RGB)
+    else:
+        import cv2
+        v = cv2.VideoCapture(str(klipp))
+        try:
+            v.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
+            ok, bild = v.read()
+        finally:
+            v.release()
+        if not ok:
+            return None
+        img = cv2.cvtColor(bild, cv2.COLOR_BGR2RGB)
+    kontrollera_upprat(img.shape[1], img.shape[0], bredd, hojd)
+    if img.shape[:2] != (hojd, bredd):
+        ys = np.minimum((np.arange(hojd) * img.shape[0] / hojd).astype(int), img.shape[0] - 1)
+        xs = np.minimum((np.arange(bredd) * img.shape[1] / bredd).astype(int), img.shape[1] - 1)
+        img = img[ys][:, xs]
+    return np.ascontiguousarray(img)
 
 
 def _punkt(img: np.ndarray, x: float, y: float, r: int = 1) -> None:
@@ -131,7 +161,10 @@ def bygg(paket_fil: Path, paket, slag_rader: list[dict], ut: Path, satt: str | N
             for k, (fas, t) in enumerate(tider(matta[s.id]["faser"]).items()):
                 tk = t + float(s.klick_i_klipp_s)
                 # Bara klippets rutor i [0; längd), inte de som följer med efter (METOD MS12).
-                img = las_ruta(klipp, tk, BREDD, hojd, satt) if i_klippet(s, tk) else None
+                try:
+                    img = las_ruta(klipp, tk, BREDD, hojd, satt) if i_klippet(s, tk) else None
+                except VridenFel as e:
+                    return {"hoppat": str(e)}
                 if img is None:
                     img = np.zeros((hojd, BREDD, 3), np.uint8)
                 narmast = min(rutor, key=lambda r: abs(r["t"] - t))

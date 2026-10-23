@@ -748,49 +748,65 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
 *2026-10-23 · prövas · PLAN.md S3 · METOD MF1–MF4*
 
 - **Valt:** `python tools/pc/s3_facit.py <paket.zip> [fler]` kör MediaPipe Pose heavy
-  (VIDEO-läge, som Golf SG i oktober) på paketets klipp, på Visions tider och i seriens
-  utsnitt (B34), och för punkterna tillbaka till hela bildens pixlar. Lederna jämförs per
-  led, fas och vy, S1:s mått räknas med samma kod på båda källorna, och överst står det
-  som avgör B5 med felbudgetens nivåer som trösklar (S6_FELBUDGET §3) och "ingen källa"
-  där ingen finns. Tabellen (`s3.md`, `s3.json`), kontaktarken och MediaPipes leder skrivs
-  till `~/swinglab-s3/<pass>/`; verktyget vägrar en mapp i repot. Modellen hämtas till
+  (VIDEO-läge, som Golf SG i oktober) på varje ruta i paketets klipp, i seriens utsnitt
+  (B34), och för punkterna tillbaka till hela bildens pixlar. Klippets tider (OpenCV) och
+  Visions skiljer sig med en förskjutning per klipp, som skattas ur handledernas banor;
+  ett slag där den är tvetydig jämförs inte. Lederna jämförs per led, fas och vy, S1:s mått
+  räknas med samma kod på båda källorna, parade per slag, och överst står det som avgör B5
+  för hela svingen och nedsvingen, med trösklar ur en simulering av felbudgetens brus i
+  båda källorna, intervall ur bootstrap av slagen och "–" under 5 slag. Tabellen
+  (`s3.md`, `s3.json`), kontaktarken och MediaPipes leder skrivs till
+  `~/swinglab-s3/<pass>/`; verktyget vägrar en mapp i repot. Modellen hämtas till
   `~/.cache/swinglab/mediapipe/` (eller tas ur Golf SG:s cache); saknas `mediapipe` eller
   `opencv-python` skriver verktyget `pip install`-raden och stannar.
 - **Varför:** B5 och B14 väntar på ett mätt 2D-fel, och felbudgeten är byggd på antagna
-  nivåer. Med samma rutor och samma utsnitt är skillnaden modellen, inte bilden.
-  Modellen bakom ett gränssnitt gör att jämförelsen provas på Linux utan MediaPipe, med
-  en påhittad modell som lägger känt brus på Visions leder.
+  nivåer. Med samma rutor och samma utsnitt är skillnaden modellen, inte bilden. En ruta
+  fel i tid ger cirka 2 % av kroppslängden i nedsvingen, mer än nivåerna själva, därför
+  skattas förskjutningen i stället för att litas på OpenCV:s tid. Skillnaden mellan två
+  modeller bär båda modellernas fel, därför simuleras trösklarna i stället för att
+  felbudgetens nivåer för en källa används rakt. Modellen och klippet bakom gränssnitt gör
+  att jämförelsen provas på Linux utan MediaPipe, med en påhittad modell som läser rutans
+  nummer ur bilden.
 - **Bortvalt:** MediaPipe på hela bilden (då blandas utsnittets effekt in; B34 omprövas
-  separat), IMAGE-läget (oktobers tal kom ur VIDEO-läget), att låta verktyget fatta B5
-  (trösklarna för saknade leder och måtten saknar källa), och tabellen i `data/historik/`
-  (den hör till S3, inte till passens historik).
+  separat), IMAGE-läget (oktobers tal kom ur VIDEO-läget), förskjutningen ur `ffprobe`
+  ensam (finns inte alltid, och telefonens nolla är inte prövad), felbudgetens nivåer
+  direkt som trösklar, att låta verktyget fatta B5 (trösklarna för saknade leder och
+  måtten saknar källa), och tabellen i `data/historik/` (den hör till S3, inte till
+  passens historik).
 - **Kostnad:** MediaPipe heavy på CPU tar cirka 45 ms per ruta (uppmätt i molnet på en
   påhittad film), alltså cirka 45 s per slag med 960 rutor; lederna sparas så att en
-  ny körning går fort. Avvikelsen är mot MediaPipe, inte mot sanningen.
+  ny körning går fort. Simuleringen av trösklarna tar cirka 10 s per körning. Avvikelsen är
+  mot MediaPipe, inte mot sanningen, och trösklarna vilar på antagandet att MediaPipe
+  heavy ligger på felbudgetens nivå "bra".
 - **Omprövas:** när tabellen finns för ett riktigt pass i båda vyerna; då tas B5.
 
-## B44 — Klubbans märkning: tre punkter på en lokal sida, sparad bredvid paketet
+## B44 — Klubbans märkning: tre klickade punkter på en lokal sida, sparad bredvid paketet
 *2026-10-23 · prövas · PLAN.md S7 · METOD MF5–MF6*
 
 - **Valt:** `python tools/pc/markera_klubba.py <paket.zip|video.mov>` väljer rutorna
   själv (adress, topp och tidig nedsving ur faserna och P5, plus några jämnt spridda, i
-  varje vy), och öppnar en sida i webbläsaren från en server på 127.0.0.1. Johannes
-  klickar **grepp**, **skaftets mitt** och **klubbhuvudet**, där klubbhuvudets punkt är
-  GolfPose **hosel** (där skaftet går in i huvudet; research 2 §3, punktnamnen ej lästa i
-  original, B10). Greppets förslag ur handlederna visas och godtas med Enter. Märkningen
-  (`swinglab-klubba/1`, FORMAT.md) sparas efter varje ruta i
+  varje vy) och läser dem med S3:s förskjutning, så att bilden är Visions ruta; utan S3:s
+  tabell stannar det och säger att S3 ska köras först. Sidan öppnas från en server på
+  127.0.0.1 med en slumpad nyckel i adressen. Johannes klickar **grepp**, **skaftets
+  mitt** och **klubbhuvudet**, där klubbhuvudets punkt är GolfPose **hosel** (där skaftet
+  går in i huvudet; research 2 §3, punktnamnen ej lästa i original, B10). Varje punkt är
+  ett klick: handledernas mitt visas bara som ledtråd för greppet och godtas aldrig av sig
+  själv. Märkningen (`swinglab-klubba/1`, FORMAT.md) sparas efter varje ruta i
   `swinglab-<pass>-klubba.json` bredvid paketet, och en ny körning fortsätter där den
   slutade.
 - **Varför:** S7:s "klart när" mäts mot handmärkta rutor i adress, topp och tidig
   nedsving i båda vyerna, och detektorn tränas på samma märkning. Grepp och hosel ger
-  skaftets linje; mitten ger en kontroll när skaftet böjs eller är suddigt. En server på
-  den egna datorn kan skriva filen bredvid paketet, vilket en fil-sida inte kan.
+  skaftets linje; mitten ger en kontroll när skaftet böjs eller är suddigt. Handlederna
+  ligger 5–8 cm från skaftet (cirka 4° på vinkeln), så en godtagen ledtråd hade blivit ett
+  fel i facit. En server på den egna datorn kan skriva filen bredvid paketet, vilket en
+  fil-sida inte kan; nyckeln och Host-kontrollen gör att ingen annan sida kan.
 - **Bortvalt:** GolfPose alla fem klubbpunkter (häl och tå syns sällan i 240 bilder/s
   med 1/2000 s, och skaftets vinkel kräver bara två), ett färdigt märkverktyg (CVAT,
-  Label Studio: installation och export för tre punkter), och en sida utan server (filen
-  hamnar i Hämtade filer; knappen "Ladda ner" finns kvar som reserv).
+  Label Studio: installation och export för tre punkter), en sida utan server (filen
+  hamnar i Hämtade filer; knappen "Ladda ner" finns kvar som reserv), och att godta
+  ledtråden med Enter.
 - **Kostnad:** cirka 30 rutor per vy och pass med standardvalet; märkningen är Johannes
-  tid. Bilderna bäddas in i sidan (några MB).
+  tid. Bilderna bäddas in i sidan (några MB). S3 måste ha körts först.
 - **Omprövas:** när GolfPose punktdefinition lästs i original, och när detektorn ger
   förslag för skaftet och huvudet.
 

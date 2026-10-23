@@ -71,5 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/kolla_metod.py
-      - run: python3 -m pip install --quiet numpy
+      # OpenCV och ffmpeg: S3:s prov med en riktig film (vriden, förskjuten) och kontaktarket.
+      - run: python3 -m pip install --quiet numpy opencv-python-headless
+      - run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
       - run: python3 -m unittest discover -s tools/tests -v

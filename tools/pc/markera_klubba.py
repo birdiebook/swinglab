@@ -4,8 +4,10 @@
     python tools/pc/markera_klubba.py <video.mov> [--vy fo]         # ett klipp utan paket
 
 Rutorna väljs själva (MF5): adress, topp och tidig nedsving ur Visions faser och P5, plus
-några jämnt spridda, för några slag jämnt spridda över passet, i varje vy. En video utan
-paket har inga leder: där sprids rutorna jämnt över klippet.
+några jämnt spridda, för några slag jämnt spridda över passet, i varje vy. Klippets ruta
+tas med S3:s förskjutning (`~/swinglab-s3/<pass>/s3.json`, METOD MF1), så att bilden,
+tiden och greppets ledtråd hör till samma ruta som Visions leder: kör S3 först. En
+video utan paket har inga leder: där sprids rutorna jämnt över klippet.
 
 Sidan öppnas i webbläsaren från en server på den här datorn (127.0.0.1, inget nätverk ut).
 Klicka grepp, skaftets mitt och klubbhuvudet (hoseln) i den ordningen:
@@ -14,7 +16,7 @@ Klicka grepp, skaftets mitt och klubbhuvudet (hoseln) i den ordningen:
     Enter  rutan klar            mellanslag  hoppa över     ←  föregående ruta
     Z      zooma kring musen     Backsteg  ta bort punkten
 
-Ett förslag (greppet ur handlederna) visas ihåligt och godtas med Enter. Märkningen
+Greppets ledtråd (handledernas mitt) visas ihålig; greppet kräver ändå ett klick. Märkningen
 sparas efter varje ruta i `swinglab-<pass>-klubba.json` bredvid paketet (formatet i
 docs/FORMAT.md, "Klubbans märkning"), och en körning till fortsätter där den slutade.
 Filen ska ligga utanför repot: den är Johannes data.
@@ -25,6 +27,8 @@ import argparse
 import base64
 import json
 import math
+import os
+import secrets
 import sys
 import tempfile
 import threading
@@ -41,11 +45,10 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     __package__ = "pc"
 
-from . import faser as F  # noqa: E402
-from . import format as fm  # noqa: E402
+from . import klipp as KL  # noqa: E402
 from . import kontaktark as KA  # noqa: E402
-from . import matt as M  # noqa: E402
 from . import paket as P  # noqa: E402
+from . import s3_facit as S3F  # noqa: E402
 from . import session as S  # noqa: E402
 from .format import LEDER_FIL, MIN_KONFIDENS  # noqa: E402
 
@@ -54,7 +57,8 @@ FORMAT = "swinglab-klubba/1"
 PUNKTER = ("grepp", "skaft_mitt", "klubbhuvud")
 VAL = ("adress", "topp", "tidig_nedsving", "jamn")
 STATUS = ("omarkerad", "markerad", "hoppad")
-KALLOR = ("klick", "forslag")
+KALLOR = ("klick",)          # BESLUT B44: varje punkt är ett klick; ledtråden godtas aldrig av sig själv
+TID_TOL_S = 0.002            # METOD MF1: samma tolerans som S3 för klippets ruta
 
 SLAG_PER_PAKET = 6           # METOD MF5: slag per paket, jämnt spridda över passet
 JAMNA_PER_SLAG = 2           # METOD MF5: jämnt spridda rutor per slag, adress → finish
@@ -64,6 +68,7 @@ MARGINAL = 0.15              # METOD MF6: sidan visar utsnittet + 15 % per sida 
 ZOOM = 3.0                   # METOD MF6: Z förstorar så mycket kring musen
 JPEG_KVALITET = 88           # METOD MF6
 LANGD_FASER_M = 1.80         # faserna beror inte på längden; den behövs bara för att mäta
+S3_ROT = Path.home() / "swinglab-s3"
 
 
 class MarkFel(RuntimeError):
@@ -85,8 +90,9 @@ def _visad(utsnitt, bredd: int, hojd: int) -> list[int]:
 
 
 def forslag(ruta_leder: list) -> dict:
-    """Greppets förslag: handledernas mitt, eller den som syns (greppregeln, METOD M1).
-    Skaftet och klubbhuvudet har inget förslag förrän en detektor finns (S7). METOD MF5"""
+    """Greppets ledtråd: handledernas mitt, eller den som syns (greppregeln, METOD M1).
+    Den ligger 5–8 cm från skaftet, så den visas bara som ledtråd och greppet kräver ett
+    klick. Skaftet och klubbhuvudet har ingen förrän en detektor finns (S7). METOD MF5"""
     hander = []
     for j in (LEDER_FIL.index("handled_v"), LEDER_FIL.index("handled_h")):
         led, _ = P._led(ruta_leder[j], "")
@@ -105,20 +111,29 @@ def valj_slag(n_slag: int, n: int) -> list[int]:
     return sorted(set(np.round(np.linspace(0, n_slag - 1, min(n, n_slag))).astype(int).tolist()))
 
 
-def valj_rutor(paket: list[tuple[Path, P.Paket]], slag_per_paket: int = SLAG_PER_PAKET,
-               jamna: int = JAMNA_PER_SLAG) -> list[dict]:
+def forskjutningar(s3: dict) -> dict[tuple[str, str], float]:
+    """S3:s förskjutning per (paket, slag) i ms, bara för slag där den inte var
+    tvetydig (s3.json, METOD MF1)."""
+    return {(r["fil"], r["id"]): float(r["tidsparning"]["forskjutning_ms"]) for r in s3.get("slag", [])
+            if "hoppat" not in r and (r.get("tidsparning") or {}).get("forskjutning_ms") is not None}
+
+
+def valj_rutor(paket: list[tuple[Path, P.Paket]], forskjutning: dict[tuple[str, str], float],
+               slag_per_paket: int = SLAG_PER_PAKET, jamna: int = JAMNA_PER_SLAG) -> list[dict]:
     """Rutorna att märka i paketen: för valda slag adressen, toppen och tidig nedsving
     (P5, annars toppen + 1/3 av nedsvingen), och `jamna` rutor jämnt mellan adressen och
-    finishen; varje tid flyttad till närmaste Vision-ruta och bara inom klippet. METOD MF5"""
+    finishen; varje tid flyttad till närmaste Vision-ruta och bara inom klippet. Bara
+    slag med S3:s förskjutning (ms) väljs, så att klippets ruta är Visions. METOD MF5"""
     ut = []
     for fil, p in paket:
         kandidater = []
         for s in p.slag:
             if s.dom not in P.MATS or s.detection_wrong or not s.klipp or not s.lederna:
                 continue
-            try:
-                r = M.mat(fm.fran_dict(P.till_sving(p, s, p.langd_m or LANGD_FASER_M)))
-            except (fm.FormatFel, F.SvingFel):
+            if (p.fil, s.id) not in forskjutning:
+                continue
+            r, _ = S3F._mat_vision(fil, p, s, p.langd_m or LANGD_FASER_M)
+            if r is None:
                 continue
             kandidater.append((s, r))
         for k in valj_slag(len(kandidater), slag_per_paket):
@@ -141,7 +156,8 @@ def valj_rutor(paket: list[tuple[Path, P.Paket]], slag_per_paket: int = SLAG_PER
                     continue
                 sedda.add(rr["t"])
                 ut.append({"id": f"{p.vy}-{s.id}-{namn}", "fil": p.fil, "vy": p.vy, "slag": s.id,
-                           "val": namn.split("-")[0], "t": round(float(rr["t"]), 4), "t_klipp": round(tk, 4),
+                           "val": namn.split("-")[0], "t": round(float(rr["t"]), 4), "t_klipp": round(tk, 6),
+                           "forskjutning_ms": forskjutning[(p.fil, s.id)],
                            "bredd": bredd, "hojd": hojd, "visad": visad, "status": "omarkerad",
                            "punkter": {n: None for n in PUNKTER}, "forslag": forslag(rr["joints"])})
     return ut
@@ -150,7 +166,7 @@ def valj_rutor(paket: list[tuple[Path, P.Paket]], slag_per_paket: int = SLAG_PER
 def valj_video(fil: Path, langd_s: float, bredd: int, hojd: int, vy: str | None, n: int = JAMNA_VIDEO) -> list[dict]:
     """En video utan paket: n rutor jämnt över klippet (inga leder, inga faser). METOD MF5"""
     return [{"id": f"video-{k + 1:02d}", "fil": fil.name, "vy": vy, "slag": None, "val": "jamn", "t": None,
-             "t_klipp": round((k + 0.5) / n * langd_s, 4), "bredd": bredd, "hojd": hojd,
+             "t_klipp": round((k + 0.5) / n * langd_s, 6), "forskjutning_ms": 0.0, "bredd": bredd, "hojd": hojd,
              "visad": [0, 0, bredd, hojd], "status": "omarkerad", "punkter": {p: None for p in PUNKTER},
              "forslag": {}} for k in range(n)]
 
@@ -162,19 +178,40 @@ def ny(rutor: list[dict], kalla: list[str], pass_id: str | None) -> dict:
             "andrad": datetime.now().astimezone().isoformat(timespec="seconds"), "rutor": rutor}
 
 
+SAMMA_T_S = 1e-4             # METOD MF5: samma ruta = samma tid inom 0,1 ms
+
+
+def _samma(a: dict, b: dict) -> bool:
+    """Samma ruta: samma id och fil, och samma tid inom 0,1 ms (Visions tid, för en
+    video klippets)."""
+    if a["id"] != b["id"] or a["fil"] != b["fil"]:
+        return False
+    ta, tb = (a["t"], b["t"]) if a["t"] is not None and b["t"] is not None else (a["t_klipp"], b["t_klipp"])
+    return ta is not None and tb is not None and abs(ta - tb) <= SAMMA_T_S
+
+
 def sla_ihop(ny_d: dict, gammal: dict | None) -> dict:
-    """En tidigare märkning behålls: samma id får sin status och sina punkter tillbaka,
-    och rutor som inte valdes nu ligger kvar sist."""
+    """En tidigare märkning behålls: en ny ruta som är samma ruta som en gammal får dess
+    status och punkter. En gammal ruta som inte matchar ligger kvar sist, oförändrad; en
+    ny ruta med samma id men en annan ruta får ett nytt id."""
     if not gammal:
         return ny_d
-    forra = {r["id"]: r for r in gammal["rutor"]}
+    kvar = list(gammal["rutor"])
     rutor = []
     for r in ny_d["rutor"]:
-        g = forra.pop(r["id"], None)
+        g = next((x for x in kvar if _samma(r, x)), None)
         if g is not None:
+            kvar.remove(g)
             r = {**r, "status": g["status"], "punkter": g["punkter"]}
         rutor.append(r)
-    return {**ny_d, "rutor": rutor + list(forra.values())}
+    ids = {x["id"] for x in kvar}
+    for r in rutor:
+        k = 2
+        bas = r["id"]
+        while r["id"] in ids:
+            r["id"] = f"{bas}-{k}"
+            k += 1
+    return {**ny_d, "rutor": rutor + kvar}
 
 
 def _tal(v) -> bool:
@@ -227,6 +264,8 @@ def kontrollera(d) -> list[str]:
             fel.append(f"{p}.t ska vara ett tal eller null")
         if not (_tal(r.get("t_klipp")) and r["t_klipp"] >= 0):
             fel.append(f"{p}.t_klipp ska vara ett tal ≥ 0")
+        if not _tal(r.get("forskjutning_ms")):
+            fel.append(f"{p}.forskjutning_ms ska vara ett tal")
         bh = (r.get("bredd"), r.get("hojd"))
         if not all(_heltal(v) and v > 0 for v in bh):
             fel.append(f"{p}.bredd och hojd ska vara positiva heltal")
@@ -277,13 +316,25 @@ def las(fil: Path) -> dict:
     return d
 
 
+_LAS = threading.Lock()
+
+
 def skriv(fil: Path, d: dict) -> None:
+    """Kontrollerar och skriver märkningen: ett unikt temporärt namn i samma mapp och
+    sedan ett byte, under ett lås så att två sparningar inte blandas."""
     f = kontrollera(d)
     if f:
         raise MarkFel("; ".join(f))
-    tmp = Path(fil).with_suffix(".del")
-    tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    tmp.replace(fil)
+    fil = Path(fil)
+    with _LAS:
+        fd, tmp = tempfile.mkstemp(prefix=fil.name + ".", suffix=".del", dir=fil.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as ut:
+                ut.write(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+            os.replace(tmp, fil)
+        except BaseException:
+            Path(tmp).unlink(missing_ok=True)
+            raise
 
 
 # --- bilderna ------------------------------------------------------------------------
@@ -303,40 +354,48 @@ def koda(img: np.ndarray) -> str:
         return "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode()
 
 
-LasBild = Callable[[Path, float, int, int], "np.ndarray | None"]
+LasVid = Callable[[Path, list, int, int, float], dict]
 
 
-def bilder(rutor: list[dict], kallor: dict[str, Path], las_bild: LasBild, rapport=print) -> dict[str, str]:
-    """Varje rutas bild (den visade delen) som data-URL. `kallor`: paketets eller
-    videons namn → filen. Ett klipp ur ett paket packas upp en gång. METOD MF6"""
-    ut = {}
+def bilder(rutor: list[dict], kallor: dict[str, Path], las_vid: LasVid = KL.ramar_vid,
+           rapport=print, tol_video: float = TID_TOL_S) -> dict[str, str]:
+    """Varje rutas bild (den visade delen) som data-URL. Rutan läses i läsarens tid
+    t_klipp + förskjutningen (S3, METOD MF1) och tas bara om en ruta finns inom
+    TID_TOL_S; för en video sätts t_klipp till rutans egen tid. Ett klipp läses en
+    gång. `kallor`: paketets eller videons namn → filen. METOD MF6"""
+    ut: dict[str, str] = {}
+    grupper: dict[tuple[str, str | None], list[dict]] = {}
+    for r in rutor:
+        grupper.setdefault((r["fil"], r["slag"]), []).append(r)
     with tempfile.TemporaryDirectory() as tmp:
-        uppackade: dict[tuple[str, str], Path] = {}
-        for k, r in enumerate(rutor):
-            fil = kallor.get(r["fil"])
+        for (namn, slag), grupp in grupper.items():
+            fil = kallor.get(namn)
             if fil is None:
                 continue
             if fil.suffix.lower() == ".zip":
                 p = P.las(fil, med_leder=False)
-                s = next((x for x in p.slag if x.id == r["slag"]), None)
+                s = next((x for x in p.slag if x.id == slag), None)
                 if s is None or not s.klipp:
                     continue
-                nyckel = (r["fil"], s.klipp)
-                if nyckel not in uppackade:
-                    dst = Path(tmp) / f"{len(uppackade)}{Path(s.klipp).suffix}"
-                    with zipfile.ZipFile(fil) as z:
-                        dst.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
-                    uppackade[nyckel] = dst
-                klipp = uppackade[nyckel]
+                klipp = Path(tmp) / f"{len(ut)}-{slag}{Path(s.klipp).suffix}"
+                with zipfile.ZipFile(fil) as z:
+                    klipp.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
+                tol = TID_TOL_S
             else:
-                klipp = fil
-            img = las_bild(klipp, r["t_klipp"], r["bredd"], r["hojd"])
-            if img is None:
-                continue
-            x, y, b, h = r["visad"]
-            ut[r["id"]] = koda(img[y:y + h, x:x + b])
-            if rapport and (k + 1) % 10 == 0:
-                rapport(f"  {k + 1} av {len(rutor)} rutor lästa", flush=True)
+                klipp, tol = fil, tol_video
+            onskat = {r["id"]: r["t_klipp"] + r["forskjutning_ms"] / 1000.0 for r in grupp}
+            fatt = las_vid(klipp, sorted(set(onskat.values())), grupp[0]["bredd"], grupp[0]["hojd"], tol)
+            for r in grupp:
+                if onskat[r["id"]] not in fatt:
+                    continue
+                tid, img = fatt[onskat[r["id"]]]
+                if r["t"] is None:
+                    r["t_klipp"] = round(float(tid), 6)
+                h, w = img.shape[:2]
+                x, y, b, hh = KL.skala_ruta(tuple(r["visad"]), w, h, r["bredd"], r["hojd"])
+                ut[r["id"]] = koda(img[y:y + hh, x:x + b])
+            if rapport:
+                rapport(f"  {len(ut)} av {len(rutor)} rutor lästa", flush=True)
     return ut
 
 
@@ -370,8 +429,8 @@ canvas{display:block;cursor:crosshair}
 <div id="rad"><b id="plats"></b><span id="vad"></span>
 <span class="p" id="p0">1 Grepp</span><span class="p" id="p1">2 Skaftets mitt</span><span class="p" id="p2">3 Klubbhuvud (hosel)</span>
 <span id="sparat"></span><button id="ladda">Ladda ner</button><button id="klar">Klar</button></div>
-<div id="hjalp">Klick sätt punkten · 1–3 välj punkt · X syns inte · Backsteg ta bort · Enter rutan klar (godtar förslag) · Mellanslag hoppa över · ← föregående · Z zoom.
-Grepp = skaftet mitt mellan händerna · Skaftets mitt = mitt mellan grepp och hosel · Klubbhuvud = hoseln, där skaftet går in i huvudet.</div>
+<div id="hjalp">Klick sätt punkten · 1–3 välj punkt · X syns inte · Backsteg ta bort · Enter rutan klar · Mellanslag hoppa över · ← föregående · Z zoom.
+Grepp = skaftet mitt mellan händerna (ringen är bara en ledtråd ur handlederna) · Skaftets mitt = mitt mellan grepp och hosel · Klubbhuvud = hoseln, där skaftet går in i huvudet.</div>
 <canvas id="cv"></canvas>
 <script type="application/json" id="data">__DATA__</script>
 <script type="application/json" id="bilder">__BILDER__</script>
@@ -388,6 +447,7 @@ const L = JSON.parse(document.getElementById("lage").textContent);
 const PUNKTER = D.punkter;
 const FARG = {grepp: "#4fc3f7", skaft_mitt: "#ffd54f", klubbhuvud: "#ff7043"};
 const KORT = {grepp: "G", skaft_mitt: "M", klubbhuvud: "H"};
+const NYCKEL = new URLSearchParams(window.location.search).get("k") || "";
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 const img = new Image();
@@ -420,13 +480,17 @@ function berakna() {
   }
   vy = {s: s, ox: ox, oy: oy};
 }
-function tillBild(x, y) {
+function skala() {
   const v = ruta().visad;
-  return {x: v[0] + (x - vy.ox) / vy.s, y: v[1] + (y - vy.oy) / vy.s};
+  return img.naturalWidth ? v[2] / img.naturalWidth : 1;
+}
+function tillBild(x, y) {
+  const v = ruta().visad, k = skala();
+  return {x: v[0] + (x - vy.ox) / vy.s * k, y: v[1] + (y - vy.oy) / vy.s * k};
 }
 function tillSkarm(q) {
-  const v = ruta().visad;
-  return {x: vy.ox + (q.x - v[0]) * vy.s, y: vy.oy + (q.y - v[1]) * vy.s};
+  const v = ruta().visad, k = skala();
+  return {x: vy.ox + (q.x - v[0]) / k * vy.s, y: vy.oy + (q.y - v[1]) / k * vy.s};
 }
 function rita() {
   const rad = document.getElementById("rad").offsetHeight + document.getElementById("hjalp").offsetHeight;
@@ -486,14 +550,17 @@ function info() {
     e.style.color = q ? (q.syns_inte ? "#999" : FARG[n]) : "#eee";
   });
 }
-let sparar = null;
+let kedja = Promise.resolve();
 function spara() {
   D.andrad = new Date().toISOString();
-  if (!L.server) { document.getElementById("sparat").textContent = "inte sparad: ladda ner"; return Promise.resolve(); }
-  sparar = fetch("/spara", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(D)})
+  if (!L.server) { document.getElementById("sparat").textContent = "inte sparad: ladda ner"; return kedja; }
+  const kropp = JSON.stringify(D);
+  // En sparning i taget, i ordning: den senaste vinner alltid.
+  kedja = kedja.then(() => fetch("/spara?k=" + encodeURIComponent(NYCKEL),
+      {method: "POST", headers: {"Content-Type": "application/json"}, body: kropp}))
     .then(svar => { document.getElementById("sparat").textContent = svar.ok ? "sparad" : "kunde inte spara"; })
     .catch(() => { document.getElementById("sparat").textContent = "servern svarar inte: ladda ner"; });
-  return sparar;
+  return kedja;
 }
 function ga(steg) {
   i = Math.min(D.rutor.length - 1, Math.max(0, i + steg));
@@ -502,9 +569,7 @@ function ga(steg) {
 }
 function klar() {
   const r = ruta();
-  PUNKTER.forEach(n => {
-    if (!r.punkter[n] && r.forslag[n]) r.punkter[n] = {x: r.forslag[n].x, y: r.forslag[n].y, kalla: "forslag"};
-  });
+  // Ledtråden (greppet ur handlederna) godtas aldrig av sig själv: varje punkt är ett klick.
   const saknas = PUNKTER.filter(n => !r.punkter[n]);
   if (saknas.length) {
     p = PUNKTER.indexOf(saknas[0]);
@@ -553,7 +618,8 @@ document.getElementById("ladda").addEventListener("click", () => {
   a.click();
 });
 document.getElementById("klar").addEventListener("click", () => {
-  spara().then(() => L.server ? fetch("/klar", {method: "POST"}) : null).then(() => {
+  spara().then(() => L.server ? fetch("/klar?k=" + encodeURIComponent(NYCKEL),
+      {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"}) : null).then(() => {
     document.body.textContent = "Klart. Märkningen ligger i " + L.filnamn + ". Fönstret kan stängas.";
   });
 });
@@ -568,9 +634,12 @@ MAX_BYTES = 50 * 1024 * 1024
 
 
 def server(html: str, fil: Path, port: int = 0) -> ThreadingHTTPServer:
-    """En server på 127.0.0.1 som visar sidan och sparar märkningen i `fil`. /klar
-    stänger den."""
+    """En server på 127.0.0.1 som visar sidan och sparar märkningen i `fil`. Varje anrop
+    kräver den slumpade nyckeln (`?k=`, `srv.nyckel`) och Host 127.0.0.1:<port>, och en
+    sparning JSON med en giltig längd, så att ingen annan sida i webbläsaren kan skriva
+    filen. /klar stänger servern. METOD MF6"""
     sidan = html.encode("utf-8")
+    nyckel = secrets.token_urlsafe(24)
 
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -584,38 +653,74 @@ def server(html: str, fil: Path, port: int = 0) -> ThreadingHTTPServer:
             self.end_headers()
             self.wfile.write(kropp)
 
+        def _behorig(self) -> str | None:
+            """Sökvägen utan frågan, eller None (och svaret skickat) när anropet nekas."""
+            from urllib.parse import parse_qs, urlsplit
+            u = urlsplit(self.path)
+            if self.headers.get("Host") != f"127.0.0.1:{self.server.server_address[1]}":
+                self._svar(403, "text/plain", b"fel Host")
+                return None
+            if not secrets.compare_digest((parse_qs(u.query).get("k") or [""])[0], nyckel):
+                self._svar(403, "text/plain", b"nyckeln saknas")
+                return None
+            return u.path
+
         def do_GET(self):
-            if self.path in ("/", "/index.html"):
+            vag = self._behorig()
+            if vag is None:
+                return
+            if vag in ("/", "/index.html"):
                 self._svar(200, "text/html; charset=utf-8", sidan)
             else:
                 self._svar(404, "text/plain", b"")
 
         def do_POST(self):
-            n = int(self.headers.get("Content-Length") or 0)
+            vag = self._behorig()
+            if vag is None:
+                return
+            if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/json":
+                self._svar(415, "text/plain", b"application/json required")
+                return
+            langd = self.headers.get("Content-Length")
+            if langd is None:
+                self._svar(411, "text/plain", b"")
+                return
+            try:
+                n = int(langd)
+            except ValueError:
+                n = -1
+            if n < 0:
+                self._svar(400, "text/plain", b"fel Content-Length")
+                return
             if n > MAX_BYTES:
                 self._svar(413, "text/plain", b"")
                 return
             kropp = self.rfile.read(n)
-            if self.path == "/spara":
+            if vag == "/spara":
                 try:
                     skriv(fil, json.loads(kropp.decode("utf-8")))
                 except (MarkFel, json.JSONDecodeError, UnicodeDecodeError) as e:
                     self._svar(400, "text/plain; charset=utf-8", str(e)[:500].encode("utf-8"))
                     return
+                except OSError:
+                    self._svar(500, "text/plain; charset=utf-8", "filen gick inte att skriva".encode("utf-8"))
+                    return
                 self._svar(200, "application/json", b'{"ok":true}')
-            elif self.path == "/klar":
+            elif vag == "/klar":
                 self._svar(200, "application/json", b'{"ok":true}')
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
             else:
                 self._svar(404, "text/plain", b"")
 
-    return ThreadingHTTPServer(("127.0.0.1", port), H)
+    srv = ThreadingHTTPServer(("127.0.0.1", port), H)
+    srv.nyckel = nyckel
+    return srv
 
 
 # --- kommandot -----------------------------------------------------------------------
 
-def _video_info(fil: Path) -> tuple[float, int, int]:
-    """(längd i s, bredd, höjd) upprätt, med OpenCV."""
+def _video_info(fil: Path) -> tuple[float, int, int, float]:
+    """(längd i s, bredd, höjd, bilder per s), upprätt, med OpenCV."""
     try:
         import cv2
     except ImportError:
@@ -628,7 +733,7 @@ def _video_info(fil: Path) -> tuple[float, int, int]:
         cap.release()
     if not ok or not fps or not n:
         raise MarkFel(f"{fil.name}: videon går inte att läsa")
-    return n / fps, ram.shape[1], ram.shape[0]
+    return n / fps, ram.shape[1], ram.shape[0], fps
 
 
 def main(argv=None) -> int:
@@ -639,6 +744,7 @@ def main(argv=None) -> int:
     ap.add_argument("--jamna", type=int, help=f"jämnt spridda rutor per slag ({JAMNA_PER_SLAG}) eller per video "
                                               f"({JAMNA_VIDEO})")
     ap.add_argument("--vy", choices=("dtl", "fo"), help="vyn för en video utan paket")
+    ap.add_argument("--s3", help="S3:s s3.json med klippens förskjutning (standard ~/swinglab-s3/<pass>/s3.json)")
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--utan-webblasare", action="store_true", help="öppna inte webbläsaren, skriv bara adressen")
     a = ap.parse_args(argv)
@@ -647,37 +753,51 @@ def main(argv=None) -> int:
         zippar = [f for f in filer if f.suffix.lower() == ".zip"]
         if zippar and len(zippar) != len(filer):
             raise MarkFel("Ge antingen paket (.zip) eller videor, inte båda.")
+        tol_video = TID_TOL_S
         if zippar:
             paket = [(f, P.las(f)) for f in zippar]
             pass_id = paket[0][1].pass_id
-            rutor = valj_rutor(paket, a.slag, JAMNA_PER_SLAG if a.jamna is None else a.jamna)
+            s3 = Path(a.s3).expanduser() if a.s3 else S3_ROT / pass_id / "s3.json"
+            if not s3.is_file():
+                raise MarkFel(f"S3:s tabell saknas ({s3}). Kör S3 först: den mäter klippens tidsförskjutning, "
+                              "så att bilden blir samma ruta som Visions leder:\n  python tools/pc/s3_facit.py "
+                              + " ".join(str(f) for f in zippar))
+            try:
+                fsk = forskjutningar(json.loads(s3.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError, AttributeError, KeyError, TypeError):
+                raise MarkFel(f"{s3.name}: går inte att läsa") from None
+            rutor = valj_rutor(paket, fsk, a.slag, JAMNA_PER_SLAG if a.jamna is None else a.jamna)
             standard = zippar[0].parent / f"swinglab-{pass_id}-klubba.json"
         else:
             pass_id, rutor = None, []
             for f in filer:
-                langd, b, h = _video_info(f)
+                langd, b, h, fps = _video_info(f)
+                tol_video = 0.5 / fps
                 rutor += valj_video(f, langd, b, h, a.vy, JAMNA_VIDEO if a.jamna is None else a.jamna)
             standard = filer[0].parent / f"{filer[0].stem}-klubba.json"
         ut = Path(a.ut).expanduser() if a.ut else standard
         if not S.utanfor_repot(ut.parent):
             raise MarkFel("Märkningen får inte ligga i repot: den är Johannes data.")
         if not rutor:
-            raise MarkFel("Inga rutor att märka: paketen saknar klipp till mätta slag.")
-        satt = KA.verktyg()
-        if satt is None:
-            raise MarkFel("Bilderna kräver OpenCV eller ffmpeg: pip install opencv-python")
+            raise MarkFel("Inga rutor att märka: inga mätta slag med klipp och en säker förskjutning i S3.")
+        try:
+            import cv2  # noqa: F401
+        except ImportError:
+            raise MarkFel("Bilderna kräver OpenCV: pip install opencv-python") from None
         gammal = las(ut) if ut.is_file() else None
         d = sla_ihop(ny(rutor, [f.name for f in filer], pass_id), gammal)
         print(f"{len(d['rutor'])} rutor, varav {sum(r['status'] == 'omarkerad' for r in d['rutor'])} omärkta. "
               "Läser bilderna …", flush=True)
-        bild = bilder(d["rutor"], {f.name: f for f in filer},
-                      lambda k, t, b, h: KA.las_ruta(k, t, b, h, satt))
+        bild = bilder(d["rutor"], {f.name: f for f in filer}, tol_video=tol_video)
         skriv(ut, d)
+    except KL.VridenFel as e:
+        print(str(e))
+        return 1
     except (P.PaketFel, MarkFel) as e:
         print("\n  ".join(e.fel) if isinstance(e, P.PaketFel) else str(e))
         return 1
     srv = server(sida(d, bild, True, ut.name), ut, a.port)
-    url = f"http://127.0.0.1:{srv.server_address[1]}/"
+    url = f"http://127.0.0.1:{srv.server_address[1]}/?k={srv.nyckel}"
     print(f"Märkningen sparas i {ut}\nSidan: {url}\nTryck Klar på sidan (eller Ctrl+C här) när du är klar.", flush=True)
     if not a.utan_webblasare:
         webbrowser.open(url)

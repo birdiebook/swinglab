@@ -56,12 +56,14 @@ utanför det. Paketen är passets `swinglab-<pass>-dtl.zip` och `-fo.zip` från 
    `python tools/pc/s3_facit.py <mapp>\swinglab-<pass>-dtl.zip <mapp>\swinglab-<pass>-fo.zip`
    Första gången säger skriptet om `pip install mediapipe opencv-python` behövs; modellen
    hämtas själv. Cirka en minut per slag; nästa körning återanvänder lederna.
-   Titta på `~\swinglab-s3\<pass>\s3.md`, överst det som avgör B5, och
-   `kontaktark-s3-<vy>.png` (vitt Vision, orange MediaPipe: vilken sitter rätt?).
-   B5 tas sedan med Claude.
-3. **S7, märk klubban:**
+   Titta på `~\swinglab-s3\<pass>\s3.md`, överst det som avgör B5 (hela svingen och
+   nedsvingen; under 5 slag står "–"), och `kontaktark-s3-<vy>.png` (vitt Vision, orange
+   MediaPipe: vilken sitter rätt?). Står ett slag som "tidsparningen är tvetydig" jämfördes
+   det inte. B5 tas sedan med Claude.
+3. **S7, märk klubban** (efter S3, som mäter klippens tider):
    `python tools/pc/markera_klubba.py <mapp>\swinglab-<pass>-dtl.zip <mapp>\swinglab-<pass>-fo.zip`
    Sidan öppnas i webbläsaren: klicka grepp, skaftets mitt och klubbhuvudet (hoseln).
+   Ringen vid händerna är bara en ledtråd: greppet ska klickas på skaftet.
    Enter = rutan klar, mellanslag = hoppa över, X = syns inte, Z = zoom, Klar = sluta.
    Märkningen sparas efter varje ruta i `swinglab-<pass>-klubba.json` bredvid paketen,
    och samma kommando fortsätter där du slutade. Titta på räknaren överst: alla rutor

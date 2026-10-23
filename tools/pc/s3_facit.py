@@ -1,23 +1,27 @@
 """S3: facit för lederna. MediaPipe Pose heavy mot telefonens Vision på samma rutor
-(PLAN S3, BESLUT B5, METOD MF1–MF4).
+(PLAN S3, BESLUT B5, BESLUT B43, METOD MF1–MF4).
 
     python tools/pc/s3_facit.py <paket.zip> [fler paket] [--ut <mapp>] [--langd 1.80] [--om]
 
-För varje mätt slag med klipp i paketet: klippets rutor på Visions tider (MF1), samma
-utsnitt som telefonen (`paket.utsnitt_px`, BESLUT B34), MediaPipe heavy på rutan och
-punkterna tillbaka till hela bildens pixlar (`paket.fran_utsnittet`). Sedan:
+För varje mätt slag med klipp i paketet: MediaPipe heavy på varje ruta i klippet, i
+samma utsnitt som telefonen (`paket.utsnitt_px`, BESLUT B34), med punkterna tillbaka i
+hela bildens pixlar. Klippets tider (OpenCV) och Visions tider skiljer sig med en
+förskjutning per klipp, som skattas ur handledernas banor (MF1); ett slag där den är
+tvetydig jämförs inte. Sedan:
 
 - **lederna** per led, fas och vy: medelavvikelsen och spridningen i px och i % av
   kroppslängden, den fasta och den rörliga delen och utliggarna (MF2), andelen rutor
   där Vision saknar leden, och förväxlade sidor;
-- **måtten** (S1, `matt.mat`) på båda ledkällorna, per mått (MF3);
-- överst det som avgör **B5** (räcker Vision?), med trösklarna ur felbudgeten och
-  "ingen källa" där ingen finns (MF3);
+- **måtten** (S1, `matt.mat`) på båda ledkällorna, parade per slag (MF3);
+- överst det som avgör **B5** (räcker Vision?), för hela svingen och för nedsvingen,
+  med trösklar ur en simulering av felbudgetens brus i båda källorna (MF3), och
+  bootstrap över slagen;
 - ett **kontaktark** per vy med båda ledsatserna på några rutor per fas (MF4).
 
 Allt skrivs till en mapp **utanför repot**, som standard `~/swinglab-s3/<pass>/`
 (Johannes data, CLAUDE.md Dataregeln): `s3.md`, `s3.json`, `kontaktark-s3-<vy>.png`
-och MediaPipes leder per slag i `mediapipe/` (återanvänds nästa körning; `--om` kör om).
+och MediaPipes leder per slag i `mediapipe/` (återanvänds nästa körning när utsnittet,
+bildens storlek och modellen är desamma; `--om` kör om).
 
 MediaPipe och OpenCV importeras först när de behövs; saknas de säger skriptet vad som
 ska installeras. Modellen hämtas till `~/.cache/swinglab/mediapipe/` (BESLUT B43).
@@ -25,6 +29,7 @@ ska installeras. Modellen hämtas till `~/.cache/swinglab/mediapipe/` (BESLUT B4
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import math
 import sys
@@ -43,6 +48,7 @@ if __package__ in (None, ""):
 
 from . import faser as F  # noqa: E402
 from . import format as fm  # noqa: E402
+from . import klipp as KL  # noqa: E402
 from . import matt as M  # noqa: E402
 from . import paket as P  # noqa: E402
 from . import session as S  # noqa: E402
@@ -51,7 +57,7 @@ from .format import ANTAL_LEDER, LEDER_FIL, MIN_KONFIDENS  # noqa: E402
 from .kontaktark import BEN, skriv_png, tider as kolumntider  # noqa: E402
 from .tre_d import kamera as KM  # noqa: E402
 
-FORMAT = "swinglab-s3/1"
+FORMAT = "swinglab-s3/2"
 UT_ROT = Path.home() / "swinglab-s3"
 
 # Modellen (BESLUT B43): samma fil och URL som Golf SG (tools/handled_video.py).
@@ -64,35 +70,32 @@ PIP = "pip install mediapipe opencv-python"
 
 # MediaPipes index för de 13 lederna i filens ordning (docs/FORMAT.md, Lederna).
 MP_INDEX = (0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28)
-MP_ANTAL = 33
+HANDLEDER = (LEDER_FIL.index("handled_v"), LEDER_FIL.index("handled_h"))
 MIN_DETEKTION = 0.5          # METOD MF1: MediaPipes detektion och spårning, som Golf SG
 MIN_SPARNING = 0.5           # METOD MF1
-TID_TOL_S = 0.002            # METOD MF1: klippets ruta hör till Visions ruta inom 2 ms
+TID_TOL_S = 0.002            # METOD MF1: en klippruta hör till Visions ruta inom 2 ms
+SOK_RUTOR = 3                # METOD MF1: förskjutningen söks ±3 rutor
+TVETYDIG_KVOT = 1.1          # METOD MF1: näst bästa förskjutningen inom 10 % = tvetydig
+MIN_PAR_FORSKJ = 20          # METOD MF1: rutor med handlederna i båda för att skatta den
+RORELSE_S = (0.3, 0.3)       # METOD MF1: handledernas bana jämförs från toppen − 0,3 s till träffen + 0,3 s
 
 FASER_S3 = ("adress", "baksving", "nedsving", "efter_traff")    # METOD MF2
 PAR = (("axel", 1, 2), ("armbage", 3, 4), ("handled", 5, 6), ("hoft", 7, 8), ("kna", 9, 10),
        ("fotled", 11, 12))
 SIDBYTE_KVOT = 0.5           # METOD MF2: bytta sidor ger under halva avståndet = förväxlade
+MIN_SLAG = 5                 # METOD MF2: färre slag ger "–" i det som avgör B5 och i måtten
+BOOTSTRAP = 100              # METOD MF2: dragningar av slagen för intervallen
+BOOTSTRAP_SEED = 1
 
-# METOD MF3: felbudgetens nivåer (docs/S6_FELBUDGET.md §3) i % av kroppslängden.
-# Kroppen i bild vid felbudgetens referens: 1,80 m på 3 m med f = 1444 px.
-REF_LANGD_M = 1.80
-KROPP_REF_PX = REF_LANGD_M * KM.F_PX / KM.REF_AVSTAND
+# METOD MF3: trösklarna simuleras ur felbudgetens brus (docs/S6_FELBUDGET.md §3) i båda
+# källorna: Vision på varje nivå, MediaPipe på en antagen nivå.
 NIVAER = ("bra", "typiskt", "daligt")
 NIVA_TEXT = {"bra": "bra", "typiskt": "typiskt", "daligt": "dåligt", "samre_an_daligt": "sämre än dåligt"}
-
-
-def nivaer() -> dict[str, dict[str, float]]:
-    """Felbudgetens tre nivåer som trösklar: fast del och rörlig del per axel i % av
-    kroppslängden, och andelen utliggare. Räknas ur `tre_d.kamera.BRUS`, så att de
-    följer felbudgeten. METOD MF3"""
-    ut = {}
-    for n in NIVAER:
-        b = KM.BRUS[n]
-        ut[n] = {"fast": 100.0 * b.fast / KROPP_REF_PX,
-                 "rorligt": 100.0 * math.hypot(b.vitt, b.vandring) / KROPP_REF_PX,
-                 "utliggare": b.utliggare}
-    return ut
+MP_ANTAGEN = "bra"           # METOD MF3: MediaPipe heavy antas på felbudgetens nivå "bra"
+SIM_PASS = 5                 # METOD MF3
+SIM_SLAG = 10                # METOD MF3
+SIM_SEED = 1
+B5_FASER = ("alla", "nedsving")
 
 
 class S3Fel(RuntimeError):
@@ -108,7 +111,7 @@ class SlagInfo:
     slag: str
     bredd: int                  # hela den upprätta bilden (JointSeries)
     hojd: int
-    ruta: tuple[int, int, int, int]   # utsnittet i px (x, y, b, h)
+    ruta: tuple[float, float, float, float]   # utsnittet som modellen ser, i ledernas px
 
 
 class Modell(Protocol):
@@ -117,7 +120,7 @@ class Modell(Protocol):
     def borja(self, info: SlagInfo) -> None: ...
 
     def kor(self, bild: np.ndarray, t: float) -> np.ndarray | None:
-        """bild = utsnittet (h, b, 3) RGB uint8; t = Visions tid (s relativt klicket).
+        """bild = utsnittet (h, b, 3) RGB uint8; t = rutans tid i klippet (OpenCV).
         Svarar (33, 3): x och y normerade i utsnittet (origo uppe till vänster), synlighet."""
         ...
 
@@ -125,11 +128,13 @@ class Modell(Protocol):
 
 
 class Rutkalla(Protocol):
-    def rutor(self, paket_fil: Path, paket: P.Paket, slag: P.Slag,
-              tider: list[float]) -> Iterator[tuple[float, np.ndarray | None]]:
-        """För varje tid i `tider` (stigande, s relativt klicket): (tiden, hela den
-        upprätta bilden (hojd, bredd, 3) RGB) eller (tiden, None) när klippet saknar
-        rutan."""
+    def rutor(self, paket_fil: Path, paket: P.Paket, slag: P.Slag) -> Iterator[tuple[float, np.ndarray]]:
+        """Varje ruta i slagets klipp: (tiden i klippet enligt läsaren, upprätt RGB)."""
+        ...
+
+    def vid(self, paket_fil: Path, paket: P.Paket, slag: P.Slag,
+            tider: list[float]) -> dict[float, tuple[float, np.ndarray]]:
+        """Rutorna närmast tiderna inom TID_TOL_S: {önskad tid: (rutans tid, bild)}."""
         ...
 
 
@@ -191,8 +196,7 @@ class MediaPipeModell:
         self.senast = -1
 
     def kor(self, bild: np.ndarray, t: float) -> np.ndarray | None:
-        # Tiden ska växa i VIDEO-läget; klippet börjar 2,5 s före klicket.
-        ms = max(self.senast + 1, int(round((t + 10.0) * 1000)))
+        ms = max(self.senast + 1, int(round(t * 1000)))      # tiden ska växa i VIDEO-läget
         self.senast = ms
         r = self.lm.detect_for_video(self.mp.Image(image_format=self.mp.ImageFormat.SRGB,
                                                    data=np.ascontiguousarray(bild)), ms)
@@ -207,62 +211,36 @@ class MediaPipeModell:
 
 
 class KlippRutor:
-    """Klippets rutor med OpenCV, i ordning, parade med Visions tider inom TID_TOL_S
-    (klippets tid = Visions tid + klick_i_klipp_s, bara inom [0; klipp_langd_s),
-    METOD MS12). Bilden vrids upprätt av OpenCV och skalas till lederna storlek. METOD MF1"""
+    """Klippen ur paketet med OpenCV (`klipp.py`): upprätta, i klippets upplösning,
+    med OpenCV:s tider. METOD MF1"""
 
-    def __init__(self):
-        import cv2
-        self.cv2 = cv2
-        self.rest_ms: list[float] = []
-
-    def rutor(self, paket_fil, paket, slag, tider):
-        cv2 = self.cv2
-        bredd, hojd = slag.lederna["width"], slag.lederna["height"]
-        with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(paket_fil) as z:
-            fil = Path(tmp) / f"{slag.id}{Path(slag.klipp).suffix}"
+    def _fil(self, tmp: str, paket_fil, paket, slag) -> Path:
+        fil = Path(tmp) / f"{slag.id}{Path(slag.klipp).suffix}"
+        with zipfile.ZipFile(paket_fil) as z:
             fil.write_bytes(P.las_ur_zip(z, paket.fil, slag.klipp))
-            cap = cv2.VideoCapture(str(fil))
-            if hasattr(cv2, "CAP_PROP_ORIENTATION_AUTO"):
-                cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
+        return fil
+
+    def rutor(self, paket_fil, paket, slag):
+        with tempfile.TemporaryDirectory() as tmp:
+            fil = self._fil(tmp, paket_fil, paket, slag)
             try:
-                i, n = 0, len(tider)
-                while i < n:
-                    ok, ram = cap.read()
-                    if not ok:
-                        break
-                    tk = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-                    if not P.i_klippet(slag, tk):
-                        continue
-                    while i < n and tider[i] + slag.klick_i_klipp_s < tk - TID_TOL_S:
-                        yield tider[i], None
-                        i += 1
-                    if i < n and abs(tider[i] + slag.klick_i_klipp_s - tk) <= TID_TOL_S:
-                        self.rest_ms.append((tk - tider[i] - slag.klick_i_klipp_s) * 1000.0)
-                        yield tider[i], self._upprat(ram, bredd, hojd)
-                        i += 1
-                while i < n:
-                    yield tider[i], None
-                    i += 1
-            finally:
-                cap.release()
+                yield from KL.ramar(fil, slag.lederna["width"], slag.lederna["height"])
+            except KL.VridenFel as e:
+                raise S3Fel(f"{paket.fil}: {slag.klipp}: {e}") from None
 
-    def _upprat(self, ram: np.ndarray, bredd: int, hojd: int) -> np.ndarray:
-        h, w = ram.shape[:2]
-        if (w > h) != (bredd > hojd) and w != h:
-            raise S3Fel("klippets bild ligger ner: OpenCV vred den inte upprätt (uppdatera opencv-python)")
-        if (w, h) != (bredd, hojd):
-            ram = self.cv2.resize(ram, (bredd, hojd))
-        return self.cv2.cvtColor(ram, self.cv2.COLOR_BGR2RGB)
+    def vid(self, paket_fil, paket, slag, tider):
+        with tempfile.TemporaryDirectory() as tmp:
+            fil = self._fil(tmp, paket_fil, paket, slag)
+            return KL.ramar_vid(fil, tider, slag.lederna["width"], slag.lederna["height"], TID_TOL_S)
 
 
-# --- en körning per slag -------------------------------------------------------------
+# --- lederna och tiderna -------------------------------------------------------------
 
-def _leder(serie: dict) -> tuple[np.ndarray, np.ndarray]:
-    """JointSeries → (t (n,), (n, 13, 3) x, y, konfidens med NaN för saknad), sorterat.
+def _leder(serie: dict, nyckel: str = "t") -> tuple[np.ndarray, np.ndarray]:
+    """En serie → (tider (n,), (n, 13, 3) x, y, konfidens med NaN för saknad), sorterat.
     Formen är redan kontrollerad (paket.las, eller MediaPipes egen serie)."""
-    fr = sorted(serie["frames"], key=lambda r: r["t"])
-    t = np.array([float(r["t"]) for r in fr])
+    fr = sorted(serie["frames"], key=lambda r: r[nyckel])
+    t = np.array([float(r[nyckel]) for r in fr])
     a = np.full((len(fr), ANTAL_LEDER, 3), np.nan)
     for i, r in enumerate(fr):
         for j, led in enumerate(r["joints"]):
@@ -274,15 +252,15 @@ def _leder(serie: dict) -> tuple[np.ndarray, np.ndarray]:
     return t, a
 
 
-def till_leder(punkter: np.ndarray | None, ruta: tuple[int, int, int, int], bredd: int,
+def till_leder(punkter: np.ndarray | None, ruta: tuple[float, float, float, float], bredd: int,
                hojd: int) -> list:
     """MediaPipes 33 punkter (normerade i utsnittet) → filens 13 leder i hela bildens
-    pixlar, `[x, y, synlighet]` eller None. En punkt utanför utsnittet sparas som saknad,
-    som telefonen gör med Visions (METOD MS13). METOD MF1"""
+    pixlar, `[x, y, synlighet]` eller None. `ruta` är utsnittet modellen såg, i ledernas
+    px. En punkt utanför utsnittet sparas som saknad, som telefonen gör med Visions
+    (METOD MS13). METOD MF1"""
     if punkter is None:
         return [None] * ANTAL_LEDER
-    x0, y0, b, h = ruta
-    andel = (x0 / bredd, y0 / hojd, b / bredd, h / hojd)
+    andel = (ruta[0] / bredd, ruta[1] / hojd, ruta[2] / bredd, ruta[3] / hojd)
     ut = []
     for k in MP_INDEX:
         u, v, c = (float(x) for x in punkter[k])
@@ -294,8 +272,72 @@ def till_leder(punkter: np.ndarray | None, ruta: tuple[int, int, int, int], bred
     return ut
 
 
+def _para(e: np.ndarray, r: np.ndarray, d: float) -> list[tuple[int, int]]:
+    """Visions ruta i ↔ klippets ruta j där |r_j − (e_i + d)| ≤ TID_TOL_S, närmast.
+    r är stigande."""
+    if len(r) == 1:
+        j = np.zeros(len(e), int)
+    else:
+        mal = e + d
+        j = np.clip(np.searchsorted(r, mal), 1, len(r) - 1)
+        j = np.where(np.abs(r[j - 1] - mal) <= np.abs(r[j] - mal), j - 1, j)
+    ok = np.abs(r[j] - (e + d)) <= TID_TOL_S
+    return [(int(i), int(j[i])) for i in np.where(ok)[0]]
+
+
+def para_tider(e: np.ndarray, V: np.ndarray, r: np.ndarray, Mr: np.ndarray, rorelse: np.ndarray) -> dict:
+    """Förskjutningen δ mellan klippets tider r (läsarens, stigande) och Visions tider i
+    klippet e = t + klick_i_klipp_s, så att r = e + δ för samma ruta. Kandidaterna är
+    rutnätet kring δ = 0, ±SOK_RUTOR rutor. För var och en paras rutorna inom TID_TOL_S
+    och handledernas medelavstånd Vision–MediaPipe mäts i rutorna `rorelse` (svingens
+    snabba del). Den minsta vinner. Tvetydigt: den bästa vid sökningens kant, färre än
+    MIN_PAR_FORSKJ rutor med handlederna, eller den näst bästa inom TVETYDIG_KVOT.
+    Svarar δ i ms, rutorna från δ ≈ 0, kvoten, medianen av resten i ms, paren och skälet
+    när det är tvetydigt. METOD MF1"""
+    ut = {"forskjutning_ms": None, "rutor": None, "kvot": None, "rest_ms_median": None, "par": [],
+          "tvetydig": None}
+    if len(e) == 0 or len(r) == 0:
+        ut["tvetydig"] = "klippet gav inga rutor" if len(r) == 0 else "Vision har inga rutor"
+        return ut
+    c = int(np.argmin(np.abs(e - np.median(e))))
+    j0 = int(np.argmin(np.abs(r - e[c])))
+    kand = []
+    for m in range(-SOK_RUTOR, SOK_RUTOR + 1):
+        if not 0 <= j0 + m < len(r):
+            continue
+        d = float(r[j0 + m] - e[c])
+        par = _para(e, r, d)
+        ii = np.array([i for i, _ in par], int)
+        jj = np.array([j for _, j in par], int)
+        if len(ii):
+            keep = rorelse[ii]
+            ii, jj = ii[keep], jj[keep]
+        vv, mm = V[ii][:, list(HANDLEDER), :2], Mr[jj][:, list(HANDLEDER), :2]
+        dist = np.hypot(vv[..., 0] - mm[..., 0], vv[..., 1] - mm[..., 1])        # (n, 2), NaN där en saknas
+        with np.errstate(invalid="ignore"):
+            per_ruta = np.nanmean(np.where(np.isfinite(dist), dist, np.nan), axis=1) if len(ii) else dist[:, 0]
+        per_ruta = per_ruta[np.isfinite(per_ruta)]
+        poang = float(np.mean(per_ruta)) if len(per_ruta) >= MIN_PAR_FORSKJ else math.inf
+        kand.append((poang, m, d, par))
+    kand.sort(key=lambda k: k[0])
+    poang, m, d, par = kand[0]
+    ut.update(forskjutning_ms=round(d * 1000.0, 3), rutor=m, par=par)
+    if par:
+        ut["rest_ms_median"] = round(float(np.median([(r[j] - e[i] - d) * 1000.0 for i, j in par])), 3)
+    if not math.isfinite(poang):
+        ut["tvetydig"] = f"färre än {MIN_PAR_FORSKJ} rutor med handlederna i båda"
+        return ut
+    if len(kand) > 1:
+        ut["kvot"] = round(kand[1][0] / poang, 3) if poang > 0 else None
+        if kand[1][0] <= TVETYDIG_KVOT * poang:
+            ut["tvetydig"] = "två förskjutningar passar nästan lika bra"
+    if abs(m) == SOK_RUTOR and ut["tvetydig"] is None:
+        ut["tvetydig"] = f"den bästa förskjutningen ligger vid sökningens kant (±{SOK_RUTOR} rutor)"
+    return ut
+
+
 def _ner(img: np.ndarray, bredd: int) -> np.ndarray:
-    """Närmaste granne ned till `bredd` px, utan beroenden."""
+    """Närmaste granne ned (eller upp) till `bredd` px, utan beroenden."""
     h, w = img.shape[:2]
     hojd = max(1, int(round(h * bredd / w)))
     ys = np.minimum((np.arange(hojd) * h / hojd).astype(int), h - 1)
@@ -303,44 +345,34 @@ def _ner(img: np.ndarray, bredd: int) -> np.ndarray:
     return img[ys][:, xs].copy()
 
 
-def kor_slag(paket_fil: Path, p: P.Paket, s: P.Slag, modell: Modell | None, rutkalla: Rutkalla | None,
-             mp_serie: dict | None, kontakt_tider: dict[str, float] | None) -> tuple[dict | None, dict]:
-    """MediaPipe på slagets rutor (eller den sparade serien) och kontaktarkets rutor.
-    Svarar (MediaPipes JointSeries, {kolumn: utsnittet nedskalat}). METOD MF1, MF4"""
+def _cache_giltig(d: dict, bredd: int, hojd: int, ruta: tuple[int, int, int, int], modell_namn: str) -> bool:
+    """Sparade leder gäller bara för samma utsnitt, bildstorlek och modell. METOD MF1"""
+    return (isinstance(d, dict) and d.get("width") == bredd and d.get("height") == hojd
+            and d.get("utsnitt_px") == list(ruta) and d.get("modell") == modell_namn
+            and isinstance(d.get("frames"), list) and all("tk" in f for f in d["frames"][:1]))
+
+
+def kor_mediapipe(paket_fil: Path, p: P.Paket, s: P.Slag, modell: Modell, rutkalla: Rutkalla,
+                  ruta: tuple[int, int, int, int], modell_namn: str) -> dict:
+    """MediaPipe på varje ruta i klippet, i utsnittet; tiderna är läsarens. METOD MF1"""
     bredd, hojd = s.lederna["width"], s.lederna["height"]
-    ruta = P.utsnitt_px(p.serier[s.serie].utsnitt if s.serie in p.serier else None, bredd, hojd)
-    x0, y0, b, h = ruta
-    t_v, _ = _leder(s.lederna)
-    tider = [float(x) for x in t_v]
-    onskade: dict[float, str] = {}
-    if kontakt_tider:
-        for kol, tk in kontakt_tider.items():
-            onskade[tider[int(np.argmin(np.abs(t_v - tk)))]] = kol
-    bilder: dict[str, np.ndarray] = {}
-    kor_modellen = mp_serie is None
-    if not kor_modellen and not onskade:
-        return mp_serie, bilder
-    if rutkalla is None:
-        return mp_serie, bilder
-    frames = []
-    if kor_modellen:
-        modell.borja(SlagInfo(fil=p.fil, vy=p.vy, slag=s.id, bredd=bredd, hojd=hojd, ruta=ruta))
+    frames, info = [], None
     try:
-        for t, bild in rutkalla.rutor(paket_fil, p, s, tider):
-            if bild is None:
-                continue
-            utsnitt = bild[y0:y0 + h, x0:x0 + b]
-            if t in onskade:
-                bilder[onskade[t]] = _ner(utsnitt, KONTAKT_BREDD)
-            if kor_modellen:
-                frames.append({"t": t, "joints": till_leder(modell.kor(utsnitt, t), ruta, bredd, hojd)})
+        for tk, bild in rutkalla.rutor(paket_fil, p, s):
+            h, w = bild.shape[:2]
+            cx, cy, cb, ch = KL.skala_ruta(ruta, w, h, bredd, hojd)
+            if info is None:
+                sx, sy = w / bredd, h / hojd
+                info = SlagInfo(fil=p.fil, vy=p.vy, slag=s.id, bredd=bredd, hojd=hojd,
+                                ruta=(cx / sx, cy / sy, cb / sx, ch / sy))
+                modell.borja(info)
+            frames.append({"tk": round(float(tk), 6),
+                           "joints": till_leder(modell.kor(bild[cy:cy + ch, cx:cx + cb], tk), info.ruta, bredd, hojd)})
     finally:
-        if kor_modellen:
+        if info is not None:
             modell.sluta()
-    if kor_modellen:
-        mp_serie = {"source": "mediapipe-pose-heavy", "width": bredd, "height": hojd,
-                    "utsnitt_px": list(ruta), "frames": frames}
-    return mp_serie, bilder
+    return {"source": "mediapipe-pose-heavy", "modell": modell_namn, "width": bredd, "height": hojd,
+            "utsnitt_px": list(ruta), "frames": frames}
 
 
 # --- jämförelsen ---------------------------------------------------------------------
@@ -376,8 +408,7 @@ def _stat_led(dx: np.ndarray, dy: np.ndarray) -> dict:
     gr = S.MAD_GRANS * rorligt * math.sqrt(2)
     utl = int(np.sum(np.hypot(dx - mx, dy - my) > gr)) if rorligt > 0 else 0
     return {"n": int(len(d)), "medel": float(np.mean(d)), "spridning": float(np.std(d, ddof=1)) if len(d) > 1 else 0.0,
-            "fast_x": mx, "fast_y": my, "fast": math.sqrt((mx * mx + my * my) / 2), "rorligt": rorligt,
-            "utliggare": utl}
+            "fast": math.sqrt((mx * mx + my * my) / 2), "rorligt": rorligt, "utliggare": utl}
 
 
 def _sla_ihop(delar: list[dict]) -> dict:
@@ -388,86 +419,74 @@ def _sla_ihop(delar: list[dict]) -> dict:
     v = lambda k: sum(d[k] * d["n"] for d in delar) / n  # noqa: E731
     k2 = lambda k: math.sqrt(sum(d[k] ** 2 * d["n"] for d in delar) / n)  # noqa: E731
     medel = v("medel")
-    # spridningen ur delarnas medel och spridning (variansen kring det gemensamma medlet)
     var = sum(((d["n"] - 1) * d["spridning"] ** 2 + d["n"] * (d["medel"] - medel) ** 2) for d in delar)
     return {"n": n, "medel": medel, "spridning": math.sqrt(var / max(1, n - 1)), "fast": k2("fast"),
             "rorligt": k2("rorligt"), "utliggare": sum(d["utliggare"] for d in delar)}
 
 
-@dataclass
 class Insamling:
-    """Avvikelserna per (vy, led, fas), i px och i % av kroppslängden, och räkningarna."""
+    """Avvikelserna ruta för ruta per vy, med slaget, fasen och kroppens storlek, så
+    att allt kan delas på led, fas och slag (bootstrap). METOD MF2"""
 
-    def __post_init__(self):
-        self.d: dict[tuple[str, int, str], list[np.ndarray]] = {}
-        self.rakna: dict[tuple[str, int, str], np.ndarray] = {}   # rutor, V saknar, MP saknar, V saknar där MP ser
-        self.sidbyte: dict[tuple[str, str], list[int]] = {}
+    def __init__(self):
+        self.block: dict[str, list[dict]] = {}
 
-    def lagg_till(self, vy: str, tv: np.ndarray, V: np.ndarray, Mp: np.ndarray, faser: dict | None,
+    def lagg_till(self, vy: str, slag: str, t: np.ndarray, V: np.ndarray, Mp: np.ndarray, faser: dict | None,
                   kropp_px: float | None) -> None:
-        for i, t in enumerate(tv):
-            fas = _fas(float(t), faser) or "okand"
-            for j in range(ANTAL_LEDER):
-                v_ok, m_ok = np.isfinite(V[i, j, 0]), np.isfinite(Mp[i, j, 0])
-                r = self.rakna.setdefault((vy, j, fas), np.zeros(4, int))
-                r += (1, not v_ok, not m_ok, (not v_ok) and m_ok)
-                if v_ok and m_ok:
-                    dx, dy = V[i, j, 0] - Mp[i, j, 0], V[i, j, 1] - Mp[i, j, 1]
-                    pr = 100.0 / kropp_px if kropp_px else math.nan
-                    self.d.setdefault((vy, j, fas), []).append(np.array([dx, dy, dx * pr, dy * pr]))
-            for namn, a, b in PAR:
-                if not (np.isfinite(V[i, [a, b], 0]).all() and np.isfinite(Mp[i, [a, b], 0]).all()):
-                    continue
-                lika = np.hypot(*(V[i, a, :2] - Mp[i, a, :2])) + np.hypot(*(V[i, b, :2] - Mp[i, b, :2]))
-                bytt = np.hypot(*(V[i, a, :2] - Mp[i, b, :2])) + np.hypot(*(V[i, b, :2] - Mp[i, a, :2]))
-                c = self.sidbyte.setdefault((vy, namn), [0, 0])
-                c[0] += 1
-                c[1] += int(bytt < SIDBYTE_KVOT * lika)
+        fas = np.array([_fas(float(x), faser) or "okand" for x in t], dtype=object)
+        v_ok, m_ok = np.isfinite(V[..., 0]), np.isfinite(Mp[..., 0])
+        sb = {}
+        for namn, a, b in PAR:
+            ok = v_ok[:, a] & v_ok[:, b] & m_ok[:, a] & m_ok[:, b]
+            lika = np.hypot(*(V[:, a, :2] - Mp[:, a, :2]).T) + np.hypot(*(V[:, b, :2] - Mp[:, b, :2]).T)
+            bytt = np.hypot(*(V[:, a, :2] - Mp[:, b, :2]).T) + np.hypot(*(V[:, b, :2] - Mp[:, a, :2]).T)
+            with np.errstate(invalid="ignore"):
+                sb[namn] = (int(ok.sum()), int((ok & (bytt < SIDBYTE_KVOT * lika)).sum()))
+        self.block.setdefault(vy, []).append({
+            "slag": slag, "fas": fas, "v_ok": v_ok, "m_ok": m_ok, "d": V[..., :2] - Mp[..., :2],
+            "pr": np.full(len(t), 100.0 / kropp_px if kropp_px else np.nan), "sb": sb})
 
-    def _per_led(self, vy: str, j: int, faser: tuple[str, ...]) -> tuple[dict | None, dict | None]:
-        rader = [x for f in faser for x in self.d.get((vy, j, f), [])]
-        if not rader:
-            return None, None
-        a = np.array(rader)
-        px = _stat_led(a[:, 0], a[:, 1])
-        ok = np.isfinite(a[:, 2])
-        pr = _stat_led(a[ok, 2], a[ok, 3]) if ok.sum() > 1 else None
-        return px, pr
+    def vyer(self) -> list[str]:
+        return sorted(self.block)
 
-    def tabell(self) -> list[dict]:
-        """En rad per (vy, led, fas), också `alla` leder och `alla` faser. METOD MF2"""
-        ut = []
-        vyer = sorted({k[0] for k in self.rakna})
-        for vy in vyer:
-            for fas in FASER_S3 + ("alla",):
-                fz = tuple(f for f in FASER_S3 + ("okand",)) if fas == "alla" else (fas,)
-                delar_px, delar_pr, rakna_alla = [], [], np.zeros(4, int)
-                for j in range(ANTAL_LEDER):
-                    rk = sum((self.rakna.get((vy, j, f), np.zeros(4, int)) for f in fz), np.zeros(4, int))
-                    rakna_alla += rk
-                    px, pr = self._per_led(vy, j, fz)
-                    if px:
-                        delar_px.append(px)
-                    if pr:
-                        delar_pr.append(pr)
-                    ut.append(_rad(vy, LEDER_FIL[j], fas, px, pr, rk))
-                ut.append(_rad(vy, "alla", fas, _sla_ihop(delar_px) if delar_px else None,
-                               _sla_ihop(delar_pr) if delar_pr else None, rakna_alla))
-        return ut
+    def A(self, vy: str) -> dict:
+        b = self.block[vy]
+        slag = np.concatenate([np.full(len(x["fas"]), k) for k, x in enumerate(b)]) if b else np.zeros(0, int)
+        return {"slag": slag, "n_slag": len(b), "fas": np.concatenate([x["fas"] for x in b]),
+                "v_ok": np.concatenate([x["v_ok"] for x in b]), "m_ok": np.concatenate([x["m_ok"] for x in b]),
+                "d": np.concatenate([x["d"] for x in b]), "pr": np.concatenate([x["pr"] for x in b]),
+                "per_slag": [np.where(slag == k)[0] for k in range(len(b))]}
 
     def sidbyten(self) -> list[dict]:
-        return [{"vy": vy, "par": namn, "n": c[0], "andel": c[1] / c[0] if c[0] else None}
-                for (vy, namn), c in sorted(self.sidbyte.items())]
+        ut = []
+        for vy in self.vyer():
+            for namn, _, _ in PAR:
+                n = sum(x["sb"][namn][0] for x in self.block[vy])
+                k = sum(x["sb"][namn][1] for x in self.block[vy])
+                ut.append({"vy": vy, "par": namn, "n": n, "andel": k / n if n else None})
+        return ut
 
 
-def _rad(vy, led, fas, px, pr, rk) -> dict:
-    rutor = int(rk[0])
-    return {"vy": vy, "led": led, "fas": fas, "rutor": rutor, "n": px["n"] if px else 0,
-            "px": _avrunda(px), "procent": _avrunda(pr),
-            "utliggare": (px["utliggare"] / px["n"]) if px and px["n"] else None,
-            "vision_saknar": rk[1] / rutor if rutor else None,
-            "mediapipe_saknar": rk[2] / rutor if rutor else None,
-            "vision_saknar_mp_ser": rk[3] / rutor if rutor else None}
+def _fasmask(A: dict, idx: np.ndarray, fas: str) -> np.ndarray:
+    return np.ones(len(idx), bool) if fas == "alla" else (A["fas"][idx] == fas)
+
+
+def _stat_grupp(A: dict, idx: np.ndarray, fas: str, leder, procent: bool) -> tuple[list, dict | None]:
+    """Per led och ihop för raderna idx i en fas. METOD MF2"""
+    fm_ = _fasmask(A, idx, fas)
+    per, delar = [], []
+    for j in leder:
+        sel = idx[fm_ & A["v_ok"][idx, j] & A["m_ok"][idx, j]]
+        if procent:
+            sel = sel[np.isfinite(A["pr"][sel])]
+        if len(sel) < 2:
+            per.append(None)
+            continue
+        k = A["pr"][sel] if procent else 1.0
+        st = _stat_led(A["d"][sel, j, 0] * k, A["d"][sel, j, 1] * k)
+        per.append(st)
+        delar.append(st)
+    return per, (_sla_ihop(delar) if delar else None)
 
 
 def _avrunda(d: dict | None) -> dict | None:
@@ -476,30 +495,184 @@ def _avrunda(d: dict | None) -> dict | None:
     return {k: round(d[k], 3) for k in ("medel", "spridning", "fast", "rorligt") if k in d}
 
 
-def jamfor_matt(rader: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Måtten per vy: passets median för Vision och MediaPipe (M25), skillnaden och
-    om den är tydlig i M26:s mening (större än MediaPipe-passets robusta sd), och
-    skillnaden slag för slag. Fasernas tider likadant, i ms. METOD MF3"""
+def tabell(ins: Insamling) -> list[dict]:
+    """En rad per (vy, led, fas), också `alla` leder och `alla` faser, med antalet slag
+    som bär raden. METOD MF2"""
+    ut = []
+    for vy in ins.vyer():
+        A = ins.A(vy)
+        idx = np.arange(len(A["fas"]))
+        for fas in FASER_S3 + ("alla",):
+            fm_ = _fasmask(A, idx, fas)
+            per_px, alla_px = _stat_grupp(A, idx, fas, range(ANTAL_LEDER), False)
+            per_pr, alla_pr = _stat_grupp(A, idx, fas, range(ANTAL_LEDER), True)
+            for j in list(range(ANTAL_LEDER)) + [None]:
+                kol = slice(None) if j is None else j
+                rutor = int(fm_.sum()) * (ANTAL_LEDER if j is None else 1)
+                v_ok, m_ok = A["v_ok"][fm_][:, kol], A["m_ok"][fm_][:, kol]
+                px = alla_px if j is None else per_px[j]
+                pr = alla_pr if j is None else per_pr[j]
+                ok = (v_ok & m_ok) if j is None else (v_ok & m_ok)
+                rad_slag = A["slag"][fm_][ok.any(axis=1)] if j is None else A["slag"][fm_][ok]
+                ut.append({"vy": vy, "led": "alla" if j is None else LEDER_FIL[j], "fas": fas, "rutor": rutor,
+                           "n": px["n"] if px else 0, "slag": int(len(np.unique(rad_slag))),
+                           "px": _avrunda(px), "procent": _avrunda(pr),
+                           "utliggare": (px["utliggare"] / px["n"]) if px and px["n"] else None,
+                           "vision_saknar": float((~v_ok).sum() / rutor) if rutor else None,
+                           "mediapipe_saknar": float((~m_ok).sum() / rutor) if rutor else None,
+                           "vision_saknar_mp_ser": float((~v_ok & m_ok).sum() / rutor) if rutor else None})
+    return ut
+
+
+def _b5_varden(A: dict, idx: np.ndarray, fas: str) -> dict | None:
+    _, st = _stat_grupp(A, idx, fas, range(ANTAL_LEDER), True)
+    if not st or not st.get("n"):
+        return None
+    return {"fast": st["fast"], "rorligt": st["rorligt"], "utliggare": st["utliggare"] / st["n"]}
+
+
+def b5_sammanfattning(A: dict, fas: str, bootstrap: int, rng: np.random.Generator) -> dict | None:
+    """Fast, rörligt och utliggare över alla leder i fasen (% av kroppslängden), och
+    95 %-intervallet ur `bootstrap` dragningar av slagen med återläggning. METOD MF2"""
+    idx = np.arange(len(A["fas"]))
+    v = _b5_varden(A, idx, fas)
+    if v is None:
+        return None
+    v["slag"] = A["n_slag"]
+    if bootstrap and A["n_slag"] > 1:
+        dr = {k: [] for k in ("fast", "rorligt", "utliggare")}
+        for _ in range(bootstrap):
+            val = rng.integers(0, A["n_slag"], A["n_slag"])
+            b = _b5_varden(A, np.concatenate([A["per_slag"][k] for k in val]), fas)
+            if b:
+                for k in dr:
+                    dr[k].append(b[k])
+        v["intervall"] = {k: [float(np.percentile(x, 2.5)), float(np.percentile(x, 97.5))] for k, x in dr.items() if x}
+    return v
+
+
+NIVA_DELAR = ("fast", "rorligt")   # METOD MF3: utliggarna visas men avgör inte nivån
+
+
+def niva_for(v: dict, trosklar: dict) -> str:
+    """Den bästa nivån där både den fasta och den rörliga delen håller. Utliggarna
+    räknas mot den robusta sd:n och blir därför färre när bruset växer: de visas
+    bredvid simuleringens väntade andel men avgör inte. METOD MF3"""
+    for n in NIVAER:
+        if all(v[k] <= trosklar[n][k] for k in NIVA_DELAR):
+            return n
+    return "samre_an_daligt"
+
+
+@functools.lru_cache(maxsize=None)
+def nivaer(n_pass: int = SIM_PASS, n_slag: int = SIM_SLAG, seed: int = SIM_SEED) -> dict:
+    """Trösklarna för skillnaden Vision − MediaPipe: felbudgetens kedja
+    (`tre_d.kamera.observera`, med skymning, oskärpa och utliggare) körs två gånger på
+    samma påhittade svingar och kameror, Vision på nivån och MediaPipe på MP_ANTAGEN,
+    och skillnaden går genom samma statistik som passet (`b5_sammanfattning`).
+    Tröskeln är medianen över passen och vyerna, per fas. METOD MF3"""
+    from .tre_d import felbudget as FB
+    from .tre_d.sving import I, slumpa_sving
+    u = FB.Uppstallning()
+    ut = {"mediapipe": MP_ANTAGEN, "pass": n_pass, "slag": n_slag}
+    varden = {fas: {n: {k: [] for k in ("fast", "rorligt", "utliggare")} for n in NIVAER} for fas in B5_FASER}
+    for niva in NIVAER:
+        rng = np.random.default_rng(seed)
+        for _ in range(n_pass):
+            pas = FB.nytt_pass(u, rng)
+            ins = Insamling()
+            fast_v = {vy: rng.standard_normal((ANTAL_LEDER, 2)) for vy in ("fo", "dtl")}
+            fast_m = {vy: rng.standard_normal((ANTAL_LEDER, 2)) for vy in ("fo", "dtl")}
+            for k in range(n_slag):
+                sv = slumpa_sving(rng)
+                faser = {"start": sv.t_start, "topp": sv.t_topp, "traff": sv.t_traff}
+                for vy, kam in (("fo", pas["A"]), ("dtl", pas["B"])):
+                    t = KM.bildtider(sv.t_slut, rng)
+                    ut_ = []
+                    for nv, fast in ((niva, fast_v[vy]), (MP_ANTAGEN, fast_m[vy])):
+                        obs, konf, _ = KM.observera(kam, sv, t, KM.BRUS[nv], rng, u.exponering, u.skala, fast)
+                        obs = obs.copy()
+                        obs[konf < MIN_KONFIDENS] = np.nan
+                        ut_.append(obs)
+                    mitt = 0.5 * (sv.leder(t[:1])[0, I["v_hoft"]] + sv.leder(t[:1])[0, I["h_hoft"]])
+                    kropp = sv.langd * kam.K[0, 0] / kam.djup(mitt)
+                    ins.lagg_till(vy, str(k), t, ut_[0], ut_[1], faser, kropp)
+            for vy in ins.vyer():
+                A = ins.A(vy)
+                for fas in B5_FASER:
+                    v = _b5_varden(A, np.arange(len(A["fas"])), fas)
+                    for k in v:
+                        varden[fas][niva][k].append(v[k])
+    for fas in B5_FASER:
+        ut[fas] = {n: {k: float(np.median(x)) for k, x in varden[fas][n].items()} for n in NIVAER}
+    return ut
+
+
+def beslut_b5(ins: Insamling, matt: list[dict], niv: dict, min_slag: int, bootstrap: int) -> dict:
+    """Det som avgör B5 per vy, för hela svingen och nedsvingen: lederna mot de
+    simulerade trösklarna (den sämsta delen avgör nivån), med intervallen; under
+    `min_slag` slag "–". Dessutom andelen där Vision saknar leden och MediaPipe ser
+    den, sidbytena och hur många mått som skiljer tydligt. METOD MF2, MF3"""
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    sb = ins.sidbyten()
+    ut = {}
+    for vy in ins.vyer():
+        A = ins.A(vy)
+        rad = {"slag": A["n_slag"]}
+        for fas in B5_FASER:
+            v = b5_sammanfattning(A, fas, bootstrap, rng) if A["n_slag"] >= min_slag else None
+            if v is not None:
+                v["niva"] = niva_for(v, niv[fas])
+            rad[fas] = v
+        idx = np.arange(len(A["fas"]))
+        rutor = len(idx) * ANTAL_LEDER
+        rad["vision_saknar_mp_ser"] = float((~A["v_ok"] & A["m_ok"]).sum() / rutor) if rutor else None
+        s = [x for x in sb if x["vy"] == vy and x["n"]]
+        n = sum(x["n"] for x in s)
+        rad["sidbyten"] = sum(x["andel"] * x["n"] for x in s) / n if n else None
+        mv = [m for m in matt if m["vy"] == vy and m["tydlig"] is not None]
+        rad["matt_tydliga"] = sum(1 for m in mv if m["tydlig"])
+        rad["matt_provade"] = len(mv)
+        ut[vy] = rad
+    return ut
+
+
+def _median(x: list[float]) -> float:
+    return S.percentil(sorted(x), 0.5)
+
+
+def jamfor_matt(rader: list[dict], min_slag: int, bootstrap: int) -> tuple[list[dict], list[dict]]:
+    """Måtten per vy, parade per slag: passets median för Vision och MediaPipe (M25),
+    skillnaden mellan medianerna med 95 %-intervall ur bootstrap av slagparen, skillnaden
+    slag för slag, och om skillnaden är tydlig i M26:s mening (större än MediaPipe-
+    passets robusta sd). Under `min_slag` slag bara antalet. Fasernas tider i ms. METOD MF3"""
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
     matt_ut, faser_ut = [], []
     for vy in sorted({r["vy"] for r in rader}):
         par = [r for r in rader if r["vy"] == vy and r.get("vision") and r.get("mediapipe")]
-        sv = S.sammanfatta([r["vision"]["matt"] for r in par])
-        smp = S.sammanfatta([r["mediapipe"]["matt"] for r in par])
         for k in M.MATT[vy]:
-            d = [r["vision"]["matt"][k] - r["mediapipe"]["matt"][k] for r in par
-                 if k in r["vision"]["matt"] and k in r["mediapipe"]["matt"]]
-            if not d:
+            pv = [(r["vision"]["matt"][k], r["mediapipe"]["matt"][k]) for r in par
+                  if k in r["vision"]["matt"] and k in r["mediapipe"]["matt"]]
+            if not pv:
                 continue
-            rad = {"vy": vy, "matt": k, "enhet": enhet(k), "n": len(d),
-                   "skillnad_medel": float(np.mean(d)), "skillnad_sd": float(np.std(d, ddof=1)) if len(d) > 1 else None,
-                   "abs_medel": float(np.mean(np.abs(d))),
-                   "vision_median": sv[k]["median"] if k in sv else None,
-                   "mediapipe_median": smp[k]["median"] if k in smp else None,
-                   "mediapipe_spridning": S.robust_sd(smp[k]) if k in smp else None}
-            rad["skillnad"] = (rad["vision_median"] - rad["mediapipe_median"]
-                               if rad["vision_median"] is not None and rad["mediapipe_median"] is not None else None)
-            rad["tydlig"] = (abs(rad["skillnad"]) > rad["mediapipe_spridning"]
-                             if rad["skillnad"] is not None and rad["mediapipe_spridning"] is not None else None)
+            rad = {"vy": vy, "matt": k, "enhet": enhet(k), "n": len(pv), "vision_median": None,
+                   "mediapipe_median": None, "skillnad": None, "intervall": None, "skillnad_medel": None,
+                   "skillnad_sd": None, "abs_medel": None, "mediapipe_spridning": None, "tydlig": None}
+            if len(pv) >= min_slag:
+                v, m = [a for a, _ in pv], [b for _, b in pv]
+                d = [a - b for a, b in pv]
+                sm = sorted(m)
+                rad.update(vision_median=_median(v), mediapipe_median=_median(m),
+                           skillnad=_median(v) - _median(m), skillnad_medel=float(np.mean(d)),
+                           skillnad_sd=float(np.std(d, ddof=1)), abs_medel=float(np.mean(np.abs(d))),
+                           mediapipe_spridning=(S.percentil(sm, 0.75) - S.percentil(sm, 0.25)) / S.IQR_SKALA)
+                rad["tydlig"] = abs(rad["skillnad"]) > rad["mediapipe_spridning"]
+                if bootstrap:
+                    b = []
+                    for _ in range(bootstrap):
+                        val = rng.integers(0, len(pv), len(pv))
+                        b.append(_median([v[i] for i in val]) - _median([m[i] for i in val]))
+                    rad["intervall"] = [float(np.percentile(b, 2.5)), float(np.percentile(b, 97.5))]
             matt_ut.append(rad)
         for fas in ("start", "topp"):
             d = [(r["vision"]["faser"][fas] - r["mediapipe"]["faser"][fas]) * 1000.0 for r in par
@@ -512,36 +685,6 @@ def jamfor_matt(rader: list[dict]) -> tuple[list[dict], list[dict]]:
         if kv:
             faser_ut.append({"vy": vy, "fas": "skalan", "n": len(kv), "kvot_median": float(np.median(kv))})
     return matt_ut, faser_ut
-
-
-def beslut_b5(leder: list[dict], sidbyten: list[dict], matt: list[dict]) -> dict:
-    """Det som avgör B5 per vy: lederna mot felbudgetens nivåer (fast, rörligt,
-    utliggare; den sämsta av de tre avgör nivån), andelen där Vision saknar leden
-    och MediaPipe ser den, sidbytena och hur många mått som skiljer tydligt. METOD MF3"""
-    niv = nivaer()
-    ut = {}
-    for vy in sorted({r["vy"] for r in leder}):
-        alla = next(r for r in leder if r["vy"] == vy and r["led"] == "alla" and r["fas"] == "alla")
-        pr = alla["procent"]
-        rad = {"fast": pr["fast"] if pr else None, "rorligt": pr["rorligt"] if pr else None,
-               "utliggare": alla["utliggare"], "vision_saknar_mp_ser": alla["vision_saknar_mp_ser"]}
-        niva = None
-        if pr:
-            for n in NIVAER:
-                if (pr["fast"] <= niv[n]["fast"] and pr["rorligt"] <= niv[n]["rorligt"]
-                        and (alla["utliggare"] or 0) <= niv[n]["utliggare"]):
-                    niva = n
-                    break
-            niva = niva or "samre_an_daligt"
-        rad["niva"] = niva
-        sb = [s for s in sidbyten if s["vy"] == vy and s["n"]]
-        n_sb = sum(s["n"] for s in sb)
-        rad["sidbyten"] = sum(s["andel"] * s["n"] for s in sb) / n_sb if n_sb else None
-        mv = [m for m in matt if m["vy"] == vy and m["tydlig"] is not None]
-        rad["matt_tydliga"] = sum(1 for m in mv if m["tydlig"])
-        rad["matt_provade"] = len(mv)
-        ut[vy] = rad
-    return ut
 
 
 # --- kontaktarket --------------------------------------------------------------------
@@ -572,30 +715,28 @@ def _rita(img: np.ndarray, leder: np.ndarray, farg, r: int) -> None:
 
 def kontaktark(rader: list[dict], ut: Path) -> dict:
     """Ett ark per vy: en rad per valt slag, en kolumn per fas (MT7:s tider), utsnittet
-    med Visions leder (vita) och MediaPipes (orange). METOD MF4"""
+    med Visions leder (vita) och MediaPipes (orange) från samma ruta. METOD MF4"""
     res = {}
+    kol = ("adress", "topp", "traff", "finish")
     for vy in sorted({r["vy"] for r in rader}):
         valda = [r for r in rader if r["vy"] == vy and r.get("bilder")]
         if not valda:
             res[vy] = {"hoppat": "inga rutor ur klippen"}
             continue
-        kol = ("adress", "topp", "traff", "finish")
-        hojd = max(b.shape[0] for r in valda for b in r["bilder"].values())
+        hojd = max(b[0].shape[0] for r in valda for b in r["bilder"].values())
         ark = np.zeros((len(valda) * (hojd + 2), len(kol) * (KONTAKT_BREDD + 2), 3), np.uint8)
         for i, r in enumerate(valda):
-            x0, y0, b, h = r["ruta"]
             for k, namn in enumerate(kol):
-                img = r["bilder"].get(namn)
-                if img is None:
+                if namn not in r["bilder"]:
                     continue
+                img, ruta, v_led, m_led = r["bilder"][namn]
                 img = img.copy()
-                s = img.shape[1] / b
-                for leder, farg, rr in ((r["v_ruta"].get(namn), VISION_FARG, 2), (r["mp_ruta"].get(namn), MP_FARG, 1)):
-                    if leder is not None:
-                        q = leder.copy()
-                        q[:, 0] = (q[:, 0] - x0) * s
-                        q[:, 1] = (q[:, 1] - y0) * s
-                        _rita(img, q, farg, rr)
+                s = img.shape[1] / ruta[2]
+                for leder, farg, rr in ((v_led, VISION_FARG, 2), (m_led, MP_FARG, 1)):
+                    q = leder.copy()
+                    q[:, 0] = (q[:, 0] - ruta[0]) * s
+                    q[:, 1] = (q[:, 1] - ruta[1]) * s
+                    _rita(img, q, farg, rr)
                 y, x = i * (hojd + 2), k * (KONTAKT_BREDD + 2)
                 ark[y:y + img.shape[0], x:x + img.shape[1]] = img
         fil = ut / f"kontaktark-s3-{vy}.png"
@@ -604,7 +745,42 @@ def kontaktark(rader: list[dict], ut: Path) -> dict:
     return res
 
 
+def _kontaktbilder(paket_fil, p, s, rutkalla, ruta, kt, tv, e, V, tm, Mp, d_s) -> dict:
+    """Kolumnernas rutor: Vision-rutan närmast tiden, klippets ruta på e + δ, och
+    MediaPipes leder från samma klippruta. METOD MF4"""
+    bredd, hojd = s.lederna["width"], s.lederna["height"]
+    onskat = {}
+    for namn, tk in kt.items():
+        i = int(np.argmin(np.abs(tv - tk)))
+        onskat[namn] = (i, float(e[i] + d_s))
+    fatt = rutkalla.vid(paket_fil, p, s, [x[1] for x in onskat.values()])
+    ut = {}
+    for namn, (i, rt) in onskat.items():
+        if rt not in fatt or not len(tm):
+            continue
+        r_fatt, bild = fatt[rt]
+        h, w = bild.shape[:2]
+        cx, cy, cb, ch = KL.skala_ruta(ruta, w, h, bredd, hojd)
+        sx = w / bredd
+        j = int(np.argmin(np.abs(tm - r_fatt)))
+        ut[namn] = (_ner(bild[cy:cy + ch, cx:cx + cb], KONTAKT_BREDD), (cx / sx, cy / (h / hojd), cb / sx),
+                    V[i], Mp[j])
+    return ut
+
+
 # --- hela körningen ------------------------------------------------------------------
+
+_VISIONS_MATT: dict[tuple, tuple[dict | None, str | None]] = {}
+
+
+def _mat_vision(fil: Path, p: P.Paket, s: P.Slag, langd: float) -> tuple[dict | None, str | None]:
+    """Visions mått för slaget, en gång per paketfil och längd (samma tal varje gång)."""
+    st = Path(fil).stat()
+    nyckel = (str(Path(fil).resolve()), st.st_mtime_ns, st.st_size, s.id, langd)
+    if nyckel not in _VISIONS_MATT:
+        _VISIONS_MATT[nyckel] = _mat(p, s, langd)
+    return _VISIONS_MATT[nyckel]
+
 
 def _mat(p: P.Paket, s: P.Slag, langd: float) -> tuple[dict | None, str | None]:
     try:
@@ -614,10 +790,13 @@ def _mat(p: P.Paket, s: P.Slag, langd: float) -> tuple[dict | None, str | None]:
 
 
 def kor(paket_filer: list[Path], ut: Path, langd: float | None, modell: Modell | None, rutkalla: Rutkalla | None,
-        om: bool = False, kontakt_slag: int = KONTAKT_SLAG, modell_namn: str = MODELL_FIL) -> dict:
+        om: bool = False, kontakt_slag: int = KONTAKT_SLAG, modell_namn: str = MODELL_FIL,
+        min_slag: int = MIN_SLAG, bootstrap: int = BOOTSTRAP, niv: dict | None = None, rapport=None) -> dict:
     """Paketen → s3.json, s3.md och kontaktarken i `ut`. `modell` och `rutkalla` får
-    vara None när alla slag redan har sparade MediaPipe-leder. METOD MF1–MF4"""
+    vara None när alla slag redan har giltiga sparade MediaPipe-leder (då blir det
+    inget kontaktark). METOD MF1–MF4"""
     paket = [(Path(f), P.las(f)) for f in paket_filer]
+    niv = niv or nivaer()
     ut.mkdir(parents=True, exist_ok=True)
     cache = ut / "mediapipe"
     cache.mkdir(exist_ok=True)
@@ -630,68 +809,79 @@ def kor(paket_filer: list[Path], ut: Path, langd: float | None, modell: Modell |
         matbara = [s for s in p.slag if s.dom in P.MATS and not s.detection_wrong]
         med_klipp = [s for s in matbara if s.klipp]
         val = set(np.unique(np.round(np.linspace(0, len(med_klipp) - 1, min(kontakt_slag, len(med_klipp))))
-                            .astype(int)).tolist()) if med_klipp else set()
+                            .astype(int)).tolist()) if med_klipp and kontakt_slag > 0 else set()
         info = {"fil": p.fil, "vy": p.vy, "slag": len(p.slag), "matbara": len(matbara), "med_klipp": len(med_klipp),
-                "korda": 0, "rutor": 0, "rutor_med_bild": 0}
+                "korda": 0, "jamforda": 0, "rutor": 0, "rutor_parade": 0}
         for k, s in enumerate(med_klipp):
-            vr, vfel = _mat(p, s, lg)
+            bredd, hojd = s.lederna["width"], s.lederna["height"]
+            ruta = P.utsnitt_px(p.serier[s.serie].utsnitt, bredd, hojd)
+            vr, vfel = _mat_vision(fil, p, s, lg)
             cfil = cache / f"{Path(p.fil).stem}-{s.id}.json"
-            mp_serie = None
+            mp_raa = None
             if cfil.is_file() and not om:
                 try:
-                    mp_serie = json.loads(cfil.read_text(encoding="utf-8"))
+                    d = json.loads(cfil.read_text(encoding="utf-8"))
+                    mp_raa = d if _cache_giltig(d, bredd, hojd, ruta, modell_namn) else None
                 except (OSError, json.JSONDecodeError):
-                    mp_serie = None
-            behover = mp_serie is None
-            kt = None
-            if k in val:
-                kt = kolumntider(vr["faser"]) if vr else None
-            if behover and (modell is None or rutkalla is None):
-                raise S3Fel("MediaPipe behövs men är inte laddad")
-            mp_serie, bilder = kor_slag(fil, p, s, modell, rutkalla, mp_serie, kt)
-            if behover:
-                cfil.write_text(json.dumps(mp_serie, separators=(",", ":")), encoding="utf-8")
+                    mp_raa = None
+            if mp_raa is None:
+                if modell is None or rutkalla is None:
+                    raise S3Fel("MediaPipe behövs men är inte laddad")
+                if rapport:
+                    rapport(f"  {p.fil} {s.id}: MediaPipe …", flush=True)
+                mp_raa = kor_mediapipe(fil, p, s, modell, rutkalla, ruta, modell_namn)
+                cfil.write_text(json.dumps(mp_raa, separators=(",", ":")), encoding="utf-8")
             info["korda"] += 1
             info["rutor"] += len(s.lederna["frames"])
-            info["rutor_med_bild"] += len(mp_serie["frames"])
-            ms = replace(s, lederna={**s.lederna, "frames": mp_serie["frames"]})
-            mr, mfel = _mat(p, ms, lg) if mp_serie["frames"] else (None, "inga rutor ur klippet")
-            rad = {"fil": p.fil, "id": s.id, "vy": p.vy, "vision": vr, "mediapipe": mr}
-            slag_ut.append({"fil": p.fil, "id": s.id, "vy": p.vy, "rutor": len(mp_serie["frames"]),
-                            **({"vision_fel": vfel} if vfel else {}), **({"mediapipe_fel": mfel} if mfel else {})})
-            # Lederna ruta för ruta, på rutorna som MediaPipe fick.
             tv, V = _leder(s.lederna)
-            tm, Mp = _leder({"frames": mp_serie["frames"]})
-            plats = {float(t): i for i, t in enumerate(tv)}
-            idx = [plats[float(t)] for t in tm if float(t) in plats]
-            idm = [i for i, t in enumerate(tm) if float(t) in plats]
-            faser = (mr or vr or {}).get("faser")
+            tm, Mp = _leder(mp_raa, "tk")
+            e = tv + float(s.klick_i_klipp_s)
+            rorelse = np.ones(len(tv), bool)
+            if vr:
+                f = vr["faser"]
+                rorelse = (tv >= f["topp"] - RORELSE_S[0]) & (tv <= f["traff"] + RORELSE_S[1])
+            pt = para_tider(e, V, tm, Mp, rorelse)
+            slag_rad = {"fil": p.fil, "id": s.id, "vy": p.vy,
+                        "tidsparning": {k2: pt[k2] for k2 in ("forskjutning_ms", "rutor", "kvot", "rest_ms_median")},
+                        "rutor_parade": len(pt["par"])}
+            if vfel:
+                slag_rad["vision_fel"] = vfel
+            if pt["tvetydig"]:
+                slag_rad["hoppat"] = f"tidsparningen är tvetydig: {pt['tvetydig']}"
+                if rapport:
+                    rapport(f"  {p.fil} {s.id}: jämförs inte, {slag_rad['hoppat']}", flush=True)
+                slag_ut.append(slag_rad)
+                continue
+            # Bara Visions rutor inom klippet (MS12) och med en parad klippruta.
+            par = [(i, j) for i, j in pt["par"] if P.i_klippet(s, float(e[i]))]
+            iv, jm = [i for i, _ in par], [j for _, j in par]
+            mp_serie = {"frames": [{"t": float(tv[i]), "joints": mp_raa["frames"][j]["joints"]} for i, j in par]}
+            mr, mfel = _mat(p, replace(s, lederna={**s.lederna, **mp_serie}), lg) if par else (None, "inga parade rutor")
+            if mfel:
+                slag_rad["mediapipe_fel"] = mfel
+            info["jamforda"] += 1
+            info["rutor_parade"] += len(par)
+            slag_ut.append(slag_rad)
             ref = mr or vr
             kropp = lg * 100.0 / ref["cm_per_px"] if ref else None
-            if idx:
-                ins.lagg_till(p.vy, tv[idx], V[idx], Mp[idm], faser, kropp)
-            if bilder:
-                rad["bilder"] = bilder
-                rad["ruta"] = P.utsnitt_px(p.serier[s.serie].utsnitt, s.lederna["width"], s.lederna["height"])
-                rad["v_ruta"], rad["mp_ruta"] = {}, {}
-                for namn, tk in (kt or {}).items():
-                    if len(tv):
-                        rad["v_ruta"][namn] = V[int(np.argmin(np.abs(tv - tk)))]
-                    if len(tm):
-                        rad["mp_ruta"][namn] = Mp[int(np.argmin(np.abs(tm - tk)))]
+            if par:
+                ins.lagg_till(p.vy, f"{p.fil}:{s.id}", tv[iv], V[iv], Mp[jm], (mr or vr or {}).get("faser"), kropp)
+            rad = {"fil": p.fil, "id": s.id, "vy": p.vy, "vision": vr, "mediapipe": mr}
+            if k in val and vr and rutkalla is not None:
+                rad["bilder"] = _kontaktbilder(fil, p, s, rutkalla, ruta, kolumntider(vr["faser"]), tv, e, V, tm, Mp,
+                                               pt["forskjutning_ms"] / 1000.0)
             rader.append(rad)
         for s in matbara:
             if not s.klipp:
                 slag_ut.append({"fil": p.fil, "id": s.id, "vy": p.vy, "hoppat": "inget klipp i paketet"})
         paket_ut.append(info)
-    leder = ins.tabell()
-    sidb = ins.sidbyten()
-    matt, faser = jamfor_matt(rader)
+    matt, faser = jamfor_matt(rader, min_slag, bootstrap)
     res = {"format": FORMAT, "pass": sorted({p.pass_id for _, p in paket}),
            "skapad": datetime.now().astimezone().isoformat(timespec="seconds"),
-           "modell": {"fil": modell_namn, "lage": "VIDEO"}, "paket": paket_ut,
-           "nivaer": nivaer(), "beslut_b5": beslut_b5(leder, sidb, matt), "leder": leder, "sidbyten": sidb,
-           "matt": matt, "faser": faser, "slag": slag_ut, "kontaktark": kontaktark(rader, ut)}
+           "modell": {"fil": modell_namn, "lage": "VIDEO"}, "min_slag": min_slag, "bootstrap": bootstrap,
+           "paket": paket_ut, "nivaer": niv, "beslut_b5": beslut_b5(ins, matt, niv, min_slag, bootstrap),
+           "leder": tabell(ins), "sidbyten": ins.sidbyten(), "matt": matt, "faser": faser, "slag": slag_ut,
+           "kontaktark": kontaktark(rader, ut)}
     (ut / "s3.json").write_text(json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     (ut / "s3.md").write_text(markdown(res), encoding="utf-8")
     return res
@@ -705,52 +895,83 @@ def _t(v, d: int = 1, pct: bool = False) -> str:
     return f"{v * 100:.{d}f} %" if pct else f"{v:.{d}f}"
 
 
+def _ki(v: dict | None, k: str, d: int = 2, pct: bool = False) -> str:
+    if not v:
+        return "–"
+    s = _t(v[k], d, pct)
+    iv = (v.get("intervall") or {}).get(k)
+    return s + (f" ({_t(iv[0], d, pct)}–{_t(iv[1], d, pct)})" if iv else "")
+
+
 def markdown(r: dict) -> str:
     niv = r["nivaer"]
-    vyer = list(r["beslut_b5"])
+    b = r["beslut_b5"]
+    vyer = list(b)
     rad = lambda c: "| " + " | ".join(c) + " |"  # noqa: E731
     hd = lambda c: [rad(c), rad(["---"] * len(c))]  # noqa: E731
     L = [f"# S3: Vision mot MediaPipe — pass {', '.join(r['pass'])}", "",
          f"Modellen: `{r['modell']['fil']}` ({r['modell']['lage']}). Skapad {r['skapad']}. "
          "Avvikelsen är Vision − MediaPipe; MediaPipe är facit, inte sanningen (METOD MF2).", "",
          "## Det som avgör B5 (räcker Vision?)", "",
-         "Verktyget avgör inte beslutet: tabellen är underlaget (BESLUT B5, B14, B38).", ""]
-    b = r["beslut_b5"]
+         "Verktyget avgör inte beslutet: tabellen är underlaget (BESLUT B5, B14, B38). "
+         f"Talen är % av kroppslängden per axel, med 95 %-intervall ur bootstrap av slagen; under "
+         f"{r['min_slag']} slag står \"–\" (METOD MF2). Trösklarna är simulerade: skillnaden när Vision har "
+         f"felbudgetens brus på nivån och MediaPipe på nivån **{NIVA_TEXT[niv['mediapipe']]}** (antagande; "
+         f"{niv['pass']} pass om {niv['slag']} slag, METOD MF3).", ""]
 
-    def tr(n, k, pct=False):
-        return " · ".join(f"{NIVA_TEXT[x]} ≤ {_t(niv[x][k], 2, pct)}" + ("" if pct else " %") for x in n)
+    def tr(fas, k, pct=False):
+        return " · ".join(f"{NIVA_TEXT[x]} ≤ {_t(niv[fas][x][k], 2, pct)}" + ("" if pct else " %") for x in NIVAER)
 
-    L += hd(["Fråga"] + [v.upper() for v in vyer] + ["Tröskel", "Källa"])
-    L.append(rad(["Lederna, fast avvikelse per led (per axel, % av kroppslängden)"]
-                 + [_t(b[v]["fast"], 2) for v in vyer] + [tr(NIVAER, "fast"), "S6_FELBUDGET §3 (antagande), METOD MF3"]))
-    L.append(rad(["Lederna, rörligt fel ruta för ruta (per axel, %)"]
-                 + [_t(b[v]["rorligt"], 2) for v in vyer] + [tr(NIVAER, "rorligt"), "S6_FELBUDGET §3 (antagande), METOD MF3"]))
-    L.append(rad(["Utliggare (andel rutor)"] + [_t(b[v]["utliggare"], 1, True) for v in vyer]
-                 + [tr(NIVAER, "utliggare", True), "S6_FELBUDGET §3 (antagande), METOD MF3"]))
-    L.append(rad(["**Felbudgetens nivå** (den sämsta av de tre)"] + [f"**{NIVA_TEXT.get(b[v]['niva'], '–')}**" for v in vyer]
+    kol = [f"{v.upper()} {'hela' if f == 'alla' else 'nedsving'}" for v in vyer for f in B5_FASER]
+    L += hd(["Fråga"] + kol + ["Tröskel (hela · nedsving)", "Källa"])
+
+    def cell(v, f, k, pct=False):
+        return _ki(b[v][f], k, 1 if pct else 2, pct)
+
+    for namn, k, pct in (("Lederna, fast avvikelse per led", "fast", False),
+                         ("Lederna, rörligt fel ruta för ruta", "rorligt", False),
+                         ("Utliggare (andel rutor)", "utliggare", True)):
+        L.append(rad([namn] + [cell(v, f, k, pct) for v in vyer for f in B5_FASER]
+                     + [("väntat " if k == "utliggare" else "") + tr("alla", k, pct) + " · nedsving: "
+                        + tr("nedsving", k, pct),
+                        "simulering av S6_FELBUDGET §3 (antagande), METOD MF3"
+                        + ("; avgör inte nivån" if k == "utliggare" else "")]))
+    L.append(rad(["**Felbudgetens nivå** (den sämsta av fast och rörligt)"]
+                 + [f"**{NIVA_TEXT[b[v][f]['niva']]}**" if b[v][f] else "–" for v in vyer for f in B5_FASER]
                  + ["typiskt räcker för trenden utan markörer", "BESLUT B14, S6_FELBUDGET §6.7"]))
-    L.append(rad(["Vision saknar leden där MediaPipe ser den"] + [_t(b[v]["vision_saknar_mp_ser"], 1, True) for v in vyer]
-                 + ["ingen källa", "–"]))
-    L.append(rad(["Vänster och höger förväxlade"] + [_t(b[v]["sidbyten"], 1, True) for v in vyer]
+    L.append(rad(["Slag"] + [str(b[v]["slag"]) for v in vyer for _ in B5_FASER] + [f"minst {r['min_slag']}", "METOD MF2"]))
+    L.append(rad(["Vision saknar leden där MediaPipe ser den"]
+                 + [_t(b[v]["vision_saknar_mp_ser"], 1, True) for v in vyer for _ in B5_FASER] + ["ingen källa", "–"]))
+    L.append(rad(["Vänster och höger förväxlade"] + [_t(b[v]["sidbyten"], 1, True) for v in vyer for _ in B5_FASER]
                  + ["ingen källa", "–"]))
     L.append(rad(["Mått där passets median skiljer tydligt"]
-                 + [f"{b[v]['matt_tydliga']} av {b[v]['matt_provade']}" for v in vyer]
+                 + [f"{b[v]['matt_tydliga']} av {b[v]['matt_provade']}" for v in vyer for _ in B5_FASER]
                  + ["skillnaden > MediaPipe-passets robusta sd", "METOD M26 (formen; ingen källa för B5)"]))
     L += ["", "## Paketen", ""]
-    L += hd(["Paket", "Vy", "Slag", "Mätbara", "Med klipp", "Körda", "Rutor", "Med bild"])
+    L += hd(["Paket", "Vy", "Slag", "Mätbara", "Med klipp", "Körda", "Jämförda", "Visions rutor", "Parade"])
     for p in r["paket"]:
         L.append(rad([p["fil"], p["vy"], str(p["slag"]), str(p["matbara"]), str(p["med_klipp"]), str(p["korda"]),
-                      str(p["rutor"]), str(p["rutor_med_bild"])]))
+                      str(p["jamforda"]), str(p["rutor"]), str(p["rutor_parade"])]))
+    L += ["", "## Tidsparningen per slag", "",
+          "Klippets tider (OpenCV) mot Visions: förskjutningen δ, i rutor från 0, den näst bästas kvot och "
+          "resten efter parningen (METOD MF1).", ""]
+    L += hd(["Paket", "Slag", "δ ms", "Rutor", "Kvot", "Rest ms (median)", "Parade", "Anm."])
+    for s in r["slag"]:
+        if "tidsparning" not in s:
+            continue
+        tp = s["tidsparning"]
+        L.append(rad([s["fil"], s["id"], _t(tp["forskjutning_ms"], 2), str(tp["rutor"]), _t(tp["kvot"], 2),
+                      _t(tp["rest_ms_median"], 2), str(s["rutor_parade"]), s.get("hoppat", "")]))
     L += ["", "## Lederna per led (alla faser)", "",
           "Medel och spridning = avståndet Vision–MediaPipe. Fast = medianens förskjutning, "
           "rörligt = robust sd, båda per axel (METOD MF2).", ""]
     for vy in vyer:
         L += [f"### {vy.upper()}", ""]
-        L += hd(["Led", "n", "Medel px", "Spridning px", "Medel %", "Spridning %", "Fast %", "Rörligt %",
+        L += hd(["Led", "Slag", "n", "Medel px", "Spridning px", "Medel %", "Spridning %", "Fast %", "Rörligt %",
                  "Utliggare", "Vision saknar", "MediaPipe saknar"])
         for x in (y for y in r["leder"] if y["vy"] == vy and y["fas"] == "alla"):
             px, pr = x["px"] or {}, x["procent"] or {}
-            L.append(rad([x["led"], str(x["n"]), _t(px.get("medel")), _t(px.get("spridning")),
+            L.append(rad([x["led"], str(x["slag"]), str(x["n"]), _t(px.get("medel")), _t(px.get("spridning")),
                           _t(pr.get("medel"), 2), _t(pr.get("spridning"), 2), _t(pr.get("fast"), 2),
                           _t(pr.get("rorligt"), 2), _t(x["utliggare"], 1, True), _t(x["vision_saknar"], 1, True),
                           _t(x["mediapipe_saknar"], 1, True)]))
@@ -772,14 +993,16 @@ def markdown(r: dict) -> str:
     for s in r["sidbyten"]:
         L.append(rad([s["vy"], s["par"], str(s["n"]), _t(s["andel"], 1, True)]))
     L += ["", "## Måtten (S1) på båda ledkällorna", "",
-          "Skillnad = passets median Vision − MediaPipe. Tydlig = större än MediaPipe-passets "
-          "robusta sd (formen i METOD M26).", ""]
-    L += hd(["Vy", "Mått", "Enhet", "n", "Vision", "MediaPipe", "Skillnad", "Slag för slag: medel ± sd",
+          "Parade per slag. Skillnad = passets median Vision − MediaPipe, med 95 %-intervall ur bootstrap av "
+          f"slagen. Tydlig = större än MediaPipe-passets robusta sd (formen i METOD M26). Under {r['min_slag']} "
+          "slag står bara antalet.", ""]
+    L += hd(["Vy", "Mått", "Enhet", "Slag", "Vision", "MediaPipe", "Skillnad (95 %)", "Slag för slag: medel ± sd",
              "Medel |skillnad|", "MediaPipe sd", "Tydlig"])
     for m in sorted(r["matt"], key=lambda m: (m["vy"], not m["tydlig"], m["matt"])):
         sd = f" ± {_t(m['skillnad_sd'], 2)}" if m["skillnad_sd"] is not None else ""
+        iv = f" ({_t(m['intervall'][0], 2)}–{_t(m['intervall'][1], 2)})" if m["intervall"] else ""
         L.append(rad([m["vy"], m["matt"], m["enhet"], str(m["n"]), _t(m["vision_median"], 2),
-                      _t(m["mediapipe_median"], 2), _t(m["skillnad"], 2), _t(m["skillnad_medel"], 2) + sd,
+                      _t(m["mediapipe_median"], 2), _t(m["skillnad"], 2) + iv, _t(m["skillnad_medel"], 2) + sd,
                       _t(m["abs_medel"], 2), _t(m["mediapipe_spridning"], 2),
                       "ja" if m["tydlig"] else ("nej" if m["tydlig"] is not None else "–")]))
     L += ["", "## Faserna och skalan", ""]
@@ -788,7 +1011,8 @@ def markdown(r: dict) -> str:
         v = (f"kvot {f['kvot_median']:.3f}" if f["fas"] == "skalan" else
              f"{f['skillnad_medel_ms']:.1f} ms (medel |·| {f['abs_medel_ms']:.1f} ms)")
         L.append(rad([f["vy"], f["fas"], str(f["n"]), v]))
-    L += ["", "## Kontaktarken", "", "Vitt = Vision, orange = MediaPipe. Kolumnerna: adress, topp, träff, finish.", ""]
+    L += ["", "## Kontaktarken", "", "Vitt = Vision, orange = MediaPipe, från samma ruta. Kolumnerna: adress, topp, "
+          "träff, finish.", ""]
     for vy, k in r["kontaktark"].items():
         L.append(f"- {vy.upper()}: " + (f"`{k['fil']}` ({len(k['rader'])} slag)" if "fil" in k else f"hoppat ({k['hoppat']})"))
     fel = [s for s in r["slag"] if "vision_fel" in s or "mediapipe_fel" in s or "hoppat" in s]
@@ -803,7 +1027,7 @@ def markdown(r: dict) -> str:
 # --- kommandot -----------------------------------------------------------------------
 
 def standard_ut(paket_filer: list[str]) -> Path:
-    """~/swinglab-s3/<pass>/ ur första paketets manifest (utan att läsa lederna)."""
+    """~/swinglab-s3/<pass>/ ur paketens manifest (utan att läsa lederna)."""
     pass_id = sorted({P.las(f, med_leder=False).pass_id for f in paket_filer})
     return UT_ROT / ("-".join([pass_id[0], pass_id[-1]]) if len(pass_id) > 1 else pass_id[0])
 
@@ -829,9 +1053,9 @@ def main(argv=None) -> int:
                   + f"\n(eller hämta den själv från {MODELL_URL} och lägg den där).")
             return 1
         fil = modellfil(a.modell)
-        print(f"MediaPipe: {fil}\nUt: {ut}", flush=True)
+        print(f"MediaPipe: {fil}\nUt: {ut}\nSimulerar trösklarna …", flush=True)
         res = kor([Path(f) for f in a.paket], ut, a.langd, MediaPipeModell(fil), KlippRutor(), om=a.om,
-                  kontakt_slag=a.kontakt_slag)
+                  kontakt_slag=a.kontakt_slag, modell_namn=fil.name, rapport=print)
     except P.PaketFel as e:
         print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
         return 1
@@ -839,8 +1063,15 @@ def main(argv=None) -> int:
         print(str(e))
         return 1
     for vy, b in res["beslut_b5"].items():
-        print(f"  {vy.upper()}: felbudgetens nivå {NIVA_TEXT.get(b['niva'], '–')}, fast {_t(b['fast'], 2)} %, rörligt "
-              f"{_t(b['rorligt'], 2)} %, {b['matt_tydliga']} av {b['matt_provade']} mått skiljer tydligt")
+        for fas in B5_FASER:
+            v = b[fas]
+            print(f"  {vy.upper()} {'hela' if fas == 'alla' else 'nedsving'}: "
+                  + (f"nivå {NIVA_TEXT[v['niva']]}, fast {_t(v['fast'], 2)} %, rörligt {_t(v['rorligt'], 2)} %"
+                     if v else f"färre än {res['min_slag']} slag"))
+        print(f"  {vy.upper()}: {b['matt_tydliga']} av {b['matt_provade']} mått skiljer tydligt")
+    hoppade = [s for s in res["slag"] if "tidsparning" in s and "hoppat" in s]
+    if hoppade:
+        print(f"  {len(hoppade)} slag jämfördes inte: tidsparningen var tvetydig (se s3.md)")
     print(f"Skrev {ut / 's3.md'}, s3.json och kontaktarken")
     return 0
 
