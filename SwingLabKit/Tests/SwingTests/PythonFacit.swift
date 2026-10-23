@@ -10,6 +10,13 @@ struct PythonSving: Decodable {
         let start: Double?
         let topp: Double
         let traff: Double
+        /// Starten bär inte tempot (METOD M40).
+        let startOsaker: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case start, topp, traff
+            case startOsaker = "start_osaker"
+        }
     }
 
     /// P-positionerna; null = saknas. METOD M28

@@ -98,7 +98,8 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
   starten är fel, och då saknas den (Golf SG:s gräns för bandets start; en
   verklig baksving med järn är 0,7–1,0 s). **antagande** (5 % ≈ 3–4 cm med
   järn). Uppmätt: inom 3 ms från figurens start. Fixturen `dtl_kort` (0,25 s)
-  ger ingen start och inget tempo.
+  ger ingen start och inget tempo. **Bakifrån (DTL) tas starten ur posen i
+  stället (M40);** framifrån (FO) gäller definitionen här.
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -106,6 +107,66 @@ GolfTEC m.fl.) · **tränare** (TPI, coacher) · **antagande** (ska kalibreras).
 - **Ett läge i en fas** är punktens medel över adressens och finishens fönster,
   och värdet i ögonblicket vid toppen och träffen. En vinkel räknas ur lägena,
   inte som medel av vinklar.
+
+## M40 — Baksvingens start bakifrån (DTL)
+
+- **Problemet:** bakifrån går händernas första rörelse mot kameran och syns knappt
+  i bilden, och står kameran högre än händerna ser de ut att sjunka innan de
+  stiger. M4:s adressläge (händerna lägst) hamnar då i takeawayn och starten blir
+  sen eller saknas. Uppmätt på påhittade 3D-svingar (`tools/pc/tre_d/sving.py`,
+  frön 0–11) sedda bakifrån 3 m bort, med 0,8 px brus: starten **+176 till +265 ms**
+  sen (kameran på 0,8–1,6 m), och saknas för 0–9 av 12 svingar när kameran står
+  över händerna (1,3–1,6 m). Med baksvingen 0,75 s saknas tempot; med 0,95 s blir
+  det ≈ 1 för lågt (`dtl_dold`-svingen: 2,15 mot sanna 3,17).
+- **Definitionen:** posen = de sex lederna axlarna, armbågarna och handlederna
+  (efter greppregeln, M1), utjämnade (M3). **Adressen** är det fönster om
+  **0,1 s** (minst **3** rutor per led), med början mellan toppen − 1,5 s och
+  toppen − 0,5 s (M4:s gränser), där posen skakar minst; skakningen är medlet över
+  lederna av rutornas kvadrerade avstånd till ledens medel i fönstret, och adressens
+  pose är medlen. **Starten** är sista gången före toppen som posens medelavstånd
+  till adressen var inom **3 %** av medelavståndet vid toppen, men minst **3 gånger**
+  skakningen (roten ur), interpolerat mellan rutorna. Lederna är de som har minst 3
+  rutor i fönstret och ett värde vid toppen, och de måste vara minst **4** av 6. En
+  baksving under 0,5 s ger ingen start (M4). **antagande** (andelarna och fönstret,
+  valda på mätningen nedan).
+- **Varför posen och inte händerna:** axlarna börjar vrida sig och armbågarna flytta
+  sig i bildens plan när händerna går mot kameran, så posens avstånd till adressen
+  växer från första stund och vänder inte tillbaka. Prövat på samma svingar (fel
+  mot starten på den verkliga banan, M4:s 5 % i 3D, ms, kameran 0,8 → 1,6 m):
+  med 0,8 px brus: händernas fart med en tröskel på 3 gånger bruset i stillastående
+  (+75 till +160; med 5 gånger saknas 5–8 av 12, eftersom farten är nära noll där
+  händerna vänder i sjunkandet); händerna med adressen ur stillastående i stället för
+  lägst (oftast +150 till +275, och saknas för upp till alla 12); axlarnas läge ensamma
+  (−10 till 0, men −52 ± 47 med posemodellens brus, eftersom den främre axeln skyms
+  bakifrån, och +112 till +139 när bålen vrider senare än armarna); bakre armbågen
+  och händerna (+16 till +115); hela posen (de sex lederna): +2 till +31, och oftast
+  inom ±40 med posemodellens brus. Underarmarnas skenbara längd (skalan) ändras
+  lika mycket av att armarna vrids som av att de närmar sig kameran, och gavs inte
+  en egen skattare. Bakåt från toppen (inte framåt
+  från adressen) behålls, som i M4.
+- **Uppmätt (posen, frön 0–11, kameran 0,8 / 1,0 / 1,3 / 1,6 m):** med 0,8 px brus
+  starten +31 / +23 / +11 / +2 ms (sd 2–4), största felet på tempot **0,14**; med
+  posemodellens brus "bra" (3 px, `tre_d/kamera.py`) +8 / 0 / −12 / −19 ms (sd
+  10–17), största tempofelet 0,14; med "typiskt" (5 px) +4 / 0 / −13 / −30 ms (sd
+  41–48), största 0,34. Likadant när bålen vrider senare än armarna och med
+  baksvingen 0,75 s (största 0,33). Tempofelet här är bara starten; toppens fel (M4) kommer till. Framifrån
+  gav samma pose −19 till −15 ms (M4 +71 till +73 på samma 3D-svingar, eftersom
+  händerna sjunker lite även där), men FO behåller M4 tills riktiga pass prövats.
+- **Utan dold takeaway** (den plana figuren i `generera.py`, frön 0–19, 0,8 px):
+  starten −26 till −18 ms mot M4:s (armbågen och axlarna rör sig före händerna nått
+  5 %), och tempot −0,06 i snitt mot M4:s −0,12 (toppens bias, M4).
+- **Osäker start:** är adressens skakning (roten ur) över **1,5 %** av
+  medelavståndet vid toppen är starten **osäker**: den står kvar (adressens fönster
+  räknas från den), men tempot, baksvingen och nedsvingen saknas, och
+  `faser.start_osaker` är sant. Räcker inte posen (färre än 4 leder) tas starten ur
+  händerna (M4) och märks osäker. Uppmätt: "dåligt" brus (10 px) märks alltid
+  osäkert, "typiskt" 3–7 av 12 svingar per kamerahöjd, "bra" aldrig; bland de omärkta med
+  "bra" och "typiskt" är 95 % av tempofelen från starten under 0,25 och det största
+  0,34. Gränsen är ett **antagande** tills S3 mätt posemodellens brus på golf.
+- **Två telefoner:** när båda vyerna filmar tar 3D-måtten redan FO:s start (MK6),
+  och tempot tas ur en vy (MT9). Det behövs ingen ny väg för starten.
+- **Oprovat på telefonen:** riktiga DTL-pass, waggle och forward press (en waggle
+  kan ge ett stillare fönster före den än efter; då kan starten hamna i waggeln).
 
 ## M5 — Tempot
 

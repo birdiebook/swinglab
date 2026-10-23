@@ -143,7 +143,8 @@ public enum Matt {
         let A = mitt(.fotledF, .fotledB)
         let G = mitt(.handledF, .handledB)
         let N = led(.nasa)
-        let f = try Faser.hitta(t, G, tKlick: s.tKlick)
+        // Bakifrån tas starten ur armarnas och axlarnas pose. METOD M40
+        let f = try Faser.hitta(t, G, tKlick: s.tKlick, pose: s.vy == .dtl ? b : nil)
         // Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
         let pos = Positioner.hitta(t, f, framre: Positioner.armensHojd(axel: led(.axelF), handled: handF),
                                    bakre: Positioner.armensHojd(axel: led(.axelB), handled: handB))
@@ -282,7 +283,7 @@ public enum Matt {
             m["genomsving_s"] = tf - f.traff
         }
 
-        if let start = f.start {                                                    // METOD M5
+        if let start = f.start, !f.startOsaker {                                    // METOD M5, METOD M40
             let bak = f.topp - start, ned = f.traff - f.topp
             m["baksving_s"] = bak
             m["nedsving_s"] = ned

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .format import HANDLED_B, HANDLED_F
+from .format import ARMBAGE_B, ARMBAGE_F, AXEL_B, AXEL_F, HANDLED_B, HANDLED_F
 
 SIGMA_S = 0.0075         # METOD M3: gaussvikt över tiden (samma varians som Golf SG:s 25 ms)
 TRUNKERA = 3.0           # METOD M3: rutor längre bort än 3σ räknas inte
@@ -24,6 +24,15 @@ MIN_BAKSVING_S = 0.5     # METOD M4: kortare baksving = starten är fel och sakn
 TOPP_ADRESS_S = 1.2      # METOD M4: adressen räknas från toppen − 1,2 s när starten saknas
 ADRESS = (-0.40, -0.10)  # METOD M4: s kring baksvingens start
 FINISH = (1.0, 1.2)      # METOD M4: s efter träffen
+
+# Starten bakifrån ur posen (METOD M40)
+POSE_LEDER = (AXEL_F, AXEL_B, ARMBAGE_F, ARMBAGE_B, HANDLED_F, HANDLED_B)  # METOD M40: posen
+STILLA_S = 0.10          # METOD M40: adressens fönster är 0,1 s långt …
+STILLA_RUTOR = 3         # METOD M40: … med minst 3 rutor per led
+MIN_LEDER = 4            # METOD M40: posen kräver minst fyra av de sex lederna
+POSE_ANDEL = 0.03        # METOD M40: starten = posen har rört sig 3 % av vägen till toppen …
+BRUS_K = 3.0             # METOD M40: … men minst 3 gånger posens skakning i adressen
+OSAKER_ANDEL = 0.015     # METOD M40: skakningen över 1,5 % av vägen = starten osäker
 
 
 class SvingFel(ValueError):
@@ -111,11 +120,90 @@ class Faser:
     traff: float             # klicket
     adress: tuple[float, float]
     finish: tuple[float, float]
+    start_osaker: bool = False   # starten finns men bär inte tempot (METOD M40)
 
 
-def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float) -> Faser:
+def _start_ur_handerna(t: np.ndarray, G: np.ndarray, topp: float, ok: np.ndarray) -> float | None:
+    """Sista gången före toppen som händerna var inom 5 % av vägen från adressläget
+    (händerna lägst). METOD M4"""
+    fore = np.where(ok & (t >= topp - MAX_BAKSVING_S) & (t <= topp))[0]
+    gt = vid(t, G, topp)
+    if len(fore) == 0 or not np.isfinite(gt).all():
+        return None
+    k_lag = fore[int(np.argmax(G[fore, 1]))]           # händerna lägst = adressläget
+    r = G[k_lag]
+    troskel = TROSKEL_ANDEL * float(np.hypot(*(gt - r)))
+    seq = fore[t[fore] >= t[k_lag]]
+    d = np.hypot(G[seq, 0] - r[0], G[seq, 1] - r[1])
+    inom = np.where(d <= troskel)[0]                   # finns alltid: d = 0 i adressläget
+    m = int(inom[-1])
+    if m < len(seq) - 1:
+        k0, k1 = seq[m], seq[m + 1]
+        s = float(t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0]))
+        if topp - s >= MIN_BAKSVING_S:
+            return s
+    return None
+
+
+def _adressens_fonster(t: np.ndarray, B: np.ndarray, topp: float):
+    """Adressen bakifrån: det fönster om STILLA_S, med början mellan toppen −
+    MAX_BAKSVING_S och toppen − MIN_BAKSVING_S, där posen skakar minst (det första
+    vid lika). Skakningen = medlet över lederna av rutornas kvadrerade avstånd till ledens medel
+    i fönstret (px²). Ger (första rutan, {led: medel}, {led: skakning}) eller None.
+    METOD M40"""
+    hel = np.isfinite(B).all(axis=2)                   # (n, 13)
+    bast = None
+    for k in np.where((t >= topp - MAX_BAKSVING_S) & (t <= topp - MIN_BAKSVING_S))[0]:
+        sel = np.where((t >= t[k]) & (t <= t[k] + STILLA_S))[0]
+        medel, skak = {}, {}
+        for j in POSE_LEDER:
+            r = sel[hel[sel, j]]
+            if len(r) < STILLA_RUTOR:
+                continue
+            m = B[r, j].sum(axis=0) / len(r)
+            medel[j] = m
+            skak[j] = float(((B[r, j, 0] - m[0]) ** 2 + (B[r, j, 1] - m[1]) ** 2).sum() / len(r))
+        if len(medel) >= MIN_LEDER:
+            r = sum(skak.values()) / len(skak)
+            if bast is None or r < bast[3]:
+                bast = (int(k), medel, skak, r)
+    return None if bast is None else bast[:3]
+
+
+def start_ur_posen(t: np.ndarray, B: np.ndarray, topp: float) -> tuple[float | None, bool]:
+    """Baksvingens start bakifrån ur armarnas och axlarnas pose B (n, 13, 2), redan
+    utjämnad: sista gången före toppen som posen var inom POSE_ANDEL av vägen från
+    adressen till toppen (men minst BRUS_K gånger skakningen i adressen), som
+    medelavstånd över lederna. Ger (starten, osäker) eller (None, False) när posen
+    inte räcker. METOD M40"""
+    a = _adressens_fonster(t, B, topp)
+    if a is None:
+        return None, False
+    k_ref, medel, skak = a
+    toppen = {j: vid(t, B[:, j], topp) for j in medel}
+    leder = [j for j in POSE_LEDER if j in medel and np.isfinite(toppen[j]).all()]
+    if len(leder) < MIN_LEDER:
+        return None, False
+    sigma = math.sqrt(sum(skak[j] for j in leder) / len(leder))
+    vag = sum(math.hypot(*(toppen[j] - medel[j])) for j in leder) / len(leder)
+    troskel = max(POSE_ANDEL * vag, BRUS_K * sigma)
+    seq = np.where((t >= t[k_ref]) & (t <= topp) & np.isfinite(B[:, leder]).all(axis=(1, 2)))[0]
+    d = sum(np.hypot(B[seq, j, 0] - medel[j][0], B[seq, j, 1] - medel[j][1]) for j in leder) / len(leder)
+    inom = np.where(d <= troskel)[0]
+    if len(inom) == 0 or inom[-1] == len(seq) - 1:
+        return None, False
+    m = int(inom[-1])
+    k0, k1 = seq[m], seq[m + 1]
+    s = float(t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0]))
+    if topp - s < MIN_BAKSVING_S:
+        return None, False
+    return s, sigma > OSAKER_ANDEL * vag
+
+
+def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float, pose: np.ndarray | None = None) -> Faser:
     """Toppen, starten, adressen och finishen ur händernas bana G (n, 2),
-    redan utjämnad. METOD M4"""
+    redan utjämnad. Med `pose` (n, 13, 2, utjämnad; bakifrån) tas starten ur
+    armarnas och axlarnas pose i stället (METOD M40), annars ur händerna. METOD M4"""
     ok = _hela(G)
     idx = np.where(ok & (t >= t_klick - SOK_FORE_S) & (t <= t_klick - SOK_SLUT_S))[0]
     if len(idx) == 0:
@@ -126,27 +214,19 @@ def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float) -> Faser:
         a, b, c = idx[j - 1], idx[j], idx[j + 1]
         topp = float(toppunkt(t[a], G[a, 1], t[b], G[b, 1], t[c], G[c, 1]))
 
-    start = None
-    fore = np.where(ok & (t >= topp - MAX_BAKSVING_S) & (t <= topp))[0]
-    gt = vid(t, G, topp)
-    if len(fore) > 0 and np.isfinite(gt).all():
-        k_lag = fore[int(np.argmax(G[fore, 1]))]       # händerna lägst = adressläget
-        r = G[k_lag]
-        troskel = TROSKEL_ANDEL * float(np.hypot(*(gt - r)))
-        seq = fore[t[fore] >= t[k_lag]]
-        d = np.hypot(G[seq, 0] - r[0], G[seq, 1] - r[1])
-        inom = np.where(d <= troskel)[0]               # finns alltid: d = 0 i adressläget
-        m = int(inom[-1])
-        if m < len(seq) - 1:
-            k0, k1 = seq[m], seq[m + 1]
-            s = float(t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0]))
-            if topp - s >= MIN_BAKSVING_S:
-                start = s
+    start, osaker = None, False
+    if pose is not None:
+        start, osaker = start_ur_posen(t, pose, topp)
+        if start is None:                              # posen räcker inte: händerna, osäkert
+            start = _start_ur_handerna(t, G, topp, ok)
+            osaker = start is not None
+    else:
+        start = _start_ur_handerna(t, G, topp, ok)
 
     s0 = start if start is not None else topp - TOPP_ADRESS_S
     return Faser(start=start, topp=topp, traff=float(t_klick),
                  adress=(s0 + ADRESS[0], s0 + ADRESS[1]),
-                 finish=(t_klick + FINISH[0], t_klick + FINISH[1]))
+                 finish=(t_klick + FINISH[0], t_klick + FINISH[1]), start_osaker=osaker)
 
 
 def lage(t: np.ndarray, p: np.ndarray, f: Faser, fas: str) -> np.ndarray:

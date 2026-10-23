@@ -135,7 +135,8 @@ def mat(s: Sving) -> dict:
     A = (b[:, FOTLED_F] + b[:, FOTLED_B]) / 2
     G = (b[:, HANDLED_F] + b[:, HANDLED_B]) / 2
     N = b[:, NASA]
-    f = F.hitta_faser(t, G, s.t_klick)
+    # Bakifrån tas starten ur armarnas och axlarnas pose. METOD M40
+    f = F.hitta_faser(t, G, s.t_klick, b if s.vy == "dtl" else None)
     # Positionerna: armarna mot de egna handlederna, som armbågarna. METOD M28
     pos = PO.hitta(t, f, PO.armens_hojd(b[:, AXEL_F], hand_f), PO.armens_hojd(b[:, AXEL_B], hand_b))
 
@@ -252,13 +253,13 @@ def mat(s: Sving) -> dict:
     if tf is not None:
         m["genomsving_s"] = tf - f.traff
 
-    if f.start is not None:                                          # METOD M5
+    if f.start is not None and not f.start_osaker:                   # METOD M5, METOD M40
         bak, ned = f.topp - f.start, f.traff - f.topp
         m["baksving_s"], m["nedsving_s"] = bak, ned
         if ned > 0:
             m["tempo"] = bak / ned
 
     return {"vy": s.vy, "hand": s.hand, "cm_per_px": cm,
-            "faser": {"start": f.start, "topp": f.topp, "traff": f.traff},
+            "faser": {"start": f.start, "topp": f.topp, "traff": f.traff, "start_osaker": f.start_osaker},
             "positioner": pos,
             "matt": {k: float(v) for k, v in m.items() if v is not None and math.isfinite(v)}}

@@ -708,3 +708,24 @@ Besluten B37–B39 kommer ur S6a (PC-sidan av två kameror). De är tekniska val
 - **Bortvalt:** en förklarande rad under varje mått (bryter B13), och en hjälpsida.
 - **Omprövas:** när ett andra språk kommer (fälten blir då en tabell per språk, B33).
 
+## B42 — Starten bakifrån ur posen, och tempot osäkert hellre än fel
+*2026-10-23 · prövas · METOD M40 · PLAN S1d*
+
+- **Valt:** bakifrån (DTL) tas baksvingens start ur armarnas och axlarnas pose (sex
+  leder) mot adressens stillaste fönster, bakåt från toppen. Framifrån (FO) står M4
+  kvar och ger samma tal som förut (testet `test_fo_ar_oforandrad` låser dem). Skakar
+  posen i adressen för mycket, eller räcker den inte, märks starten osäker
+  (`faser.start_osaker`) och tempot visas inte.
+- **Varför:** takeawayn går mot kameran bakifrån, och händerna ensamma tappade
+  tempot eller gav det ≈ 1 för lågt på påhittade svingar. Posen gav högst 0,14 fel på
+  tempot med lite brus och höll när bålen vrider senare än armarna. Ett osäkert
+  tempo som inte visas är bättre än ett fel tal i Today.
+- **Bortvalt:** händernas fart mot bruset, axlarnas bredd ensam (den främre axeln
+  skyms), underarmarnas skala, och att ta starten ur FO-telefonen via parningen
+  (behövs inte när 2D räcker; 3D-måtten tar redan FO:s start, MK6). Samma pose även
+  framifrån: bättre på 3D-svingarna, men ändrar FO:s tal utan att något var fel där.
+- **Kostnad:** vyn visar ännu inte "osäkert" (vyerna ändras i S1c); ett osäkert slag
+  ser ut som ett utan tempo. Gränserna är antaganden.
+- **Omprövas:** när S3 mätt posemodellens brus på golf och ett riktigt DTL-pass
+  prövats (`faser.start` och `start_osaker` i PC:ns `analys.json`), och om en
+  waggle visar sig flytta adressens fönster.

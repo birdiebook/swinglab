@@ -452,6 +452,53 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     return d, facit
 
 
+# --- bakifrån med dold takeaway (METOD M40) ---------------------------------------
+
+DOLD_KAMERA = (3.0, 1.4)     # DTL-kameran 3 m bakom, på 1,4 m: över händerna (0,77 m i adressen)
+
+
+def facit_start_3d(s3) -> float:
+    """Starten enligt METOD M4 på den verkliga banan: händerna (medel av handlederna)
+    har rört sig 5 % av vägen adress → topp i 3D, på ett rutnät om 0,1 ms."""
+    def hander(t):
+        P = s3.leder(np.asarray(t, float))
+        return (P[:, 5] + P[:, 6]) / 2
+    g0, gt = hander([s3.t_start])[0], hander([s3.t_topp])[0]
+    tt = np.arange(s3.t_start, s3.t_topp, 1e-4)
+    d = np.linalg.norm(hander(tt) - g0, axis=1)
+    troskel = 0.05 * float(np.linalg.norm(gt - g0))
+    k = int(np.argmax(d > troskel))
+    return float(tt[k - 1] + (troskel - d[k - 1]) / (d[k] - d[k - 1]) * (tt[k] - tt[k - 1]))
+
+
+def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.75, brus_px: float = 0.8,
+               saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2) -> tuple[dict, dict]:
+    """(svingen som dict i filformatet, facit) för en påhittad 3D-sving (`tre_d/sving.py`)
+    sedd bakifrån av en kamera DOLD_KAMERA[0] m bakom spelaren på höjden `hojd` m. Händerna
+    går först mot kameran och syns knappt i bilden, och står kameran över dem ser de ut
+    att sjunka innan de stiger (METOD M40). Facit: starten på den verkliga banan
+    (`facit_start_3d`), toppen och träffen ur svingens tider, och tempot därur."""
+    from .tre_d import kamera as KM
+    from .tre_d import sving as S3
+    rng = np.random.default_rng(seed)
+    s3 = S3.Sving(langd=1.80, t_start=1.0, baksving=baksving)
+    t = np.arange(int(round(fran * FREKVENS)), int(s3.t_slut * FREKVENS) + 1) / FREKVENS
+    t = t[rng.random(len(t)) >= saknas]
+    uv = KM.placera(180, DOLD_KAMERA[0], hojd).projicera(s3.leder(t))     # högerspelaren: x mot bollen
+    if brus_px:
+        uv = uv + rng.normal(0, brus_px, uv.shape)
+    konfidens = rng.uniform(0.55, 1.0, uv.shape[:2])
+    rutor = [{"t": round(float(t[i]), 6),
+              "leder": [[round(float(uv[i, j, 0]), decimaler), round(float(uv[i, j, 1]), decimaler),
+                         round(float(konfidens[i, j]), 2)] for j in range(13)]} for i in range(len(t))]
+    d = {"format": 1, "vy": "dtl", "hand": "hoger", "x_mot_bollen": 1, "spelarens_langd_m": s3.langd,
+         "t_klick": round(s3.t_traff, 6), "rutor": rutor}
+    start = facit_start_3d(s3)
+    facit = {"_start": start, "_topp": s3.t_topp, "_traff": s3.t_traff,
+             "tempo": (s3.t_topp - start) / (s3.t_traff - s3.t_topp)}
+    return d, facit
+
+
 def till_json(d: dict) -> str:
     """En ruta per rad, så att filen går att läsa och diffa."""
     huvud = {k: v for k, v in d.items() if k != "rutor"}
@@ -524,12 +571,24 @@ FIXTURSVINGAR = {
     # Träffen 15 ms efter handens toppfart (bara mätningens klick flyttas): toppen
     # förfinas nära träffen, inte i rutnätets ände. METOD M35
     "fo_nara_traff": ("fo", "hoger", 21, 0.8, (), {"klick": 2.34}),
+    # Bakifrån med dold takeaway (METOD M40): en 3D-sving med baksvingen 0,75 s, kameran
+    # på 1,4 m över händerna. Händernas start (M4) saknas här; posens finns.
+    "dtl_dold": ("dtl", "hoger", 22, 0.8, (), {"dold": True}),
+    # Samma med 10 px brus: posen skakar mer än 1,5 % av vägen i adressen, starten är
+    # osäker och tempot saknas (METOD M40).
+    "dtl_osaker": ("dtl", "hoger", 23, 10.0, (), {"dold": True}),
+    # Armbågarna borta och främre axeln borta kring toppen: posen har tre leder, starten
+    # tas ur händerna (M4) och är osäker (METOD M40).
+    "dtl_utan_pose": ("dtl", "hoger", 24, 0.8, (("armbage_v", 0.0, 9.9), ("armbage_h", 0.0, 9.9),
+                                                ("axel_v", 2.10, 2.30)), {}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 
 
 def fixtursving(namn: str) -> str:
     vy, hand, seed, brus, dolj, ovrigt = FIXTURSVINGAR[namn]
+    if ovrigt.get("dold"):
+        return till_json(sving_dold(seed=seed, brus_px=brus, fran=FRAN_S, decimaler=1)[0])
     return till_json(sving(vy, hand, seed=seed, brus_px=brus, dolj=dolj, fran=FRAN_S, decimaler=1, **ovrigt)[0])
 
 

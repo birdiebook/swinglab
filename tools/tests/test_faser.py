@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from _hjalp import gen
+from _hjalp import fm, gen, M
 from pc import faser as F
 
 
@@ -110,3 +110,87 @@ class Faserna(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+TEMPO_GRANS = 0.15     # tempot bakifrån mot det sanna (METOD M40): uppmätt högst 0,14 med 0,8 px brus
+
+# FO:s tal före S1d (Fixturer.swift på main 003f4c0): starten, toppen och tempot. Starten
+# bakifrån (METOD M40) får inte röra FO.
+FO_LAST = {
+    "fo": (1.3700535504485585, 2.190764845115089, 2.65400385985215),
+    "fo_vanster": (1.3711832888938646, 2.194963846729204, 2.7005997453161825),
+    "fo_luckor": (1.3711914872024167, 2.1912625475052763, 2.6562085476716644),
+    "fo_kort_arm": (1.3865977289866698, 2.1885694174131665, 2.5751218193315673),
+    "fo_lucka_arm": (1.3717504565248213, 2.1936779375984607, 2.6832134604664026),
+    "fo_lucka_fart": (1.3677341218327328, 2.191039459571005, 2.664758860775893),
+    "fo_nara_traff": (1.3682827506944757, 2.192639887080475, 5.594167377139506),
+}
+
+
+def _mat_dold(**args) -> tuple[dict, dict]:
+    d, facit = gen.sving_dold(**args)
+    return M.mat(fm.fran_dict(d)), facit
+
+
+class StartenBakifran(unittest.TestCase):
+    """Bakifrån går takeawayn mot kameran och syns knappt, och står kameran över
+    händerna ser de ut att sjunka först (METOD M40). Påhittade 3D-svingar sedda
+    bakifrån, mot starten på den verkliga banan (`generera.facit_start_3d`)."""
+
+    def test_dold_takeaway_med_kameran_over_handerna(self) -> None:
+        for hojd in (1.0, 1.4, 1.6):
+            for baksving in (0.75, 0.95):
+                for seed in (1, 2):
+                    with self.subTest(hojd=hojd, baksving=baksving, seed=seed):
+                        r, facit = _mat_dold(seed=seed, hojd=hojd, baksving=baksving)
+                        self.assertFalse(r["faser"]["start_osaker"])
+                        self.assertAlmostEqual(r["matt"]["tempo"], facit["tempo"], delta=TEMPO_GRANS)
+
+    def test_handernas_start_tappar_tempot_bakifran(self) -> None:
+        """Felet som M40 rättar: händernas start (M4) saknas med baksvingen 0,75 s, och
+        med 0,95 s ger den ett tempo ≈ 1 för lågt."""
+        for baksving in (0.75, 0.95):
+            d, facit = gen.sving_dold(seed=1, baksving=baksving)
+            s = fm.fran_dict(d)
+            b = F.jamna(s.t, F.grepp_regel(s.xy))
+            f = F.hitta_faser(s.t, (b[:, 5] + b[:, 6]) / 2, s.t_klick)
+            if f.start is not None:
+                self.assertLess((f.topp - f.start) / (f.traff - f.topp), facit["tempo"] - 0.5)
+            self.assertEqual(f.start is None, baksving == 0.75)
+
+    def test_skakig_adress_ger_osaker_start_och_inget_tempo(self) -> None:
+        r, _ = _mat_dold(seed=23, brus_px=10.0)
+        self.assertIsNotNone(r["faser"]["start"])               # adressen räknas ändå från den
+        self.assertTrue(r["faser"]["start_osaker"])
+        for k in ("tempo", "baksving_s", "nedsving_s"):
+            self.assertNotIn(k, r["matt"])
+
+    def test_utan_posen_tas_starten_ur_handerna_och_ar_osaker(self) -> None:
+        d, _ = gen.sving("dtl", seed=24, brus_px=0.8, dolj=(("armbage_v", 0.0, 9.9), ("armbage_h", 0.0, 9.9),
+                                                            ("axel_v", 2.10, 2.30)))
+        s = fm.fran_dict(d)
+        r = M.mat(s)
+        b = F.jamna(s.t, F.grepp_regel(s.xy))
+        f = F.hitta_faser(s.t, (b[:, 5] + b[:, 6]) / 2, s.t_klick)
+        self.assertEqual(r["faser"]["start"], f.start)
+        self.assertTrue(r["faser"]["start_osaker"])
+        self.assertNotIn("tempo", r["matt"])
+
+    def test_figuren_i_bildens_plan(self) -> None:
+        """Utan dold takeaway (händerna i bildens plan) ligger posens start nära
+        händernas (M4): uppmätt −26…−18 ms med 0,8 px brus (frön 0–19), eftersom
+        armbågen och axlarna rör sig före händerna når 5 % av vägen."""
+        for seed in range(4):
+            r = M.mat(fm.fran_dict(gen.sving("dtl", seed=seed, brus_px=0.8)[0]))
+            _, facit = gen.sving("dtl", seed=seed, brus_px=0.8)
+            self.assertFalse(r["faser"]["start_osaker"])
+            self.assertAlmostEqual(r["faser"]["start"], facit["_start"], delta=0.030)
+
+    def test_fo_ar_oforandrad(self) -> None:
+        for namn, (start, topp, tempo) in FO_LAST.items():
+            with self.subTest(namn=namn):
+                r = gen.resultat_json(gen.fixtursving(namn))
+                self.assertAlmostEqual(r["faser"]["start"], start, delta=1e-9)
+                self.assertAlmostEqual(r["faser"]["topp"], topp, delta=1e-9)
+                self.assertAlmostEqual(r["matt"]["tempo"], tempo, delta=1e-9)
+                self.assertFalse(r["faser"]["start_osaker"])

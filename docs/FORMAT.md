@@ -86,7 +86,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 | Fält | Betydelse |
 |---|---|
 | `cm_per_px` | Skalan (METOD M2). |
-| `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4). |
+| `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4), och `start_osaker` (bool): starten finns men bär inget tempo (bakifrån, METOD M40). |
 | `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). |
 | `matt` | Måtten per namn (METOD M5–M24, M29, M30–M39). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), m/s (`fart`) och °/s (`vinkelfart`). |
 

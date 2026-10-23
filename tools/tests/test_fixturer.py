@@ -80,6 +80,14 @@ class Fixturerna(unittest.TestCase):
         luckor = json.loads(self.f["svingar"]["fo_luckor"][1])["matt"]
         self.assertNotIn("backen_sway_topp", luckor)               # rå lucka 0,146 s
         self.assertIn("huvud_sway_topp", luckor)                   # rå lucka 0,067 s
+        dold = json.loads(self.f["svingar"]["dtl_dold"][1])          # METOD M40
+        self.assertFalse(dold["faser"]["start_osaker"])
+        self.assertIn("tempo", dold["matt"])
+        for namn in ("dtl_osaker", "dtl_utan_pose"):
+            osaker = json.loads(self.f["svingar"][namn][1])
+            self.assertIsNotNone(osaker["faser"]["start"])
+            self.assertTrue(osaker["faser"]["start_osaker"])
+            self.assertNotIn("tempo", osaker["matt"])
         kort = json.loads(self.f["svingar"]["dtl_kort"][1])
         self.assertIsNone(kort["faser"]["start"])
         self.assertNotIn("tempo", kort["matt"])

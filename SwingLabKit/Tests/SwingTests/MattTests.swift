@@ -18,7 +18,7 @@ final class MattTests: XCTestCase {
     func testVarjeSvingGerPythonsTal() throws {
         XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
                                                        "fo_kort_arm", "fo_lucka_arm", "dtl_vanster", "fo_lucka_fart",
-                                                       "fo_nara_traff"])
+                                                       "fo_nara_traff", "dtl_dold", "dtl_osaker", "dtl_utan_pose"])
         var jamforda = 0
         var positioner = 0
         for f in Fixturer.svingar {
@@ -35,6 +35,7 @@ final class MattTests: XCTestCase {
             XCTAssertEqual(r.faser.topp, python.faser.topp, accuracy: Self.tid, "\(f.namn): toppen")
             XCTAssertEqual(r.faser.traff, python.faser.traff, "\(f.namn): träffen")
             XCTAssertEqual(r.faser.start == nil, python.faser.start == nil, "\(f.namn): starten")
+            XCTAssertEqual(r.faser.startOsaker, python.faser.startOsaker, "\(f.namn): starten osäker")
             if let a = r.faser.start, let b = python.faser.start {
                 XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): starten")
             }
@@ -49,11 +50,11 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 = 509;
+        // (54 + 46 + 43 + 36 + 48 + 33 + 51 + 50 + 43 + 51 + 54 + 35 + 32 + 34 = 610;
         // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna)
-        // och positionerna (11 × 7 − 5 saknade = 72).
-        XCTAssertEqual(jamforda, 509)
-        XCTAssertEqual(positioner, 72)
+        // och positionerna (14 × 7 − 6 saknade = 92).
+        XCTAssertEqual(jamforda, 610)
+        XCTAssertEqual(positioner, 92)
     }
 
     func testDePahittadeFormerna() throws {
@@ -155,6 +156,31 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(r.faser.adressTill, r.faser.topp - Faser.toppAdressS - 0.10, accuracy: 1e-12)
     }
 
+    /// Bakifrån tas starten ur posen (METOD M40): med dold takeaway finns den och
+    /// tempot; skakar posen i adressen, eller räcker den inte, är starten osäker och
+    /// tempot saknas. Framifrån är starten händernas (M4).
+    func testStartenBakifranUrPosen() throws {
+        func sving(_ namn: String) throws -> Sving {
+            try Sving.las(json: Fixturer.svingar.first(where: { $0.namn == namn })!.indata)
+        }
+        let dold = try Matt.mat(sving("dtl_dold"))
+        XCTAssertFalse(dold.faser.startOsaker)
+        XCTAssertNotNil(dold.matt["tempo"])
+        for namn in ["dtl_osaker", "dtl_utan_pose"] {
+            let r = try Matt.mat(sving(namn))
+            XCTAssertNotNil(r.faser.start, namn)
+            XCTAssertTrue(r.faser.startOsaker, namn)
+            XCTAssertNil(r.matt["tempo"], namn)
+            XCTAssertNil(r.matt["baksving_s"], namn)
+        }
+        // Utan posen räcker inte händerna: deras start (M4) saknas med den dolda takeawayn.
+        let s = try sving("dtl_dold")
+        let b = Faser.greppRegel(s.leder).map { Faser.jamna(s.t, $0) }
+        let g = zip(b[Led.handledF.rawValue], b[Led.handledB.rawValue]).map { Punkt.mitt($0, $1) }
+        XCTAssertNil(try Faser.hitta(s.t, g, tKlick: s.tKlick).start)
+        XCTAssertFalse(try Matt.mat(sving("fo")).faser.startOsaker)
+    }
+
     func testLangLuckaTarBortMattenIFasen() throws {
         let r = try Matt.mat(Sving.las(json: Fixturer.svingar[3].indata))
         XCTAssertNil(r.matt["backen_thrust_topp"])
@@ -229,7 +255,8 @@ final class MattTests: XCTestCase {
     /// Samma fall som test_positioner.py (Passagerna). METOD M28
     static let t2 = (0..<260).map { (Double($0) / 100 * 1e6).rounded() / 1e6 }
     static func faser(topp: Double = 1.0) -> Fastider {
-        Fastider(start: 0.3, topp: topp, traff: 1.5, adressFran: -0.1, adressTill: 0.2, finishFran: 2.5, finishTill: 2.7)
+        Fastider(start: 0.3, topp: topp, traff: 1.5, adressFran: -0.1, adressTill: 0.2, finishFran: 2.5, finishTill: 2.7,
+                 startOsaker: false)
     }
 
     static func serie(_ f: (Double) -> Double) -> [Double] { t2.map(f) }
