@@ -16,6 +16,7 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import klubba as KL
 from .format import ANTAL_LEDER, LANGD_M, LEDER_FIL
 
 FORMAT = "swinglab-paket/1"
@@ -54,6 +55,9 @@ class Slag:
     klipp_langd_s: float | None = None    # klippets längd: bara rutorna i [0; längd) räknas (METOD MS12)
     detection_wrong: bool = False         # Johannes märkte lederna fel på telefonen: mäts inte (METOD MT1)
     lederna: dict | None = None    # JointSeries, läst
+    # Klubbans markeringar för slaget ur paketets klubba.json (S7a, klubba.markeringar):
+    # [{"position", "t", "grepp", "hosel", "bredd", "hojd"}]; tom utan markeringar. METOD M45
+    klubba_markeringar: list = field(default_factory=list)
 
 
 @dataclass
@@ -93,6 +97,10 @@ class Paket:
     par_fel: str | None = None
     # enhet.json: det valda formatets (bredd, höjd, synfält), när det går att läsa. METOD MK3
     enhet_synfalt: tuple[int, int, float] | None = None
+    # klubba.json (S7a): telefonens markeringar av klubban, version 2, när paketet bär den och
+    # den går att läsa; annars None och, om den fanns men inte gick att läsa, skälet. BESLUT B47
+    klubba: dict | None = None
+    klubba_fel: str | None = None
 
 
 def _tal(v) -> bool:
@@ -421,6 +429,22 @@ def las(sokvag, med_leder: bool = True) -> Paket:
                 p.par_fel = "; ".join(f)
             else:
                 p.par = d
+        if KL.FIL in i_zip:
+            # Valfri (S7a): ett fel här stoppar inte paketet, bara klubbans mått. BESLUT B47
+            try:
+                d = json.loads(las_ur_zip(z, namn, KL.FIL).decode("utf-8"))
+                f = KL.kontrollera(d)
+            except PaketFel as e:
+                f = e.fel
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                f = [f"{KL.FIL} är inte giltig JSON"]
+            if f:
+                p.klubba_fel = "; ".join(f)
+            else:
+                p.klubba = KL.uppgradera(d)
+                per_slag = KL.markeringar(p.klubba)
+                for s in p.slag:
+                    s.klubba_markeringar = per_slag.get(s.id, [])
         if med_leder:
             for s in p.slag:
                 try:

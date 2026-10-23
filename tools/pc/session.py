@@ -209,6 +209,11 @@ def main(argv=None) -> int:
     for vy, k in analys["kontaktark"].items():
         print(f"  kontaktark {vy}: {k.get('fil') or 'hoppat (' + k['hoppat'] + ')'}")
     print(f"  kandidater: {', '.join(k['fel'] + ' (' + k['status'] + ')' for k in analys['kandidater']) or 'inga'}")
+    k = analys["klubba"]
+    if any(k["markerade"].values()) or k["fel"]:
+        print("  klubban: " + ", ".join(f"{n} slag markerade ({vy.upper()})" for vy, n in k["markerade"].items() if n)
+              + (f", {len(k['matt'])} mått" if k["matt"] else "")
+              + "".join(f"; {vy.upper()}: klubba.json lästes inte ({f})" for vy, f in k["fel"].items()))
     t = analys["tre_d"]
     if "hoppat" in t:
         print(f"  3D: hoppat ({t['hoppat']})")

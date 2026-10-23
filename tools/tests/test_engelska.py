@@ -147,7 +147,7 @@ class Engelska(unittest.TestCase):
         texter = [(e["id"], f, e[f]) for e in k["fel"] for f in ("namn", "ovning", "tanke", "vad", "varfor", "tecken")]
         texter += [(e["matt"], f, e[f]) for e in k["matt"] for f in ("vad", "varfor", "tecken")]
         texter += [(e["matt"], f, e[f]) for e in k["spridning"] for f in ("vad", "varfor", "tecken")]   # METOD M44
-        self.assertEqual(len(texter), 12 * 6 + 52 * 3 + 2 * 3)
+        self.assertEqual(len(texter), 12 * 6 + 62 * 3 + 2 * 3)
         for namn, f, t in texter:
             self.assertIsNone(SVENSKA.search(t), f"{namn}.{f}: {t}")
 

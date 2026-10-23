@@ -355,34 +355,31 @@ SATTA = {
 }
 
 
-def fixtur_markeringar(namn_: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], dict]:
-    """Påhittade markeringar på en av Fixturer.swifts svingar (generera.py): greppet på
-    handledernas mitt + en förskjutning i bild, hoseln längs den satta vinkeln, på rutan
-    närmast förslaget för varje position. Svarar markeringarna (i bildens pixlar, ospeglade)
-    och svingen."""
-    from . import generera as gen
+def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], Sving]:
+    """Påhittade markeringar på en påhittad sving i filformatet (generera.py): greppet på
+    handledernas mitt + en förskjutning i bild, hoseln längs den satta vinkeln (SATTA), på
+    rutan närmast förslaget för varje position (M45). Positionerna i `hoppa` hoppas över.
+    Svarar markeringarna (i bildens pixlar, ospeglade) och svingen."""
     from . import format as fm
     from . import matt as M
-    indata = gen.fixtursving(namn_)
     sv = fm.las(indata)
     r = M.mat(sv)
     d = json.loads(indata)
     t = np.array([x["t"] for x in d["rutor"]])
-    ordning = np.argsort(t, kind="stable")
     marks = []
     for p in POSITIONER:
         tf = forslag_tid(p, r["positioner"], r["faser"]["start"])
         if tf is None:
             continue
-        k = int(ordning[np.argmin(np.abs(t[ordning] - tf))])
+        k = int(np.argmin(np.abs(t - tf)))
         tk = float(t[k])
         if p in hoppa:
             marks.append({"position": p, "t": tk, "grepp": None, "hosel": None})
             continue
         leder = d["rutor"][k]["leder"]
-        hander = [leder[5], leder[6]]
-        gx = sum(h[0] for h in hander) / 2 + 6.0 * sv.x_tecken
-        gy = sum(h[1] for h in hander) / 2 - 4.0
+        hander = [h for h in (leder[5], leder[6]) if h[2] >= 0.3] or [leder[5], leder[6]]
+        gx = sum(h[0] for h in hander) / len(hander) + 6.0 * sv.x_tecken
+        gy = sum(h[1] for h in hander) / len(hander) - 4.0
         vinkel, langd = SATTA[sv.vy][p]
         # Vinkeln gäller den speglade bilden: x i filen = x_tecken · X.
         hx = gx + sv.x_tecken * langd * math.cos(math.radians(vinkel))
@@ -392,18 +389,26 @@ def fixtur_markeringar(namn_: str, hoppa: tuple[str, ...] = ()) -> tuple[list[di
     return marks, sv
 
 
+def fixtur_markeringar(namn_: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], Sving]:
+    """Påhittade markeringar på en av Fixturer.swifts svingar (generera.py --swift)."""
+    from . import generera as gen
+    return pahittade_markeringar(gen.fixtursving(namn_), hoppa)
+
+
 FIXTURFALL = (("dtl", ()), ("dtl_vanster", ()), ("fo", ()), ("fo_vanster", ("P8",)))
 
 
-def _fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str) -> dict:
-    """Markeringarna som en fil i version 2, som telefonen skriver den (PassPackage)."""
-    rutor = []
+def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd: int = FIXTUR_BREDD,
+           hojd: int = FIXTUR_HOJD, rutor: list | None = None) -> dict:
+    """Markeringarna som en fil i version 2, som telefonen skriver den (PassPackage, BESLUT
+    B47): `t_klipp` och `forskjutning_ms` null, `visad` hela bilden. `rutor` = lägg till."""
+    rutor = list(rutor or [])
     for m in marks:
         satt = m["grepp"] is not None
         rutor.append({
             "id": f"{vy}-{slag}-{m['position']}", "fil": fil, "vy": vy, "slag": slag, "val": m["position"],
             "t": m["t"], "t_klipp": None, "forskjutning_ms": None, "t_ruta": None,
-            "bredd": FIXTUR_BREDD, "hojd": FIXTUR_HOJD, "visad": [0, 0, FIXTUR_BREDD, FIXTUR_HOJD],
+            "bredd": bredd, "hojd": hojd, "visad": [0, 0, bredd, hojd],
             "status": "markerad" if satt else "hoppad",
             "punkter": {"grepp": {"x": m["grepp"][0], "y": m["grepp"][1], "kalla": "klick"} if satt else None,
                         "skaft_mitt": None,
@@ -426,7 +431,7 @@ def fixturer() -> dict:
                      "matt": mat(marks, sv.vy, sv.x_tecken, FIXTUR_BREDD, FIXTUR_HOJD, sv),
                      "osakerhet": {str(L): osakerhet(L) for L in (40.0, 60.0, 100.0, 300.0)}})
     marks, _ = fixtur_markeringar("dtl")
-    fil = _fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
+    fil = fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
     return {"fall": fall, "fil": fil,
             "forslag": [{"position": p, "positioner": pos, "start": st, "tid": forslag_tid(p, pos, st)}
                         for p, pos, st in (

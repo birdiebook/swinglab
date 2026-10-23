@@ -266,9 +266,12 @@ def minne(rot: Path = ROT, till: str | None = None) -> dict:
     """Det skillen läser före tolkningen: passen, varje fels väg genom vintern
     och övningarnas läge."""
     pass_ids = [p for p in lista(rot) if till is None or p <= till]
-    passen, fel, tre_d = [], {}, {}
+    passen, fel, tre_d, klubba = [], {}, {}, {}
     for p in pass_ids:
         a = las_analys(rot, p)
+        # Klubbans mått ur markerade svingar (S7a): median och n per pass, en trend. METOD M46
+        for x in (a.get("klubba") or {}).get("matt", []):
+            klubba.setdefault(x["matt"], []).append({"pass": p, "vy": x["vy"], "median": x["visat"], "n": x["n"]})
         # 3D-måttens trend (S6a): bara pass med en median över minst min_slag slag. METOD MK7
         for x in (a.get("tre_d") or {}).get("trend", []):
             if x["median"] is not None:
@@ -280,7 +283,7 @@ def minne(rot: Path = ROT, till: str | None = None) -> dict:
             fel.setdefault(b["id"], []).append({"pass": p, "varde": b["visat"], "forsta_serien": b["forsta_serien"],
                                                 "status": b["status"]})
     return {"format": MINNE, "till": pass_ids[-1] if pass_ids else None, "pass": passen, "fel": fel,
-            "tre_d": tre_d, "ovningar": ovningar(rot, till),
+            "tre_d": tre_d, "klubba": klubba, "ovningar": ovningar(rot, till),
             "kor_om": [p for p in kor_om(rot) if p in pass_ids]}
 
 

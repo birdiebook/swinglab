@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import base64
 import json
-import math
 import os
 import secrets
 import sys
@@ -46,18 +45,19 @@ if __package__ in (None, ""):
     __package__ = "pc"
 
 from . import klipp as KL  # noqa: E402
+from . import klubba as KLB  # noqa: E402
 from . import kontaktark as KA  # noqa: E402
 from . import paket as P  # noqa: E402
 from . import s3_facit as S3F  # noqa: E402
 from . import session as S  # noqa: E402
 from .format import LEDER_FIL, MIN_KONFIDENS  # noqa: E402
 
-FORMAT = "swinglab-klubba/1"
-# BESLUT B44: tre punkter, GolfPose hosel som klubbhuvudets punkt.
-PUNKTER = ("grepp", "skaft_mitt", "klubbhuvud")
-VAL = ("adress", "topp", "tidig_nedsving", "jamn")
-STATUS = ("omarkerad", "markerad", "hoppad")
-KALLOR = ("klick",)          # BESLUT B44: varje punkt är ett klick; ledtråden godtas aldrig av sig själv
+# Formatet ägs av klubba.py (BESLUT B47): verktyget skriver version 2 och läser 1 och 2.
+FORMAT = KLB.FORMAT
+PUNKTER = KLB.PUNKTER        # BESLUT B44: tre punkter, GolfPose hosel som klubbhuvudets punkt
+VAL = KLB.VAL_1              # rutorna som verktyget väljer (MF5); telefonen väljer P-positioner
+STATUS = KLB.STATUS
+KALLOR = KLB.KALLOR          # BESLUT B44: varje punkt är ett klick; ledtråden godtas aldrig av sig själv
 TID_TOL_S = 0.002            # METOD MF1: samma tolerans som S3 för klippets ruta
 
 SLAG_PER_PAKET = 6           # METOD MF5: slag per paket, jämnt spridda över passet
@@ -212,100 +212,15 @@ def sla_ihop(ny_d: dict, gammal: dict | None) -> dict:
     return {**ny_d, "rutor": rutor + kvar}
 
 
-def _tal(v) -> bool:
-    return not isinstance(v, bool) and isinstance(v, (int, float)) and math.isfinite(v)
-
-
-def _heltal(v) -> bool:
-    return not isinstance(v, bool) and isinstance(v, int)
-
-
 def kontrollera(d) -> list[str]:
-    """Formen på märkningen (docs/FORMAT.md, "Klubbans märkning"). Felen nämner rutans
-    plats och fältet, aldrig värdet."""
-    if not isinstance(d, dict):
-        return ["märkningen ska vara ett JSON-objekt"]
-    fel = []
-    if d.get("format") != FORMAT:
-        fel.append(f"format ska vara {FORMAT}")
-    if d.get("punkter") != list(PUNKTER):
-        fel.append(f"punkter ska vara {list(PUNKTER)}")
-    if d.get("pass") is not None and not (isinstance(d["pass"], str) and P.PASS_ID.match(d["pass"])):
-        fel.append("pass ska vara yyyyMMdd-HHmmss eller null")
-    if not isinstance(d.get("kalla"), list) or not all(isinstance(k, str) for k in d["kalla"]):
-        fel.append("kalla ska vara en lista med filnamn")
-    if not isinstance(d.get("andrad"), str):
-        fel.append("andrad ska vara en tid")
-    rutor = d.get("rutor")
-    if not isinstance(rutor, list):
-        return fel + ["rutor ska vara en lista"]
-    ids = set()
-    for i, r in enumerate(rutor):
-        p = f"rutor[{i}]"
-        if not isinstance(r, dict):
-            fel.append(f"{p} ska vara ett objekt")
-            continue
-        if not isinstance(r.get("id"), str) or not r["id"]:
-            fel.append(f"{p}.id ska vara text")
-        elif r["id"] in ids:
-            fel.append(f"{p}.id finns två gånger")
-        ids.add(r.get("id"))
-        if not isinstance(r.get("fil"), str):
-            fel.append(f"{p}.fil ska vara text")
-        if r.get("vy") not in ("dtl", "fo", None):
-            fel.append(f"{p}.vy ska vara dtl, fo eller null")
-        if r.get("slag") is not None and not isinstance(r["slag"], str):
-            fel.append(f"{p}.slag ska vara text eller null")
-        if r.get("val") not in VAL:
-            fel.append(f"{p}.val ska vara en av {', '.join(VAL)}")
-        if r.get("t") is not None and not _tal(r["t"]):
-            fel.append(f"{p}.t ska vara ett tal eller null")
-        if not (_tal(r.get("t_klipp")) and r["t_klipp"] >= 0):
-            fel.append(f"{p}.t_klipp ska vara ett tal ≥ 0")
-        if not _tal(r.get("forskjutning_ms")):
-            fel.append(f"{p}.forskjutning_ms ska vara ett tal")
-        if r.get("t_ruta") is not None and not (_tal(r["t_ruta"]) and r["t_ruta"] >= 0):
-            fel.append(f"{p}.t_ruta ska vara ett tal ≥ 0 eller null")
-        bh = (r.get("bredd"), r.get("hojd"))
-        if not all(_heltal(v) and v > 0 for v in bh):
-            fel.append(f"{p}.bredd och hojd ska vara positiva heltal")
-            bh = None
-        v = r.get("visad")
-        if not (isinstance(v, list) and len(v) == 4 and all(_heltal(x) for x in v)):
-            fel.append(f"{p}.visad ska vara fyra heltal")
-        elif bh and not (v[0] >= 0 and v[1] >= 0 and v[2] > 0 and v[3] > 0
-                         and v[0] + v[2] <= bh[0] and v[1] + v[3] <= bh[1]):
-            fel.append(f"{p}.visad ska ligga inom bilden")
-        if r.get("status") not in STATUS:
-            fel.append(f"{p}.status ska vara en av {', '.join(STATUS)}")
-        pk = r.get("punkter")
-        if not isinstance(pk, dict) or set(pk) != set(PUNKTER):
-            fel.append(f"{p}.punkter ska ha exakt {', '.join(PUNKTER)}")
-        else:
-            for n in PUNKTER:
-                q = pk[n]
-                if q is None:
-                    if r.get("status") == "markerad":
-                        fel.append(f"{p}.punkter.{n} saknas i en markerad ruta")
-                    continue
-                if q == {"syns_inte": True}:
-                    continue
-                if not (isinstance(q, dict) and set(q) == {"x", "y", "kalla"} and _tal(q["x"]) and _tal(q["y"])
-                        and q["kalla"] in KALLOR):
-                    fel.append(f"{p}.punkter.{n} ska vara null, {{x, y, kalla}} eller {{syns_inte: true}}")
-                elif bh and not (0 <= q["x"] <= bh[0] and 0 <= q["y"] <= bh[1]):
-                    fel.append(f"{p}.punkter.{n} ligger utanför bilden")
-        fs = r.get("forslag")
-        if not isinstance(fs, dict) or not set(fs) <= set(PUNKTER) or not all(
-                isinstance(q, dict) and _tal(q.get("x")) and _tal(q.get("y")) and isinstance(q.get("kalla"), str)
-                for q in fs.values()):
-            fel.append(f"{p}.forslag ska vara {{punkt: {{x, y, kalla}}}}")
-        if len(fel) > 30:
-            return fel + ["fler fel hoppas över"]
-    return fel
+    """Formen på märkningen, version 1 och 2 (docs/FORMAT.md, "Klubbans märkning"): ägs av
+    klubba.py, så att telefonens markeringar och PC:ns läses som samma data. BESLUT B47"""
+    return KLB.kontrollera(d)
 
 
 def las(fil: Path) -> dict:
+    """Märkningen i version 2: en fil i version 1 (före S7a) uppgraderas, och nästa
+    sparning skriver version 2. Telefonens `klubba.json` läses likadant. BESLUT B47"""
     try:
         d = json.loads(Path(fil).read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
@@ -313,7 +228,23 @@ def las(fil: Path) -> dict:
     f = kontrollera(d)
     if f:
         raise MarkFel(f"{Path(fil).name}: " + "; ".join(f))
-    return d
+    return KLB.uppgradera(d)
+
+
+def las_paket(fil: Path) -> dict | None:
+    """Telefonens markeringar ur ett paket (`klubba.json`, version 2), eller None när
+    paketet inte har några. BESLUT B47"""
+    with zipfile.ZipFile(fil) as z:
+        if KLB.FIL not in z.namelist():
+            return None
+        try:
+            d = json.loads(P.las_ur_zip(z, Path(fil).name, KLB.FIL).decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise MarkFel(f"{Path(fil).name}: {KLB.FIL} är inte giltig JSON") from None
+    f = kontrollera(d)
+    if f:
+        raise MarkFel(f"{Path(fil).name}: {KLB.FIL}: " + "; ".join(f))
+    return KLB.uppgradera(d)
 
 
 _LAS = threading.Lock()

@@ -15,6 +15,7 @@ from pathlib import Path
 from . import faser as F
 from . import format as fm
 from . import katalog as KAT
+from . import klubba as KL
 from . import matt as M
 from . import session as S
 from . import tva_kameror as TK
@@ -34,6 +35,8 @@ def enhet(matt: str) -> str:
     """Måttets enhet, för visningen och "klart när"."""
     if matt in ("tempo", "stans_bredd"):
         return ""
+    if matt.startswith("skaft"):         # klubbans mått ur markeringarna (METOD M46–M49)
+        return "°"
     if matt.endswith("_ms"):
         return "ms"
     if matt.endswith("_s"):
@@ -83,11 +86,21 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
             ut.append(rad)
             continue
         try:
-            r = M.mat(fm.fran_dict(till_sving(p, s, langd_m)))
+            sv = fm.fran_dict(till_sving(p, s, langd_m))
+            r = M.mat(sv)
         except (fm.FormatFel, F.SvingFel) as e:
             rad["fel"] = f"{p.fil}: {s.leder}: {e}"
             ut.append(rad)
             continue
+        if s.klubba_markeringar:
+            # Klubbans mått ur telefonens markeringar (S7a, METOD M46–M49) står bland slagets
+            # mått, och rutan han valde för P2, P6 och P8 blir slagets position (M45).
+            km = s.klubba_markeringar
+            r["matt"].update(KL.mat(km, p.vy, sv.x_tecken, km[0]["bredd"], km[0]["hojd"], sv))
+            for m in km:
+                if m["position"] in KL.SKAFTETS and m["grepp"] is not None:
+                    r["positioner"][m["position"]] = m["t"]
+            rad["klubba_markerad"] = any(m["grepp"] is not None for m in km)
         rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], positioner=r["positioner"], matt=r["matt"])
         ut.append(rad)
     # Första serien: de fem första mätta slagen i den första serien. METOD MT2
@@ -96,6 +109,22 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
         if "matt" in r:
             r["forsta_serien"] = any(r is f for f in forsta)
     return ut
+
+
+def klubba(rader: list[dict], paket: list[Paket]) -> dict:
+    """Klubbans mått i passet (S7a, METOD M46–M49): de markerade slagen per vy, och per mått
+    medianen och n över de markerade svingarna, från ett slag (få svingar är en trend, inte
+    ett fel att öva, BESLUT B47). `fel` = paketens klubba.json som inte gick att läsa."""
+    markerade = {vy: sum(1 for r in rader if r["vy"] == vy and r.get("klubba_markerad")) for vy in ("dtl", "fo")}
+    matt = []
+    for vy in ("dtl", "fo"):
+        for namn in KL.namn(vy):
+            v = sorted(r["matt"][namn] for r in rader if r["vy"] == vy and namn in r.get("matt", {}))
+            if v:
+                med = S.percentil(v, 0.5)
+                matt.append({"matt": namn, "vy": vy, "n": len(v), "median": med, "visat": avrunda(namn, med)})
+    return {"markerade": markerade, "matt": matt,
+            "fel": {p.vy: p.klubba_fel for p in paket if p.klubba_fel}}
 
 
 def tempo_vy(rader: list[dict]) -> str:
@@ -293,6 +322,7 @@ def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: d
                                          and "backen_skifte_ms" not in r["matt"]
                                          and r["matt"].get("backen_sway_traff", 0.0) < 0),
                                "fo_matta": sum(1 for r in slag if r["vy"] == "fo" and "matt" in r)}
+    a["klubba"] = klubba(slag, paket)
     a["baslinje"] = {"pass": list(baslinje_pass),
                      "svingar": {vy: sum(1 for s in tidigare if s["vy"] == vy) for vy in ("dtl", "fo")}}
     if forra is not None:

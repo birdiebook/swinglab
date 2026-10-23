@@ -15,9 +15,12 @@ import json
 import math
 from pathlib import Path
 
+from . import klubba as KL
 from . import session as S
 from .matt import MATT
-from .positioner import POSITIONER
+
+# Katalogens positioner: alla tio, P2, P6 och P8 för klubbans mått (S7a, METOD M45).
+POSITIONER = KL.POSITIONER
 
 KATALOG = Path(__file__).resolve().parents[2] / "katalog.json"
 # Måtten ur två kameror (S6a): en egen fil som bara PC:n läser. BESLUT B37
@@ -121,7 +124,7 @@ def kontrollera(k: dict) -> list[str]:
             fel.append(f"{namn}: fel ska vara ett fel i katalogen")
         if e["vy"] not in ("dtl", "fo"):
             fel.append(f"{namn}: vy ska vara dtl eller fo")
-        elif e["matt"] not in MATT[e["vy"]]:
+        elif e["matt"] not in MATT[e["vy"]] + KL.katalognamn(e["vy"]):     # klubbans mått: METOD M46–M49
             fel.append(f"{namn}: måttet finns inte i vyn")
         if (e["vy"], e["matt"]) in visade:
             fel.append(f"{namn}: står redan i katalogen")
