@@ -369,21 +369,38 @@ def _rena(x):
     return x
 
 
-def lika(a, b, vag: str = "") -> list[str]:
-    """Skillnaderna mellan två JSON-värden; tal inom 1e-9 (en annan dator kan ge andra
-    sista bitar ur BLAS)."""
+# Tal jämförs inom så mycket (relativt, absolut): numpy och OpenBLAS räknar olika sista
+# bitar på olika processorer (Actions byter maskin mellan körningarna), och skillnaden växer
+# i Levenberg–Marquardts iterationer som mellan Swift och Python (METOD M50).
+TOL = (1e-6, 1e-5)
+
+
+def lika(a, b, vag: str = "", tol: tuple[float, float] = TOL) -> list[str]:
+    """Skillnaderna mellan två JSON-värden; tal inom `tol`, allt annat exakt."""
     if isinstance(a, dict) and isinstance(b, dict):
         if set(a) != set(b):
             return [f"{vag}: nycklarna skiljer"]
-        return [f for k in a for f in lika(a[k], b[k], f"{vag}.{k}")]
+        return [f for k in a for f in lika(a[k], b[k], f"{vag}.{k}", tol)]
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return [f"{vag}: längden skiljer"]
-        return [f for i, (x, y) in enumerate(zip(a, b)) for f in lika(x, y, f"{vag}[{i}]")]
+        return [f for i, (x, y) in enumerate(zip(a, b)) for f in lika(x, y, f"{vag}[{i}]", tol)]
     if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) \
             and not isinstance(b, bool):
-        return [] if math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9) else [f"{vag}: talet skiljer"]
+        return [] if math.isclose(a, b, rel_tol=tol[0], abs_tol=tol[1]) else [f"{vag}: talet skiljer ({a} mot {b})"]
     return [] if a == b else [f"{vag}: skiljer"]
+
+
+def storsta_skillnad(a, b) -> float:
+    """Den största absoluta skillnaden mellan två JSON-värdens tal (samma form)."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        return max([storsta_skillnad(a[k], b[k]) for k in a if k in b] or [0.0])
+    if isinstance(a, list) and isinstance(b, list):
+        return max([storsta_skillnad(x, y) for x, y in zip(a, b)] or [0.0])
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) \
+            and not isinstance(b, bool):
+        return abs(a - b)
+    return 0.0
 
 
 # --- att bygga ------------------------------------------------------------------------
@@ -519,7 +536,9 @@ def _om_ett(jobb: tuple[str, str]) -> tuple[str, str, list[str]]:
     finally:
         shutil.rmtree(mapp, ignore_errors=True)
     var = fx["varianter"][v]
-    return namn, v, lika(r["python"], var["python"], f"{namn}/{v}") + lika(r["inre"], var["inre"], f"{namn}/{v} inre")
+    fel = lika(r["python"], var["python"], f"{namn}/{v}") + lika(r["inre"], var["inre"], f"{namn}/{v} inre")
+    skillnad = max(storsta_skillnad(r["python"], var["python"]), storsta_skillnad(r["inre"], var["inre"]))
+    return namn, v, fel + [f"TRED-PY största skillnad {namn}/{v} {skillnad:.2g}"]
 
 
 def rakna_om(processer: int = 4) -> list[str]:
@@ -535,7 +554,11 @@ def rakna_om(processer: int = 4) -> list[str]:
     jobb = sorted(((namn, v) for namn in FACIT for v in las(namn)["varianter"]), key=lambda x: (-slag(*x), x))
     jobb.insert(4, ("komponenter", ""))
     with Pool(processer) as pool:
-        return [f for _, _, fel in pool.map(_om_ett, jobb, chunksize=1) for f in fel]
+        ut = [f for _, _, fel in pool.map(_om_ett, jobb, chunksize=1) for f in fel]
+    for f in ut:
+        if f.startswith("TRED-PY"):
+            print(f, file=sys.stderr)
+    return [f for f in ut if not f.startswith("TRED-PY")]
 
 
 def main(argv=None) -> int:
