@@ -114,6 +114,16 @@ public enum Etiketter {
             e("backen_resa_p5", "cm", "P5", tecken: true, plus: T.target),
             e("hander_fore_adress_traff", "cm", T.impact, tecken: true, plus: T.target),
             e("huvud_backen_finish", "cm", T.finish, tecken: true, plus: T.target),
+            // Klubban ur markeringarna (PLAN S7a, METOD M46–M49); skaftets vinkel per position.
+            e("skaft_vinkel", "°", "", tecken: true),
+            e("skaftplan_p1", "°", "P1"),
+            e("skaft_mot_plan_p2", "°", "P2", tecken: true),
+            e("skaft_riktning_topp", "°", T.top, tecken: true),
+            e("skaft_plan_p6", "°", "P6", tecken: true),
+            e("skaft_topp", "°", T.top, tecken: true),
+            e("skaft_arm_p5", "°", "P5"),
+            e("skaft_arm_p6", "°", "P6"),
+            e("skaft_lutning_traff", "°", T.impact, tecken: true, plus: T.target),
         ])
     }()
 

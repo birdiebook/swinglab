@@ -97,13 +97,14 @@ public struct Katalog: Decodable, Sendable {
         }
     }
 
-    /// Felets och måttens positioner: en lista ur `Positioner.namn`, utan dubbletter och
-    /// i svingens ordning. Ett fel får ha en tom lista (tempot), ett mått inte.
+    /// Felets och måttens positioner: en lista ur alla tio (P2, P6 och P8 för klubbans mått,
+    /// METOD M45), utan dubbletter och i svingens ordning. Ett fel får ha en tom lista
+    /// (tempot), ett mått inte. Som `katalog.positionerna_ok`.
     static let positionerFel = "positioner ska vara en lista av "
-        + Positioner.namn.joined(separator: ", ") + " i svingens ordning"
+        + Klubba.positioner.joined(separator: ", ") + " i svingens ordning"
 
     static func positionernaOK(_ p: [String], tom: Bool) -> Bool {
-        let i = p.compactMap { Positioner.namn.firstIndex(of: $0) }
+        let i = p.compactMap { Klubba.positioner.firstIndex(of: $0) }
         guard i.count == p.count, tom || !p.isEmpty else { return false }
         return i == Array(Set(i)).sorted()
     }
@@ -234,7 +235,10 @@ public struct Katalog: Decodable, Sendable {
             if let s = e.status, s != "oprovad" { fel.append("\(namn): status ska vara oprovad") }
             if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
             if let vy = Vy(rawValue: e.vy) {
-                if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
+                // Klubbans mått ur markeringarna (METOD M46–M49) står också här.
+                if !(Matt.namn(vy) + Klubba.katalognamn(vy)).contains(e.matt) {
+                    fel.append("\(namn): måttet finns inte i vyn")
+                }
             } else {
                 fel.append("\(namn): vy ska vara dtl eller fo")
             }

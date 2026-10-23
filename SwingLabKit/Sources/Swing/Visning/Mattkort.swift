@@ -210,8 +210,39 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         return k
     }
 
-    /// Passets kort i katalogens ordning: felen, spridningen mellan slagen (METOD M44) och
-    /// de avstängda sist. `ovas` = felen i Att jobba på (BESLUT B31).
+    /// Ett klubbmått ur markeringarna som kort (PLAN S7a, METOD M46–M49): medianen av de
+    /// markerade svingarna och n i rubriken ("DTL · P1 · n 3"), förra passets median och de
+    /// tidigare passens svingar som egen baslinje (M27). Med få svingar är det en trend, inte
+    /// ett fel (BESLUT B47): ingen gräns och ingen accent. nil när inget slag har måttet.
+    public static func kort(klubba post: Katalog.Mattpost, nu: Pass, tidigare: [Pass]) -> Mattkort? {
+        let v = nu.varden(post.matt, post.vy)
+        guard !v.isEmpty else { return nil }
+        let e = Etiketter.etikett(post.matt)
+        let med = Session.percentil(v.sorted(), 0.5)
+        let forra = tidigare.last
+        let fv = forra?.varden(post.matt, post.vy) ?? []
+        let f = fv.isEmpty ? nil : Session.percentil(fv.sorted(), 0.5)
+        var skillnad: String? = nil
+        if let f, let d = forra?.datum {
+            let a = Avrundning.avrunda(post.matt, med)!, b = Avrundning.avrunda(post.matt, f)!
+            skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet), Tal.datum(d))
+        }
+        let bas = Baslinje.spann(tidigare.flatMap { $0.varden(post.matt, post.vy) })
+        let spann = Spann(nu: med, spridning: nil, forra: f, gront: nil, baslinje: bas, decimaler: e.decimaler,
+                          enhet: e.enhet)
+        let rubrik = ([Etiketter.vy(post.vy)] + (e.fas.isEmpty ? [] : [e.fas]) + [Texter.n(v.count)])
+            .joined(separator: " · ")
+        var k = Mattkort(id: "\(post.matt)_\(post.vy)", matt: post.matt, namn: e.namn, rubrik: rubrik,
+                         vy: Vy(rawValue: post.vy), markning: .egen,
+                         varde: text(Avrundning.avrunda(post.matt, med), e), enhet: e.enhet, skillnad: skillnad,
+                         spann: spann, geometri: nil)
+        k.info = Infoblad(post, namn: e.namn)
+        return k
+    }
+
+    /// Passets kort i katalogens ordning: felen, spridningen mellan slagen (METOD M44), klubbens
+    /// mått när slag är markerade (S7a) och de avstängda sist. `ovas` = felen i Att jobba på
+    /// (BESLUT B31).
     public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass], ovas: Set<String> = []) -> [Mattkort] {
         func fel(_ f: [Katalog.Fel]) -> [Mattkort] {
             f.map { f -> Mattkort in
@@ -222,6 +253,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         }
         return fel(katalog.fel.filter { $0.aktiv })
             + katalog.spridning.map { kort($0, nu: nu, tidigare: tidigare) }
+            + katalog.matt.filter { m in Vy(rawValue: m.vy).map { Klubba.specifika($0).contains(m.matt) } ?? false }
+                .compactMap { kort(klubba: $0, nu: nu, tidigare: tidigare) }
             + fel(katalog.fel.filter { !$0.aktiv })
     }
 }
@@ -238,6 +271,7 @@ public struct Passvisning: Sendable {
         let nu = pass.last!
         titel = Tal.dag(nu.datum)
         undertitel = "\(nu.klubba)\(Texter.skilje)\(nu.slag)"
+            + (nu.klubbMarkerade > 0 ? "\(Texter.skilje)\(Texter.klubbMarkerade(nu.klubbMarkerade))" : "")
         kort = Mattkort.passet(katalog, nu: nu, tidigare: Array(pass.dropLast()), ovas: ovas)
     }
 

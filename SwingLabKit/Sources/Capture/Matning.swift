@@ -26,6 +26,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     public var startUncertain: Bool?
     /// Mätningens version (`ShotMeasuring.version`); nil = 1, mätt före S1d.
     public var version: Int?
+    /// Baksvingens start (s relativt klicket), för förslaget till P2 (METOD M45); nil = saknas
+    /// eller mätt före S7a.
+    public var start: Double?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -84,6 +87,18 @@ public enum ShotMeasuring {
             }
             ut.values = r.matt.filter { $0.value.isFinite }
             ut.startUncertain = r.faser.startOsaker ? true : nil
+            ut.start = r.faser.start.flatMap { $0.isFinite ? $0 : nil }
+            // Klubbans mått ur markeringarna (S7a, METOD M46–M49) bland slagets mått, och rutan
+            // han valde för P2, P6 och P8 som slagets position (M45). Samma som PC:ns analys.
+            if let marks = shot.klubba, !marks.isEmpty {
+                for (k, v) in Klubba.mat(marks, vy: setup.view, xTecken: sv.xTecken, bredd: s.width, hojd: s.height,
+                                         sving: sv) where v.isFinite {
+                    ut.values[k] = v
+                }
+                for m in marks where Klubba.skaftets.contains(m.position) && m.markerad {
+                    ut.positions[m.position] = m.t
+                }
+            }
         } catch SvingFel.handernaSaknas {
             ut.problem = "hands"
         } catch SvingFel.skalanSaknas {
@@ -132,6 +147,20 @@ extension PassState {
         return andrat
     }
 
+    /// Klubbans markeringar för ett slag (S7a): sparas i slaget och slaget mäts om med passets
+    /// längd, så att klubbmåtten och P2, P6 och P8 följer markeringarna. `joints` = slagets
+    /// leder. METOD M45, BESLUT B47
+    public mutating func setClubMarks(_ marks: [KlubbMarkering], shot id: String, joints: JointSeries) {
+        guard let i = shots.firstIndex(where: { $0.id == id }) else { return }
+        shots[i].klubba = marks.isEmpty ? nil : marks.sorted {
+            (Klubba.positioner.firstIndex(of: $0.position) ?? 99) < (Klubba.positioner.firstIndex(of: $1.position) ?? 99)
+        }
+        shots[i].measure = ShotMeasuring.measure(joints, shot: shots[i], setup: setup, height: heightM)
+    }
+
+    /// Slagen som räknas och har klubban markerad (S7a): passet visar antalet.
+    public var clubMarkedCount: Int { shots.filter { $0.counts && $0.klubbaMarkerad }.count }
+
     /// Johannes märker slaget "Detection wrong", eller ångrar det. BESLUT B35
     public mutating func setDetectionWrong(_ wrong: Bool, shot id: String) {
         guard let i = shots.firstIndex(where: { $0.id == id }) else { return }
@@ -150,7 +179,8 @@ extension PassState {
         let iSerie1 = shots.filter { $0.counts && $0.series == forsta }.count
         return Swing.Pass(datum: created, klubba: PassSetup.clubLabel(setup.club), svingar: countedSwings,
                           serie1: Swift.min(PassHistory.firstSet, iSerie1),
-                          osakerStart: shots.filter { $0.counts && $0.measure?.startUncertain == true }.count)
+                          osakerStart: shots.filter { $0.counts && $0.measure?.startUncertain == true }.count,
+                          klubbMarkerade: clubMarkedCount)
     }
 
     /// Längden som slagens mått bär, och om den är antagen: den första mätta. nil = inget mätt.

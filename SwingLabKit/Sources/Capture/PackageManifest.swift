@@ -361,6 +361,9 @@ public enum PassPackage {
             ut.append(("ljusprov.json", .data(d)))
         }
         if hasPairing { ut.append((pairingFile, .file(pairingFile))) }
+        if let klubba = clubFile(pass: pass, manifest: manifest) {
+            ut.append((KlubbFil.filnamn, .data(try e.encode(klubba))))
+        }
         let slag = Dictionary(pass.shots.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for s in manifest.shots {
             if let rel = slag[s.id]?.joints { ut.append((s.joints, .file(rel))) }
@@ -369,6 +372,28 @@ public enum PassPackage {
             if let namn = s.clip, let rel = slag[s.id]?.clip { ut.append((namn, .file(rel))) }
         }
         return ut
+    }
+
+    /// Klubbans markeringar som `klubba.json` (S7a, BESLUT B47), version 2, för slagen i
+    /// manifestet som har markeringar; nil utan. `t_klipp` = Visions tid + klicket i klippet
+    /// när klippet följer med (samma ruta i klippet, MS12), annars null; `visad` = det
+    /// granskningen visade (seriens utsnitt vidgat för märkningen, i px). METOD M45
+    public static func clubFile(pass: PassState, manifest: PackageManifest) -> KlubbFil? {
+        let slag = Dictionary(pass.shots.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let serier = Dictionary(pass.series.map { ($0.nr, $0) }, uniquingKeysWith: { a, _ in a })
+        var rutor: [KlubbFil.Ruta] = []
+        for m in manifest.shots {
+            guard let s = slag[m.id], let marks = s.klubba, !marks.isEmpty, let serie = serier[s.series] else { continue }
+            let w = serie.uprightWidth, h = serie.uprightHeight
+            let visad = ClubMarking.shownCrop(serie.activeCrop).pixels(width: w, height: h)
+            for k in marks {
+                rutor.append(KlubbFil.ruta(k, vy: pass.setup.view, slag: m.id, fil: fileName(pass), bredd: w, hojd: h,
+                                           visad: [visad.x, visad.y, visad.width, visad.height],
+                                           tKlipp: m.clickInClip.map { k.t + $0 }))
+            }
+        }
+        guard !rutor.isEmpty else { return nil }
+        return KlubbFil(pass: pass.id, kalla: [fileName(pass)], andrad: manifest.created, rutor: rutor)
     }
 
     /// Ändelsen på en zip under skrivning.

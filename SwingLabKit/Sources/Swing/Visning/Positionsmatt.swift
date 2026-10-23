@@ -45,8 +45,10 @@ public enum Positionsmatt {
             ut.append(r)
         }
         for m in k.matt where m.vy == vy.rawValue && m.positioner.contains(position) {
-            var r = rad(m.matt, varden: varden, gront: nil, aktiv: true, markning: Markning.fran(m),
-                        baslinje: baslinje[m.matt] ?? [], under: nil)
+            // Ett mått per position (skaftets vinkel, METOD M46) har positionens värde.
+            let nyckel = Klubba.nyckel(m.matt, position)
+            var r = rad(nyckel, etikett: m.matt, varden: varden, gront: nil, aktiv: true, markning: Markning.fran(m),
+                        baslinje: baslinje[nyckel] ?? [], under: nil)
             r.ovas = m.fel.map { ovas.contains($0) } ?? false
             r.info = Infoblad(m, namn: r.namn)
             ut.append(r)
@@ -54,9 +56,9 @@ public enum Positionsmatt {
         return ut
     }
 
-    static func rad(_ matt: String, varden: [String: Double], gront: [Double?]?, aktiv: Bool, markning: Markning?,
-                    baslinje: [Double], under: String?) -> Positionsrad {
-        let e = Etiketter.etikett(matt)
+    static func rad(_ matt: String, etikett: String? = nil, varden: [String: Double], gront: [Double?]?, aktiv: Bool,
+                    markning: Markning?, baslinje: [Double], under: String?) -> Positionsrad {
+        let e = Etiketter.etikett(etikett ?? matt)
         let enhet = e.enhet == ": 1" ? "" : e.enhet
         guard aktiv, let v = varden[matt], v.isFinite else {
             return Positionsrad(matt: matt, namn: e.namn, under: under, markning: markning, varde: "—", enhet: enhet,

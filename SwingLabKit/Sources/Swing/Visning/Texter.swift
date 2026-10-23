@@ -68,6 +68,11 @@ public enum Texter {
             // Huvudet bakifrån och framifrån (METOD M8, M9), i granskningen sedan 2026-10-23.
             "huvud_mot_bollen_topp": "Head toward ball", "huvud_mot_bollen_traff": "Head toward ball",
             "huvud_lyft_topp": "Head height", "huvud_lyft_traff": "Head height",
+            // Klubban ur markeringarna (PLAN S7a, METOD M46–M49).
+            "skaft_vinkel": "Shaft angle", "skaftplan_p1": "Shaft plane", "skaft_mot_plan_p2": "Shaft to plane",
+            "skaft_riktning_topp": "Shaft across the line", "skaft_plan_p6": "Clubhead to plane",
+            "skaft_topp": "Shaft at top", "skaft_arm_p5": "Lead arm to shaft", "skaft_arm_p6": "Lead arm to shaft",
+            "skaft_lutning_traff": "Shaft lean",
         ]
         // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37), ett namn per fas.
         for (m, namn) in [("backen_bojning", "Hip hinge"), ("framre_kna", "Lead knee flex"),
@@ -77,6 +82,11 @@ public enum Texter {
         }
         return n
     }()
+
+    /// Passets rad under rubriken: slagen med klubban markerad (PLAN S7a): "2 club marked".
+    public static func klubbMarkerade(_ n: Int) -> String { "\(n) club marked" }
+    /// Kortets n: de markerade svingarna som måttet är medianen av (METOD M46).
+    public static func n(_ n: Int) -> String { "n\u{00A0}\(n)" }
 
     /// Spridningen mellan slagen (METOD M44): "Spine angle spread".
     public static func spridningsnamn(_ namn: String) -> String { "\(namn) spread" }

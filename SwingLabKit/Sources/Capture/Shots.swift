@@ -1,4 +1,5 @@
 import Foundation
+import Swing
 
 // Slagen i passet (S2_SPEC §4.3, §6, §8.2, §12 S2e): varje klick blir ett slag som
 // analysen för genom tre steg — det glesa Vision-passet och domen, det täta passet
@@ -37,12 +38,15 @@ public struct ShotRecord: Codable, Equatable, Sendable {
     /// Johannes har märkt slaget "Detection wrong" i granskningen: lederna stämmer inte,
     /// och slaget räknas inte i passets mått. Går att ångra. nil = inte märkt. BESLUT B35
     public var detectionWrong: Bool?
+    /// Klubbans markeringar i granskningen, en per P-position (S7a, `Klubba.swift`); nil =
+    /// inga. Ett pass.json från före S7a saknar fältet. METOD M45, BESLUT B47
+    public var klubba: [KlubbMarkering]?
 
     public init(id: String, series: Int, click: Click, impact: Double, verdict: SwingVerdict? = nil,
                 verdictByJohannes: Bool = false, joints: String? = nil, jointFrames: Int? = nil,
                 orientationSuspect: Bool? = nil, clip: String? = nil, clipStart: Double? = nil,
                 clickInClip: Double? = nil, clipFlagged: Bool? = nil, measure: ShotMeasure? = nil,
-                detectionWrong: Bool? = nil) {
+                detectionWrong: Bool? = nil, klubba: [KlubbMarkering]? = nil) {
         self.id = id
         self.series = series
         self.click = click
@@ -58,7 +62,11 @@ public struct ShotRecord: Codable, Equatable, Sendable {
         self.clipFlagged = clipFlagged
         self.measure = measure
         self.detectionWrong = detectionWrong
+        self.klubba = klubba
     }
+
+    /// Klubban är markerad vid minst en position (S7a).
+    public var klubbaMarkerad: Bool { klubba?.contains(where: \.markerad) == true }
 
     /// "s01" … ur numret.
     public static func id(_ n: Int) -> String { String(format: "s%02d", n) }
