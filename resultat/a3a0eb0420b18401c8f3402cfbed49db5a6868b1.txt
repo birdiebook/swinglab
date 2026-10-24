@@ -1,0 +1,9 @@
+a3a0eb0420b18401c8f3402cfbed49db5a6868b1 s6d 2026-10-24T17:19:48Z run 40115482324
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:115:17: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+|                 `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+/__w/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:172:13: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+|             `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+error: fatalError
+
