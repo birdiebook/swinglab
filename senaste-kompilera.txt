@@ -1,26 +1,26 @@
-1e22be44a08e32b69777e50da96e05557e1a725d s6g 2026-10-24T19:53:17Z run 40125845733 kompilera
-Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+146101e9e7d0849d3e90a59f0b37e4848e3fe628 s6g 2026-10-24T20:18:25Z run 40128118428 kompilera
+Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 47 test, 0 fel, 213 s i testerna
+GRÖNT: 47 test, 0 fel, 205 s i testerna
 Långsammast (av 47):
-     59.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
-     41.0 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-     21.0 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
-      9.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
+     83.4 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
+     18.8 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+      9.2 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.7 s  SwingLabProvVyer.testSessionerOchMe
-      6.5 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
-      5.2 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
-      4.7 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      4.5 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      4.0 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
-      3.7 s  SwingLabProvKlubba.testMarkeraKlubban
-      3.4 s  SwingLabProvInspelning.testFilmenMedLPCM
-      3.1 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      2.8 s  SwingLabProvVyer.testClaudeAppen
+      7.1 s  SwingLabProvVyer.testSessionerOchMe
+      6.2 s  SwingLabProvInspelning.testFilmenMedLPCM
+      5.5 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
+      5.4 s  SwingLabProvKlubba.testMarkeraKlubban
+      4.8 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      4.1 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      3.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
+      3.9 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
+      3.2 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      3.0 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      2.6 s  SwingLabProvInspelning.testFilmenMedAAC
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -79,11 +79,11 @@ PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad 2.50×, P4
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Shaft plane 60.0 (DTL · P1 · n 1)", "Clubhead to plane +36.9 (DTL · P6 · n 1)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.048 ms, osäkerhet 0.221 ms, 30 prov
+PROV: link klocka θ 0.046 ms, osäkerhet 0.218 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.6 MB, topp 60.0 MB (+0.4 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.0 MB, topp 59.6 MB (+0.7 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495132 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -112,12 +112,12 @@ PROV: skrev klubba-bana-p10.png
 PROV: klubbhuvudets bana bakifrån: 279 rutor, 206 interpolerade
 PROV: skrev klubba-bana-dtl.png
 PROV: spårets rutor: markören 255 i CropRect(x: 0.7037037037037037, y: 0.08333333333333333, width: 0.2222222222222222, height: 0.16666666666666669), bakgrunden 128
-PROV: TreD 4 slag på 0.55 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD 4 slag på 0.62 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: TreD egen bunt ett slag 55724 byte
 PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
 PROV: TreD överföring 11 slag, bunten 607867 byte (55260 per slag) i 4 bitar, 2.1 s med ett tapp om 2 s
 PROV: TreD överföring utan tapp 0.03 s på loopback
-PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.64 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
+PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.60 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
 PROV: TreD tillbaka till följaren, tre_d.json 9096 byte
 PROV: Ask Claude 10859 byte i urklippet, pass ["20261110-110000", "20261113-110000"]
 PROV: skrev claude-blad.png (1170×2435 px)
@@ -148,9 +148,9 @@ PROV: skrev sessions-radera-vagrad.png (1170×1082 px)
 PROV: raderat 20261110-170000 och 20261113-170000: mappen och paketet borta, att_jobba_pa kvar, inget skrivs igen; kvar ["20261115-110000", "20261114-090000"]
 PROV: skrev me.png (1170×1317 px)
 PROV: Me 1.9 m, 13 klubbor
-PROV: TreD figur utan_brus: 10 slag på 1.28 s i simulatorn med figuren
+PROV: TreD figur utan_brus: 10 slag på 1.49 s i simulatorn med figuren
 PROV: TreD figur sparad: 10 slag, 846213 byte på disken, ett slag läst på 0.001 s
-PROV: TreD figur utan_brus: 10 slag på 1.01 s i simulatorn med figuren
+PROV: TreD figur utan_brus: 10 slag på 1.50 s i simulatorn med figuren
 PROV: skrev tred-figur-p4-faceOn.png (1170×2238 px)
 PROV: skrev tred-figur-p4-dtl.png (1170×2238 px)
 PROV: skrev tred-figur-p4-top.png (1170×2238 px)
@@ -158,16 +158,16 @@ PROV: skrev tred-figur-p7-faceOn.png (1170×2238 px)
 PROV: skrev tred-figur-p7-dtl.png (1170×2238 px)
 PROV: skrev tred-figur-p7-top.png (1170×2238 px)
 PROV: TreD figur 741 rutor, P4 -0.275 s och P7 0.000 s på figurens tid, golvet -1.00 m
-PROV: TreD figur utan_brus: 10 slag på 1.05 s i simulatorn med figuren
+PROV: TreD figur utan_brus: 10 slag på 1.52 s i simulatorn med figuren
 PROV: skrev tred-figur-kameror.png (1170×2570 px)
 PROV: TreD figur kamerorna: Sampson 0.02 px, 92.6° mellan dem
-PROV: TreD figur sparren: 0 slag på 0.48 s i simulatorn med figuren
+PROV: TreD figur sparren: 0 slag på 0.54 s i simulatorn med figuren
 PROV: skrev tred-figur-over-sparren.png (1170×2202 px)
 PROV: skrev tred-kort.png (1170×1132 px)
 PROV: skrev tred-kort-stor.png (390×1280 px)
 PROV: skrev tred-kort-skal.png (1170×1331 px)
 PROV: skrev tred-figur-utan.png (1170×1799 px)
-PROV: VIDEO 4 klipp 2744414 byte (686103 per klipp, 4.7 s långa) i 15 bitar, 2.26 s med ett avbrott om 1,5 s efter 3 bitar; mottagna bitar 15 (0 igen)
+PROV: VIDEO 4 klipp 2744414 byte (686103 per klipp, 4.7 s långa) i 15 bitar, 2.27 s med ett avbrott om 1,5 s efter 3 bitar; mottagna bitar 15 (0 igen)
 PROV: VIDEO s01 serie 1 från 0.000 s, väntat klick 2.2495 s, i klippet 2.2495
 PROV: VIDEO s02 serie 1 från 0.741 s, väntat klick 4.7499 s, i klippet inget
 PROV: VIDEO s03 serie 1 från 3.241 s, väntat klick 7.2500 s, i klippet 4.0088
@@ -175,7 +175,7 @@ PROV: VIDEO s04 serie 1 från 5.741 s, väntat klick 9.7495 s, i klippet 4.0086
 PROV: VIDEO s01 början begärd 0.0000 s, läst ur klippet 0.0000 s
 PROV: VIDEO s03 början begärd 3.2412 s, läst ur klippet 3.2412 s
 PROV: VIDEO s04 början begärd 5.7408 s, läst ur klippet 5.7408 s
-PROV: VIDEO hela serien 1367796 byte i 7 bitar, 0.09 s på loopback
+PROV: VIDEO hela serien 1367796 byte i 7 bitar, 0.06 s på loopback
 PROV: VIDEO synken s01: DTL-rutan vid klicket ljus 1.00, FO-rutan på samma träff 1.00 (ruta före 0.55), förskjutning 0.2501 s
 PROV: VIDEO synken s04: DTL-rutan vid klicket ljus 1.00, FO-rutan på samma träff 1.00 (ruta före 0.55), förskjutning -5.4909 s
 PROV: VIDEO paketen ["swinglab-20261024-133012-dtl.zip", "swinglab-20261024-133012-fo.zip"]; FO ["manifest.json", "enhet.json", "slag/s01.json", "slag/s02.json", "slag/s03.json", "klipp/s01.mov", "klipp/s02.mov", "klipp/s03.mov"], klipp för ["s01", "s02", "s03"]
