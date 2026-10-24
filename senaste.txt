@@ -1,21 +1,20 @@
-af16ac5eb9c30bfa9f965663579f571bd04affd9 s6c2 2026-10-24T10:00:27Z run 40084043391
+3f1002915520cf17ef9dc790b55ff12ff0892912 s6c2 2026-10-24T10:01:01Z run 40084057579
 == swift-release
-RÖTT: 304 test, 1 fel, 18 s i testerna, bygget 57 s
-  fel: LinkTests.testFelenSagerVarInteVad
+GRÖNT: 304 test, 0 fel, 22 s i testerna, bygget 75 s
 Långsammast (av 304):
-      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      1.4 s  TreDTests.testTelefonensVagSomPython
-      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      0.7 s  TreDTests.testInreIFilenOchUppdateras
-      0.6 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.6 s  TreDTests.testKortet
-      0.6 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.3 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
-      0.2 s  TreDTests.testSparrenHopparOver
-      0.2 s  TreDTests.testFasernaBerorInteAvLangden
+      2.8 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.6 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.1 s  TreDTests.testTelefonensVagSomPython
+      1.2 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.0 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.9 s  TreDTests.testInreIFilenOchUppdateras
+      0.9 s  TreDTests.testKortet
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.4 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  TreDTests.testSparrenHopparOver
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
 
