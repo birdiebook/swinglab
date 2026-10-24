@@ -57,7 +57,9 @@ struct PassShotsView: View {
                                   claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)),
                                   treD: treDKort, annanTelefon: annanTelefon(pass), parad: paradLage(pass),
                                   annanVisning: annanVisning, treDPlats: AnyView(TreDSessionPlats(passID: passID)),
-                                  onParvy: { parvy = $0 }, onHela: { klipp?.hamtaHela() })
+                                  onParvy: { parvy = $0 }, onHela: { klipp?.hamtaHela() },
+                                  foljarRad: pass.setup.role == .follow ? klipp?.rad : nil,
+                                  foljarSammaVy: pass.setup.role == .follow && klipp?.sammaVy == true)
                     // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
                     // och granskningen, så att pass.json inte ändras under.
                     .disabled(store.exporting.contains(passID))
@@ -305,6 +307,10 @@ struct PassScreenContent: View {
     var treDPlats: AnyView? = nil
     var onParvy: (Parvy) -> Void = { _ in }
     var onHela: () -> Void = {}
+    /// Följaren: "Sending video to other phone · 60 %" medan klippen går (S6g, BESLUT B80).
+    var foljarRad: String? = nil
+    /// Följaren: den andra telefonen har samma vy (BESLUT B83).
+    var foljarSammaVy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -316,6 +322,20 @@ struct PassScreenContent: View {
             if let parad {
                 ParadHuvud(lage: parad, onVal: onParvy, onHela: onHela)
                     .disabled(analysis.running)
+            }
+            if let foljarRad {
+                Text(verbatim: foljarRad)
+                    .typsnitt(13, siffror: true)
+                    .foregroundStyle(Theme.tertiary)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+            if foljarSammaVy {
+                Text(verbatim: Texter.sammaVyIPasset)
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(Theme.text)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
             }
             if let parad, parad.valt == .treD {
                 treDInnehall

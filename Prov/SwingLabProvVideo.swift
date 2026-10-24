@@ -100,7 +100,8 @@ extension SwingLabProvVyer {
         styr.forPass(id)
         styr.start()
         defer { styr.stop() }
-        let port = try XCTUnwrap(await vantaPa(10) { styr.port }, "lyssnaren fick ingen port")
+        let portNu = await vantaPa(10) { styr.port }
+        let port = try XCTUnwrap(portNu, "lyssnaren fick ingen port")
         let folj = PhoneLink(role: .follow, view: .fo, mode: .pass, partner: "prov-styr",
                              endpoint: .hostPort(host: "127.0.0.1", port: try XCTUnwrap(NWEndpoint.Port(rawValue: port))),
                              bonjour: false, device: "prov-folj")
@@ -114,10 +115,12 @@ extension SwingLabProvVyer {
         defer { folj.stop() }
 
         // 1. Klippen, med ett avbrott mitt i (flygplansläge 1,5 s på följaren).
-        XCTAssertTrue(await vanta(20) { styrKlipp.mottagnaBitar >= 3 }, "inga bitar kom")
+        let ok1 = await vanta(20) { styrKlipp.mottagnaBitar >= 3 }
+        XCTAssertTrue(ok1, "inga bitar kom")
         let fore = styrKlipp.mottagnaBitar
         folj.suspend(1.5)
-        XCTAssertTrue(await vanta(90) { (styrKlipp.video?.klipp.count ?? 0) == 4 }, "klippen kom inte fram efter avbrottet")
+        let ok2 = await vanta(90) { (styrKlipp.video?.klipp.count ?? 0) == 4 }
+        XCTAssertTrue(ok2, "klippen kom inte fram efter avbrottet")
         let tid = Date().timeIntervalSince(start)
         let v = try XCTUnwrap(styrStore.annanVideo(id))
         XCTAssertEqual(v.klipp.keys.sorted(), ["s01", "s02", "s03", "s04"], "också klippet för klicket följaren missade")
@@ -141,18 +144,22 @@ extension SwingLabProvVyer {
             // Nära det väntade (klippets början kan ligga före den begärda, MS12); synken tar det mätta.
             XCTAssertEqual(c, try XCTUnwrap(k.klick) - (k.fran ?? 0), accuracy: KlippBegaran.klickSok, n)
         }
-        XCTAssertTrue(await vanta(10) { foljStore.begaran(id)?.alltFramme == true }, "den styrande kvitterade inte allt")
-        XCTAssertTrue(await vanta(5) { styrKlipp.rad == nil && foljKlipp.rad == nil })
+        let ok3 = await vanta(10) { foljStore.begaran(id)?.alltFramme == true }
+        XCTAssertTrue(ok3, "den styrande kvitterade inte allt")
+        let ok4 = await vanta(5) { styrKlipp.rad == nil && foljKlipp.rad == nil }
+        XCTAssertTrue(ok4)
 
         // 2. "Get full video": följarens hela serie, byte för byte.
         let t2 = Date()
         styrKlipp.hamtaHela()
-        XCTAssertTrue(await vanta(60) { styrKlipp.video?.klipp["video-01"] != nil }, "hela videon kom inte")
+        let ok5 = await vanta(60) { styrKlipp.video?.klipp["video-01"] != nil }
+        XCTAssertTrue(ok5, "hela videon kom inte")
         let hel = try Data(contentsOf: styrStore.url(AnnanVideo.fil(vy: .fo, namn: "video-01"), in: id))
         XCTAssertEqual(hel, try Data(contentsOf: foljStore.url(foljPass.series[0].file, in: id)))
         print(String(format: "PROV: VIDEO hela serien %ld byte i %ld bitar, %.2f s på loopback", hel.count,
                      Overforing.antal(hel.count), Date().timeIntervalSince(t2)))
-        XCTAssertTrue(await vanta(10) { foljStore.begaran(id)?.alltFramme == true })
+        let ok6 = await vanta(10) { foljStore.begaran(id)?.alltFramme == true }
+        XCTAssertTrue(ok6)
         XCTAssertFalse(foljStore.originalenBehovs(try XCTUnwrap(foljStore.load(id))), "allt framme: originalen får gå")
         XCTAssertFalse(FileManager.default.fileExists(atPath: foljStore.url(KlippBegaran.utskickMapp, in: id).path),
                        "de skurna klippen är borta")
@@ -259,7 +266,8 @@ extension SwingLabProvVyer {
         styr.forPass(id)
         styr.start()
         defer { styr.stop() }
-        let port = try XCTUnwrap(await vantaPa(10) { styr.port })
+        let portNu = await vantaPa(10) { styr.port }
+        let port = try XCTUnwrap(portNu)
         let k = KlippKoppling(passID: id, store: store)
         k.start(link: styr)
         let folj = PhoneLink(role: .follow, view: .dtl, mode: .pass, partner: "prov-styr",
@@ -267,7 +275,8 @@ extension SwingLabProvVyer {
                              bonjour: false, device: "prov-folj")
         folj.start()
         defer { folj.stop() }
-        XCTAssertTrue(await vanta(15) { k.sammaVy }, "samma vy syns inte")
+        let ok7 = await vanta(15) { k.sammaVy }
+        XCTAssertTrue(ok7, "samma vy syns inte")
         print("PROV: VIDEO samma vy på båda telefonerna: \(Texter.sammaVy(.dtl)), i passet \(Texter.sammaVyIPasset)")
     }
 
