@@ -1,21 +1,15 @@
-4a86791797264065813a764c9ca6e1c22d50a63c s6c2 2026-10-24T08:20:52Z run 40077413722 kompilera
+c05af617684636d1911e857fe1bcd5f8bd4f99cc s6c2 2026-10-24T08:28:04Z run 40077850198 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
-RÖTT: arkiveringen gick inte igenom
-/Users/runner/work/swinglab/swinglab/App/Link.swift:558:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Link.swift:576:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Vyer/UtvecklingVy.swift:129:13: error: switch must be exhaustive
-** ARCHIVE FAILED **
+GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
 RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/Users/runner/work/swinglab/swinglab/App/Link.swift:558:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Link.swift:576:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Vyer/UtvecklingVy.swift:129:13: error: switch must be exhaustive
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:39: error: extra arguments at positions #1, #2, #3 in call
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:40: error: missing argument for parameter 'from' in call
 
-/Users/runner/work/swinglab/swinglab/App/Link.swift:558:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Link.swift:576:13: error: switch must be exhaustive
-/Users/runner/work/swinglab/swinglab/App/Vyer/UtvecklingVy.swift:129:13: error: switch must be exhaustive
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:39: error: extra arguments at positions #1, #2, #3 in call
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:40: error: missing argument for parameter 'from' in call
 ** TEST FAILED **
 == provets mätningar (påhittad film)
 

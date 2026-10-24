@@ -1,0 +1,20 @@
+c05af617684636d1911e857fe1bcd5f8bd4f99cc s6c2 2026-10-24T08:28:04Z run 40077850198 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:39: error: extra arguments at positions #1, #2, #3 in call
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:40: error: missing argument for parameter 'from' in call
+
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:39: error: extra arguments at positions #1, #2, #3 in call
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDVyer.swift:38:40: error: missing argument for parameter 'from' in call
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
