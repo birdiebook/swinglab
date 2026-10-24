@@ -1,0 +1,20 @@
+9227fc4b3a53007ccbd836d68e71ddd14121a48e s4e 2026-10-24T12:28:44Z run 40093897929
+== swift-release
+GRÖNT: 306 test, 0 fel, 26 s i testerna, bygget 98 s
+Långsammast (av 306):
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.4 s  TreDTests.testTelefonensVagSomPython
+      1.6 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testInreIFilenOchUppdateras
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  TreDTests.testKortet
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.4 s  TreDTests.testSparrenHopparOver
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+
