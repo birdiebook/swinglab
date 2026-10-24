@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b nu · S6 · S6c · S7 · S7a · S7c nu · S7b · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b nu · S6 · S6c nu · S7 · S7a · S7c nu · S7b · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -437,11 +437,24 @@ lodlinje och utan par.json, lodlinjens och brännviddens vägar, spärren, parni
 Pythons tal, och TreDTests kräver dem inom METOD M50:s tolerans. Kalibreringens urval av
 punktpar är nu jämnt spritt i båda språken (BESLUT B48). METOD M50, BESLUT B48.
 
-**S6c-2, appen (annan gren):** lederna per slag förs över mellan telefonerna med
-PhoneLink (följaren skickar sina slag till den styrande efter serien), 3D räknas på
-telefonen med `TreD`, ett kort i passet visar talen, Progress visar "3D · no markers"
-som trend utan gränser (B14, B37), och uppställningen visar om telefonen lutar (B39,
-lodlinjen).
+**S6c-2, appen (grenen `s6c2`, gjort):** när följarens slag är analyserade skickar den dem till
+den styrande i passets skärm över PhoneLink: ett paket utan video (`SlagBunt`, manifestet,
+enhet.json, par.json och lederna kompakt), i bitar om 192 kB (`part`, version 1) som kvitteras och
+skickas igen efter ett tapp. Den styrande räknar 3D med `TreD` i `Task.detached` när båda
+telefonernas slag är analyserade, med 2D-faserna ur samma leder som PC:n, sparar `tre_d.json` i
+passet och skickar den tillbaka; ett pass räknas om när någon telefons slag ändras. "Import other
+phone" läser den andra telefonens zip när kopplingen inte fanns. Passet visar kortet "3D · no
+markers" med de fem måtten, skillnaden mot förra passet, antalet svingar och skälen i grått;
+Progress har de fem måtten med felbudgetens spann runt varje punkt; inspelningen visar
+lutningen åt sidan och "Tilt too large for 3D" över 45°. 3D-måtten står i `katalog.json`
+(`tre_d`). `tre_d.json` följer med paketet, och PC:n skriver skillnaden mot sin egen
+(`tre_d.telefon`). Storleken: cirka 105 kB per slag (960 rutor), 2–3 MB per pass om 20 slag;
+uppmätt 55 kB per slag på provets pass. Tiden: tio slag 0,98 s i simulatorn. BESLUT B61–B63,
+METOD MS19, M50.
+
+**Oprövat på telefonerna:** Bonjour och lokalt nätverk i passets skärm (båda telefonerna ska ha
+passet öppet efter Analyze), tiden på en iPhone, importen ur Filer och AirDrop, lutningen på
+stativet (`gravity` live), och att riktiga leder ger samma tre_d som PC:n (Klart när nedan).
 
 `TvaKameror.analysera` (eller `treD`) tar några sekunder och ska köras i `Task.detached`,
 aldrig på huvudtråden.

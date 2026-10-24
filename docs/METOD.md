@@ -1809,7 +1809,9 @@ värden i `CaptureTests`.
   4 s (MS5), högst 960 rutor i 240 Hz: cirka **105 kB per slag** i bunten, och med base64 igen i
   bitarna cirka **140 kB per slag** på kopplingen; ett pass om 20 slag cirka **2,1 MB** i
   bunten och **2,8 MB** på kopplingen (15 bitar). Ledfilerna som JSON är cirka 4 gånger större.
-  **räkning** (prövad i `OverforingTests.testStorlekenPerSlag`).
+  **räkning** (prövad i `OverforingTests.testStorlekenPerSlag`). Uppmätt i simulatorn på det
+  påhittade passet (cirka 2 s leder per slag): 11 slag 608 kB (55 kB per slag) i 4 bitar, 0,03 s
+  över loopback, och 2,1 s med ett tapp om 2 s mitt i; `tre_d.json` tillbaka 7,8 kB.
 - **Bitarna** (`part`, version 1): **192 kB** per bit (cirka 350 kB som meddelande, under ramens
   1 MB), id = innehållets summa (CRC-32 och längden). Varje bit kvitteras; en bit med en annan
   version, fel storlek eller fel antal tas inte emot. När alla bitar kommit prövas summan: fel
@@ -2297,7 +2299,12 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   annat i appen under **4 s** för 20 slag, under målet 10 s. Simulatorprovet
   (`Prov/SwingLabProvTreD.swift`) bygger och kör TreD på Darwin: fyra slag på 0,46 s i
   simulatorn (Actions macOS-maskin, Apple-processor; Linux 0,51 s), största avvikelse mot
-  Python 6e-11°. Telefonen är inte mätt (S6c-2). Synken och trianguleringen går per slag och kan delas på kärnorna
+  Python 6e-11°. **Telefonens väg (S6c-2, MS19)** med 2D-faserna ur lederna och den andra
+telefonens slag genom bunten: tio slag på **0,98 s** i simulatorn (iPhone 17 Pro, iOS 26.5,
+Actions macOS-maskin), största avvikelse mot Python 6,5e-11° per slag
+(`SwingLabProvTreDLink`); på Linux 2,5 s för två pass med faserna (TreDTelefonTests). Telefonen
+är inte mätt: `tre_d.json` bär tiden (`sekunder`), så att första passet med två telefoner ger
+den. Synken och trianguleringen går per slag och kan delas på kärnorna
   om det behövs.
 - **Python-facit** räknas om parallellt (fyra processer, de längsta först, ett pass leder,
   spår och robusta vikter en gång per process) i `tools/tests/test_tre_d_fixturer.py`, och
