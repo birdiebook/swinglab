@@ -24,6 +24,8 @@ final class TreDKoppling {
     let passID: String
     /// Passets 3D, när den finns.
     private(set) var fil: TreDFil?
+    /// Figurens index (S6d, BESLUT B72), när den här telefonen räknade figuren.
+    private(set) var figur: TreDFigurIndex?
     /// 3D räknas just nu.
     private(set) var raknar = false
     /// Den andra telefonens slag finns i passet.
@@ -58,7 +60,14 @@ final class TreDKoppling {
         self.passID = passID
         self.store = store
         fil = store.treD(passID)
+        figur = store.treDFigur(passID)
         harAnnan = store.hasOtherPhone(passID)
+    }
+
+    /// Figuren hör till passets 3D som den är nu (samma buntar): då visas knappen "3D".
+    var figurAktuell: Bool {
+        guard let fil, let figur, aktuell else { return false }
+        return figur.kallor == fil.kallor && figur.pass == passID
     }
 
     private var vy: Vy? { store.load(passID)?.setup.view }
@@ -200,17 +209,28 @@ final class TreDKoppling {
         let kallor = [vy.rawValue: egen.summa, annan.bunt.vy.rawValue: annan.summa]
         // En fil som den andra telefonen räknat på de här slagen är facit (den styrande); en egen
         // räknas om bara när någon bunt ändrats. Inga resultat som pendlar.
-        if let fil, fil.kallor[vy.rawValue] == egen.summa, fil.raknadAv != vy || fil.galler(kallor) { return }
+        // En egen fil utan figur (räknad före S6d) räknas om en gång, så att figuren finns (B72).
+        if let fil, fil.kallor[vy.rawValue] == egen.summa,
+           fil.raknadAv != vy || (fil.galler(kallor) && figur?.kallor == fil.kallor) { return }
         raknar = true
         defer { raknar = false }
         let pass = passID, langd = p.heightM, a = egen.bunt, b = annan.bunt
-        let t = Task.detached(priority: .userInitiated) { () -> (TreDFil, Double)? in
+        let folder = store.passFolder(passID)
+        // 3D och figuren (S6d) i samma räkning; figuren skrivs före tre_d.json, så att knappen
+        // "3D" aldrig pekar på en figur som inte finns.
+        let t = Task.detached(priority: .userInitiated) { () -> (TreDFil, Double, TreDFigurIndex?)? in
             guard let ia = try? TreDIndata(a), let ib = try? TreDIndata(b) else { return nil }
             let start = Date()
-            let ut = TreDTelefon.rakna(ia, ib, langdM: langd)
+            let r = TreDTelefon.rakna(ia, ib, langdM: langd, figur: true)
             if Task.isCancelled { return nil }
             let tid = Date().timeIntervalSince(start)
-            return (TreDFil(pass: pass, raknad: Date(), raknadAv: vy, kallor: kallor, sekunder: tid, ut: ut), tid)
+            var index: TreDFigurIndex?
+            if var f = r.figur {
+                f.index.pass = pass
+                f.index.kallor = kallor
+                if Store.skrivFigur(f, folder: folder) { index = f.index }
+            }
+            return (TreDFil(pass: pass, raknad: Date(), raknadAv: vy, kallor: kallor, sekunder: tid, ut: r.ut), tid, index)
         }
         rakning = t
         let ny = await withTaskCancellationHandler { await t.value } onCancel: { t.cancel() }
@@ -218,6 +238,7 @@ final class TreDKoppling {
         guard let ny, !Task.isCancelled else { return }
         senasteTid = ny.1
         guard store.saveTreD(ny.0, passID: passID) else { return }
+        figur = ny.2 ?? store.treDFigur(passID)
         fil = ny.0
         onAndrat?()
         if p.setup.role == .lead { skickaTreD(ny.0) }

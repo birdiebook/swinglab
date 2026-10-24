@@ -110,6 +110,9 @@ INTE_TEXT = {
     "point.topleft.down.curvedto.point.bottomright.up",
     # Klubbhuvudets bana (S7b, BESLUT B71): nyckeln "pass/slag" för räkningen.
     "\\(…)/\\(…)",
+    # Figuren i 3D (S6d, BESLUT B72, B73): filnamnens kontroll, den nya mappen under skrivning,
+    # symbolerna, enheten och vyernas nycklar.
+    "/", ".", ".\\(…)-\\(…)", "chevron.up", "chevron.down", "rotate.3d", "px", "fo", "dtl",
 }
 
 

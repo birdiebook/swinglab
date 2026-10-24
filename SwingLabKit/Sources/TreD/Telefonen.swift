@@ -251,7 +251,7 @@ public struct TreDKort: Equatable, Sendable {
     }
 
     /// Skälet till att 3D hoppades över, kort (TvaKameror, TreDPaketFel; METOD M51).
-    static func hoppat(_ s: String) -> String {
+    public static func hoppat(_ s: String) -> String {
         if s.contains("inga slag som båda") { return Texter.treDInteParat }
         if s.hasPrefix("kalibreringen") { return Texter.treDKalibrering }
         if s.contains("ett DTL- och ett FO-paket") { return Texter.treDVyerna }

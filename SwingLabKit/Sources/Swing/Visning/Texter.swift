@@ -159,6 +159,28 @@ public enum Texter {
     /// Uppställningen: telefonen lutar för mycket för 3D (lodlinjen, METOD MS17, MS19).
     public static let lutningForStor = "Tilt too large for 3D"
 
+    // MARK: figuren i 3D (PLAN S6d, BESLUT B73)
+
+    /// De färdiga vinklarna.
+    public static let treDFaceOn = "Face on"
+    public static let treDDtl = "Down the line"
+    public static let treDTop = "Top"
+    /// Valet som visar telefonerna där kalibreringen placerade dem.
+    public static let treDKameror = "Cameras"
+    /// Telefonens etikett i bilden: vyn den filmade som ("FO", "DTL").
+    public static func treDTelefon(_ vy: String) -> String { "\(vy) phone" }
+    /// Kamerornas två tal, med sin gräns (METOD MK3).
+    public static let treDSampson = "Sampson error"
+    public static func treDSparr(_ px: String) -> String { "limit \(px) px" }
+    public static let treDVinkelMellan = "Angle between phones"
+    public static let treDVinkelSpann = "60–120°"
+    /// Uppställningen kalibrerades men mättes inte: kamerorna, ingen figur.
+    public static let treDOverSparren = "Sampson error over the limit: no figure"
+    /// Ett slag utan figur i en uppställning som inte mättes.
+    public static let treDIngenFigur = "No figure for this swing"
+    /// Spelhastigheten.
+    public static let treDFarter = ["1/8×", "1/4×", "1×"]
+
     // MARK: märkningen (Markning)
 
     public static let markningEgen = "own"

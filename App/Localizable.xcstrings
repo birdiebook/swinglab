@@ -947,6 +947,17 @@
         }
       }
     },
+    "Next shot": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next shot"
+          }
+        }
+      }
+    },
     "No 1080p format with at least 120 fps.": {
       "extractionState": "manual",
       "localizations": {
@@ -1174,6 +1185,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Previous frame"
+          }
+        }
+      }
+    },
+    "Previous shot": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous shot"
           }
         }
       }
