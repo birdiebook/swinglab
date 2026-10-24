@@ -1,0 +1,20 @@
+f53811231d1dacbc8447d3ec365f861823b34b7d spar 2026-10-24T14:01:19Z run 40099846257 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:123:25: error: cannot assign to value: 'pass' is a 'let' constant
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:123:25: error: cannot assign to value: 'pass' is a 'let' constant
+
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:123:25: error: cannot assign to value: 'pass' is a 'let' constant
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
