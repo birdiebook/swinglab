@@ -11,8 +11,11 @@ struct SparBild: Equatable {
     let yta: [[Punkt]]
     /// Seriens delar (avbrotten), utan hänsyn till tiden.
     let delar: [[SparSerie.Del]]
+    /// P1-skaftets linje bakifrån (S7b, METOD M47), greppet och hoseln i ytans koordinater:
+    /// klubbhuvudets bana ses mot den förlängda linjen. nil = ingen.
+    let plan: [Punkt]?
 
-    init(serier: [SparSerie], bredd: Int, hojd: Int, crop: CropRect) {
+    init(serier: [SparSerie], bredd: Int, hojd: Int, crop: CropRect, plan: (grepp: Punkt, hosel: Punkt)? = nil) {
         self.serier = serier
         yta = serier.map { s in
             s.p.map { q -> Punkt in
@@ -22,6 +25,12 @@ struct SparBild: Equatable {
             }
         }
         delar = serier.map { $0.delar() }
+        self.plan = plan.map { p in
+            [p.grepp, p.hosel].map { q in
+                let l = ShotReview.yta(x: q.x, y: q.y, bredd: bredd, hojd: hojd, crop: crop)
+                return Punkt(l.x, l.y)
+            }
+        }
     }
 }
 
@@ -101,6 +110,15 @@ private struct SparBas: View, Equatable {
 
     var body: some View {
         Canvas { c, s in
+            if let plan = bild.plan, plan.count == 2 {
+                // Linjen genom P1:s grepp och hosel, långt åt båda hållen (ytan klipper).
+                let a = CGPoint(x: CGFloat(plan[0].x) * s.width, y: CGFloat(plan[0].y) * s.height)
+                let b = CGPoint(x: CGFloat(plan[1].x) * s.width, y: CGFloat(plan[1].y) * s.height)
+                let dx = b.x - a.x, dy = b.y - a.y, n = max(1, (dx * dx + dy * dy).squareRoot())
+                let k = 4 * max(s.width, s.height) / n
+                c.linje(CGPoint(x: a.x - dx * k, y: a.y - dy * k), CGPoint(x: b.x + dx * k, y: b.y + dy * k),
+                        Theme.secondary, 1, streckad: [4, 4])
+            }
             for (i, serie) in bild.serier.enumerated() {
                 let st = SparLager.stil(serie.punkt), langd = SparLager.langd(bild.yta[i], s)
                 for d in bild.delar[i] {

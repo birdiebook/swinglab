@@ -186,3 +186,36 @@ final class KlubbBanaTests: XCTestCase {
         XCTAssertEqual(s.p[1], Punkt(30, 60))
     }
 }
+
+/// S7b: rutorna ur det lagrade Y-planet, vridna upprätt som lederna (METOD MS7, M61).
+final class KlubbRutorTests: XCTestCase {
+    func testVridningenSomLederna() {
+        let W = 6, H = 4, rad = 8
+        let plan = (0..<(rad * H)).map { UInt8($0 % 256) }
+        for exif: UInt32 in [1, 3, 6, 8] {
+            let r = plan.withUnsafeBufferPointer { KlubbRutor.upratt($0, radBytes: rad, width: W, height: H, exif: exif, skala: 1) }
+            let upp = Orientation.uprightSize(width: W, height: H, exif: exif)
+            XCTAssertEqual(r.bredd, upp.width)
+            XCTAssertEqual(r.hojd, upp.height)
+            for v in 0..<r.hojd {
+                for u in 0..<r.bredd {
+                    // Pixelns mitt genom den normaliserade avbildningen (MS7) ger samma lagrade pixel.
+                    let s = Orientation.stored(x: (Double(u) + 0.5) / Double(r.bredd), y: (Double(v) + 0.5) / Double(r.hojd),
+                                               exif: exif)
+                    let bx = Int(s.x * Double(W)), by = Int(s.y * Double(H))
+                    XCTAssertEqual(r.bild[v * r.bredd + u], plan[by * rad + bx], "exif \(exif) (\(u), \(v))")
+                }
+            }
+        }
+    }
+
+    func testSkalanOchSpannet() {
+        XCTAssertEqual(KlubbRutor.skala(uprightWidth: 1080, uprightHeight: 1920), 320.0 / 1080.0)
+        XCTAssertEqual(KlubbRutor.skala(uprightWidth: 200, uprightHeight: 300), 1)
+        let frames = (0..<100).map { PoseFrame(t: Double($0) / 240, pts: Double($0) / 240, joints: [], confidence: 0.9) }
+        let a = [KlubbMarkering(position: "P1", t: 10.0 / 240, grepp: KlubbPunkt(x: 0, y: 0), hosel: KlubbPunkt(x: 1, y: 1)),
+                 KlubbMarkering(position: "P4", t: 50.0 / 240, grepp: KlubbPunkt(x: 0, y: 0), hosel: KlubbPunkt(x: 1, y: 1))]
+        XCTAssertEqual(KlubbRutor.spann(frames, ankare: a), 7...53)
+        XCTAssertNil(KlubbRutor.spann(frames, ankare: [a[0]]))
+    }
+}

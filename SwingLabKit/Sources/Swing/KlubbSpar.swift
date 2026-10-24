@@ -55,6 +55,13 @@ public enum KlubbSpar {
         public var x: Double
         public var y: Double
         public var kalla: String
+
+        public init(t: Double, x: Double, y: Double, kalla: String) {
+            self.t = t
+            self.x = x
+            self.y = y
+            self.kalla = kalla
+        }
     }
 
     static func wrap(_ a: Double) -> Double {
