@@ -375,8 +375,9 @@ final class KlubbaMarkeringTests: XCTestCase {
         // En markerad punkt sitter kvar på samma bildpunkt när zoomen ändras.
         XCTAssertTrue(m.tap(u: 0.5, v: 0.5, t: -1.2))
         let g = try XCTUnwrap(m.grip)
-        m.zoom(by: 3, u: 0.2, v: 0.2)
+        m.zoom(by: 3, u: 0.45, v: 0.55)
         let s = m.surfacePoint(g)
+        XCTAssertNotEqual(s.u, 0.5, accuracy: 1e-3, "punkten har flyttat sig på ytan")
         let tillbaka = try XCTUnwrap(m.imagePoint(u: s.u, v: s.v))
         XCTAssertEqual(tillbaka.x, g.x, accuracy: 1e-6)
         // Startzoomen kring positionens egen markering, med dess längd: P1 med ett skaft på 300 px
