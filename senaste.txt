@@ -1,20 +1,20 @@
-cf90e97f5e7f49cde2ddccbbe010203813fcdd3f main 2026-10-24T09:14:49Z run 40081027773
+31c4a2ec9ce0abeca34091c4f4bd307216b1437d s6c2 2026-10-24T09:27:29Z run 40081843410
 == swift-release
-GRÖNT: 274 test, 0 fel, 21 s i testerna, bygget 86 s
-Långsammast (av 274):
-      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      3.1 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+GRÖNT: 289 test, 0 fel, 25 s i testerna, bygget 87 s
+Långsammast (av 289):
+      3.0 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.3 s  TreDTests.testTelefonensVagSomPython
       1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.4 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
       1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testKortet
       0.9 s  KlickTests.testSammaKlickSomPythonIBitar
       0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.6 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.5 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
       0.4 s  TreDTests.testSparrenHopparOver
-      0.4 s  TreDTests.testOrimligaTiderStopparSlagetUtanAttKrascha
-      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.3 s  KatalogTests.testKontrollernaSomPython
-      0.2 s  TreDTests.testDelstegenSomPython
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
 
