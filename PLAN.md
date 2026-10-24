@@ -449,7 +449,7 @@ Progress har de fem måtten med felbudgetens spann runt varje punkt; inspelninge
 lutningen åt sidan och "Tilt too large for 3D" över 45°. 3D-måtten står i `katalog.json`
 (`tre_d`). `tre_d.json` följer med paketet, och PC:n skriver skillnaden mot sin egen
 (`tre_d.telefon`). Storleken: cirka 105 kB per slag (960 rutor), 2–3 MB per pass om 20 slag;
-uppmätt 55 kB per slag på provets pass. Tiden: tio slag 0,98 s i simulatorn. BESLUT B61–B63,
+uppmätt 55 kB per slag på provets pass. Tiden: tio slag 1,0–1,9 s i simulatorn. BESLUT B61–B63,
 METOD MS19, M50.
 
 **Oprövat på telefonerna:** Bonjour och lokalt nätverk i passets skärm (båda telefonerna ska ha

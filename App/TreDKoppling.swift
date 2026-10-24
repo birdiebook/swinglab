@@ -9,7 +9,7 @@ import TreD
 /// video) till den styrande, den styrande räknar 3D med TreD utanför huvudtråden och skickar
 /// `tre_d.json` tillbaka, och båda sparar samma fil. "Import other phone" ger samma bunt ur den
 /// andra telefonens paket när kopplingen inte fanns; då räknar telefonen själv. Passet räknas om
-/// när någon telefons slag ändrats (buntarnas summor i filen). Tiden står i M50 (METOD M50).
+/// när någon telefons slag ändrats (buntarnas summor i filen). Tiden i simulatorn står i METOD M50.
 @MainActor
 @Observable
 final class TreDKoppling {
