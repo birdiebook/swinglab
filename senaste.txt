@@ -1,20 +1,20 @@
-9a2ceaa21359b5264725e02ddd26959e9b8bd345 s4e 2026-10-24T10:26:08Z run 40085757677
+138d2357f931cd000f00395b42cda2540908ac7a s4e 2026-10-24T10:32:05Z run 40086126469
 == swift-release
-GRÖNT: 276 test, 0 fel, 14 s i testerna, bygget 57 s
+GRÖNT: 276 test, 0 fel, 21 s i testerna, bygget 80 s
 Långsammast (av 276):
-      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      0.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.6 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.6 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.6 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.3 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      3.1 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.4 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.6 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.5 s  TreDTests.testSparrenHopparOver
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.3 s  TreDTests.testDelstegenSomPython
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
       0.3 s  MattTests.testVarjeSvingGerPythonsTal
-      0.2 s  TreDTests.testSparrenHopparOver
-      0.2 s  KlickTests.testKantregelnKastarDetKapadeKlicket
-      0.2 s  TreDTests.testOrimligaTiderStopparSlagetUtanAttKrascha
-      0.2 s  KatalogTests.testKontrollernaSomPython
+      0.3 s  TreDTests.testOrimligaTiderStopparSlagetUtanAttKrascha
 
