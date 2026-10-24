@@ -250,14 +250,33 @@ function ritaPanel(p) {
 // --- 3D -------------------------------------------------------------------------------
 const tre = { ok: typeof THREE !== "undefined", el: $("tre") };
 function v3(x) { return new THREE.Vector3(x[0], x[2], -x[1]); }   // världen z upp → three y upp
-function textSprite(text, stil) {
+// Etiketten har en fast storlek på skärmen (sizeAttenuation av), så att den inte växer
+// eller täcker den andra när kamerorna står nära varandra. `under` hänger den under punkten.
+const ETIKETT_PX = 18;          // radhöjden på skärmen
+function textSprite(text, stil, under = false) {
   const c = document.createElement("canvas"), ctx = c.getContext("2d"), rader = text.split("\n");
-  c.width = 1024; c.height = 64 * rader.length;
-  ctx.font = "44px system-ui"; ctx.fillStyle = stil; ctx.textAlign = "center";
-  rader.forEach((r, i) => ctx.fillText(r, 512, 48 + 64 * i));
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
-  s.scale.set(2.4, 0.15 * rader.length, 1);
+  const font = "600 40px system-ui", rad = 52;
+  ctx.font = font;
+  c.width = Math.ceil(Math.max(...rader.map((r) => ctx.measureText(r).width))) + 24; c.height = rad * rader.length + 8;
+  // en mörk platta bakom texten, så att strecken som korsar den inte gör den oläslig
+  ctx.fillStyle = "rgba(10, 12, 14, 0.78)"; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = font; ctx.fillStyle = stil; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  rader.forEach((r, i) => ctx.fillText(r, c.width / 2, 4 + rad * i));
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false,
+                                                        sizeAttenuation: false }));
+  s.userData.etikett = { rader: rader.length, kvot: c.width / c.height };
+  s.center.set(0.5, under ? 1.15 : -0.15);
   return s;
+}
+function etiketternasStorlek(h) {
+  // Utan sizeAttenuation är spritens höjd i NDC skala × projektionens [1][1]; pixlar = NDC × h / 2.
+  const p = tre.kamera.projectionMatrix.elements[5];
+  for (const o of tre.grupp.children) {
+    const e = o.userData.etikett;
+    if (!e) continue;
+    const hojd = (2 * ETIKETT_PX * e.rader) / (h * p);
+    o.scale.set(hojd * e.kvot, hojd, 1);
+  }
 }
 if (tre.ok) {
   tre.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -274,6 +293,9 @@ if (tre.ok) {
   const pg = new THREE.BufferGeometry();
   pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(D.leder.length * 3), 3));
   tre.punkter = new THREE.Points(pg, new THREE.PointsMaterial({ color: farg("--vision"), size: 0.05 }));
+  // Figuren rör sig varje ruta: ingen avgränsande sfär att hålla aktuell.
+  tre.figur.frustumCulled = tre.punkter.frustumCulled = false;
+  tre.figur.geometry.setDrawRange(0, 0); tre.punkter.geometry.setDrawRange(0, 0);
   tre.scen.add(tre.figur, tre.punkter);
   let drag = null;
   tre.el.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; tre.el.setPointerCapture(e.pointerId); });
@@ -335,8 +357,10 @@ function byggScen() {
     const linje = new THREE.Line(new THREE.BufferGeometry().setFromPoints([v3(C), tre.mal.clone()]),
       new THREE.LineDashedMaterial({ color: stil, dashSize: 0.1, gapSize: 0.08, transparent: true, opacity: 0.5 }));
     linje.computeLineDistances(); tre.grupp.add(linje);
-    const etikett = textSprite(`${VYNAMN[vy]}-kameran\n${pk.fil || ""}\nmärkt ${(pk.vy || "?").toUpperCase()}`, stil);
-    etikett.position.copy(v3(C)).add(new THREE.Vector3(0, 0.6, 0)); tre.grupp.add(etikett);
+    // Kort filnamn (passet står i rubriken); FO:s etikett över kameran, DTL:s under.
+    const fil = (pk.fil || "").replace(/^swinglab-\d{8}-\d{6}/, "…");
+    const etikett = textSprite(`${VYNAMN[vy]}-kameran · märkt ${(pk.vy || "?").toUpperCase()}\n${fil}`, stil, vy === "dtl");
+    etikett.position.copy(v3(C)); tre.grupp.add(etikett);
   }
   // banorna: båda handlederna över hela svingen
   if (par) {
@@ -362,21 +386,29 @@ function ritaTre() {
   if (tre.renderer.domElement.width !== Math.round(w * tre.renderer.getPixelRatio())) {
     tre.renderer.setSize(w, h); tre.kamera.aspect = w / h; tre.kamera.updateProjectionMatrix();
   }
+  etiketternasStorlek(h);
   const par = radensPar(D.rader[radIx]);
   if (par) {
     const k = narmast(par.t, tau), X = par.P[k];
     const pos = tre.figur.geometry.attributes.position, pp = tre.punkter.geometry.attributes.position;
     const syns = Math.abs(par.t[k] - tau) < 0.03;
-    D.ben.forEach(([a, b], i) => {
-      const ok = syns && X[3 * a] != null && X[3 * b] != null;
-      const A = ok ? v3([X[3 * a], X[3 * a + 1], X[3 * a + 2]]) : new THREE.Vector3(NaN, NaN, NaN);
-      const B = ok ? v3([X[3 * b], X[3 * b + 1], X[3 * b + 2]]) : A;
-      pos.setXYZ(2 * i, A.x, A.y, A.z); pos.setXYZ(2 * i + 1, B.x, B.y, B.z);
-    });
-    for (let j = 0; j < D.leder.length; j++) {
-      const ok = syns && X[3 * j] != null, q = ok ? v3([X[3 * j], X[3 * j + 1], X[3 * j + 2]]) : { x: NaN, y: NaN, z: NaN };
-      pp.setXYZ(j, q.x, q.y, q.z);
+    // Bara leder som finns skrivs, först i bufferten, och resten ritas inte (drawRange):
+    // ett NaN i bufferten ger three.js en NaN-sfär runt figuren.
+    const led = (j) => v3([X[3 * j], X[3 * j + 1], X[3 * j + 2]]);
+    let n = 0;
+    for (const [a, b] of D.ben) {
+      if (!syns || X[3 * a] == null || X[3 * b] == null) continue;
+      const A = led(a), B = led(b);
+      pos.setXYZ(n++, A.x, A.y, A.z); pos.setXYZ(n++, B.x, B.y, B.z);
     }
+    tre.figur.geometry.setDrawRange(0, n);
+    n = 0;
+    for (let j = 0; j < D.leder.length; j++) {
+      if (!syns || X[3 * j] == null) continue;
+      const q = led(j);
+      pp.setXYZ(n++, q.x, q.y, q.z);
+    }
+    tre.punkter.geometry.setDrawRange(0, n);
     pos.needsUpdate = pp.needsUpdate = true;
   }
   for (const o of tre.grupp.children) if (o.userData.bana) o.visible = visa.bana;

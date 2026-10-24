@@ -122,6 +122,17 @@ class TestSidan(unittest.TestCase):
         r = subprocess.run(["node", "--check", str(fil)], capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
 
+    def test_figuren_utan_nan_och_etiketterna_i_skarmens_storlek(self):
+        """Saknade leder ritas inte i stället för att bli NaN i bufferten (three.js räknade
+        en NaN-sfär, första riktiga passet), och kamerornas etiketter har en fast storlek på
+        skärmen, FO:s över och DTL:s under, så att de inte täcker varandra."""
+        g, _ = _las_sidan(V.html(_bra()[0]))
+        skript = next(s for a, s in g.skript if not a.get("src") and a.get("type") != "application/json")
+        self.assertNotIn("NaN", re.sub(r"//.*", "", skript))
+        self.assertEqual(len(re.findall(r"setDrawRange\(0, n\)", skript)), 2)
+        self.assertIn("sizeAttenuation: false", skript)
+        self.assertIn('vy === "dtl"', skript)
+
     def test_figuren_kamerorna_och_matten(self):
         d, facit = _bra()
         t = d["tre_d"]
@@ -194,6 +205,30 @@ class TestHoppat(unittest.TestCase):
         g, data = _las_sidan(V.html(d))
         self.assertEqual(g.fel, [])
         self.assertEqual(data["tre_d"]["hoppat"], t["hoppat"])
+
+    def test_kedjans_skal_per_uppstallning(self):
+        """Stannar kedjan i kalibreringen säger visaren kedjans skäl, inte ett eget ur en
+        omräkning på klicket (första riktiga passet: kedjan sade 'kamerorna står för nära
+        samma riktning', visaren 'Sampson-felet är över spärren')."""
+        d, f, _ = _pass("bra", pass_id="20261103-180000", n=10, seed=5, brus="bra")
+        skal = "kalibreringen: kamerorna står för nära samma riktning"
+        orig = TK._uppstallning
+
+        def stopp(dtl, fo, grupp, rad, inre=None):
+            if inre is not None:
+                inre.append(None)
+            return {"serie": {"dtl": grupp[0]["dtl"].serie, "fo": grupp[0]["fo"].serie}, "slag": len(grupp),
+                    "hoppat": skal}, []
+        TK._uppstallning = stopp
+        try:
+            t = V.data([d, f], [P.las(d), P.las(f)], LANGD, None, Path(TMP.name) / "ut-kedjans-skal")["tre_d"]
+        finally:
+            TK._uppstallning = orig
+        self.assertEqual(t["hoppat"], skal)
+        u = t["uppstallningar"][0]
+        self.assertEqual(u["hoppat"], skal)
+        self.assertEqual(u["synk"], "klicket")          # kedjan kom inte till synken
+        self.assertEqual(t["parning"]["par"], 10)        # parningen ur kedjan, inte räknad om
 
     def test_tva_paket_med_samma_vy(self):
         """Som första riktiga passet: FO-telefonen märkt DTL. Ingen 3D, skälet säger

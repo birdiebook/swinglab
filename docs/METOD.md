@@ -2316,6 +2316,8 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   sista varvet (MK3, MK4), samma anrop som kedjans sista, så att läget, Sampson-felet
   och vinkeln är kedjans. En uppställning över spärren ritas ändå, med figuren
   triangulerad (MK5) och märkt "över spärren": den ger inga mått.
+  Stannar kedjan i kalibreringen står kedjans skäl per uppställning (`TreDFel.delvis`),
+  och figuren ritas på klicket, märkt: visaren gissar inget eget skäl ur omräkningen.
 - **Figuren** är kedjans triangulerade leder på FO:s klocka (träffen = 0); DTL:s klipp
   flyttas med synken. Samma leder projiceras tillbaka i båda klippen med K · R · (X − C).
   Testet kräver att den projicerade figuren ligger inom 6 px (median) från Visions

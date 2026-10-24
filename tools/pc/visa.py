@@ -175,22 +175,26 @@ def tre_d(dtl: P.Paket, fo: P.Paket, rader: list[dict], langd: float) -> dict:
     inre: list = []
     ut = {"hoppat": None, "uppstallningar": [], "par": [], "osaker": [], "utelamnade": [], "session": {},
           "parning": None, "sparr_px": TK.SAMPSON_MAX_PX, "vinkel_ok": list(TK.VINKEL_OK), "min_slag": TK.MIN_SLAG}
+    delvis: dict = {}
     try:
         r = TK.analysera(dtl, fo, rader, inre, grupper=grupper)
     except TK.TreDFel as e:
-        r, ut["hoppat"] = None, str(e)
+        # Kedjans eget läge när den stannade (parningen, uppställningarnas skäl), så att
+        # visaren säger samma sak som analysen och inte gissar om. METOD MK9
+        r, ut["hoppat"], delvis = None, str(e), e.delvis
     except Exception as e:  # noqa: BLE001 — som analysen (BESLUT B37): typen, aldrig ett värde
         r, ut["hoppat"] = None, f"3D gick inte ({type(e).__name__})"
+    kalla = r if r is not None else delvis
+    ut.update(parning=kalla.get("parning"), osaker=kalla.get("osaker", []), utelamnade=kalla.get("utelamnade", []))
     if r is not None:
-        ut.update(parning=r["parning"], osaker=r["osaker"], utelamnade=r["utelamnade"],
-                  session={m: round(v["median"], 1) for m, v in r["session"].items()})
-    else:
+        ut["session"] = {m: round(v["median"], 1) for m, v in r["session"].items()}
+    if ut["parning"] is None:
         try:
             ut["parning"] = TK.para_slag(dtl, fo)[1]
         except TK.TreDFel:
             pass
     per_slag = {(x["dtl"], x["fo"]): x for x in (r or {}).get("slag", [])}
-    kalib = (r or {}).get("kalibrering", [])
+    kalib = kalla.get("kalibrering", [])
     for i, (nyckel, grupp) in enumerate(sorted(grupper.items())):
         sd, sf = nyckel
         u = {"serie": {"dtl": sd, "fo": sf}, "slag": len(grupp), "hoppat": None, "kameror": None}
