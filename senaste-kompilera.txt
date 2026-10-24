@@ -1,33 +1,31 @@
-e8a13fa32630c3276ff3e4ac12ffea89ed20903a s4e 2026-10-24T12:57:27Z run 40095281429 kompilera
-Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+4cc9ec9b05864cd821a9c977da7335bce2576224 spar-s4f 2026-10-24T13:02:45Z run 40095369739 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 38 test, 1 fel, 217 s i testerna
-  fel: SwingLabProvVyer.testSessionerOchMe
-Långsammast (av 38):
-     71.7 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-     15.7 s  SwingLabProvLink.testParningenEfterAttVynStangts
-     14.0 s  SwingLabProvKlubba.testMarkeraKlubban
-     10.4 s  SwingLabProvPaket.testAttJobbaPaTillbaka
+GRÖNT: 41 test, 0 fel, 152 s i testerna
+Långsammast (av 41):
+     69.1 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       9.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
-      9.0 s  SwingLabProvInspelning.testFilmenMedLPCM
-      8.9 s  SwingLabProvVyer.testSessionerOchMe
-      7.9 s  SwingLabProvPaket.testSteg8PaketetTillPC
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.6 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      6.0 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      5.3 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
-      5.2 s  SwingLabProvInspelning.testLjusprovetsLasning
-      4.5 s  SwingLabProvInspelning.testKvittotUrFilen
-      4.4 s  SwingLabProvInspelning.testLuckaILjudet
+      6.6 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      5.6 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      4.9 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      4.1 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      3.8 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.8 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
+      3.5 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      3.3 s  SwingLabProvKlubba.testMarkeraKlubban
+      3.0 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      2.7 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      2.4 s  SwingLabProvVyer.testClaudeAppen
+      2.4 s  SwingLabProvInspelning.testFilmenMedAAC
 
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVyer.swift:120: error: -[SwingLabProv.SwingLabProvVyer testSessionerOchMe] : XCTAssertEqual failed: ("473") is not equal to ("0") - sessions-radera-vagrad: 473 färgade punkter (B13: gråskala och en accent)
-** TEST FAILED **
+** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
-PROV: String Catalog 165 texter i en.lproj
+PROV: String Catalog 168 texter i en.lproj
 PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
 PROV: granskningen passet: sway −5.0 cm, 7 kort med tal
 PROV: skrev passet-matt.png
@@ -36,6 +34,9 @@ PROV: granskningen rutan vid klicket ljus 1.000, rutan före 0.545
 PROV: skrev granskning-video.png
 PROV: skrev granskning-utan-leder.png
 PROV: skrev granskning-video-p7.png
+PROV: spåren vid P4: händerna (99.8, 238.7) mot handledernas mitt (99.9, 238.7), [352, 289] punkter, 13 leder
+PROV: skrev granskning-spar-p4.png
+PROV: skrev granskning-spar-p7.png
 PROV: granskningen Detection wrong: sway −5.0 → −4.0, slag 7i · 4 → 7i · 3
 PROV: skrev passet-detection-wrong.png
 PROV: skrev granskning-detection-wrong.png
@@ -78,11 +79,11 @@ PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad 2.50×, P4
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Shaft plane 60.0 (DTL · P1 · n 1)", "Clubhead to plane +36.9 (DTL · P6 · n 1)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.054 ms, osäkerhet 0.179 ms, 30 prov
+PROV: link klocka θ 0.066 ms, osäkerhet 0.246 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.6 MB, topp 59.7 MB (+1.0 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 60.0 MB, topp 61.1 MB (+1.1 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495132 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -103,9 +104,6 @@ PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666
 PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
-PROV: TreD 4 slag på 0.53 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
-PROV: TreD egen bunt ett slag 55724 byte
-PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
 GRÖNT: paket.py och session.py läste paketen som appen skrev
