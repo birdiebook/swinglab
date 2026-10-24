@@ -1,0 +1,18 @@
+09b24e07d6529c64b9d766e2e49becc7855dc61b s7afo 2026-10-24T07:54:12Z run 40075617898 kompilera
+Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvKlubba.swift:215:13: error: invalid redeclaration of 'h4'
+
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvKlubba.swift:215:13: error: invalid redeclaration of 'h4'
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
