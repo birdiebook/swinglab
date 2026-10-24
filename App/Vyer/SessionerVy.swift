@@ -59,7 +59,7 @@ struct SessionRadVy: View {
                 Text(verbatim: "\(n)")
                     .typsnitt(22, .medium, siffror: true)
                     .foregroundStyle(Theme.text)
-                Text(verbatim: Texter.svingar(n))
+                Text(verbatim: Texter.svingEtikett(n))
                     .typsnitt(11)
                     .foregroundStyle(Theme.tertiary)
             }
