@@ -146,10 +146,10 @@ struct SessionsVy: View {
                 Text("No sessions")
                     .typsnitt(15)
                     .foregroundStyle(Theme.secondary)
-                    .padding(.horizontal, 20)
                     .padding(.vertical, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
+                    .padding(.horizontal, 20)
                 Spacer(minLength: 0)
             } else {
                 List {
