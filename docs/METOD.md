@@ -2469,6 +2469,11 @@ punkter.
   bakgrund, eller nästan stilla så att differensen bara ger skaftets kant), och rutan är
   tappad. Färre än **5** rörliga pixlar, eller ett steg längre än **0,5 L per ruta** från förra
   säkra punkten, är också tappat. **antagande.**
+- **Banan jämnas inte** (σ = 0, `SparSerie(bana:)`): spårens σ = 7,5 ms (M60) drar in en båge
+  med radien r med ungefär v²σ²/(2r) när farten är v, och vid 40 m/s och skaftets radie
+  1,1 m blir det cirka 4 cm, mer än spårningens fel (median 0,6 px ≈ 0,3 cm i den påhittade
+  filmen). Greppet som korridoren utgår från är utjämnat (M3), men det är bara en gissning
+  av var korridoren ligger. **räkning.**
 - **Tappade rutor interpoleras** mellan de säkra grannarna (spårade eller ankare) i polära
   koordinater kring rutans grepp: vinkeln och radien linjärt i tiden. De märks
   `interpolerad` och ritas streckade (M60, B70). Banan finns från första till sista ankaret.

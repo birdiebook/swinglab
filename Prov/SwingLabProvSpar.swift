@@ -79,7 +79,8 @@ final class SwingLabProvSpar: XCTestCase {
             (p, f.ankare.first { $0.position == p }.flatMap { review.index(nearestT: $0.t) })
         }
         let val: [SparPunkt] = [.hands, .club]
-        let spar = review.spar([.hands]) + [SparSerie(bana: bana)]
+        let spar = SparBild(serier: review.spar([.hands]) + [SparSerie(bana: bana)], bredd: review.width,
+                            hojd: review.height, crop: review.crop)
         for (namn, p) in [("klubba-bana-p6", "P6"), ("klubba-bana-p10", "P10")] {
             let k = try XCTUnwrap(pos.first { $0.name == p }?.index ?? nil)
             let i = KlubbFilm.tider()[k].i

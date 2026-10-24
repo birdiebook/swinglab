@@ -248,7 +248,8 @@ extension ShotReview {
 
 extension SparSerie {
     /// Klubbhuvudets spår ur S7b:s bana (BESLUT B70, B71): de interpolerade rutorna märkta, så
-    /// att lagret ritar dem streckade. METOD M60, M61
+    /// att lagret ritar dem streckade. Banan jämnas inte (σ = 0): vid 40 m/s skulle 7,5 ms dra in
+    /// bågen cirka 4 cm, mer än spårningens fel. METOD M60, M61
     public init(bana: KlubbBana) {
         self.init(id: SparPunkt.club.rawValue, punkt: .club, t: bana.punkter.map(\.t),
                   p: bana.punkter.map { Punkt($0.x, $0.y) },
