@@ -594,7 +594,7 @@ bort i stället för borttaget.
   this phone"; för ett parat pass också att den andra telefonen behåller sitt). Cancel är
   huvudknappen (vitt fält) och står först, också för VoiceOver; Delete är en grå rad utan fyllning
   under den, så att Delete aldrig är förvald. Vägras raderingen eller går den inte, står felet i
-  bladet. En tom lista visar "No sessions" och +. **Me:** längden, handen, klubborna och
+  bladet som en vit rad (som B60:s felrad). En tom lista visar "No sessions" och +. **Me:** längden, handen, klubborna och
   "Import focus" (som låg i Me → Sessions).
 - **Varför flikar och inte en ikon uppe till vänster:** två namngivna flikar säger direkt att
   appen har två sidor och vad de heter; en personikon i hörnet måste man veta om. Fliken kostar

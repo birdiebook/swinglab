@@ -213,9 +213,10 @@ struct RaderaPassVy: View {
             .padding(.top, 12)
             .padding(.bottom, 22)
             if let problem {
+                // Vit som felraden i B60: signalfärgen är bara för uppställningens varningar (B13).
                 Text(problem)
                     .typsnitt(13, .semibold)
-                    .foregroundStyle(Theme.flag)
+                    .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, 12)
             }
