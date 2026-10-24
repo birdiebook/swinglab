@@ -1,26 +1,26 @@
-8d38338ab5929c353a4539795f17f78222634683 main 2026-10-24T06:52:31Z run 40071417564 kompilera
+ff253574faa3e774f723948d58356f784b7a9cac s5b 2026-10-24T07:05:21Z run 40071914870 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 33 test, 0 fel, 115 s i testerna
+GRÖNT: 33 test, 0 fel, 125 s i testerna
 Långsammast (av 33):
-     57.3 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-      9.1 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+     36.9 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+     11.8 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      9.2 s  SwingLabProvKlubba.testMarkeraKlubban
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.9 s  SwingLabProvInspelning.testFilmenMedAAC
-      5.8 s  SwingLabProvKlubba.testMarkeraKlubban
-      4.2 s  SwingLabProvInspelning.testFilmenMedLPCM
-      3.7 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      3.0 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      2.9 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      2.0 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      1.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      1.3 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      1.3 s  SwingLabProvInspelning.testLuckaILjudet
-      1.2 s  SwingLabProvInspelning.testKvittotUrFilen
-      1.2 s  SwingLabProv.testAppenStartarMedStartvyn
+      6.7 s  SwingLabProvPaket.testAttJobbaPaTillbaka
+      6.4 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      6.3 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      5.1 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      4.9 s  SwingLabProvVyer.testAttJobbaPa
+      3.9 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.3 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      3.1 s  SwingLabProvInspelning.testLuckaILjudet
+      2.6 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      2.4 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      2.1 s  SwingLabProvInspelning.testFilmenMedAAC
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
@@ -63,11 +63,11 @@ PROV: skrev klubba-markera-ringen.png
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Shaft plane 60.0 (DTL · P1 · n 1)", "Clubhead to plane +36.9 (DTL · P6 · n 1)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.028 ms, osäkerhet 0.126 ms, 30 prov
+PROV: link klocka θ 0.051 ms, osäkerhet 0.222 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.3 MB, topp 60.3 MB (+1.1 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 57.8 MB, topp 59.8 MB (+2.0 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495119 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -88,7 +88,7 @@ PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666
 PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
-PROV: TreD 4 slag på 0.41 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD 4 slag på 0.61 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: skrev jobba.png (1170×4618 px)
 PROV: skrev jobba-stor.png (390×4467 px)
 PROV: flikarna Idag: Sat, Jan 9 · 7i · 8, sway −2.3 cm, 7 rader, fokus ["Hip sway", "Trail elbow flare"]
