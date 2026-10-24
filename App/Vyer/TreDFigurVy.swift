@@ -456,7 +456,7 @@ struct TreDScen: View {
     /// Markens rutnät: steget och hur långt det når från stansen, m.
     static let rutSteg = 0.5, rutUt = 2.0
     /// Mållinjen bakåt och framåt från stansen, m.
-    static let malBak = 1.5, malFram = 3.0
+    static let malBak = 0.5, malFram = 3.0
     /// Telefonens pyramid: djupet i världen, m.
     static let pyramid = 0.35
 
@@ -497,7 +497,7 @@ struct TreDScen: View {
                 linje(spets, mark(Self.malFram - 0.18, -0.1), Theme.secondary, 1)
             }
 
-            if let kameror { ritaKameror(c, pr, kameror) }
+            if let kameror { ritaKameror(c, pr, kameror, yta: s) }
             guard let f = figur else { return }
             let k = f.ruta(nu)
             ritaSpar(c, pr, f)
@@ -573,7 +573,8 @@ struct TreDScen: View {
 
     /// Telefonerna: en pyramid ur K och R med bildens överkant markerad, en streckad linje mot
     /// spelaren och vyns namn.
-    private func ritaKameror(_ c: GraphicsContext, _ pr: TreDProjektion, _ kameror: [String: TreDFigurKamera]) {
+    private func ritaKameror(_ c: GraphicsContext, _ pr: TreDProjektion, _ kameror: [String: TreDFigurKamera],
+                             yta: CGSize) {
         func linje(_ a: [Double], _ b: [Double], _ farg: Color, _ bredd: CGFloat, _ streck: [CGFloat]) {
             guard let l = pr.linje(a, b) else { return }
             c.linje(CGPoint(x: l.0.x, y: l.0.y), CGPoint(x: l.1.x, y: l.1.y), farg, bredd, streckad: streck)
@@ -614,7 +615,8 @@ struct TreDScen: View {
                 c.draw(Text(verbatim: Texter.treDTelefon(vy.uppercased()))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Theme.secondary),
-                       at: CGPoint(x: q.p.x + 34 * dx, y: q.p.y + 26 * dy), anchor: .center)
+                       at: CGPoint(x: min(max(q.p.x + 34 * dx, 44), Double(yta.width) - 44),
+                                   y: min(max(q.p.y + 26 * dy, 12), Double(yta.height) - 12)), anchor: .center)
             }
         }
     }

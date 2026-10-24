@@ -2391,8 +2391,8 @@ Geometrin i `FigurVy.swift` (SwingLabKit, prövad på Linux), ritad av appens `T
 - **Perspektivet:** en hålkamera i ögat med brännvidden (kortsidan / 2) / tan(20°). En linje
   som passerar bakom ögat klipps **0,05 m** framför det; en punkt bakom ritas inte. Strecken
   ritas det bortre först, och opaciteten faller linjärt till **0,55** för den bortersta leden i
-  rutan. Halsen är ett streck från axlarnas mitt till näsan. Mållinjen och pilen ritas bara när
-  riktningarna kommer ur en figur. **standard** (projektionen), **antagande** (talen).
+  rutan. Halsen är ett streck från axlarnas mitt till näsan. Mållinjen (0,5 m bakåt och 3 m framåt från
+  stansen) och pilen ritas bara när riktningarna kommer ur en figur. **standard** (projektionen), **antagande** (talen).
 - **Spåren** (S4f:s punkter, M60) ur figurens leder: händerna med greppregeln och brott där
   den byter handled, axlarna och höfterna två serier var, huvudet näsan. Ingen ny utjämning
   (lederna är jämnade före trianguleringen, MK5). Delningen i spelat och kvar och avbrotten är
