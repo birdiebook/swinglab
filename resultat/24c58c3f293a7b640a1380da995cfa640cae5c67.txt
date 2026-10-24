@@ -1,0 +1,13 @@
+24c58c3f293a7b640a1380da995cfa640cae5c67 spar 2026-10-24T12:27:47Z run 40093887643
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/KlubbSparTests.swift:123:20: error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+|                    `- error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/KlubbSparTests.swift:124:20: error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+|                    `- error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/KlubbSparTests.swift:125:20: error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+|                    `- error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/KlubbSparTests.swift:126:20: error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+|                    `- error: 'KlubbSpar.BanPunkt' initializer is inaccessible due to 'internal' protection level
+error: fatalError
+
