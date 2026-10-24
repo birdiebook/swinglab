@@ -667,6 +667,18 @@ En fil i version 1 är alltså giltig i version 2; PC:n (`klubba.kontrollera`, `
 båda och skriver version 2, och SwingLabKit (`KlubbFil.las`) läser båda. Formatets ägare
 är `tools/pc/klubba.py`.
 
+**Version 3** (S7b, BESLUT B71, METOD M61) är version 2 plus klubbhuvudets bana mellan
+ankarna. Telefonen skriver version 3 bara när ett slag har en bana räknad ur dagens
+markeringar, annars version 2. Banans rutor har `val: "bana"`, `status: "markerad"`, Visions
+`t`, bara `klubbhuvud` (`grepp` och `skaft_mitt` är `null`) med `kalla` `spar` (spårad),
+`interpolerad`, eller `klick` när Johannes rättat punkten, och fältet `granskning`: `null`
+(ogranskad), `"godkand"` eller `"rattad"`. En rättad ruta har maskinens punkt i
+`forslag.klubbhuvud` (med källan `spar` eller `interpolerad`). `granskning` finns bara i
+banans rutor; ankarna står som markeringar (`val` P1 … P10), inte i banan. Id:t är
+`<vy>-<slag>-bana-<n>`. Markeringarna och klubbmåtten tar aldrig banans rutor
+(`klubba.markeringar`, `KlubbFil.markeringar`); banan läses med `klubba.bana` och
+`KlubbFil.banor`. En läsare av version 2 säger nej till version 3.
+
 ```json
 {"format": "swinglab-klubba/2", "pass": "20261103-180000",
  "kalla": ["swinglab-20261103-180000-dtl.zip", "swinglab-20261103-180000-fo.zip"],
@@ -682,7 +694,7 @@ båda och skriver version 2, och SwingLabKit (`KlubbFil.las`) läser båda. Form
 
 | Fält | Krav och betydelse |
 |---|---|
-| `format` | `"swinglab-klubba/2"` (läses också `"swinglab-klubba/1"`) |
+| `format` | `"swinglab-klubba/2"` (läses också `"swinglab-klubba/1"`), eller `"swinglab-klubba/3"` med banan (S7b) |
 | `pass` | passet (`yyyyMMdd-HHmmss`), eller `null` för en video utan paket |
 | `kalla` | filerna som rutorna kommer ur (namnen) |
 | `punkter` | exakt `["grepp", "skaft_mitt", "klubbhuvud"]` |

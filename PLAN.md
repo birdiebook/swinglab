@@ -689,10 +689,24 @@ att en spårad eller interpolerad punkt blir en ny källa i samma format
 (`swinglab-klubba/2`, FORMAT.md) och en ruta mellan ankarna en ruta med en annan `val`;
 klubbmåtten tar i dag bara tryckta punkter.
 
-**Påbörjat (grenen `spar`, 2026-10-24):** spårningen i SwingLabKit med Python som facit (B12),
-en påhittad film med en ritad klubba längs en känd båge (brus, kropp, dold sträcka) som
-facit, banan i granskningen med S4f:s `SparLager`, och datamodellen för att godkänna eller
-rätta en spårad ruta.
+**Byggt (grenen `spar`, 2026-10-24).** METOD M61, BESLUT B71. `tools/pc/klubbspar.py` (facit)
+och `KlubbSpar` i SwingLabKit (samma tal inom 1e-6): rörelsedifferensen mot t−2 och t+2,
+kroppen maskerad ur lederna, korridoren kring greppet med ankarnas skaft, det yttersta
+bandet som klubbhuvud, och interpolering i polära koordinater där den tappar. Facit är den
+påhittade filmen `tools/pc/klubbfilm.py` / `KlubbFilm` (samma bytes i båda språken, en kropp
+som döljer klubban och ett mörkt fält): **spårade rutor median 0,59 px, p95 2,26 px (skaftet
+150 px), 42 % interpolerade med högst 23,5 px**, planet P5–P7 inom 0,52°. Datamodellen
+`KlubbBana` (`ShotRecord.klubbaBana`, källan per ruta, godkänn och rätta) och
+`swinglab-klubba/3` (FORMAT.md) i båda språken. Appen: `App/KlubbSparLasare.swift` läser
+Y-planet ur filen och vrider det upprätt (`KlubbRutor`), chipet Club räknar banan första
+gången och ritar den med `SparLager` (interpolerat streckat), och bakifrån P1-skaftets linje.
+Planet räknas men visas inte som tal (B71). Prov: `test_klubbspar`, `KlubbSparTests`,
+`KlubbBanaTests`, `KlubbRutorTests`, simulatorprovet `SwingLabProvSpar` (rutorna ur en
+riktig film upprätt, bilderna `klubba-bana-p6` och `klubba-bana-p10`).
+
+**Oprövat på telefonen:** banan på riktiga klipp (klubbhuvudets mitt mot hoseln, rörelseoskärpa,
+bakgrund), tiden för att läsa rutorna och räkna, och minnet (cirka 340 rutor à 320 × 569).
+**Kvar till ✓:** S7b:s Klart när på DTL-klipp mot handmärkta rutor; godkänn och rätta i appen.
 
 **Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
 rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.
