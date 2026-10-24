@@ -21,15 +21,21 @@ public struct TreDRiktning: Equatable, Sendable {
     public var golv: Double
     /// Mittpunkten mellan fotlederna i adressen, på marken: mållinjens ankare.
     public var stans: [Double]
-    public var radie: Double
+    /// Punkterna som en färdig vinkel ska rymma: lederna i var sjätte ruta (det figuren når under
+    /// svingen) och stansen, eller utan figur stansen och en upprätt spelare ovanför den.
+    public var omfang: [[Double]]
+    /// Riktningarna kommer ur en figur (annars ur telefonerna: ingen mållinje ritas).
+    public var urFigur: Bool
 
-    public init(mitt: [Double], mal: [Double], fram: [Double], golv: Double, stans: [Double], radie: Double) {
+    public init(mitt: [Double], mal: [Double], fram: [Double], golv: Double, stans: [Double], omfang: [[Double]],
+                urFigur: Bool) {
         self.mitt = mitt
         self.mal = mal
         self.fram = fram
         self.golv = golv
         self.stans = stans
-        self.radie = radie
+        self.omfang = omfang
+        self.urFigur = urFigur
     }
 
     static func vagrat(_ v: [Double]) -> [Double]? {
@@ -102,9 +108,11 @@ public struct TreDRiktning: Equatable, Sendable {
             }
             if tecken < 0 { c = c.map { -$0 } }
             let mitt: [Double] = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (golv + hi[2]) / 2]
-            let diagonal: Double = LA.norm3([hi[0] - lo[0], hi[1] - lo[1], hi[2] - golv])
-            let radie = max(0.6, 0.5 * diagonal)
-            return TreDRiktning(mitt: mitt, mal: m, fram: c, golv: golv, stans: stans, radie: radie)
+            var omfang: [[Double]] = [stans]
+            for i in stride(from: 0, to: f.n, by: 6) {
+                for j in 0..<TreDFigur.antalLeder { if let v = f.led(i, j) { omfang.append(v) } }
+            }
+            return TreDRiktning(mitt: mitt, mal: m, fram: c, golv: golv, stans: stans, omfang: omfang, urFigur: true)
         }
         guard let fo, let dtl else { return nil }
         // Där blickarna möts (närmaste punkten mellan de två linjerna), om den ligger framför
@@ -130,8 +138,9 @@ public struct TreDRiktning: Equatable, Sendable {
         let fram = vagrat([fo.c[0] - mot[0], fo.c[1] - mot[1], 0]) ?? [-1, 0, 0]
         var m = LA.kryss(z, fram)
         if hand == .vanster { m = m.map { -$0 } }
-        return TreDRiktning(mitt: [mot[0], mot[1], golv + 0.9], mal: m, fram: fram, golv: golv,
-                            stans: [mot[0], mot[1], golv], radie: 1.2)
+        let stans: [Double] = [mot[0], mot[1], golv]
+        return TreDRiktning(mitt: [mot[0], mot[1], golv + 0.9], mal: m, fram: fram, golv: golv, stans: stans,
+                            omfang: [stans, [mot[0], mot[1], golv + 1.8]], urFigur: false)
     }
 }
 
@@ -159,10 +168,11 @@ public struct TreDBetraktare: Equatable, Sendable {
         self.avstand = avstand
     }
 
-    /// En färdig vinkel kring figuren; med `kameror` (telefonernas centrum) vidgas vyn så att de
-    /// syns. Face on ser spelaren framifrån, Down the line bakifrån längs mållinjen, och Top
+    /// En färdig vinkel kring figuren, passad så att hela svingen ryms på ytan (`bredd` × `hojd`
+    /// pt); med `kameror` (telefonernas centrum) vidgas vyn så att de syns. Face on ser spelaren framifrån, Down the line bakifrån längs mållinjen, och Top
     /// uppifrån med målet till höger. METOD MK11
-    public static func vinkel(_ v: TreDVinkel, _ r: TreDRiktning, kameror: [[Double]] = []) -> TreDBetraktare {
+    public static func vinkel(_ v: TreDVinkel, _ r: TreDRiktning, kameror: [[Double]] = [], bredd: Double = 350,
+                              hojd: Double = 440) -> TreDBetraktare {
         let az: Double, el: Double
         switch v {
         case .faceOn:
@@ -176,22 +186,39 @@ public struct TreDBetraktare: Equatable, Sendable {
             az = atan2(-r.mal[0], r.mal[1])
             el = elevationTop
         }
-        var mitt = r.mitt, radie = r.radie
-        if !kameror.isEmpty {
-            let alla: [[Double]] = [r.mitt] + kameror
-            for a in 0..<3 {
-                let v: [Double] = alla.map { $0[a] }
-                mitt[a] = (v.min()! + v.max()!) / 2
-            }
-            var storst = 0.0
-            for p in alla {
-                let d: Double = LA.norm3([p[0] - mitt[0], p[1] - mitt[1], p[2] - mitt[2]])
-                storst = max(storst, d)
-            }
-            radie = storst + 0.5
+        return passad(TreDBetraktare(mal: r.mitt, azimut: az, elevation: el, avstand: 1), r.omfang + kameror,
+                      bredd: bredd, hojd: hojd)
+    }
+
+    /// Andelen av ytans halva bredd och höjd som de passade punkterna får fylla.
+    public static let fyllnad = (0.9, 0.86)
+
+    /// Vyn flyttad och på det avstånd där punkterna ryms på ytan (`bredd` × `hojd` pt) med
+    /// riktningen kvar: mitten där deras utbredning åt sidan och i höjd har sin mitt, och avståndet
+    /// det minsta där varje punkt hamnar inom `fyllnad` och minst 0,5 m framför ögat. METOD MK11
+    static func passad(_ b: TreDBetraktare, _ punkter: [[Double]], bredd: Double, hojd: Double) -> TreDBetraktare {
+        guard !punkter.isEmpty else { return b }
+        let pr = TreDProjektion(b, bredd: bredd, hojd: hojd)
+        var lo = (Double.infinity, Double.infinity), hi = (-Double.infinity, -Double.infinity)
+        for p in punkter {
+            let q: [Double] = [p[0] - b.mal[0], p[1] - b.mal[1], p[2] - b.mal[2]]
+            let x = LA.dot3(q, pr.hoger), y = LA.dot3(q, pr.upp)
+            lo = (min(lo.0, x), min(lo.1, y))
+            hi = (max(hi.0, x), max(hi.1, y))
         }
-        let avst = radie / sin(fov / 2 * .pi / 180) * 1.05
-        return TreDBetraktare(mal: mitt, azimut: az, elevation: el, avstand: avst)
+        var ut = b
+        let sx: Double = (lo.0 + hi.0) / 2, sy: Double = (lo.1 + hi.1) / 2
+        for a in 0..<3 { ut.mal[a] = b.mal[a] + sx * pr.hoger[a] + sy * pr.upp[a] }
+        let f = pr.brannvidd
+        let gx: Double = fyllnad.0 * bredd / 2, gy: Double = fyllnad.1 * hojd / 2
+        var d = 0.5
+        for p in punkter {
+            let q: [Double] = [p[0] - ut.mal[0], p[1] - ut.mal[1], p[2] - ut.mal[2]]
+            let x = abs(LA.dot3(q, pr.hoger)), y = abs(LA.dot3(q, pr.upp)), z = LA.dot3(q, pr.fram)
+            d = max(d, f * x / gx - z, f * y / gy - z, 0.5 - z)
+        }
+        ut.avstand = min(avstandGrans.1, d)
+        return ut
     }
 
     /// Efter ett drag med fingret (pt): åt sidan vrider runt lodlinjen, upp och ned ändrar höjden.

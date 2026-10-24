@@ -489,11 +489,13 @@ struct TreDScen: View {
                 linje(mark(a, -e), mark(a, e), Theme.line, 0.6)
                 linje(mark(-e, a), mark(e, a), Theme.line, 0.6)
             }
-            // Mållinjen genom stansen, med en pil mot målet.
-            let spets = mark(Self.malFram, 0)
-            linje(mark(-Self.malBak, 0), spets, Theme.secondary, 1, streck: [5, 4])
-            linje(spets, mark(Self.malFram - 0.18, 0.1), Theme.secondary, 1)
-            linje(spets, mark(Self.malFram - 0.18, -0.1), Theme.secondary, 1)
+            // Mållinjen genom stansen, med en pil mot målet; bara ur en figur (ingen gissning).
+            if r.urFigur {
+                let spets = mark(Self.malFram, 0)
+                linje(mark(-Self.malBak, 0), spets, Theme.secondary, 1, streck: [5, 4])
+                linje(spets, mark(Self.malFram - 0.18, 0.1), Theme.secondary, 1)
+                linje(spets, mark(Self.malFram - 0.18, -0.1), Theme.secondary, 1)
+            }
 
             if let kameror { ritaKameror(c, pr, kameror) }
             guard let f = figur else { return }
@@ -515,6 +517,14 @@ struct TreDScen: View {
             // Det bortre först, så att det närmare ritas ovanpå.
             let streck = TreDStreck.ben.sorted { a, b in
                 max(ledDjup(a.a), ledDjup(a.b)) > max(ledDjup(b.a), ledDjup(b.b))
+            }
+            // Halsen: axlarnas mitt till näsan, så att huvudet sitter på figuren.
+            if let v = f.led(k, 1), let h = f.led(k, 2), let n = f.led(k, 0) {
+                let m: [Double] = [(v[0] + h[0]) / 2, (v[1] + h[1]) / 2, (v[2] + h[2]) / 2]
+                if let l = pr.linje(m, n) {
+                    let d = max(pr.punkt(m)?.djup ?? dmax, pr.punkt(n)?.djup ?? dmax)
+                    c.linje(cg(l.0), cg(l.1), Theme.text.opacity(opacitet(d)), 2)
+                }
             }
             for b in streck {
                 guard let pa = f.led(k, b.a), let pb = f.led(k, b.b), let l = pr.linje(pa, pb) else { continue }
@@ -593,11 +603,18 @@ struct TreDScen: View {
             }
             linje(ovan, pinne, Theme.text, 1.5, [])
             linje(k.c, [riktning.stans[0], riktning.stans[1], riktning.golv + 1.0], Theme.tertiary, 0.8, [3, 4])
+            // Namnet utanför telefonen, på andra sidan från spelaren, så att det inte täcker pyramiden.
             if let q = pr.punkt(k.c) {
+                var dx = 0.0, dy = -1.0
+                if let m = pr.punkt([riktning.stans[0], riktning.stans[1], riktning.golv + 1.0]) {
+                    let ex: Double = q.p.x - m.p.x, ey: Double = q.p.y - m.p.y
+                    let n = (ex * ex + ey * ey).squareRoot()
+                    if n > 1 { (dx, dy) = (ex / n, ey / n) }
+                }
                 c.draw(Text(verbatim: Texter.treDTelefon(vy.uppercased()))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Theme.secondary),
-                       at: CGPoint(x: q.p.x, y: q.p.y - 14), anchor: .bottom)
+                       at: CGPoint(x: q.p.x + 34 * dx, y: q.p.y + 26 * dy), anchor: .center)
             }
         }
     }

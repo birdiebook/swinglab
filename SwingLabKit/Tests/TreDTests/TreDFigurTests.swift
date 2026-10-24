@@ -154,6 +154,11 @@ extension TreDTests {
             let b = TreDBetraktare.vinkel(v, r)
             let pr = TreDProjektion(b, bredd: 390, hojd: 440)
             let a = try XCTUnwrap(pr.punkt(vfot)), h = try XCTUnwrap(pr.punkt(hfot))
+            if v == .faceOn {
+                // Vyn är passad: spelaren i adressen är minst en tredjedel av ytans höjd.
+                let n = try XCTUnwrap(pr.punkt(fig.led(p1, 0)!))
+                XCTAssertGreaterThan(a.p.y - n.p.y, 440 / 3, "figuren för liten")
+            }
             switch v {
             case .faceOn, .top: XCTAssertGreaterThan(a.p.x, h.p.x + 10, "\(v)")
             case .dtl: XCTAssertGreaterThan(a.djup, h.djup + 0.2, "\(v)")

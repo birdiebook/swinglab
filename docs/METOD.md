@@ -2380,16 +2380,19 @@ Geometrin i `FigurVy.swift` (SwingLabKit, prövad på Linux), ritad av appens `T
   mållinjen (MK8: 90° ±5°). **antagande** (adressens fönster), **räkning.**
 - **Vinklarna:** Face on ser spelaren framifrån (målet till höger på skärmen för en
   högerspelare), Down the line bakifrån längs mållinjen, båda **6°** över vågrätt; Top uppifrån,
-  **89°** (vid 90° saknar vyn ett upp), med målet till höger. Avståndet ger figurens sfär
-  (halva diagonalen av lådan kring alla leder i alla rutor, från marken) i synfältet **40°**
-  över skärmens kortsida, med **5 %** marginal; med telefonerna sfären kring figurens mitt och
-  dem, plus 0,5 m. **antagande.**
+  **89°** (vid 90° saknar vyn ett upp), med målet till höger. Vyn passas till det som ska synas
+  (lederna i var sjätte ruta och stansen, med telefonerna också de): mitten där utbredningen åt
+  sidan och i höjd har sin mitt, och det minsta avståndet där varje punkt ryms inom **90 %** av
+  ytans halva bredd och **86 %** av dess halva höjd med synfältet **40°** över kortsidan, minst
+  0,5 m framför ögat. En sfär kring figuren (första versionen) gjorde den till en tredjedel av
+  ytan. **antagande.**
 - **Fingret:** **0,008** rad per pt runt lodlinjen och i höjd, höjden **−10°…89,5°**; nypningen
   delar avståndet med faktorn, **0,5–40 m**. **antagande.**
 - **Perspektivet:** en hålkamera i ögat med brännvidden (kortsidan / 2) / tan(20°). En linje
   som passerar bakom ögat klipps **0,05 m** framför det; en punkt bakom ritas inte. Strecken
   ritas det bortre först, och opaciteten faller linjärt till **0,55** för den bortersta leden i
-  rutan. **standard** (projektionen), **antagande** (talen).
+  rutan. Halsen är ett streck från axlarnas mitt till näsan. Mållinjen och pilen ritas bara när
+  riktningarna kommer ur en figur. **standard** (projektionen), **antagande** (talen).
 - **Spåren** (S4f:s punkter, M60) ur figurens leder: händerna med greppregeln och brott där
   den byter handled, axlarna och höfterna två serier var, huvudet näsan. Ingen ny utjämning
   (lederna är jämnade före trianguleringen, MK5). Delningen i spelat och kvar och avbrotten är
