@@ -1153,9 +1153,6 @@ B47 och s6c börjar på B48.
   Ask får tryckas igen.
 - **Omprövas:** efter telefonprovet med Claude-appen på rangen.
 
-## B56 — Klubban framifrån i appen: samma märkning, ingen riktpinne, P2/P6/P8 ur skaftets vinkel
-*2026-10-23 · prövas · PLAN.md S7a · METOD M45, M46, M49 · Johannes beställning (S7a-FO)*
-
 ## B57 — Klubban framifrån i appen: samma märkning, ingen riktpinne, P2/P6/P8 ur skaftets vinkel
 *2026-10-23 · prövas · PLAN.md S7a · METOD M45, M46, M49 · Johannes beställning (S7a-FO), rättat efter granskningen 2026-10-24*
 
