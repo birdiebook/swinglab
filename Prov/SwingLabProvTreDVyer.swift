@@ -40,12 +40,17 @@ extension SwingLabProvVyer {
         let farre = TreDKort(TreDFil(pass: fil.pass, raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
                                      ut: .resultat(r2)), katalog: k)
         XCTAssertTrue(farre.rader.allSatisfy { $0.varde == nil })
-        try rendera(TreDKortVy(kort: farre), namn: "tred-kort-farre", accent: false)
 
+        // Hoppat: bara rubriken och skälet, i grått. Ritas under kortet med färre svingar, så att
+        // bilden visar båda (provet kräver något vitt).
         let hoppat = TreDKort(TreDFil(pass: fil.pass, raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
                                       ut: .hoppat("kalibreringen: ingen serie gick att kalibrera under spärren")), katalog: k)
         XCTAssertEqual(hoppat.rader.count, 0)
-        try rendera(TreDKortVy(kort: hoppat), namn: "tred-kort-hoppat", accent: false)
+        XCTAssertEqual(hoppat.skal, ["Cameras could not be placed"])
+        try rendera(VStack(spacing: 0) {
+            TreDKortVy(kort: farre)
+            TreDKortVy(kort: hoppat)
+        }, namn: "tred-kort-skal", accent: false)
     }
 
     func testTreDIProgress() throws {
