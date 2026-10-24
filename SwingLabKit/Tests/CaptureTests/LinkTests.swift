@@ -74,10 +74,11 @@ final class LinkTests: XCTestCase {
         XCTAssertThrowsError(try r.feed(Data([0, 0, 0, 0]))) { XCTAssertEqual($0 as? Wire.WireError, .badLength(message: 1)) }
         var r2 = Wire.Reader()
         XCTAssertThrowsError(try r2.feed(Data([0x7F, 0, 0, 0]))) { XCTAssertEqual($0 as? Wire.WireError, .badLength(message: 1)) }
-        // Ett giltigt, sedan skräp: felet pekar på det andra.
+        // Ett giltigt, sedan skräp i ett känt meddelande: felet pekar på det andra. (En okänd typ
+        // hoppas över sedan S6c-2, OverforingTests.)
         var r3 = Wire.Reader()
         var d = try Wire.frame(.stop(series: 1))
-        let skrap = Data("{\"type\":\"sv\u{e4}ng\",\"series\":1}".utf8)
+        let skrap = Data("{\"type\":\"stop\",\"series\":\"sv\u{e4}ng\"}".utf8)
         d.append(contentsOf: [0, 0, 0, UInt8(skrap.count)])
         d.append(skrap)
         XCTAssertThrowsError(try r3.feed(d)) { e in
