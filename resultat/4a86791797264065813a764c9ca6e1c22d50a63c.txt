@@ -1,0 +1,9 @@
+4a86791797264065813a764c9ca6e1c22d50a63c s6c2 2026-10-24T08:18:17Z run 40077413754
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/LinkTests.swift:120:17: error: switch must be exhaustive
+|                 |- error: switch must be exhaustive
+/__w/swinglab/swinglab/SwingLabKit/Tests/CaptureTests/LinkTests.swift:138:17: error: switch must be exhaustive
+|                 |- error: switch must be exhaustive
+error: fatalError
+
