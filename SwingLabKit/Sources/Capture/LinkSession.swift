@@ -21,6 +21,8 @@ public struct LinkFollower: Sendable {
         case delivered(kind: String, pass: String, id: String)
         /// Den styrande sa nej till en egen överföring (skälet: "pass", "version", "format").
         case refused(kind: String, pass: String, fel: String)
+        /// En kvittens för ett klipp som följaren strömmar (S6g, `KlippSandare`). METOD MS30
+        case streamAck(LinkPartAck)
     }
 
     public let hello: LinkHello
@@ -40,8 +42,8 @@ public struct LinkFollower: Sendable {
     public private(set) var lead: LinkHello?
     /// Följarens stora överföringar (slagen, S6c-2) och de som tas emot (3D). METOD MS19
     public private(set) var parts = PartSender()
-    /// Följaren tar bara emot 3D (S6c-2, METOD MS19).
-    var inbox = PartReceiver(tillatna: [Overforing.treD])
+    /// Följaren tar bara emot 3D (S6c-2, METOD MS19) och den styrandes begäran om klipp (S6g).
+    var inbox = PartReceiver(tillatna: [Overforing.treD, Overforing.begaran])
 
     public init(hello: LinkHello) {
         self.hello = hello
@@ -67,6 +69,16 @@ public struct LinkFollower: Sendable {
     public mutating func send(_ delar: [LinkPart]) -> [Action] {
         let d = parts.enqueue(delar)
         return isConnected && lead?.kanDelar == true ? d.map { .send(.part($0)) } : []
+    }
+
+    /// Den styrande tar emot klippen (S6g): kopplingen är uppe och dess hello har "video1".
+    public var kanVideo: Bool { isConnected && lead?.kanVideo == true }
+
+    /// Bitar av ett klipp (S6g), lästa ur filen av appen: skickas bara när kopplingen är uppe och
+    /// den styrande tar klipp. Inget sparas här: den styrandes kvittenser och begäran säger var
+    /// strömmen står (`KlippSandare`). METOD MS30
+    public func sendStream(_ delar: [LinkPart]) -> [Action] {
+        kanVideo ? delar.map { .send(.part($0)) } : []
     }
 
     /// Svaret på en hel överföring från den styrande: kvittensen, eller inget (osparad).
@@ -128,6 +140,8 @@ public struct LinkFollower: Sendable {
                 return a.map { .send(.partAck($0)) } + [.received(kind: kind, pass: pass, id: id, bytes: bytes, delar: delar)]
             }
         case let .partAck(a):
+            // Klippen strömmas av appen (S6g): kvittensen går dit.
+            if a.kind == Overforing.klipp { return [.streamAck(a)] }
             switch parts.receive(a) {
             case .inget: return []
             case let .klar(kind, pass, id): return [.delivered(kind: kind, pass: pass, id: id)]
@@ -178,6 +192,9 @@ public struct LinkLeader: Sendable {
         /// Alla bitar av en överföring från en följare kom (slagen, S6c-2): foga ihop dem utanför
         /// huvudtråden (`Overforing.foga`), spara, och svara med `svara`. METOD MS19
         case received(device: String, kind: String, pass: String, id: String, bytes: Int, delar: [String])
+        /// En bit av ett klipp från en följare (S6g): appen skriver den till filen
+        /// (`KlippMottagare`) och svarar med `streamAck`. METOD MS30
+        case stream(device: String, LinkPart)
     }
 
     public enum Command: Equatable, Sendable {
@@ -388,6 +405,10 @@ public struct LinkLeader: Sendable {
                 return [.send(peer: peer, .partAck(LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false,
                                                                fel: Overforing.felPass)))]
             }
+            // Klippen strömmas till filen av appen (S6g), bara från en följare som har "video1".
+            if p.kind == Overforing.klipp {
+                return followers[dev]?.hello.kanVideo == true ? [.stream(device: dev, p)] : []
+            }
             guard inboxes[dev] != nil || inboxes.count < Self.maxMottagare else { return [] }
             // Den styrande tar bara emot följarens slag (S6c-2).
             var inbox = inboxes[dev] ?? PartReceiver(tillatna: [Overforing.slag])
@@ -449,6 +470,12 @@ public struct LinkLeader: Sendable {
     public mutating func svara(device: String, kind: String, pass: String, id: String, _ svar: Mottagning) -> [Action] {
         guard let a = inboxes[device]?.svara(kind: kind, pass: pass, id: id, svar),
               let peer = followers[device]?.peer else { return [] }
+        return [.send(peer: peer, .partAck(a))]
+    }
+
+    /// En kvittens för ett klipp till följaren (S6g), eller inget när den inte är uppkopplad.
+    public func streamAck(device: String, _ a: LinkPartAck) -> [Action] {
+        guard let peer = followers[device]?.peer else { return [] }
         return [.send(peer: peer, .partAck(a))]
     }
 

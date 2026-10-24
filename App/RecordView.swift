@@ -37,7 +37,15 @@ struct RecordView: View {
 
             VStack(spacing: 10) {
                 topBar
-                if let link { LinkLabels(link: link) }
+                if let link {
+                    LinkLabels(link: link)
+                    // Samma vy på båda telefonerna (S6g, BESLUT B83): sagt direkt när de kopplas,
+                    // och den här telefonen kan byta innan första serien.
+                    if Vyvakt.sammaVy(egen: pass.setup.view, andra: link.peers.filter(\.connected).map(\.view)) {
+                        SammaVyVarning(vy: pass.setup.view, onByt: pass.series.isEmpty && camera.phase != .recording
+                                       ? { bytVy() } : nil)
+                    }
+                }
                 warnings
                 Spacer()
                 if let light {
@@ -228,6 +236,17 @@ struct RecordView: View {
         if pass.setup.role == .lead { l.attachLead(store: store, pass: pass) }
         l.start()
         link = l
+    }
+
+    /// Byter den här telefonens vy (S6g, BESLUT B83): bara före första serien. Kopplingen startas
+    /// om, så att den andra telefonen hör den nya vyn i hello.
+    private func bytVy() {
+        guard pass.series.isEmpty, camera.phase != .recording else { return }
+        pass.setup.view = Vyvakt.annan(pass.setup.view)
+        store.save(pass)
+        link?.stop()
+        link = nil
+        startLink()
     }
 
     /// Följaren: den styrande startade. Ett tomt pass tar den styrandes id.

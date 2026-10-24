@@ -321,6 +321,45 @@ public final class ZipLasare {
     /// Filernas namn i zippen.
     public var namn: [String] { poster.keys.sorted() }
 
+    /// En fil ur zippen till disken, 1 MB i taget med CRC-kontroll (ett klipp läses aldrig helt in
+    /// i minnet, S6g). false när filen inte finns i zippen; större än `max`, komprimerad eller med
+    /// fel CRC är ett fel, och då tas det skrivna bort.
+    public func kopiera(_ namn: String, till url: URL, max: Int) throws -> Bool {
+        guard let post = poster[namn] else { return false }
+        guard post.method == 0 else { throw OverforingFel("\(namn): komprimerad (bara okomprimerade zippar)") }
+        guard Int(post.size) <= max else { throw OverforingFel("\(namn): för stor") }
+        try handle.seek(toOffset: UInt64(post.offset))
+        let huvud = [UInt8](try handle.read(upToCount: 30) ?? Data())
+        guard huvud.count == 30, KompaktaLeder.las(huvud, 0, 4) == 0x0403_4B50 else {
+            throw OverforingFel("\(namn): huvudet går inte att läsa")
+        }
+        let n = UInt64(KompaktaLeder.las(huvud, 26, 2)), x = UInt64(KompaktaLeder.las(huvud, 28, 2))
+        try handle.seek(toOffset: UInt64(post.offset) + 30 + n + x)
+        let fm = FileManager.default
+        try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: url.path) { try fm.removeItem(at: url) }
+        fm.createFile(atPath: url.path, contents: nil)
+        let ut = try FileHandle(forWritingTo: url)
+        var crc = CRC32()
+        var kvar = Int(post.size)
+        do {
+            while kvar > 0 {
+                let d = try handle.read(upToCount: min(kvar, 1 << 20)) ?? Data()
+                guard !d.isEmpty else { throw OverforingFel("\(namn): kort") }
+                crc.update(d)
+                try ut.write(contentsOf: d)
+                kvar -= d.count
+            }
+            try ut.close()
+            guard crc.value == post.crc else { throw OverforingFel("\(namn): fel CRC") }
+        } catch {
+            try? ut.close()
+            try? fm.removeItem(at: url)
+            throw error
+        }
+        return true
+    }
+
     /// En fil ur zippen, eller nil när den inte finns. Större än `max` byte, komprimerad eller
     /// med fel CRC är ett fel.
     public func data(_ namn: String, max: Int) throws -> Data? {
@@ -360,9 +399,12 @@ public struct LinkPart: Codable, Equatable, Sendable {
     public var bytes: Int
     /// Bitens byte i base64.
     public var data: String
+    /// Klippets namn för `klipp` (S6g, BESLUT B80): den styrandes slag ("s03") eller en hel
+    /// inspelning ("video-01"); nil för de andra slagen. En äldre app läser inte fältet.
+    public var namn: String?
 
     public init(v: Int = LinkPart.version, kind: String, pass: String, id: String, index: Int, count: Int, bytes: Int,
-                data: String) {
+                data: String, namn: String? = nil) {
         self.v = v
         self.kind = kind
         self.pass = pass
@@ -371,6 +413,7 @@ public struct LinkPart: Codable, Equatable, Sendable {
         self.count = count
         self.bytes = bytes
         self.data = data
+        self.namn = namn
     }
 }
 
@@ -386,9 +429,14 @@ public struct LinkPartAck: Codable, Equatable, Sendable {
     public var index: Int?
     public var ok: Bool
     public var fel: String?
+    /// Klippets namn (S6g, som i biten).
+    public var namn: String?
+    /// `ok: false` för ett klipp: börja om vid den här biten (mottagaren har bitarna före den),
+    /// nil = från början. METOD MS30
+    public var har: Int?
 
     public init(v: Int = LinkPart.version, kind: String, pass: String, id: String, index: Int?, ok: Bool,
-                fel: String? = nil) {
+                fel: String? = nil, namn: String? = nil, har: Int? = nil) {
         self.v = v
         self.kind = kind
         self.pass = pass
@@ -396,6 +444,8 @@ public struct LinkPartAck: Codable, Equatable, Sendable {
         self.index = index
         self.ok = ok
         self.fel = fel
+        self.namn = namn
+        self.har = har
     }
 }
 
@@ -405,10 +455,15 @@ public enum Overforing {
     public static let slag = "slag"
     /// 3D-resultatet tillbaka till följaren.
     public static let treD = "tre_d"
+    /// Den styrandes begäran om klipp till följaren (S6g, `KlippBegaran`, BESLUT B80).
+    public static let begaran = "begaran"
+    /// Ett klipp eller en hel inspelning från följaren, strömmat ur filen (S6g, `KlippSandare`,
+    /// `KlippMottagare`): går inte genom `PartSender` och `PartReceiver`, som håller allt i minnet.
+    public static let klipp = "klipp"
     /// Byte per bit: base64 ger cirka 262 kB per meddelande, under ramens 1 MB (`Wire.maxLength`).
     public static let delBytes = 192 * 1024
     /// Största överföring per slag, byte: bunten (`SlagBunt.maxBytes`) och 3D-filen.
-    public static let maxBytes = [slag: SlagBunt.maxBytes, treD: 2 << 20]
+    public static let maxBytes = [slag: SlagBunt.maxBytes, treD: 2 << 20, begaran: 1 << 20]
     /// Nejens skäl i kvittensen.
     public static let felPass = "pass", felVersion = "version", felFormat = "format"
 

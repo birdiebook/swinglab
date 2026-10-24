@@ -16,6 +16,9 @@ import Capture
 struct ShotReviewView: View {
     let passID: String
     let shotID: String
+    /// Vyn att börja i, i ett parat pass på den styrande (S6g, BESLUT B82): den andra telefonens
+    /// när passet visade den. nil = den här telefonens.
+    var startVy: Vy? = nil
     var onClose: () -> Void
 
     @Environment(Store.self) private var store
@@ -53,6 +56,14 @@ struct ShotReviewView: View {
     @State private var saveCount = 0
     /// Spåren som visas (S4f, BESLUT B70), räknade när valet eller slaget ändras.
     @State private var spar: SparBild?
+    /// Den andra telefonens video för slaget (S6g, BESLUT B82, METOD MS31): filen, videons tid −
+    /// den här seriens tid (synkat på träffen) och bildens proportioner; nil = ingen.
+    @State private var annanKalla: ParadKalla?
+    @State private var egenKalla: ParadKalla?
+    /// Den andra vyns pass och slag, för raderna per position i den vyn.
+    @State private var annanSlag: (pass: PassState, shot: ShotRecord)?
+    /// Den andra vyn visas.
+    @State private var visarAnnan = false
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -102,18 +113,25 @@ struct ShotReviewView: View {
                 }
             } else if let pass, let shot, let review {
                 ScrollView {
-                    ReviewContent(surface: CroppedPlayerSurface(player: player, crop: review.crop), review: review,
-                                  number: ShotRecord.number(shot.id) ?? 0, frame: frame, overlayOn: overlayOn,
+                    // Den andra vyn (S6g): samma rutor, positioner och stegning på den här seriens
+                    // tid, videon den andra telefonens synkad på träffen; lederna och spåren är den
+                    // här vyns och visas inte där, raderna är den andra vyns.
+                    let annan = visarAnnan && annanKalla != nil
+                    ReviewContent(surface: CroppedPlayerSurface(player: player, crop: annan ? .full : review.crop),
+                                  review: review,
+                                  number: ShotRecord.number(shot.id) ?? 0, frame: frame, overlayOn: overlayOn && !annan,
                                   playing: playing, position: position, positions: review.positions(shot.measure),
-                                  rows: ReviewRows.rows(pass: pass, shot: shot, position: position, baseline: baseline,
-                                                        ovas: ovas),
+                                  rows: annan ? annanRader : ReviewRows.rows(pass: pass, shot: shot, position: position,
+                                                                             baseline: baseline, ovas: ovas),
                                   detectionWrong: shot.detectionWrong == true, impact: shot.impact - shot.click.time,
-                                  shaft: review.shaft(frame, marks: shot.klubba),
-                                  spar: spar, sparVal: store.settings.sparVal, onSpar: sparTryck,
+                                  shaft: annan ? nil : review.shaft(frame, marks: shot.klubba),
+                                  spar: annan ? nil : spar, sparVal: store.settings.sparVal, onSpar: sparTryck,
                                   klubba: klubbChip(shot), klubbaFel: store.klubbaFel[klubbNyckel],
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
-                                  onMarkClub: startMarking)
+                                  onMarkClub: startMarking,
+                                  vyval: annanKalla == nil ? nil : AnyView(vyval(pass.setup.view)),
+                                  aspekt: annan ? annanKalla?.aspekt : nil)
                         .padding(.vertical, 8)
                 }
                 .task(id: SparNyckel(trails: store.settings.trails, klubba: shot.klubba)) { uppdateraSpar() }
@@ -160,8 +178,11 @@ struct ShotReviewView: View {
             url = store.url(clip, in: passID)
             offset = o
         }
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        egenKalla = ParadKalla(url: url, offset: offset, aspekt: r.aspect)
+        let finns = FileManager.default.fileExists(atPath: url.path)
+        // Den andra telefonens video kan finnas fast den här seriens original är borttaget (S6g).
+        guard finns || p.setup.role == .lead else { return }
+        if finns { player.replaceCurrentItem(with: AVPlayerItem(url: url)) }
         player.isMuted = true
         player.actionAtItemEnd = .pause
         // Rutan följer videon; uppspelningen stannar vid slagets sista ruta.
@@ -185,6 +206,57 @@ struct ShotReviewView: View {
             position = "P7"
             seek(r.index(nearestT: s.impact - s.click.time) ?? 0)
         }
+        laddaAnnan(p, s)
+    }
+
+    // MARK: den andra vyn (S6g)
+
+    /// Växlingen DTL/FO ovanför videon.
+    private func vyval(_ egen: Vy) -> some View {
+        let annan = Vyvakt.annan(egen)
+        let vyer = egen == .dtl ? [egen, annan] : [annan, egen]
+        return Segment(alternativ: vyer.map(Texter.vyKort), valt: Binding(
+            get: { vyer.firstIndex(of: visarAnnan ? annan : egen) ?? 0 },
+            set: { visa(vyer[$0] != egen) }))
+    }
+
+    /// Raderna per position i den andra vyn (dess mått för samma sving), när dess slag finns.
+    private var annanRader: [Positionsrad] {
+        guard let a = annanSlag else { return [] }
+        return ReviewRows.rows(pass: a.pass, shot: a.shot, position: position, baseline: [:], ovas: ovas)
+    }
+
+    /// Den andra telefonens video för slaget, och dess slag ur bunten (för raderna). METOD MS31
+    private func laddaAnnan(_ p: PassState, _ s: ShotRecord) {
+        guard p.setup.role == .lead, let v = store.annanVideo(passID),
+              let e = KlippBegaran.parning(store.pairs(passID), serie: s.series, vy: p.setup.view),
+              let k = v.kalla(slag: s, par: e) else { return }
+        let url = store.url(k.fil, in: passID)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        annanKalla = ParadKalla(url: url, offset: k.offset, aspekt: 9.0 / 16)
+        let folder = store.passFolder(passID)
+        Task {
+            let r = await Task.detached(priority: .userInitiated) { () -> (PassState, ShotRecord, Double)? in
+                guard let d = Store.otherPhoneData(folder), let b = try? SlagBunt.las(d),
+                      let ap = try? AnnanSession.pass(b, lead: p), let fs = AnnanSession.slag(s, i: ap, par: e) else { return nil }
+                let l = try? b.lederna()[fs.id]
+                return (ap, fs, l.map { Double($0.width) / Double(max(1, $0.height)) } ?? 9.0 / 16)
+            }.value
+            guard let r else { return }
+            annanSlag = (r.0, r.1)
+            annanKalla?.aspekt = r.2
+        }
+        if startVy == Vyvakt.annan(p.setup.view) { visa(true) }
+    }
+
+    /// Byter video: samma ruta, den andra telefonens synkad på träffen (eller tillbaka).
+    private func visa(_ annan: Bool) {
+        guard let k = annan ? annanKalla : egenKalla, annan != visarAnnan || player.currentItem == nil else { return }
+        pause()
+        visarAnnan = annan
+        offset = k.offset
+        player.replaceCurrentItem(with: AVPlayerItem(url: k.url))
+        seek(frame)
     }
 
     /// Exakt till ruta k (bildens egen tid). Bara en seek åt gången; under tiden sparas det
@@ -577,6 +649,10 @@ struct ReviewContent<Surface: View>: View {
     var onDetectionWrong: (Bool) -> Void = { _ in }
     /// "Mark club" i menyn (S7a, båda vyerna); nil = ingen märkning (provets bilder).
     var onMarkClub: (() -> Void)? = nil
+    /// Växlingen DTL/FO i ett parat pass (S6g, BESLUT B82); nil = en vy.
+    var vyval: AnyView? = nil
+    /// Bildens proportioner när den andra vyns video visas (hela bilden, inget utsnitt).
+    var aspekt: Double? = nil
 
     /// Videons höjd i punkter; bredden följer utsnittets proportioner.
     static var stageHeight: CGFloat { 440 }
@@ -637,10 +713,13 @@ struct ReviewContent<Surface: View>: View {
                 Etikett(text: String(localized: "Detection wrong"))
                     .padding(.bottom, 8)
             }
+            if let vyval {
+                vyval.padding(.bottom, 8)
+            }
 
             ReviewStage(surface: surface, overlay: review.overlay(frame), overlayOn: overlayOn, time: timeText,
                         shaft: shaft, spar: spar, sparNu: sparNu)
-                .aspectRatio(CGFloat(review.aspect), contentMode: .fit)
+                .aspectRatio(CGFloat(aspekt ?? review.aspect), contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.stageHeight)
 
@@ -952,4 +1031,12 @@ enum KlubbLage {
               let g = p1.grepp, let h = p1.hosel else { return nil }
         return (Punkt(g.x, g.y), Punkt(h.x, h.y))
     }
+}
+
+/// En video i granskningen av ett parat pass (S6g): filen, videons tid − seriens tid och bildens
+/// proportioner (bredd / höjd).
+struct ParadKalla {
+    let url: URL
+    let offset: Double
+    var aspekt: Double
 }

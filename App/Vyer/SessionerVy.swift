@@ -28,28 +28,16 @@ enum Sessionslista {
     }
 }
 
-/// En rad: vyn (med "paired" för två telefoner), dagen och klockslaget med klubban, och
+/// En rad: vyn (med "paired" för följaren, "Paired" för den styrandes parade pass), dagen och klockslaget med klubban, och
 /// svingarna till höger. Värden in, så att provet kan rita den.
 struct SessionRadVy: View {
     let rad: Sessionsrad
     /// Pilen till höger: raden öppnar passet (inte i raderingens fråga).
     var pil = true
 
+    /// Vyn, eller "Paired" för den styrandes parade pass (S6g, BESLUT B82).
     private var vyn: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(verbatim: rad.vyNamn)
-                .typsnitt(17, .medium)
-                .foregroundStyle(Theme.text)
-            if rad.parad {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Image(systemName: "link")
-                        .typsnitt(11, .semibold)
-                    Text(verbatim: Texter.parad)
-                        .typsnitt(13)
-                }
-                .foregroundStyle(Theme.secondary)
-            }
-        }
+        SessionRadRubrik(rad: rad)
     }
 
     private var under: some View {

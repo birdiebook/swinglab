@@ -4,8 +4,9 @@ import Swing
 // Två telefoner (S2_SPEC §7.1, BESLUT B21): meddelandena mellan dem och hur de
 // ramas in på TCP-strömmen. Appens Link.swift (Network.framework) skickar bara
 // det här; logiken i LinkSession.swift avgör vad som skickas. Bara kommandon,
-// klicktider och klockans prov, aldrig video (dataregeln, BESLUT B22). Sedan S6c-2 också
-// slagens leder och 3D i bitar (`part`, Overforing.swift, BESLUT B61).
+// klicktider och klockans prov (dataregeln, BESLUT B22). Sedan S6c-2 också slagens leder och
+// 3D i bitar (`part`, Overforing.swift, BESLUT B61), och sedan S6g svingarnas klipp från
+// följaren till den styrande efter passet (Klipp.swift, BESLUT B80).
 
 /// Rollen i uppställningen: ensam, styr (lyssnar och visar Start) eller följ (söker
 /// och ansluter). Manifestets `telefon.roll` (S2_SPEC §8.3).
@@ -33,11 +34,12 @@ public struct LinkHello: Codable, Equatable, Sendable {
     public var view: Vy
     /// `Mode`:s text; nil = en äldre app (inspelningen).
     public var mode: String?
-    /// Förmågorna: "part1" = bitarna version 1 (`LinkPart`).
+    /// Förmågorna: "part1" = bitarna version 1 (`LinkPart`), "video1" = klippen mellan
+    /// telefonerna (S6g, `KlippBegaran`, BESLUT B80).
     public var caps: [String]?
 
     /// Den här appens förmågor.
-    public static let ourCaps = ["part1"]
+    public static let ourCaps = ["part1", "video1"]
 
     public init(role: LinkRole, device: String, model: String, app: String, view: Vy, mode: Mode = .record,
                 caps: [String]? = LinkHello.ourCaps) {
@@ -55,6 +57,9 @@ public struct LinkHello: Codable, Equatable, Sendable {
 
     /// Telefonen tar emot bitarna (`part`, version 1).
     public var kanDelar: Bool { caps?.contains("part1") ?? false }
+
+    /// Telefonen begär och skickar klippen (S6g, BESLUT B80, METOD MS30).
+    public var kanVideo: Bool { kanDelar && caps?.contains("video1") == true }
 }
 
 /// En inspelad serie som klick på telefonens egen tidslinje: följaren skickar den efter

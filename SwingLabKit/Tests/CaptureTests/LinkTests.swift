@@ -130,7 +130,7 @@ final class LinkTests: XCTestCase {
                 case let .paired(e): parade.append(e)
                 case let .close(p): stangda.append(p)
                 case let .store(r): sparade.append(r)
-                case .received: break
+                case .received, .stream: break
                 }
             }
         }
@@ -145,7 +145,7 @@ final class LinkTests: XCTestCase {
                         ledare(leader.receive(m, from: peer, at: klocka))
                     }
                 case .startRecording, .stopRecording: logg.append(x)
-                case .received, .delivered, .refused: break
+                case .received, .delivered, .refused, .streamAck: break
                 }
             }
         }

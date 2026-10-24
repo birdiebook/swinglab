@@ -18,20 +18,26 @@ public struct Sessionsrad: Identifiable, Equatable, Sendable {
     /// Passet filmades med två telefoner (styr eller följ, BESLUT B21): den andra telefonens
     /// rad står i dess egen lista.
     public let parad: Bool
+    /// Den styrandes rad för ett parat pass, "Paired" (S6g, BESLUT B82): passet har båda vyerna
+    /// och växlar mellan dem inne i passet. Följaren har kvar sin egen rad med sin vy.
+    public let styr: Bool
     /// Raden i ord för VoiceOver.
     public let upplasning: String
 
     public init(_ p: PassState) {
         id = p.id
         vy = p.setup.view
-        vyNamn = Texter.vyNamn(p.setup.view)
+        styr = p.setup.role == .lead
+        vyNamn = styr ? Texter.paradRubrik : Texter.vyNamn(p.setup.view)
         let dag = Tal.dag(p.created), klocka = Tal.klocka(p.created)
         tid = dag + Texter.skilje + klocka
         klubba = Self.klubbor(p).map(PassSetup.clubLabel).joined(separator: ", ")
         svingar = Self.svingar(p)
         parad = p.setup.role != .solo
-        upplasning = Texter.sessionsrad(vy: vyNamn, dag: dag, klocka: klocka, klubba: klubba, svingar: svingar,
-                                        parad: parad)
+        upplasning = styr
+            ? Texter.sessionsrad(vy: vyNamn + ", " + Texter.badaVyerna, dag: dag, klocka: klocka, klubba: klubba,
+                                 svingar: svingar, parad: false)
+            : Texter.sessionsrad(vy: vyNamn, dag: dag, klocka: klocka, klubba: klubba, svingar: svingar, parad: parad)
     }
 
     /// Seriernas klubbor i ordning, utan dubbletter; uppställningens när passet saknar serier.

@@ -606,6 +606,17 @@
         }
       }
     },
+    "Get full video": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get full video"
+          }
+        }
+      }
+    },
     "Guide": {
       "extractionState": "manual",
       "localizations": {
@@ -1893,6 +1904,17 @@
         }
       }
     },
+    "begaran.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "begaran.json could not be saved."
+          }
+        }
+      }
+    },
     "current": {
       "extractionState": "manual",
       "localizations": {
@@ -2010,6 +2032,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "tre_d.json could not be saved."
+          }
+        }
+      }
+    },
+    "video.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "video.json could not be saved."
           }
         }
       }
