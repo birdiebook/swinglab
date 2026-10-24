@@ -50,46 +50,69 @@ struct TreDFigurSkarm: View {
 
     var body: some View {
         ScrollView {
-            TreDFigurInnehall(index: index, figur: figur, uppstallning: uppstallning, riktning: riktning,
-                              betraktare: betraktare, rubrik: rubrik, nu: nu, spelar: spelar, fart: fart,
-                              vinkel: vinkel, kameror: visaKameror, spar: spar, sparVal: store.settings.sparVal,
-                              laddar: laddar, forra: valt > 0, nasta: valt + 1 < index.slag.count,
-                              onClose: onClose,
-                              onSlag: { steg in
-                                  spelar = false
-                                  valt = min(max(0, valt + steg), max(0, index.slag.count - 1))
-                              },
-                              onSpela: spela,
-                              onRuta: { k in
-                                  spelar = false
-                                  if let f = figur { nu = f.t(k) }
-                              },
-                              onPosition: { name in
-                                  spelar = false
-                                  if let f = figur, let k = f.positionsRutor().first(where: { $0.name == name })?.index {
-                                      nu = f.t(k)
-                                  }
-                              },
-                              onFart: { fart = $0 },
-                              onVinkel: { v in
-                                  vinkel = v
-                                  forinstallning()
-                              },
-                              onKameror: {
-                                  kameror.toggle()
-                                  forinstallning()
-                              },
-                              onSpar: { p in
-                                  store.toggleTrail(p)
-                                  bygSpar()
-                              },
-                              onBetraktare: { betraktare = $0 })
+            innehall
                 .padding(.vertical, 8)
         }
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
         .task(id: valt) { await ladda() }
         .task(id: spelar) { await spelaUpp() }
+    }
+
+    private var innehall: TreDFigurInnehall {
+        var v = TreDFigurInnehall(index: index, figur: figur, uppstallning: uppstallning, riktning: riktning,
+                                  betraktare: betraktare, rubrik: rubrik, nu: nu)
+        v.spelar = spelar
+        v.fart = fart
+        v.vinkel = vinkel
+        v.kameror = visaKameror
+        v.spar = spar
+        v.sparVal = store.settings.sparVal
+        v.laddar = laddar
+        v.forra = valt > 0
+        v.nasta = valt + 1 < index.slag.count
+        v.onClose = onClose
+        v.onSlag = byt
+        v.onSpela = spela
+        v.onRuta = tillRuta
+        v.onPosition = tillPosition
+        v.onFart = { fart = $0 }
+        v.onVinkel = valjVinkel
+        v.onKameror = vaxlaKameror
+        v.onSpar = vaxlaSpar
+        v.onBetraktare = { betraktare = $0 }
+        return v
+    }
+
+    private func byt(_ steg: Int) {
+        spelar = false
+        valt = min(max(0, valt + steg), max(0, index.slag.count - 1))
+    }
+
+    private func tillRuta(_ k: Int) {
+        spelar = false
+        if let f = figur { nu = f.t(k) }
+    }
+
+    private func tillPosition(_ name: String) {
+        spelar = false
+        guard let f = figur, let k = f.positionsRutor().first(where: { $0.name == name })?.index else { return }
+        nu = f.t(k)
+    }
+
+    private func valjVinkel(_ v: TreDVinkel) {
+        vinkel = v
+        forinstallning()
+    }
+
+    private func vaxlaKameror() {
+        kameror.toggle()
+        forinstallning()
+    }
+
+    private func vaxlaSpar(_ p: SparPunkt) {
+        store.toggleTrail(p)
+        bygSpar()
     }
 
     /// Slaget som visas, utanför huvudtråden; avbryts när slaget byts (`task(id:)`).
@@ -108,7 +131,12 @@ struct TreDFigurSkarm: View {
         laddar = false
         figur = f
         riktning = uppstallning.flatMap { TreDRiktning.ur(f, uppstallning: $0, hand: index.hand) }
-        nu = f.map { fig in fig.positionsRutor().first { $0.name == "P1" }?.index.map(fig.t) ?? fig.t0 } ?? 0
+        if let f {
+            let p1 = f.positionsRutor().first(where: { $0.name == "P1" })?.index
+            nu = p1.map { f.t($0) } ?? f.t0
+        } else {
+            nu = 0
+        }
         bygSpar()
         forinstallning()
     }
@@ -136,15 +164,17 @@ struct TreDFigurSkarm: View {
 
     private func spelaUpp() async {
         guard spelar, let f = figur else { return }
-        // 1/8 som granskningen (240 bilder/s som 30, MS15), 1/4 och verklig tid.
-        let takt = [0.125, 0.25, 1.0][min(max(0, fart), 2)]
         var forra = ContinuousClock.now
         while spelar, !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(16))
             let n = ContinuousClock.now
             let d = (n - forra).components
             forra = n
-            nu += (Double(d.seconds) + Double(d.attoseconds) * 1e-18) * takt
+            // 1/8 som granskningen (240 bilder/s som 30, MS15), 1/4 och verklig tid; läst varje
+            // steg, så att farten kan bytas medan den spelar.
+            let takt = [0.125, 0.25, 1.0][min(max(0, fart), 2)]
+            let dt: Double = Double(d.seconds) + Double(d.attoseconds) * 1e-18
+            nu += dt * takt
             if nu >= f.tSista {
                 nu = f.tSista
                 spelar = false
