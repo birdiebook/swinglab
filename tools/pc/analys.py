@@ -266,7 +266,10 @@ def tre_d(paket: list[Paket], slag: list[dict], forra: dict | None, katalog_3d: 
         t = {"hoppat": f"3D gick inte ({type(e).__name__})"}
     # Telefonens 3D (S6c-2, BESLUT B61): jämförs med PC:ns, som är facit. Ett fel här stoppar
     # inget; skillnaden står i tre_d.telefon. METOD MS19
-    for p in sorted(paket, key=lambda p: p.vy):
+    # Den räknande telefonens paket först (raknad_av), annars i vyernas ordning.
+    def _forst(p) -> tuple:
+        return (not (p.tre_d is not None and p.tre_d.get("raknad_av") == p.vy), p.vy)
+    for p in sorted(paket, key=_forst):
         if p.tre_d is not None or p.tre_d_fel is not None:
             try:
                 t["telefon"] = dict(TK.jamfor_telefon(t, p.tre_d), paket=p.fil) if p.tre_d is not None \

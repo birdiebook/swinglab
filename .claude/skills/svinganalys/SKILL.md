@@ -221,6 +221,9 @@ När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
 - Står något i `tre_d.osaker` (kamerorna utanför 60–120°, lodlinjen i manifestet
   användes inte): säg det i en rad, och att talen därför är osäkrare. En uppställning
   med `hoppat` i `tre_d.kalibrering[]` är inte mätt: säg vilken serie och skälet.
+- Står `tre_d.telefon` (telefonen räknade 3D själv, BESLUT B63): säg i en rad om telefonen
+  och PC:n är lika (`inom`), annars vad som skiljer (`olika`, `avrundade`, `per_slag`).
+  PC:ns tal är facit; rapportera trenden ur PC:ns `tre_d`.
 
 ## Klubbans mått (S7a)
 

@@ -298,7 +298,10 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 **Meddelandena** mellan telefonerna (TCP, `_swinglab._tcp`): fyra bytes längd
 (big-endian) och sedan JSON med `type` (`hello`, `ping`, `pong`, `start`, `stop`,
 `recorded`, `status`, `ack`, och sedan S6c-2 `part` och `part_ack`). Typerna är `LinkMessage` i
-`SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna.
+`SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna. En okänd typ hoppas
+över (sedan S6c-2). `hello` bär `role`, `device` (stabil per installation sedan S6c-2), `model`,
+`app`, `view` och, sedan S6c-2, `mode` (`record` eller `pass`, saknas = `record`) och `caps`
+(`["part1"]`: tar emot bitarna); okända nycklar tål avkodaren.
 
 ### 3D mellan telefonerna (S6c-2): `part`, `swinglab-slag/1` och `tre_d.json`
 
@@ -307,20 +310,22 @@ En stor överföring går i bitar (BESLUT B61, METOD MS19). `part` bär `{"v": 1
 eller `tre_d` (resultatet tillbaka), `id` innehållets summa (CRC-32 i hex och längden,
 `"1a2b3c4d-123456"`), `count` = ⌈`bytes` / 196 608⌉ och `data` bitens byte i base64. `part_ack`
 bär `{"v", "kind", "pass", "id", "index", "ok"}`: en bit (`index`), eller hela överföringen
-(`index` null) när den är sparad (`ok: true`) eller när summan inte stämde (`ok: false`: allt
-skickas igen). En bit med en annan version än 1 läses inte.
+(`index` null) när den är sparad (`ok: true`), när summan inte stämde eller mottagaren inte känner
+överföringen (`ok: false` utan `fel`: allt skickas igen), eller ett nej (`ok: false` och `fel`:
+`pass`, `version` eller `format`: avsändaren slutar). Bitar skickas bara till en telefon vars hello
+har `part1`.
 
 `swinglab-slag/1` (`Pass/<id>/annan_telefon.json` hos den som räknar) är en telefons slag utan
 video:
 
 ```json
 {"format": "swinglab-slag/1", "pass": "20261103-180000", "vy": "fo",
- "manifest": "{… manifest.json som text …}", "enhet": "{… enhet.json …}", "par": null,
+ "manifest": "{… manifest.json som text …}", "enhet": "{… enhet.json …}",
  "leder": {"s01": {"width": 1080, "height": 1920, "source": "vision-2d-r1", "enc": "i16",
                    "t": "<base64>", "j": "<base64>"}}}
 ```
 
-`t` är tiderna som int32 i 1e-4 s; `j` per ruta och led (13, FORMAT "Lederna") x och y i 0,1 px
+`par` (par.json som text) och `enhet` utelämnas när filen saknas. `t` är tiderna som int32 i 1e-4 s; `j` per ruta och led (13, FORMAT "Lederna") x och y i 0,1 px
 som int16 (`enc` `i16`) eller int32 (`i32`) och konfidensen som uint16 i 0,001, little endian.
 Konfidensen 0 = saknad. Talen läses tillbaka som n · steg: exakt ledfilens tal
 (`JointSeries.rounded`, METOD MS12). "Import other phone" bygger samma bunt ur paketets zip.
@@ -335,6 +340,7 @@ Konfidensen 0 = saknad. Talen läses tillbaka som n · steg: exakt ledfilens tal
 | `sekunder` | räkningens tid på telefonen (METOD M50) |
 | `tre_d` | `TreDResultat`: samma fält som `analys.json`:s `tre_d` utom `mot_forra`, `trend` och `telefon` |
 | `hoppat` | i stället för `tre_d`: skälet (METOD M51) |
+| `inre` | per uppställning de oavrundade talen (`R`, `t`, `upp`, `forsk` i s, `aterprojektion`, `sampson_px`, `vinkel`, `lodlinje_mot_vagrata`, null för en som inte kalibrerades): PC:n redovisar grenarna (MS19) |
 
 `pass.json` bär `tre_d` med passets median per mått (`n`, `median`, `q1`, `q3`, null under 10 slag)
 för Progress och förra passet.
@@ -391,7 +397,11 @@ sak i `att_jobba_pa.json` (B14).
 skälen, antalen, varje uppställnings fält och varje slags `serie`, `synk_ms`,
 `aterprojektion_px`, `fel` och måttens namn), `storsta_skillnad` (grader, per slag),
 `storsta_skillnad_median`, `per_slag[]` (`dtl`, `fo`, `matt`, `skillnad` över 0,05°) och
-`inom`. När PC:n eller telefonen hoppade över: `hoppat` (`pc`, `telefon`) och `inom` = samma
+`inom`; dessutom `avrundade[]` (`falt`, `pc`, `telefon`, `skillnad` för de avrundade talen som
+skiljer), `bara_telefonen[]` och `bara_pc[]` (mått som bara den ena har, per slag) och
+`marginaler[]` (telefonens tal vid grenarna per uppställning: Sampson-felet mot spärren, vinkeln
+mot 60–120°, lodlinjen mot skyddet, och synken per slag i ms). Paketet vars vy räknade
+(`raknad_av`) jämförs. När PC:n eller telefonen hoppade över: `hoppat` (`pc`, `telefon`) och `inom` = samma
 skäl. En fil som inte gick att läsa: `{"paket", "fel"}`.
 
 ### Facit för 3D på telefonen (S6c-1)

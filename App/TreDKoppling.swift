@@ -5,14 +5,22 @@ import Capture
 import TreD
 
 /// 3D i passet (S6c-2, BESLUT B61, METOD MS19). I passets skärm, för ett pass med två
-/// telefoner, startas kopplingen igen: följaren skickar sina analyserade slag (en bunt utan
-/// video) till den styrande, den styrande räknar 3D med TreD utanför huvudtråden och skickar
-/// `tre_d.json` tillbaka, och båda sparar samma fil. "Import other phone" ger samma bunt ur den
-/// andra telefonens paket när kopplingen inte fanns; då räknar telefonen själv. Passet räknas om
-/// när någon telefons slag ändrats (buntarnas summor i filen). Tiden i simulatorn står i METOD M50.
+/// telefoner, startas kopplingen igen med syftet "pass" och bara till passets partner: följaren
+/// skickar sina analyserade slag (en bunt utan video) till den styrande, den styrande räknar 3D
+/// med TreD utanför huvudtråden och skickar `tre_d.json` tillbaka, och båda sparar samma fil.
+/// "Import other phone" ger samma bunt ur den andra telefonens paket när kopplingen inte fanns;
+/// då räknar telefonen själv, tills den styrandes fil kommer (den är facit). Passet räknas om när
+/// någon telefons slag ändrats (buntarnas summor i filen). Allt tungt (bunten, summorna,
+/// bitarna, läsningen och skrivningen) görs utanför huvudtråden. Tiden i simulatorn står i
+/// METOD M50.
 @MainActor
 @Observable
 final class TreDKoppling {
+    /// Följarens överföring, som en grå rad i passet.
+    enum Skickat: Equatable {
+        case vantar, skickat, annatPass, annanVersion
+    }
+
     let passID: String
     /// Passets 3D, när den finns.
     private(set) var fil: TreDFil?
@@ -22,16 +30,29 @@ final class TreDKoppling {
     private(set) var harAnnan = false
     /// Importen gick inte: kort, i vyn.
     var problem: String?
+    /// Importen gick, men zippen är från ett annat pass eller en annan dag.
+    private(set) var varning: String?
+    private(set) var skickat: Skickat?
+    /// Den här telefonens och den andra telefonens buntsummor nu (nil = inte räknade än).
+    private(set) var egenSumma: String?
+    private(set) var annanSumma: String?
 
     @ObservationIgnored private let store: Store
     @ObservationIgnored private(set) var link: PhoneLink?
     @ObservationIgnored private var jobb: Task<Void, Never>?
+    @ObservationIgnored private var rakning: Task<(TreDFil, Double)?, Never>?
     /// Ett nytt varv behövs när det pågående är klart (passet ändrades under tiden).
     @ObservationIgnored private var igen = false
     /// Passet fick ny 3D: vyn läser om (Progress och kortet).
     @ObservationIgnored var onAndrat: (() -> Void)?
     /// Räknetiden för den senaste räkningen, s (provet, METOD M50).
     @ObservationIgnored private(set) var senasteTid: Double?
+    /// Den egna bunten för passet som det såg ut, en gång per ändring (inte vid varje omladdning).
+    @ObservationIgnored private var egen: (pass: PassState, bunt: SlagBunt, data: Data, summa: String)?
+    /// Den andra telefonens bunt som den lästes.
+    @ObservationIgnored private var annan: (bunt: SlagBunt, summa: String)?
+    /// Summan som följaren senast skickade, och den den styrande kvitterat.
+    @ObservationIgnored private var skickadSumma: String?
 
     init(passID: String, store: Store) {
         self.passID = passID
@@ -40,25 +61,52 @@ final class TreDKoppling {
         harAnnan = store.hasOtherPhone(passID)
     }
 
+    private var vy: Vy? { store.load(passID)?.setup.view }
+
+    /// Filen gäller passets slag som de är nu: den egna summan, och den andra telefonens när den
+    /// här telefonen räknade. Okänt (summorna inte räknade än) räknas som aktuellt.
+    var aktuell: Bool {
+        guard let fil, let vy, let e = egenSumma else { return true }
+        guard fil.kallor[vy.rawValue] == e else { return false }
+        if fil.raknadAv == vy, let a = annanSumma, let av = annan?.bunt.vy { return fil.kallor[av.rawValue] == a }
+        return true
+    }
+
+    /// Den grå raden för följaren (eller när den styrande saknar bitarna).
+    var status: Skickat? {
+        if link?.role == .follow, link?.partnerUtanDelar == true, fil?.treD == nil || !aktuell { return .annanVersion }
+        return skickat
+    }
+
     /// Kopplingen för ett pass med två telefoner. `link` = provets (loopback), redan startad.
     func start(link given: PhoneLink? = nil) {
         guard link == nil, let p = store.load(passID), p.setup.role != .solo else {
             uppdatera()
             return
         }
-        let l = given ?? PhoneLink(role: p.setup.role, view: p.setup.view)
+        let l = given ?? PhoneLink(role: p.setup.role, view: p.setup.view, mode: .pass, partner: store.partner(passID))
         if p.setup.role == .lead { l.forPass(passID) }
-        l.onData = { [weak self] kind, pass, data in self?.mottaget(kind: kind, pass: pass, data: data) ?? false }
+        l.onData = { [weak self] kind, pass, data in await self?.mottaget(kind: kind, pass: pass, data: data) ?? .osparad }
+        l.onDelivered = { [weak self] kind, _ in
+            if kind == Overforing.slag { self?.skickat = .skickat }
+        }
+        l.onRefused = { [weak self] kind, _, fel in
+            guard kind == Overforing.slag else { return }
+            self?.skickat = fel == Overforing.felPass ? .annatPass : .annanVersion
+        }
         if given == nil { l.start() }
         link = l
-        // Den styrande: 3D som redan finns går till en följare som ansluter.
-        if p.setup.role == .lead, let fil, let d = try? fil.data() { l.send(kind: Overforing.treD, pass: passID, data: d) }
+        // Den styrande: sin egen 3D till en följare som ansluter (bitarna utanför huvudtråden).
+        if p.setup.role == .lead, let fil, fil.raknadAv == p.setup.view { skickaTreD(fil) }
         uppdatera()
     }
 
     func stop() {
         jobb?.cancel()
         jobb = nil
+        rakning?.cancel()
+        rakning = nil
+        raknar = false
         link?.stop()
         link = nil
     }
@@ -71,15 +119,29 @@ final class TreDKoppling {
             return
         }
         guard let p = store.load(passID), Self.analyserat(p) else { return }
-        let app = Export.appInfo(), phone = Export.phoneInfo(), device = Export.deviceInfo(p)
         let folder = store.passFolder(passID)
+        let behovEgen = egen?.pass != p
+        let app = Export.appInfo(), phone = Export.phoneInfo()
+        let device = behovEgen ? Export.deviceInfo(p) : nil
+        let behovAnnan = annan == nil && harAnnan
         jobb = Task { [weak self] in
-            let egen = await Task.detached(priority: .userInitiated) {
-                try? Self.egenBunt(p, folder: folder, app: app, phone: phone, device: device)
-            }.value
-            let annan = await Task.detached(priority: .userInitiated) { Store.otherPhoneData(folder) }.value
+            if behovEgen, let device {
+                let e = await Task.detached(priority: .userInitiated) { () -> (SlagBunt, Data, String)? in
+                    guard let r = try? Self.egenBunt(p, folder: folder, app: app, phone: phone, device: device)
+                    else { return nil }
+                    return (r.0, r.1, Overforing.summa(r.1))
+                }.value
+                if let e { self?.egen = (p, e.0, e.1, e.2) }
+            }
+            if behovAnnan {
+                let a = await Task.detached(priority: .userInitiated) { () -> (SlagBunt, String)? in
+                    guard let d = Store.otherPhoneData(folder), let b = try? SlagBunt.las(d) else { return nil }
+                    return (b, Overforing.summa(d))
+                }.value
+                if let a { self?.annan = a }
+            }
             guard let self else { return }
-            if let egen, !Task.isCancelled { await self.vidare(p, egen: egen, annan: annan) }
+            if !Task.isCancelled { await self.vidare(p) }
             self.jobb = nil
             if self.igen {
                 self.igen = false
@@ -117,88 +179,127 @@ final class TreDKoppling {
         return (b, try b.data())
     }
 
-    private func vidare(_ p: PassState, egen: (SlagBunt, Data), annan: Data?) async {
-        let egenSumma = Overforing.summa(egen.1)
-        // Följaren skickar sina slag när den styrandes 3D inte gäller dem.
-        if p.setup.role == .follow, let link, fil?.kallor[p.setup.view.rawValue] != egenSumma {
-            link.send(kind: Overforing.slag, pass: passID, data: egen.1)
+    private func vidare(_ p: PassState) async {
+        guard let egen, egen.pass == p else { return }
+        let vy = p.setup.view
+        egenSumma = egen.summa
+        annanSumma = annan?.summa
+        // Följaren skickar sina slag tills den styrande kvitterat just den summan; en fil som den
+        // styrande räknat på dem visar att den redan har dem.
+        if p.setup.role == .follow, let link, skickadSumma != egen.summa,
+           !(fil?.raknadAv != vy && fil?.kallor[vy.rawValue] == egen.summa) {
+            skickadSumma = egen.summa
+            skickat = .vantar
+            let data = egen.data, pass = passID
+            let delar = await Task.detached(priority: .userInitiated) {
+                Overforing.dela(kind: Overforing.slag, pass: pass, data: data)
+            }.value
+            link.send(delar)
         }
-        guard let annan, let ab = try? SlagBunt.las(annan), ab.vy != p.setup.view else { return }
-        let kallor = [p.setup.view.rawValue: egenSumma, ab.vy.rawValue: Overforing.summa(annan)]
-        if fil?.galler(kallor) == true { return }
+        guard let annan, annan.bunt.vy != vy else { return }
+        let kallor = [vy.rawValue: egen.summa, annan.bunt.vy.rawValue: annan.summa]
+        // En fil som den andra telefonen räknat på de här slagen är facit (den styrande); en egen
+        // räknas om bara när någon bunt ändrats. Inga resultat som pendlar.
+        if let fil, fil.kallor[vy.rawValue] == egen.summa, fil.raknadAv != vy || fil.galler(kallor) { return }
         raknar = true
         defer { raknar = false }
-        let pass = passID, vy = p.setup.view, langd = p.heightM
-        let ny = await Task.detached(priority: .userInitiated) { () -> (TreDFil, Double)? in
-            guard let a = try? TreDIndata(egen.0), let b = try? TreDIndata(ab) else { return nil }
+        let pass = passID, langd = p.heightM, a = egen.bunt, b = annan.bunt
+        let t = Task.detached(priority: .userInitiated) { () -> (TreDFil, Double)? in
+            guard let ia = try? TreDIndata(a), let ib = try? TreDIndata(b) else { return nil }
             let start = Date()
-            let ut = TreDTelefon.rakna(a, b, langdM: langd)
+            let ut = TreDTelefon.rakna(ia, ib, langdM: langd)
+            if Task.isCancelled { return nil }
             let tid = Date().timeIntervalSince(start)
             return (TreDFil(pass: pass, raknad: Date(), raknadAv: vy, kallor: kallor, sekunder: tid, ut: ut), tid)
-        }.value
+        }
+        rakning = t
+        let ny = await withTaskCancellationHandler { await t.value } onCancel: { t.cancel() }
+        rakning = nil
         guard let ny, !Task.isCancelled else { return }
         senasteTid = ny.1
-        spara(ny.0)
-        if p.setup.role == .lead, let link, let d = try? ny.0.data() {
-            link.send(kind: Overforing.treD, pass: passID, data: d)
-        }
+        guard store.saveTreD(ny.0, passID: passID) else { return }
+        fil = ny.0
+        onAndrat?()
+        if p.setup.role == .lead { skickaTreD(ny.0) }
     }
 
-    private func spara(_ f: TreDFil) {
-        guard store.saveTreD(f, passID: passID) else { return }
-        fil = f
-        onAndrat?()
+    /// Den styrandes 3D till följarna, i bitar gjorda utanför huvudtråden.
+    private func skickaTreD(_ f: TreDFil) {
+        guard let link else { return }
+        let pass = passID
+        Task {
+            let delar = await Task.detached(priority: .userInitiated) { () -> [LinkPart] in
+                guard let d = try? f.data() else { return [] }
+                return Overforing.dela(kind: Overforing.treD, pass: pass, data: d)
+            }.value
+            if !delar.isEmpty { link.send(delar) }
+        }
     }
 
     /// En hel överföring från den andra telefonen: slagen (den styrande) eller 3D (följaren).
-    /// En överföring för ett annat pass, eller som inte går att läsa, tas emot och släpps, så att
-    /// den inte skickas om och om igen. false bara när sparningen misslyckades.
-    private func mottaget(kind: String, pass: String, data: Data) -> Bool {
-        guard pass == passID else { return true }
+    /// Svaret blir kvittensen: sparad, nej med skäl (följaren slutar och visar det), eller osparad
+    /// (kommer igen). Läsningen och skrivningen görs utanför huvudtråden.
+    private func mottaget(kind: String, pass: String, data: Data) async -> Mottagning {
+        guard pass == passID else { return .nej(Overforing.felPass) }
+        guard let vy else { return .osparad }
+        let folder = store.passFolder(passID)
         switch kind {
         case Overforing.slag:
-            guard let b = try? SlagBunt.las(data), b.vy != store.load(passID)?.setup.view else { return true }
-            guard store.saveOtherPhone(data, passID: passID) else { return false }
+            let r = await Task.detached(priority: .userInitiated) { () -> (SlagBunt, String, Bool)? in
+                guard let b = try? SlagBunt.las(data), b.vy != vy else { return nil }
+                return (b, Overforing.summa(data), Store.skrivAnnan(data, folder: folder))
+            }.value
+            guard let r else { return .nej(Overforing.felFormat) }
+            guard r.2 else { return .osparad }
+            annan = (r.0, r.1)
             harAnnan = true
             uppdatera()
-            return true
+            return .sparad
         case Overforing.treD:
-            guard let f = try? TreDFil.las(data), f.pass == passID else { return true }
-            guard store.saveTreD(f, passID: passID) else { return false }
+            let f = await Task.detached(priority: .userInitiated) { try? TreDFil.las(data) }.value
+            guard let f, f.pass == passID else { return .nej(Overforing.felFormat) }
+            guard store.saveTreD(f, passID: passID) else { return .osparad }
             fil = f
             onAndrat?()
-            return true
+            return .sparad
         default:
-            return true
+            return .nej(Overforing.felFormat)
         }
     }
 
     /// "Import other phone": den andra telefonens paket ur Filer eller AirDrop, läst fil för fil
-    /// utan klippen, till samma bunt; sedan räknar den här telefonen. METOD MS19
+    /// utan klippen, till samma bunt; sedan räknar den här telefonen. En zip från ett annat pass
+    /// eller en annan dag tas emot men ger en grå varning. METOD MS19
     func importera(_ url: URL) async {
         problem = nil
+        varning = nil
+        guard let vy else { return }
         let skyddad = url.startAccessingSecurityScopedResource()
         defer { if skyddad { url.stopAccessingSecurityScopedResource() } }
-        let r = await Task.detached(priority: .userInitiated) { () -> Result<Data, OverforingFel> in
-            do {
-                return .success(try SlagBunt.ur(zip: url).data())
-            } catch let e as OverforingFel {
-                return .failure(e)
-            } catch {
-                return .failure(OverforingFel(""))
-            }
+        let folder = store.passFolder(passID)
+        let r = await Task.detached(priority: .userInitiated) { () -> (SlagBunt, String, Bool)? in
+            guard let b = try? SlagBunt.ur(zip: url), let d = try? b.data() else { return nil }
+            guard b.vy != vy else { return (b, "", false) }
+            return (b, Overforing.summa(d), Store.skrivAnnan(d, folder: folder))
         }.value
-        switch r {
-        case let .success(d):
-            guard let b = try? SlagBunt.las(d), b.vy != store.load(passID)?.setup.view else {
-                problem = String(localized: "Same view as this phone")
-                return
-            }
-            guard store.saveOtherPhone(d, passID: passID) else { return }
-            harAnnan = true
-            uppdatera()
-        case .failure:
+        guard let r else {
             problem = String(localized: "Not a SwingLab package")
+            return
         }
+        guard r.0.vy != vy else {
+            problem = String(localized: "Same view as this phone")
+            return
+        }
+        guard r.2 else {
+            problem = String(localized: "annan_telefon.json could not be saved.")
+            return
+        }
+        if r.0.pass != passID {
+            varning = r.0.pass.prefix(8) == passID.prefix(8) ? String(localized: "Other phone's package is from another session")
+                : String(localized: "Other phone's package is from another day")
+        }
+        annan = (r.0, r.1)
+        harAnnan = true
+        uppdatera()
     }
 }

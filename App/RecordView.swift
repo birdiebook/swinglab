@@ -22,6 +22,8 @@ struct RecordView: View {
     /// Två telefoner (S2g): kopplingen, och en start från den styrande som väntar på kameran.
     @State private var link: PhoneLink?
     @State private var pendingStart: Int?
+    /// Den andra telefonen (dess id), passets partner för 3D (S6c-2, BESLUT B61).
+    @State private var partner: String?
     /// Continue i kvittot: passet öppnas när kvittot har stängts.
     @State private var continueAfterReceipt = false
 
@@ -220,6 +222,7 @@ struct RecordView: View {
         guard link == nil, pass.setup.role != .solo else { return }
         let l = PhoneLink(role: pass.setup.role, view: pass.setup.view)
         l.onStart = { passID, n in linkStart(passID: passID, series: n) }
+        l.onPartner = { partner = $0 }
         l.onStop = { n in linkStop(n) }
         // Den styrande: passets serier och följarnas sparade läses in, och par.json skrivs i passet.
         if pass.setup.role == .lead { l.attachLead(store: store, pass: pass) }
@@ -251,6 +254,8 @@ struct RecordView: View {
     /// Serien är sparad: den styrande parar, följaren skickar klicken (nu eller efter ett tapp).
     private func linkFinished(_ s: SeriesRecord, lead: Int?) {
         guard let link else { return }
+        // Passets partner, när passets id är det slutliga (efter adopt). BESLUT B61
+        if let partner { store.savePartner(partner, passID: pass.id) }
         switch pass.setup.role {
         case .lead:
             link.ownFinished(LinkSeries(record: s, series: s.nr, passID: pass.id, setup: pass.setup))

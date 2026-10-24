@@ -164,15 +164,20 @@ final class LinkTransport: @unchecked Sendable {
     private var stopped = false
     private var suspendedUntil = 0.0
     var onEvent: (@Sendable (Event) -> Void)?
+    /// Följaren: vilken styrande den kopplar till (syftet och passets partner, S6c-2). En annan
+    /// stängs, och nästa tjänst prövas. BESLUT B61
+    private let accepts: @Sendable (LinkHello) -> Bool
 
     /// Väntan före nästa försök, s.
     static let retry = 1.0
 
-    init(role: LinkRole, port: UInt16?, endpoint: NWEndpoint?, bonjour: Bool) {
+    init(role: LinkRole, port: UInt16?, endpoint: NWEndpoint?, bonjour: Bool,
+         accepts: @escaping @Sendable (LinkHello) -> Bool = { _ in true }) {
         self.role = role
         self.port = port
         fixed = endpoint
         self.bonjour = bonjour
+        self.accepts = accepts
     }
 
     /// TCP utan Nagle (pingen väntar inte) och med peer-to-peer, så att telefonerna
@@ -345,8 +350,13 @@ final class LinkTransport: @unchecked Sendable {
         connections[id] = c
         c.onMessage = { [weak self] m, t in
             guard let self else { return }
-            // Följaren binder sig till den styrande som svarat med hello.
+            // Följaren binder sig till den styrande som svarat med hello, när det är rätt
+            // styrande (samma syfte, passets partner); en annan stängs (S6c-2).
             if self.role == .follow, case let .hello(h) = m, h.role == .lead {
+                guard self.accepts(h) else {
+                    self.connections[id]?.cancel()
+                    return
+                }
                 self.heardHello.insert(id)
                 if self.bound == nil { self.bound = self.connections[id]?.endpoint }
             }
@@ -403,11 +413,18 @@ final class PhoneLink {
     @ObservationIgnored var onStop: ((Int) -> Void)?
     /// Den styrande: en serie är parad.
     @ObservationIgnored var onPaired: ((PairEntry) -> Void)?
-    /// En hel överföring kom (S6c-2): slagen hos den styrande, 3D hos följaren. Svarar om den
-    /// sparades; annars kvitteras den inte och kommer igen. BESLUT B61, METOD MS19
-    @ObservationIgnored var onData: ((String, String, Data) -> Bool)?
+    /// En hel överföring kom (S6c-2): slagen hos den styrande, 3D hos följaren, ihopfogad utanför
+    /// huvudtråden. Svaret blir kvittensen (sparad, nej med skäl, eller osparad: kommer igen).
+    /// BESLUT B61, METOD MS19
+    @ObservationIgnored var onData: ((String, String, Data) async -> Mottagning)?
     /// Följaren: en egen överföring är kvitterad hel.
     @ObservationIgnored var onDelivered: ((String, String) -> Void)?
+    /// Följaren: den styrande sa nej till en överföring ("pass", "version", "format").
+    @ObservationIgnored var onRefused: ((String, String, String) -> Void)?
+    /// Den andra telefonen sa hello: dess id (passets partner, BESLUT B61).
+    @ObservationIgnored var onPartner: ((String) -> Void)?
+    /// Följaren: den styrande saknar bitarna (en äldre app), så slagen kan inte skickas.
+    private(set) var partnerUtanDelar = false
 
     private let transport: LinkTransport
     @ObservationIgnored private var leader: LinkLeader?
@@ -419,16 +436,31 @@ final class PhoneLink {
     /// Den styrande: passet där följarnas serier och par.json sparas.
     @ObservationIgnored private var store: Store?
     @ObservationIgnored private var passID: String?
+    @ObservationIgnored private let partner: String?
 
     /// Hjärtslaget: en ping i sekunden till varje följare. METOD MS9
     static let heartbeatInterval = 1.0
 
     /// `port` och `endpoint` utan Bonjour är simulatorprovets loopback (S2_SPEC §10.2 steg 9).
-    init(role: LinkRole, view: Vy, port: UInt16? = nil, endpoint: NWEndpoint? = nil, bonjour: Bool = true) {
+    /// `mode`: inspelningen eller passets 3D (S6c-2); `partner`: passets andra telefon, när den
+    /// är känd (bara den kopplas). `device`: provets andra telefon i samma process.
+    init(role: LinkRole, view: Vy, mode: LinkHello.Mode = .record, partner: String? = nil, port: UInt16? = nil,
+         endpoint: NWEndpoint? = nil, bonjour: Bool = true, device: String? = nil) {
         self.role = role
-        hello = LinkHello(role: role, device: UUID().uuidString, model: Self.model(), app: Self.version(), view: view)
-        transport = LinkTransport(role: role, port: port, endpoint: endpoint, bonjour: bonjour)
-        if role == .lead { leader = LinkLeader(hello: hello) } else { follower = LinkFollower(hello: hello) }
+        let h = LinkHello(role: role, device: device ?? Self.deviceID(), model: Self.model(), app: Self.version(),
+                          view: view, mode: mode)
+        hello = h
+        transport = LinkTransport(role: role, port: port, endpoint: endpoint, bonjour: bonjour, accepts: { l in
+            l.syfte == h.syfte && (partner == nil || l.device == partner)
+        })
+        self.partner = partner
+        if role == .lead {
+            var l = LinkLeader(hello: h)
+            l.partner = partner
+            leader = l
+        } else {
+            follower = LinkFollower(hello: h)
+        }
         transport.onEvent = { [weak self] e in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { self?.handle(e) }
@@ -488,15 +520,41 @@ final class PhoneLink {
         guard leader != nil else { return }
         passID = id
         leader = LinkLeader(hello: hello, passID: id)
+        leader?.partner = partner
     }
 
-    /// En stor överföring (S6c-2, BESLUT B61): följaren till den styrande, den styrande till
-    /// varje följare, nu och igen när kopplingen kommer tillbaka. METOD MS19
-    func send(kind: String, pass: String, data: Data) {
+    /// En stor överföring i färdiga bitar (`Overforing.dela` utanför huvudtråden, S6c-2, BESLUT
+    /// B61): följaren till den styrande, den styrande till varje följare, nu och igen när
+    /// kopplingen kommer tillbaka. METOD MS19
+    func send(_ delar: [LinkPart]) {
         if leader != nil {
-            apply(leader?.sendToFollowers(kind: kind, pass: pass, data: data) ?? [])
+            apply(leader?.sendToFollowers(delar) ?? [])
         } else {
-            apply(follower?.send(kind: kind, pass: pass, data: data) ?? [])
+            apply(follower?.send(delar) ?? [])
+        }
+    }
+
+    /// Telefonens id: stabilt per installation (S6c-2), så att passets partner känns igen.
+    /// Ett slumptal, inget namn (BESLUT B61).
+    nonisolated static func deviceID() -> String {
+        let nyckel = "swinglab.telefon"
+        if let id = UserDefaults.standard.string(forKey: nyckel) { return id }
+        let id = UUID().uuidString
+        UserDefaults.standard.set(id, forKey: nyckel)
+        return id
+    }
+
+    /// En hel överföring: fogas ihop och prövas utanför huvudtråden, sparas av appen, och svaret
+    /// går tillbaka som kvittens (METOD MS19).
+    private func taEmot(kind: String, pass: String, id: String, bytes: Int, delar: [String],
+                        svara: @escaping (Mottagning) -> Void) {
+        let handler = onData
+        Task { @MainActor in
+            let d = await Task.detached(priority: .userInitiated) {
+                Overforing.foga(id: id, bytes: bytes, delar: delar)
+            }.value
+            guard let d else { return svara(.felSumma) }
+            svara(await handler?(kind, pass, d) ?? .osparad)
         }
     }
 
@@ -562,11 +620,15 @@ final class PhoneLink {
         case let .message(id, m, t):
             if role == .lead {
                 apply(leader?.receive(m, from: id, at: t) ?? [])
-                if case .hello = m { burst(id) }
+                if case let .hello(h) = m, leader?.followers[h.device]?.peer == id {
+                    burst(id)
+                    onPartner?(h.device)
+                }
             } else if id == followConnection {
                 // Pingen har redan besvarats på nätets kö.
                 if case .ping = m { break }
                 apply(follower?.receive(m, at: t, now: LinkClock.now) ?? [])
+                if case let .hello(h) = m, follower?.lead == h { onPartner?(h.device) }
             }
         case let .listening(p):
             port = p
@@ -579,18 +641,15 @@ final class PhoneLink {
     private func apply(_ a: [LinkLeader.Action]) {
         // En serie som inte gick att spara kvitteras inte: följaren skickar den igen.
         var osparade: Set<Int> = []
-        // Detsamma för en överföring (S6c-2): helhetens kvittens skickas inte.
-        var osparadeDelar: Set<String> = []
         for x in a {
             switch x {
             case let .send(peer, m):
                 if case let .ack(.recorded, n) = m, osparade.contains(n) { continue }
-                if case let .partAck(k) = m, k.index == nil, osparadeDelar.contains(k.kind) { continue }
                 transport.send(m, to: peer)
-            case let .received(device, kind, pass, data):
-                if onData?(kind, pass, data) != true {
-                    osparadeDelar.insert(kind)
-                    leader?.forget(device: device, kind: kind)
+            case let .received(device, kind, pass, id, bytes, delar):
+                taEmot(kind: kind, pass: pass, id: id, bytes: bytes, delar: delar) { [weak self] svar in
+                    guard let self else { return }
+                    self.apply(self.leader?.svara(device: device, kind: kind, pass: pass, id: id, svar) ?? [])
                 }
             case let .close(peer):
                 transport.close(peer)
@@ -605,21 +664,21 @@ final class PhoneLink {
     }
 
     private func apply(_ a: [LinkFollower.Action]) {
-        var osparadeDelar: Set<String> = []
         for x in a {
             switch x {
             case let .send(m):
-                if case let .partAck(k) = m, k.index == nil, osparadeDelar.contains(k.kind) { continue }
                 if let c = followConnection { transport.send(m, to: c) }
             case let .startRecording(p, n): onStart?(p, n)
             case let .stopRecording(n): onStop?(n)
-            case let .received(kind, pass, data):
-                if onData?(kind, pass, data) != true {
-                    osparadeDelar.insert(kind)
-                    follower?.forget(kind: kind)
+            case let .received(kind, pass, id, bytes, delar):
+                taEmot(kind: kind, pass: pass, id: id, bytes: bytes, delar: delar) { [weak self] svar in
+                    guard let self else { return }
+                    self.apply(self.follower?.svara(kind: kind, pass: pass, id: id, svar) ?? [])
                 }
             case let .delivered(kind, pass, _):
                 onDelivered?(kind, pass)
+            case let .refused(kind, pass, fel):
+                onRefused?(kind, pass, fel)
             }
         }
         refresh()
@@ -637,6 +696,7 @@ final class PhoneLink {
                 .sorted { ($0.view.rawValue, $0.id) < ($1.view.rawValue, $1.id) }
         } else if let follower, let l = follower.lead {
             ny = [Peer(id: l.device, view: l.view, connected: follower.isConnected, recording: false)]
+            if partnerUtanDelar != !l.kanDelar { partnerUtanDelar = !l.kanDelar }
         } else {
             ny = []
         }

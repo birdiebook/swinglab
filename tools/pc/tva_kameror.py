@@ -66,7 +66,7 @@ TREND_GOLV = {"backen_vrid_topp": 15.7, "brost_vrid_topp": 13.7, "xfaktor_topp":
               "hofter_oppna_traff": 8.5}
 SNABBA = [I["v_handled"], I["h_handled"], I["v_armbage"], I["h_armbage"]]
 
-# Måttens namn i analysen och katalogen (katalog_3d.json) ← tre_d/matt.py. METOD MK6
+# Måttens namn i analysen och katalogen (katalog.json, listan tre_d) ← tre_d/matt.py. METOD MK6
 MATT = {"backen_vrid_topp": "backen_topp", "brost_vrid_topp": "brost_topp", "xfaktor_topp": "xfaktor_topp",
         "xfaktor_stretch": "stretch", "hofter_oppna_traff": "hofter_oppna_traff"}
 
@@ -516,6 +516,30 @@ TELEFON_TOL = 0.05
 TELEFON_FORMAT = "swinglab-tre-d/1"
 # Fälten som ska vara lika: parningen, skälen och antalen (de avrundade jämförs exakt nedan).
 TELEFON_LIKA = ("lage", "min_slag", "matt", "parning", "osaker", "utelamnade", "n")
+# De avrundade talen: skillnaden skrivs, inte bara att de skiljer.
+TELEFON_TAL_KALIB = ("sampson_px", "vinkel_mellan_kamerorna", "lodlinje_mot_vagrata")
+TELEFON_TAL_SLAG = ("synk_ms", "aterprojektion_px")
+
+
+def _marginaler(inre: list | None) -> list:
+    """Telefonens oavrundade tal vid grenarna per uppställning (tre_d.json `inre`): Sampson-felet
+    mot spärren, vinkeln mot 60–120° och lodlinjen mot skyddet, i px och grader (positivt =
+    innanför), och synken per slag i ms. Så att en gren som slog om kan redovisas. METOD MS19"""
+    ut = []
+    for i in inre or []:
+        if not isinstance(i, dict):
+            ut.append(None)
+            continue
+        m = {}
+        if isinstance(i.get("sampson_px"), (int, float)):
+            m["sampson_mot_sparren_px"] = SAMPSON_MAX_PX - i["sampson_px"]
+        if isinstance(i.get("vinkel"), (int, float)):
+            m["vinkel_mot_granserna"] = min(i["vinkel"] - VINKEL_OK[0], VINKEL_OK[1] - i["vinkel"])
+        if isinstance(i.get("lodlinje_mot_vagrata"), (int, float)):
+            m["lodlinje_mot_skyddet"] = LODLINJE_MOT_VAGRATA_MAX - i["lodlinje_mot_vagrata"]
+        m["synk_ms"] = [f * 1000 for f in i.get("forsk", []) if isinstance(f, (int, float))]
+        ut.append(m)
+    return ut
 
 
 def jamfor_telefon(pc: dict, fil: dict) -> dict:
@@ -527,18 +551,31 @@ def jamfor_telefon(pc: dict, fil: dict) -> dict:
           "tol": TELEFON_TOL}
     tel = fil.get("tre_d")
     if "hoppat" in pc or tel is None:
-        ut.update(hoppat={"pc": pc.get("hoppat"), "telefon": fil.get("hoppat")}, olika=[], storsta_skillnad=None,
-                  per_slag=[])
+        ut.update(hoppat={"pc": pc.get("hoppat"), "telefon": fil.get("hoppat")}, olika=[], avrundade=[],
+                  storsta_skillnad=None, per_slag=[], bara_telefonen=[], bara_pc=[],
+                  marginaler=_marginaler(fil.get("inre")))
         ut["inom"] = pc.get("hoppat") == fil.get("hoppat")
         return ut
     olika = [f for f in TELEFON_LIKA if pc.get(f) != tel.get(f)]
+    avrundade = []
+
+    def tal(vag: str, a, b) -> None:
+        """Ett avrundat tal: skillnaden när de skiljer."""
+        if a != b:
+            ok = isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool)
+            avrundade.append({"falt": vag, "pc": a, "telefon": b, "skillnad": round(b - a, 4) if ok else None})
+
     pk, tk = pc.get("kalibrering", []), tel.get("kalibrering", [])
     if len(pk) != len(tk):
         olika.append("kalibrering")
     else:
         for i, (a, b) in enumerate(zip(pk, tk)):
-            olika += [f"kalibrering[{i}].{f}" for f in sorted(set(a) | set(b)) if a.get(f) != b.get(f)]
-    storst, per_slag = 0.0, []
+            for f in sorted(set(a) | set(b)):
+                if f in TELEFON_TAL_KALIB:
+                    tal(f"kalibrering[{i}].{f}", a.get(f), b.get(f))
+                elif a.get(f) != b.get(f):
+                    olika.append(f"kalibrering[{i}].{f}")
+    storst, per_slag, bara_telefonen, bara_pc = 0.0, [], [], []
     ps = {(s["dtl"], s["fo"]): s for s in pc.get("slag", [])}
     ts = {(s.get("dtl"), s.get("fo")): s for s in tel.get("slag", [])}
     if list(ps) != list(ts):
@@ -547,11 +584,14 @@ def jamfor_telefon(pc: dict, fil: dict) -> dict:
         a, b = ps[nyckel], ts.get(nyckel)
         if b is None:
             continue
-        olika += [f"slag {nyckel[0]}/{nyckel[1]}.{f}" for f in ("serie", "synk_ms", "aterprojektion_px", "fel")
-                  if a.get(f) != b.get(f)]
+        olika += [f"slag {nyckel[0]}/{nyckel[1]}.{f}" for f in ("serie", "fel") if a.get(f) != b.get(f)]
+        for f in TELEFON_TAL_SLAG:
+            tal(f"slag {nyckel[0]}/{nyckel[1]}.{f}", a.get(f), b.get(f))
         am, bm = a.get("matt") or {}, b.get("matt") or {}
         if set(am) != set(bm):
             olika.append(f"slag {nyckel[0]}/{nyckel[1]}.matt")
+            bara_telefonen += [{"dtl": nyckel[0], "fo": nyckel[1], "matt": m} for m in sorted(set(bm) - set(am))]
+            bara_pc += [{"dtl": nyckel[0], "fo": nyckel[1], "matt": m} for m in sorted(set(am) - set(bm))]
         for m in sorted(set(am) & set(bm)):
             d = abs(am[m] - bm[m])
             storst = max(storst, d)
@@ -564,6 +604,7 @@ def jamfor_telefon(pc: dict, fil: dict) -> dict:
             olika.append(f"session.{m}")
         else:
             sess = max(sess, abs(s["median"] - t["median"]))
-    ut.update(olika=olika, storsta_skillnad=storst, storsta_skillnad_median=sess, per_slag=per_slag,
-              inom=not olika and storst <= TELEFON_TOL)
+    ut.update(olika=olika, avrundade=avrundade, storsta_skillnad=storst, storsta_skillnad_median=sess,
+              per_slag=per_slag, bara_telefonen=bara_telefonen, bara_pc=bara_pc,
+              marginaler=_marginaler(fil.get("inre")), inom=not olika and not avrundade and storst <= TELEFON_TOL)
     return ut

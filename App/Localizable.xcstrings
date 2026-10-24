@@ -914,6 +914,50 @@
         }
       }
     },
+    "Other phone has another app version – Import": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone has another app version – Import"
+          }
+        }
+      }
+    },
+    "Other phone has another session – Import": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone has another session – Import"
+          }
+        }
+      }
+    },
+    "Other phone's package is from another day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone's package is from another day"
+          }
+        }
+      }
+    },
+    "Other phone's package is from another session": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone's package is from another session"
+          }
+        }
+      }
+    },
     "Paste from Claude": {
       "extractionState": "manual",
       "localizations": {
@@ -1108,6 +1152,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Send to PC"
+          }
+        }
+      }
+    },
+    "Sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent"
           }
         }
       }
@@ -1493,6 +1548,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
+          }
+        }
+      }
+    },
+    "Waiting for other phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for other phone"
           }
         }
       }

@@ -75,24 +75,24 @@ final class SwingLabProvTreDLink: XCTestCase {
         let bunt = try SlagBunt.make(manifest: fo.manifest, enhet: fo.enhet, par: fo.par, leder: fo.lederna)
         let buntData = try bunt.data()
 
-        let styr = PhoneLink(role: .lead, view: .dtl, bonjour: false)
+        let styr = PhoneLink(role: .lead, view: .dtl, mode: .pass, bonjour: false, device: "prov-styr")
         styr.forPass(Self.pass)
         var mottaget: Data?
         styr.onData = { kind, pass, d in
             if kind == Overforing.slag && pass == Self.pass { mottaget = d }
-            return true
+            return .sparad
         }
         styr.start()
         defer { styr.stop() }
         let port = try XCTUnwrap(väntaPå(10) { styr.port }, "lyssnaren fick ingen port")
-        let folj = PhoneLink(role: .follow, view: .fo, endpoint: .hostPort(host: "127.0.0.1",
-                                                                         port: try XCTUnwrap(NWEndpoint.Port(rawValue: port))),
-                             bonjour: false)
+        let folj = PhoneLink(role: .follow, view: .fo, mode: .pass, partner: "prov-styr",
+                             endpoint: .hostPort(host: "127.0.0.1", port: try XCTUnwrap(NWEndpoint.Port(rawValue: port))),
+                             bonjour: false, device: "prov-folj")
         var treD: Data?
         var levererat = false
         folj.onData = { kind, _, d in
             if kind == Overforing.treD { treD = d }
-            return true
+            return .sparad
         }
         folj.onDelivered = { kind, _ in if kind == Overforing.slag { levererat = true } }
         folj.start()
@@ -102,7 +102,7 @@ final class SwingLabProvTreDLink: XCTestCase {
 
         // Slagen, och flygplansläge på följaren mitt i: det som inte kvitterats går igen.
         var start = Date()
-        folj.send(kind: Overforing.slag, pass: Self.pass, data: buntData)
+        folj.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: buntData))
         folj.suspend(2)
         XCTAssertTrue(vänta(40) { mottaget != nil && levererat && folj.pendingTransfers == 0 },
                       "slagen kom inte fram efter tappet")
@@ -119,7 +119,7 @@ final class SwingLabProvTreDLink: XCTestCase {
         var andra = bunt
         andra.enhet = (andra.enhet ?? "") + " "                // ett nytt innehåll, en ny överföring
         let andraData = try andra.data()
-        folj.send(kind: Overforing.slag, pass: Self.pass, data: andraData)
+        folj.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: andraData))
         XCTAssertTrue(vänta(20) { mottaget == andraData && levererat }, "andra överföringen kom inte fram")
         print(String(format: "PROV: TreD överföring utan tapp %.2f s på loopback", Date().timeIntervalSince(start)))
 
@@ -163,7 +163,7 @@ final class SwingLabProvTreDLink: XCTestCase {
                           kallor: ["dtl": Overforing.summa(Data()), "fo": Overforing.summa(m)], sekunder: ruta.tid,
                           ut: .resultat(r))
         let filData = try fil.data()
-        styr.send(kind: Overforing.treD, pass: Self.pass, data: filData)
+        styr.send(Overforing.dela(kind: Overforing.treD, pass: Self.pass, data: filData))
         XCTAssertTrue(vänta(20) { treD == filData && styr.pendingTransfers == 0 }, "3D kom inte tillbaka")
         XCTAssertEqual(try TreDFil.las(try XCTUnwrap(treD)).treD?.slag.count, r.slag.count)
         print("PROV: TreD tillbaka till följaren, tre_d.json \(filData.count) byte")
@@ -180,6 +180,47 @@ final class SwingLabProvTreDLink: XCTestCase {
         XCTAssertTrue(store.saveOtherPhone(buntData, passID: p.id))
         XCTAssertTrue(store.hasOtherPhone(p.id))
         XCTAssertNil(store.problem)
+    }
+
+    /// Passets 3D kopplar inte till den andra telefonens inspelning, och inte till en annan telefon
+    /// än passets partner; ett annat pass ger ett nej som följaren visar (BESLUT B61, METOD MS19).
+    func testSyftetPartnernOchNej() throws {
+        // DTL:s inspelning lyssnar; FO:s passvy hittar den men kopplar inte.
+        let insp = PhoneLink(role: .lead, view: .dtl, mode: .record, bonjour: false, device: "prov-insp")
+        insp.start()
+        defer { insp.stop() }
+        let port = try XCTUnwrap(väntaPå(10) { insp.port }, "lyssnaren fick ingen port")
+        let ep = NWEndpoint.hostPort(host: "127.0.0.1", port: try XCTUnwrap(NWEndpoint.Port(rawValue: port)))
+        let passvy = PhoneLink(role: .follow, view: .fo, mode: .pass, endpoint: ep, bonjour: false, device: "prov-folj")
+        passvy.start()
+        defer { passvy.stop() }
+        XCTAssertFalse(vänta(5) { !insp.peers.isEmpty || !passvy.peers.isEmpty }, "passvyn kopplade till inspelningen")
+        passvy.stop()
+
+        // En passvy hos DTL, men följaren är låst till en annan partner.
+        let styr = PhoneLink(role: .lead, view: .dtl, mode: .pass, bonjour: false, device: "prov-styr")
+        styr.forPass(Self.pass)
+        styr.start()
+        defer { styr.stop() }
+        let p2 = try XCTUnwrap(väntaPå(10) { styr.port })
+        let ep2 = NWEndpoint.hostPort(host: "127.0.0.1", port: try XCTUnwrap(NWEndpoint.Port(rawValue: p2)))
+        let fel = PhoneLink(role: .follow, view: .fo, mode: .pass, partner: "en-annan", endpoint: ep2, bonjour: false,
+                            device: "prov-folj")
+        fel.start()
+        XCTAssertFalse(vänta(4) { !styr.peers.isEmpty || !fel.peers.isEmpty }, "kopplade till fel partner")
+        fel.stop()
+
+        // Rätt partner men ett annat pass: nej, och följaren slutar skicka.
+        let folj = PhoneLink(role: .follow, view: .fo, mode: .pass, partner: "prov-styr", endpoint: ep2, bonjour: false,
+                             device: "prov-folj")
+        var nej: [String] = []
+        folj.onRefused = { _, _, f in nej.append(f) }
+        folj.start()
+        defer { folj.stop() }
+        XCTAssertTrue(vänta(15) { styr.peers.first?.connected == true && folj.peers.first?.connected == true })
+        folj.send(Overforing.dela(kind: Overforing.slag, pass: "20261103-190000", data: Data(repeating: 1, count: 1000)))
+        XCTAssertTrue(vänta(10) { nej == [Overforing.felPass] && folj.pendingTransfers == 0 }, "inget nej")
+        print("PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (\(nej))")
     }
 
     /// Följarens egen bunt ur ett pass: samma manifest som paketet, lederna ur Leder/.

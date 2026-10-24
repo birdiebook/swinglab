@@ -118,12 +118,14 @@ struct PassShotsView: View {
     private var treDKort: TreDKort? {
         guard let f = tred?.fil else { return nil }
         let forra = forraTreD.flatMap { p in p.treD.map { (datum: p.created, median: $0) } }
-        return TreDKort(f, forra: forra, katalog: AppKatalog.katalog)
+        return TreDKort(f, forra: forra, katalog: AppKatalog.katalog, aktuell: tred?.aktuell ?? true)
     }
 
-    /// "Import other phone" för ett mätt pass med två telefoner utan 3D (BESLUT B61).
+    /// "Import other phone" och följarens grå rad, för ett mätt pass med två telefoner utan 3D
+    /// med tal (ingen fil, en som hoppades över eller en som inte gäller slagen nu). BESLUT B61
     private func annanTelefon(_ p: PassState) -> AnyView? {
-        guard let tred, tred.fil == nil, p.setup.role != .solo else { return nil }
+        guard let tred, p.setup.role != .solo, tred.fil?.treD == nil || !tred.aktuell || tred.status != nil
+        else { return nil }
         return AnyView(AnnanTelefonRad(koppling: tred))
     }
 

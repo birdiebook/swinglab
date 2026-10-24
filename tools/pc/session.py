@@ -153,6 +153,10 @@ def _skriv_telefon(j: dict | None) -> None:
           + (f", {j['sekunder']:.1f} s på telefonen" if j.get("sekunder") is not None else ""))
     for f in j["olika"]:
         print(f"    olika: {f}")
+    for a in j.get("avrundade", []):
+        print(f"    {a['falt']}: PC {a['pc']}, telefonen {a['telefon']}")
+    for x in j.get("bara_telefonen", []):
+        print(f"    bara telefonen: {x['dtl']}/{x['fo']} {x['matt']}")
     for x in j["per_slag"]:
         print(f"    {x['dtl']}/{x['fo']} {x['matt']}: {x['skillnad']}°")
 

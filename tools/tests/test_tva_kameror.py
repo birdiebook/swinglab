@@ -406,13 +406,32 @@ class Telefonen(unittest.TestCase):
         j = TK.jamfor_telefon(self.a["tre_d"], fil)
         self.assertFalse(j["inom"])
         self.assertIn("osaker", j["olika"])
-        self.assertIn("kalibrering[0].sampson_px", j["olika"])
+        # Ett avrundat tal: skillnaden skrivs (granskningen av S6c-2).
+        a = next(x for x in j["avrundade"] if x["falt"] == "kalibrering[0].sampson_px")
+        self.assertAlmostEqual(a["skillnad"], 0.01, places=6)
+        self.assertNotIn("kalibrering[0].sampson_px", j["olika"])
         self.assertEqual([(x["dtl"], x["matt"]) for x in j["per_slag"]], [(s["dtl"], "xfaktor_stretch")])
         self.assertAlmostEqual(j["storsta_skillnad"], 0.1, places=9)
         # Under gränsen: lika.
         fil = _telefonens_fil(self.a["tre_d"], "20261103-180000")
         fil["tre_d"]["slag"][0]["matt"]["backen_vrid_topp"] += 0.04
         self.assertTrue(TK.jamfor_telefon(self.a["tre_d"], fil)["inom"])
+
+    def test_mått_bara_telefonen_har_och_marginalerna(self) -> None:
+        fil = _telefonens_fil(self.a["tre_d"], "20261103-180000")
+        s = next(x for x in fil["tre_d"]["slag"] if "matt" in x)
+        s["matt"]["nytt_matt"] = 1.0
+        fil["inre"] = [{"R": [], "t": [], "upp": [], "forsk": [0.0012, -0.0004], "aterprojektion": [1.2, None],
+                        "sampson_px": 7.5, "vinkel": 118.0, "lodlinje_mot_vagrata": 3.0}, None]
+        j = TK.jamfor_telefon(self.a["tre_d"], fil)
+        self.assertFalse(j["inom"])
+        self.assertEqual(j["bara_telefonen"], [{"dtl": s["dtl"], "fo": s["fo"], "matt": "nytt_matt"}])
+        m = j["marginaler"][0]
+        self.assertAlmostEqual(m["sampson_mot_sparren_px"], 0.5)
+        self.assertAlmostEqual(m["vinkel_mot_granserna"], 2.0)
+        self.assertAlmostEqual(m["lodlinje_mot_skyddet"], 12.0)
+        self.assertEqual([round(x, 6) for x in m["synk_ms"]], [1.2, -0.4])
+        self.assertIsNone(j["marginaler"][1])
 
     def test_hoppat_jamfors_pa_skalet(self) -> None:
         fil = {"format": "swinglab-tre-d/1", "pass": "x", "hoppat": "kalibreringen: ingen serie gick att kalibrera under spärren"}
@@ -441,6 +460,16 @@ class Telefonen(unittest.TestCase):
         self.assertEqual(t["telefon"]["paket"], d.name)
         self.assertTrue(t["telefon"]["inom"], t["telefon"])
         self.assertIn("3D på telefonen", buf.getvalue())
+
+    def test_den_raknande_telefonens_paket_tas(self) -> None:
+        """Båda paketen bär en fil: den vars vy räknade (raknad_av) jämförs."""
+        fil = _telefonens_fil(self.a["tre_d"], "20261103-180000")
+        fil["raknad_av"] = "fo"
+        pd, pf = P.las(self.d), P.las(self.f)
+        pd.tre_d = dict(fil, raknad_av="fo")
+        pf.tre_d = fil
+        a = A.analysera([pd, pf], 1.80, [], skapad="")
+        self.assertEqual(a["tre_d"]["telefon"]["paket"], pf.fil)
 
     def test_trasig_fil_stoppar_inget(self) -> None:
         d = self._med_fil({"format": "swinglab-tre-d/1", "pass": "20261103-999999", "hoppat": "x"}, "trasig")

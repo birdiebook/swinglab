@@ -3,6 +3,7 @@ import SwiftUI
 import UIKit
 import Swing
 import Capture
+import TreD
 
 /// Paketet till PC:n (S2_SPEC §8.3–8.4, BESLUT B27): appen fyller i det bara telefonen
 /// vet (modellen, iOS, appens version, kameraformaten och klippens längd) och låter
@@ -84,10 +85,17 @@ enum Export {
         let app = appInfo(), phone = phoneInfo(), device = deviceInfo(pass)
         let langd = includeClips ? await clipDurations(pass, store: store) : [:]
         let p = pass
+        let fil = store.treD(pass.id)
         do {
             _ = try await Task.detached(priority: .userInitiated) {
-                try PassPackage.write(pass: p, folder: folder, to: url, scratch: scratch, app: app, phone: phone, device: device,
-                                      created: now, includeClips: includeClips, clipDurations: langd)
+                // 3D följer med bara när filen gäller passets slag som de är nu (S6c-2, BESLUT B63).
+                var medTreD = false
+                if let fil, let b = try? TreDKoppling.egenBunt(p, folder: folder, app: app, phone: phone, device: device) {
+                    medTreD = fil.kallor[p.setup.view.rawValue] == Overforing.summa(b.1)
+                }
+                return try PassPackage.write(pass: p, folder: folder, to: url, scratch: scratch, app: app, phone: phone,
+                                             device: device, created: now, includeClips: includeClips,
+                                             clipDurations: langd, includeTreD: medTreD)
             }.value
         } catch PassPackage.Error.noShots {
             throw ExportError.noShots

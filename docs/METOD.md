@@ -1812,22 +1812,53 @@ värden i `CaptureTests`.
   **räkning** (prövad i `OverforingTests.testStorlekenPerSlag`). Uppmätt i simulatorn på det
   påhittade passet (cirka 2 s leder per slag): 11 slag 608 kB (55 kB per slag) i 4 bitar, 0,03 s
   över loopback, och 2,1 s med ett tapp om 2 s mitt i; `tre_d.json` tillbaka 7,8 kB.
-- **Bitarna** (`part`, version 1): **192 kB** per bit (cirka 350 kB som meddelande, under ramens
-  1 MB), id = innehållets summa (CRC-32 och längden). Varje bit kvitteras; en bit med en annan
-  version, fel storlek eller fel antal tas inte emot. När alla bitar kommit prövas summan: fel
-  summa ger en kvittens `ok: false` och allt skickas igen. Helheten kvitteras först när den är
-  sparad. Efter ett tapp skickas bitarna som inte kvitterats igen, eller den sista när bara
-  helhetens kvittens fattas; mottagaren svarar då med den igen. En ny överföring av samma slag
-  ersätter den förra. Den styrande tar bara emot bitar för sitt pass. **räkning.**
+- **Bitarna** (`part`, version 1): **192 kB** per bit (cirka 262 kB som meddelande i base64,
+  under ramens 1 MB), id = innehållets summa (CRC-32 och längden). Varje bit kvitteras. När
+  alla bitar kommit fogas de ihop och summan prövas utanför huvudtråden: fel summa ger
+  `ok: false` och allt skickas igen. Helheten kvitteras först när den är sparad; misslyckas
+  sparningen kommer ingen kvittens, och allt kommer igen vid nästa koppling. **Allt som inte
+  kvitterats hela skickas igen från början varje gång den andra telefonen säger hello**: den kan
+  ha startats om och tappat det den hade, och mottagaren slänger dubbletter. En bit för en
+  överföring som mottagaren inte känner, och som inte är den första, ger `ok: false` (börja om).
+  En bit med fel antal för storleken, ett index utanför eller större än taket läses inte; en bit
+  vars antal eller storlek skiljer från den pågående börjar en ny överföring. **räkning.**
+- **Nej med skäl:** `ok: false` med `fel` stryker överföringen, och följaren slutar skicka och
+  visar en grå rad: `pass` (den styrande har ett annat pass: "Other phone has another session –
+  Import"), `version` (en annan version av bitarna) och `format` (innehållet går inte att läsa,
+  eller ett slag som inte tas emot): "Other phone has another app version – Import". Under
+  överföringen "Waiting for other phone", efter kvittensen "Sent". **räkning.**
+- **Syftet, förmågorna och partnern:** hello bär `mode` (`record` eller `pass`) och `caps`
+  (`part1`). Passets koppling (`pass`) kopplar bara till en telefon med samma syfte, så att FO:s
+  passvy inte hamnar i DTL:s inspelning; den andra stängs och nästa tjänst prövas. Bitar skickas
+  bara till en telefon med `part1`, och en okänd meddelandetyp hoppas över i stället för att
+  stänga förbindelsen. Telefonens id är stabilt per installation (ett slumptal i appens
+  inställningar), och passets koppling tar bara den telefon som passet parades med vid
+  inspelningen (`partner.json` i passets mapp, eller följaren i `foljare.json`); ett äldre pass
+  utan känd partner tar vilken som helst med samma pass. **räkning.**
+- **Taket:** den styrande tar bara emot `slag`, följaren bara `tre_d`; en överföring i taget per
+  telefon och slag, högst **48 MB** för slagen och **2 MB** för 3D, och högst **4** följare
+  samtidigt. **antagande** (ett pass om 60 slag är cirka 7 MB).
 - **Vem som räknar:** den telefon som har den andra telefonens bunt (den styrande, eller den som
-  importerade) räknar när passets alla slag är analyserade, och igen när någon buntens summa
-  ändrats (`tre_d.json`:s `kallor`). Följaren skickar sin bunt när den styrandes resultat inte
-  gäller dess nuvarande slag. **räkning.**
+  importerade) räknar när passets alla slag är analyserade (`tre_d.json`:s `kallor` bär buntarnas
+  summor). Följaren skickar sin bunt tills den styrande kvitterat just den summan. **räkning.**
+- **Importen:** en zip med samma vy som telefonen tas inte emot; en zip från ett annat pass ger
+  "Other phone's package is from another session" och en från en annan dag "… another day", i
+  grått, men importeras (pass-id:t skiljer när kopplingen aldrig fanns). **räkning.**
 - **2D-faserna på telefonen:** start och topp per slag ur `Matt.mat` på slagets leder, med
   domen sving eller osaker och inte Detection wrong, träffen ur manifestet (`traff_s − klick_s`,
   annars avståndet, MT1) och längden ur den räknande telefonens pass, annars DTL-paketets,
   annars 1,80 m (PC:n: det första paketets). Samma som PC:ns `analys.mat_paket` (B12); prövat mot
-  fixturernas faser inom 1e-9 s (`TreDTelefonTests`). **räkning.**
+  fixturernas faser inom 1e-9 s (`TreDTelefonTests`). **Längden påverkar inte faserna** (den ger
+  bara skalan i cm; prövat med 1,55 och 1,95 m, `testFasernaBerorInteAvLangden`), så telefonens och
+  PC:ns längd får skilja utan att 3D gör det. **räkning.**
+- **Bara en räkning gäller:** den styrandes fil är facit. En telefon räknar om bara när ingen fil
+  finns, när dess egen bunt ändrats, eller när den själv räknade och den andra buntens summa
+  ändrats; en fil som den andra telefonen räknat på de här slagen behålls. Bunten byggs en gång
+  per ändring av passet, inte vid varje omladdning, och följaren skickar en summa bara en gång per
+  koppling tills den kvitterats. Räkningen avbryts när passet stängs (`Task.isCancelled` mellan
+  uppställningarna och kalibreringens varv), och ett avbrutet resultat sparas inte. En fil som
+  inte gäller passets slag nu visar inga tal, bara "Updating…", och följer inte med paketet.
+  **räkning.**
 - **Kortet** (B62): passets median per mått bara med minst **10** svingar (MK7); skillnaden mot
   förra passet med 3D (samma klubba, vy och längd) i grader med en decimal, tydlig när den är
   större än förra passets spridning och golvet (MK7). Skälen i kortet: varför 3D hoppades över

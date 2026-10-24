@@ -63,8 +63,25 @@ struct AnnanTelefonRad: View {
     let koppling: TreDKoppling
     @State private var valj = false
 
+    /// Följarens överföring: "Sent", "Waiting for other phone", eller den andra telefonens nej.
+    private var status: String? {
+        switch koppling.status {
+        case .vantar?: return String(localized: "Waiting for other phone")
+        case .skickat?: return String(localized: "Sent")
+        case .annatPass?: return String(localized: "Other phone has another session – Import")
+        case .annanVersion?: return String(localized: "Other phone has another app version – Import")
+        case nil: return nil
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
+            if let status {
+                Text(verbatim: status)
+                    .typsnitt(13)
+                    .foregroundStyle(Theme.tertiary)
+                    .padding(.top, 8)
+            }
             HStack(spacing: 12) {
                 Button("Import other phone") { valj = true }
                     .typsnitt(15, .medium)
@@ -78,6 +95,11 @@ struct AnnanTelefonRad: View {
                 Text(verbatim: p)
                     .typsnitt(13, .semibold)
                     .foregroundStyle(Theme.text)
+            }
+            if let v = koppling.varning {
+                Text(verbatim: v)
+                    .typsnitt(13)
+                    .foregroundStyle(Theme.tertiary)
             }
         }
         .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }

@@ -1281,7 +1281,16 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
 - **Kopplingen i passet:** PhoneLink startas i passets skärm för ett pass med rollen Lead eller
   Follow, eftersom lederna finns först efter Analyze, när kameran är stängd. Båda telefonerna
   ska alltså ha passet öppet en stund efter analysen. Ett pass räknas om när någon telefons slag
-  ändras (Detection wrong, domen, redigeringen): `tre_d.json` bär buntarnas summor.
+  ändras (Detection wrong, domen, redigeringen): `tre_d.json` bär buntarnas summor. Den
+  styrandes fil är facit; en följare som räknat själv efter en import tar den styrandes fil när
+  den kommer.
+- **Vem som kopplas (granskningen, Dataregeln):** hello bär syftet (`mode`: inspelningen eller
+  passets 3D) och förmågorna (`caps`). Passets koppling tar bara en telefon med samma syfte och,
+  när den är känd, **bara den telefon som passet parades med vid inspelningen**: telefonens id
+  är ett slumptal som är stabilt per installation, och partnern sparas i passets mapp
+  (`partner.json`, inte i paketet). Lederna går alltså aldrig till en tredje telefon i rummet.
+  Ett nej med skäl (ett annat pass, en annan version, ett innehåll som inte går att läsa) syns som
+  en grå rad hos följaren, som slutar skicka och kan importera i stället.
 - **Reserven:** "Import other phone" i passet läser den andra telefonens paket
   (`swinglab-<pass>-<vy>.zip`, Send to PC) ur Filer eller AirDrop, fil för fil utan klippen,
   till samma bunt. Den telefon som importerar räknar själv.
@@ -1293,9 +1302,10 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
   logiken prövas); att följaren också räknar (två räkningar som kan skilja); att räkna på PC:n
   bara (B48:s mål).
 - **Kostnad:** cirka 105 kB per slag i bunten och 140 kB på kopplingen (960 rutor, MS19), 2–3 MB
-  för ett pass om 20 slag. En äldre app som inte känner `part` stänger förbindelsen; båda
+  för ett pass om 20 slag. En äldre app (bygget före S6c-2) har inget syfte i hello och kopplar
+  inte till passets koppling, och den stänger förbindelsen vid en okänd meddelandetyp; båda
   telefonerna ska ha samma bygge. Följaren måste ha tagit den styrandes pass-id (S2g), annars
-  vägrar den styrande bitarna och importen är vägen.
+  får den ett nej och importen är vägen. Ett pass från före S6c-2 har ingen känd partner.
 - **Omprövas:** efter telefonprovet med två telefoner (PLAN S6c-2).
 
 ## B62 — 3D i appen: kortet i passet, trenden i Progress och lutningen i uppställningen

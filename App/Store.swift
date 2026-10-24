@@ -284,6 +284,32 @@ final class Store {
 
     // MARK: 3D (S6c-2, BESLUT B61)
 
+    /// Passets partner: den andra telefonens id från inspelningen (`partner.json`), annars
+    /// följaren i `foljare.json` när den kom från en app med bitarna (dess id är stabilt).
+    /// nil = okänd (ett äldre pass): då kopplas vilken telefon som helst med samma pass.
+    func partner(_ passID: String) -> String? {
+        guard PassID.isValid(passID) else { return nil }
+        if let d = try? Data(contentsOf: url(Self.partnerFil, in: passID)),
+           let o = try? JSONDecoder().decode([String: String].self, from: d), let id = o[Self.partnerNyckel] {
+            return id
+        }
+        return followerRecords(passID).last { $0.hello.kanDelar }?.hello.device
+    }
+
+    func savePartner(_ device: String, passID: String) {
+        guard PassID.isValid(passID), partner(passID) != device,
+              let d = try? JSONEncoder().encode([Self.partnerNyckel: device]) else { return }
+        try? d.write(to: url(Self.partnerFil, in: passID), options: .atomic)
+    }
+
+    static let partnerFil = PassPackage.partnerFile
+    static let partnerNyckel = PassPackage.partnerKey
+
+    /// Den andra telefonens bunt till passets mapp, utanför huvudtråden. false = gick inte.
+    static func skrivAnnan(_ data: Data, folder: URL) -> Bool {
+        (try? data.write(to: folder.appending(path: SlagBunt.filnamn), options: .atomic)) != nil
+    }
+
     /// Den andra telefonens slag finns i passet.
     func hasOtherPhone(_ passID: String) -> Bool {
         PassID.isValid(passID) && FileManager.default.fileExists(atPath: url(SlagBunt.filnamn, in: passID).path)
