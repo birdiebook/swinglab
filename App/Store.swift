@@ -460,8 +460,13 @@ final class Store {
     static func skrivFigur(_ f: TreDFigurer, folder: URL) -> Bool {
         let fm = FileManager.default
         guard fm.fileExists(atPath: folder.path) else { return false }
-        let ny = folder.appending(path: ".\(TreDFigurIndex.mapp)-\(UUID().uuidString)")
-        let mal = folder.appending(path: TreDFigurIndex.mapp)
+        // Rester av en skrivning som avbröts (appen stängdes) tas bort först.
+        let prefix = ".\(TreDFigurIndex.mapp)-"
+        for namn in (try? fm.contentsOfDirectory(atPath: folder.path)) ?? [] where namn.hasPrefix(prefix) {
+            try? fm.removeItem(at: folder.appending(path: namn))
+        }
+        let ny = folder.appending(path: prefix + UUID().uuidString)
+        var mal = folder.appending(path: TreDFigurIndex.mapp)
         do {
             try fm.createDirectory(at: ny, withIntermediateDirectories: false)
             for fig in f.figurer {
@@ -470,6 +475,10 @@ final class Store {
             try f.index.data().write(to: ny.appending(path: TreDFigurIndex.filnamn))
             if fm.fileExists(atPath: mal.path) { try fm.removeItem(at: mal) }
             try fm.moveItem(at: ny, to: mal)
+            // Figuren räknas om ur passets leder: den behöver inte ligga i backupen (som videon, B26).
+            var rv = URLResourceValues()
+            rv.isExcludedFromBackup = true
+            try? mal.setResourceValues(rv)
             return true
         } catch {
             try? fm.removeItem(at: ny)

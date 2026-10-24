@@ -26,9 +26,14 @@ public struct TreDRiktning: Equatable, Sendable {
     public var omfang: [[Double]]
     /// Riktningarna kommer ur en figur (annars ur telefonerna: ingen mållinje ritas).
     public var urFigur: Bool
+    /// En meter i världens enheter: 1 med skalan ur benen; med reserven (avståndet mellan
+    /// telefonerna = 1) avståndet delat med en vanlig uppställnings 4,2 m, så att marken, pilen
+    /// och telefonerna får rimlig storlek. Bara för bilden. METOD MK11
+    public var meter: Double
 
     public init(mitt: [Double], mal: [Double], fram: [Double], golv: Double, stans: [Double], omfang: [[Double]],
-                urFigur: Bool) {
+                urFigur: Bool, meter: Double = 1) {
+        self.meter = meter
         self.mitt = mitt
         self.mal = mal
         self.fram = fram
@@ -37,6 +42,14 @@ public struct TreDRiktning: Equatable, Sendable {
         self.omfang = omfang
         self.urFigur = urFigur
     }
+
+    /// Mållinjen bakåt och framåt från stansen, m.
+    public static let malBak = 0.5, malFram = 1.5
+    /// Avståndet mellan telefonerna i en vanlig uppställning (3 m bort, 90° isär), m: reservens
+    /// meter. METOD MK11
+    public static let vanligBaslinjeM = 4.2
+    /// DTL-kamerans blick tas som mållinjen när den ligger så nära fotlinjen, grader.
+    public static let dtlMotFotlinjenMax = 15.0
 
     static func vagrat(_ v: [Double]) -> [Double]? {
         let n = (v[0] * v[0] + v[1] * v[1]).squareRoot()
@@ -52,17 +65,21 @@ public struct TreDRiktning: Equatable, Sendable {
     }
 
     /// Riktningarna ur figuren i adressen (rutorna fram till P1 + 0,15 s, annars slagets första
-    /// 0,3 s): mot målet = bakre fotleden → främre (höfterna när fotlederna saknas), framsidan =
+    /// 0,3 s): mot målet = bakre fotleden → främre (höfterna när fotlederna saknas), eller
+    /// DTL-kamerans blick när den ligger inom 15° från den linjen; framsidan =
     /// vinkelrätt mot den, åt det håll näsan står framför höfterna (spelaren böjer sig mot bollen),
     /// annars mot FO-kameran. Utan figur: där kamerornas blickar möts, med framsidan mot
     /// FO-kameran. Markens höjd ur uppställningen. nil utan både figur och kameror. METOD MK11
     public static func ur(_ f: TreDFigur?, uppstallning u: TreDFigurUppstallning, hand: Hand) -> TreDRiktning? {
         let fo = u.kameror?["fo"], dtl = u.kameror?["dtl"]
         let z: [Double] = [0, 0, 1]
+        var e = 1.0
+        if u.skala != "langd", let a = fo, let b = dtl {
+            let bas = LA.norm3([a.c[0] - b.c[0], a.c[1] - b.c[1], a.c[2] - b.c[2]])
+            if bas > 1e-9 { e = bas / vanligBaslinjeM }
+        }
         if let f, f.n > 0 {
-            let slut = (f.positioner["P1"] ?? (f.t0 + 0.15)) + 0.15
-            var rutor = (0..<f.n).filter { f.t($0) <= slut }
-            if rutor.isEmpty { rutor = Array(0..<min(f.n, 72)) }
+            let rutor = TreDFigurer.adressensRutor((0..<f.n).map { f.t($0) }, f.positioner)
             let (fram, bak) = hand == .hoger ? (11, 12) : (12, 11)
             let (hf, hb) = hand == .hoger ? (7, 8) : (8, 7)
             var mal: [Double]?
@@ -94,7 +111,16 @@ public struct TreDRiktning: Equatable, Sendable {
                 let sx: Double = bas.map { $0[0] }.reduce(0, +), sy: Double = bas.map { $0[1] }.reduce(0, +)
                 stans = [sx / n, sy / n, golv]
             }
-            let m = mal ?? fo.flatMap { k in vagrat(LA.kryss(z, [stans[0] - k.c[0], stans[1] - k.c[1], 0])) } ?? [0, 1, 0]
+            // Utan fot- och höftlinje: vänster om en spelare som ser mot FO-kameran, z × (FO − stansen)
+            // (en vänsterspelare tvärtom).
+            var m = mal ?? fo.flatMap { k in vagrat(LA.kryss(z, [k.c[0] - stans[0], k.c[1] - stans[1], 0])) }
+                .map { hand == .hoger ? $0 : $0.map { -$0 } } ?? [0, 1, 0]
+            // DTL-kamerans blick längs mållinjen när den ligger inom 15° från fotlinjen: den står
+            // stilla, fötterna kan stå lite öppet eller stängt.
+            if mal != nil, let k = dtl, let blick = vagrat([stans[0] - k.c[0], stans[1] - k.c[1], 0]),
+               LA.dot3(blick, m) >= cos(dtlMotFotlinjenMax * .pi / 180) {
+                m = blick
+            }
             var c = LA.kryss(z, m)                               // vinkelrätt mot målet, vågrätt
             var tecken = 0.0
             if let n = median(f, rutor, 0), !hofter.isEmpty {
@@ -108,16 +134,21 @@ public struct TreDRiktning: Equatable, Sendable {
             }
             if tecken < 0 { c = c.map { -$0 } }
             let mitt: [Double] = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (golv + hi[2]) / 2]
-            var omfang: [[Double]] = [stans]
+            // Pilens spets mot målet ryms i vyerna.
+            let pil: Double = malFram * e
+            let px: Double = stans[0] + pil * m[0], py: Double = stans[1] + pil * m[1]
+            var omfang: [[Double]] = [stans, [px, py, golv]]
             for i in stride(from: 0, to: f.n, by: 6) {
                 for j in 0..<TreDFigur.antalLeder { if let v = f.led(i, j) { omfang.append(v) } }
             }
-            return TreDRiktning(mitt: mitt, mal: m, fram: c, golv: golv, stans: stans, omfang: omfang, urFigur: true)
+            return TreDRiktning(mitt: mitt, mal: m, fram: c, golv: golv, stans: stans, omfang: omfang, urFigur: true,
+                                meter: e)
         }
         guard let fo, let dtl else { return nil }
         // Där blickarna möts (närmaste punkten mellan de två linjerna), om den ligger framför
         // båda; annars 3 m framför FO-kameran.
-        var mot = [fo.c[0] + 3 * fo.fram[0], fo.c[1] + 3 * fo.fram[1], fo.c[2] + 3 * fo.fram[2]]
+        let tre: Double = 3 * e
+        var mot = [fo.c[0] + tre * fo.fram[0], fo.c[1] + tre * fo.fram[1], fo.c[2] + tre * fo.fram[2]]
         let w = [fo.c[0] - dtl.c[0], fo.c[1] - dtl.c[1], fo.c[2] - dtl.c[2]]
         let a = LA.dot3(fo.fram, fo.fram), b = LA.dot3(fo.fram, dtl.fram), cc = LA.dot3(dtl.fram, dtl.fram)
         let d = LA.dot3(fo.fram, w), e = LA.dot3(dtl.fram, w)
@@ -134,13 +165,13 @@ public struct TreDRiktning: Equatable, Sendable {
                 mot = m
             }
         }
-        let golv = u.golv ?? (min(fo.c[2], dtl.c[2]) - 1.0)
+        let golv = u.golv ?? (min(fo.c[2], dtl.c[2]) - 1.0 * e)
         let fram = vagrat([fo.c[0] - mot[0], fo.c[1] - mot[1], 0]) ?? [-1, 0, 0]
         var m = LA.kryss(z, fram)
         if hand == .vanster { m = m.map { -$0 } }
         let stans: [Double] = [mot[0], mot[1], golv]
-        return TreDRiktning(mitt: [mot[0], mot[1], golv + 0.9], mal: m, fram: fram, golv: golv, stans: stans,
-                            omfang: [stans, [mot[0], mot[1], golv + 1.8]], urFigur: false)
+        return TreDRiktning(mitt: [mot[0], mot[1], golv + 0.9 * e], mal: m, fram: fram, golv: golv, stans: stans,
+                            omfang: [stans, [mot[0], mot[1], golv + 1.8 * e]], urFigur: false, meter: e)
     }
 }
 
@@ -191,7 +222,9 @@ public struct TreDBetraktare: Equatable, Sendable {
         for c in kameror {
             punkter.append(c)
             if let u = TreDRiktning.vagrat([c[0] - r.mitt[0], c[1] - r.mitt[1], 0]) {
-                punkter.append([c[0] + namnPlats * u[0], c[1] + namnPlats * u[1], c[2]])
+                let ut: Double = namnPlats * r.meter
+                let x: Double = c[0] + ut * u[0], y: Double = c[1] + ut * u[1]
+                punkter.append([x, y, c[2]])
             }
         }
         return passad(TreDBetraktare(mal: r.mitt, azimut: az, elevation: el, avstand: 1), punkter,

@@ -73,14 +73,16 @@ public struct TreDFigurUppstallning: Codable, Equatable, Sendable {
     /// "langd" (benen) eller "kamerorna" (avståndet mellan dem är 1); nil utan kameror.
     public var skala: String?
     public var skalaM: Double?
-    /// Markens höjd, m: fotledernas median minus fotledens höjd.
+    /// Markens höjd, m: fotledernas median i adressen minus fotledens höjd; nil med reserven.
     public var golv: Double?
+    /// Varför skalan är reserven ("kamerorna"), annars nil. METOD MK10
+    public var skalaFel: String?
     /// "fo" och "dtl".
     public var kameror: [String: TreDFigurKamera]?
 
     enum CodingKeys: String, CodingKey {
         case serie, slag, hoppat, vinkel, skala, golv, kameror
-        case sampsonPx = "sampson_px", vinkelOk = "vinkel_ok", skalaM = "skala_m"
+        case sampsonPx = "sampson_px", vinkelOk = "vinkel_ok", skalaM = "skala_m", skalaFel = "skala_fel"
     }
 
     public init(serie: [String: Int], slag: Int, hoppat: String? = nil, sampsonPx: Double? = nil,
@@ -222,6 +224,9 @@ public struct TreDFigur: Equatable, Sendable {
 /// (`kallor`) som `tre_d.json` räknades på. METOD MK10
 public struct TreDFigurIndex: Codable, Equatable, Sendable {
     public static let formatName = "swinglab-tre-d-figur/1"
+    /// Kedjans version för figuren: höjs när MK10 ändras, så att telefonen räknar om (BESLUT B72).
+    /// Samma tal som `tre_d_figur.KEDJA`.
+    public static let kedjeversion = 2
     public static let mapp = "tre_d_figur"
     public static let filnamn = "index.json"
 
@@ -233,6 +238,8 @@ public struct TreDFigurIndex: Codable, Equatable, Sendable {
     }
 
     public var format: String
+    /// Kedjans version (nil i ett index från före versionen).
+    public var kedja: Int?
     public var pass: String
     public var kallor: [String: String]
     public var langdM: Double
@@ -243,13 +250,14 @@ public struct TreDFigurIndex: Codable, Equatable, Sendable {
     public var slag: [Post]
 
     enum CodingKeys: String, CodingKey {
-        case format, pass, kallor, hand, hoppat, uppstallningar, slag
+        case format, kedja, pass, kallor, hand, hoppat, uppstallningar, slag
         case langdM = "langd_m"
     }
 
     public init(pass: String, kallor: [String: String], langdM: Double, hand: Hand, hoppat: String?,
                 uppstallningar: [TreDFigurUppstallning], slag: [Post]) {
         format = Self.formatName
+        kedja = Self.kedjeversion
         self.pass = pass
         self.kallor = kallor
         self.langdM = langdM
@@ -264,6 +272,9 @@ public struct TreDFigurIndex: Codable, Equatable, Sendable {
         e.outputFormatting = [.sortedKeys, .prettyPrinted]
         return try e.encode(self)
     }
+
+    /// Det finns något att visa: en figur eller telefonerna.
+    public var harInnehall: Bool { !slag.isEmpty || uppstallningar.contains { $0.kameror != nil } }
 
     public static func las(_ d: Data) throws -> TreDFigurIndex {
         guard let f = try? JSONDecoder().decode(TreDFigurIndex.self, from: d) else {
@@ -289,11 +300,44 @@ public struct TreDFigurer: Equatable, Sendable {
     /// Kroppens positioner (METOD M28).
     static let positioner = Positioner.namn
 
-    /// Meter per enhet i kalibreringens värld: benets längd (lår + smalben, båda sidor, alla
-    /// rutor i uppställningens slag, medianen) = 0,491 × längden; utan ben 1 ("kamerorna").
-    /// Bara för bilden. Som `tre_d_figur.skala`. METOD MK10
-    static func skala(_ figurer: [[Double]], _ langd: Double) -> (Double, String) {
-        var b: [Double] = []
+    /// Skyddet runt skalan: sidornas ben får skilja så mycket, och kamerorna ska hamna så långt
+    /// från stansen och så högt över marken med skalan, m. METOD MK10
+    public static let benSkillnad = 0.10
+    public static let kameraAvstand = 1.5...8.0
+    public static let kameraHojd = 0.5...1.8
+    /// Adressens rutor: fram till P1 + 0,15 s (utan P1 de första 0,3 s), annars de första 72.
+    public static let adressEfterP1S = 0.15
+    static let adressReservRutor = 72
+
+    /// Rutorna i adressen. Som `tre_d_figur.adressens_rutor`. METOD MK10, MK11
+    public static func adressensRutor(_ t: [Double], _ positioner: [String: Double]) -> [Int] {
+        guard let t0 = t.first else { return [] }
+        let slut = (positioner["P1"] ?? (t0 + adressEfterP1S)) + adressEfterP1S
+        let r = t.indices.filter { t[$0] <= slut }
+        return r.isEmpty ? Array(0..<min(t.count, adressReservRutor)) : r
+    }
+
+    /// Skalan och marken, eller reserven med skälet. Som `tre_d_figur.skala`. METOD MK10
+    public struct Skala: Equatable, Sendable {
+        public var kalla: String
+        public var m: Double
+        public var golv: Double?
+        public var fel: String?
+
+        static func reserv(_ fel: String) -> Skala { Skala(kalla: "kamerorna", m: 1, golv: nil, fel: fel) }
+    }
+
+    /// Meter per enhet i kalibreringens värld och markens höjd ur uppställningens figurer i
+    /// adressen (lederna och adressens rutor per slag): benets längd (lår + smalben, medianen över
+    /// båda sidor och alla rutor) = 0,491 × längden, och marken = fotledernas median − 0,039 ×
+    /// längden. Reserven (avståndet mellan kamerorna = 1, ingen mark) med skälet när benen saknas,
+    /// när sidorna skiljer mer än 10 %, eller när en kamera (`kameror`, centrum i kalibreringens
+    /// enheter) då hamnar utanför 1,5–8 m från stansen eller 0,5–1,8 m över marken. Bara för
+    /// bilden. Som `tre_d_figur.skala`. METOD MK10
+    public static func skala(_ figurer: [(p: [Double], rutor: [Int])], _ langd: Double, kameror: [[Double]]) -> Skala {
+        var sidor: [[Double]] = [[], []]
+        var fot: [Double] = []
+        var stans: [[[Double]]] = [[[], []], [[], []]]           // per fotled: x och y
         func d(_ p: [Double], _ i: Int, _ a: Int, _ c: Int) -> Double {
             let ia = (i * 13 + a) * 3, ic = (i * 13 + c) * 3
             let x: Double = p[ia] - p[ic]
@@ -302,20 +346,45 @@ public struct TreDFigurer: Equatable, Sendable {
             let q: Double = x * x + y * y + z * z
             return q.squareRoot()
         }
-        for p in figurer {
-            let m = p.count / 39
-            for (h, k, f) in ben {
-                for i in 0..<m {
+        for (p, rutor) in figurer {
+            for (n, (h, k, f)) in ben.enumerated() {
+                for i in rutor {
                     let v = d(p, i, h, k) + d(p, i, k, f)
-                    if v.isFinite { b.append(v) }
+                    if v.isFinite { sidor[n].append(v) }
+                }
+            }
+            for (n, j) in fotleder.enumerated() {
+                for i in rutor {
+                    let b = (i * 13 + j) * 3
+                    if p[b + 2].isFinite { fot.append(p[b + 2]) }
+                    if p[b].isFinite, p[b + 1].isFinite, p[b + 2].isFinite {
+                        stans[n][0].append(p[b])
+                        stans[n][1].append(p[b + 1])
+                    }
                 }
             }
         }
-        if !b.isEmpty {
-            let m = LA.median(b)
-            if m > 0 { return (benetsAndel * langd / m, "langd") }
+        guard !sidor[0].isEmpty, !sidor[1].isEmpty else { return .reserv("benen syns inte i adressen") }
+        let mv = LA.median(sidor[0]), mh = LA.median(sidor[1])
+        guard abs(mv - mh) <= benSkillnad * max(mv, mh) else {
+            return .reserv("benen skiljer mer än 10 % mellan sidorna")
         }
-        return (1, "kamerorna")
+        let m = LA.median(sidor[0] + sidor[1])
+        guard m > 0, !fot.isEmpty else { return .reserv("benen syns inte i adressen") }
+        let s = benetsAndel * langd / m
+        let golv = LA.median(fot) * s - fotledAndel * langd
+        let mitt = stans.filter { !$0[0].isEmpty }.map { [LA.median($0[0]), LA.median($0[1])] }
+        let n = Double(mitt.count)
+        let sx: Double = mitt.map { $0[0] }.reduce(0, +) / n * s
+        let sy: Double = mitt.map { $0[1] }.reduce(0, +) / n * s
+        for c in kameror {
+            let dx: Double = c[0] * s - sx, dy: Double = c[1] * s - sy
+            let avst = (dx * dx + dy * dy).squareRoot(), hojd = c[2] * s - golv
+            guard kameraAvstand.contains(avst), kameraHojd.contains(hojd) else {
+                return .reserv("kamerorna hamnar orimligt med benens skala")
+            }
+        }
+        return Skala(kalla: "langd", m: s, golv: golv, fel: nil)
     }
 
     /// Slagets positioner på figurens tid: FO:s, annars DTL:s flyttad med synken, som
@@ -362,28 +431,27 @@ public struct TreDFigurer: Equatable, Sendable {
                     tri.append((tg, p))
                 }
             }
-            let (sk, kalla) = skala(tri.map(\.p), langd)
-            var fot: [Double] = []
-            for x in tri {
-                for r in 0..<(x.p.count / 39) {
-                    for j in fotleder where x.p[(r * 13 + j) * 3 + 2].isFinite { fot.append(x.p[(r * 13 + j) * 3 + 2]) }
-                }
-            }
+            let pos = zip(post.grupp, inre.forsk).map { d, f in positionerFor(d, f, faser) }
             let (kamA, kamB) = Kalibrering.varld(d0.ka, d0.kb, inre.r, inre.t, inre.upp)
-            u.skala = kalla
+            let ca = TreDFigurKamera(kamA, w: 0, h: 0, skala: 1).c, cb = TreDFigurKamera(kamB, w: 0, h: 0, skala: 1).c
+            let skalan = skala(zip(tri, pos).map { x, p in (p: x.p, rutor: adressensRutor(x.t, p)) }, langd,
+                               kameror: [ca, cb])
+            let sk = skalan.m
+            u.skala = skalan.kalla
             u.skalaM = sk
-            u.golv = fot.isEmpty ? nil : LA.median(fot) * sk - fotledAndel * langd
+            u.golv = skalan.golv
+            u.skalaFel = skalan.fel
             u.kameror = ["fo": TreDFigurKamera(kamA, w: d0.fo.lederna?.width ?? 1080, h: d0.fo.lederna?.height ?? 1920,
                                                skala: sk),
                          "dtl": TreDFigurKamera(kamB, w: d0.dtl.lederna?.width ?? 1080,
                                                 h: d0.dtl.lederna?.height ?? 1920, skala: sk)]
             upp.append(u)
             guard u.hoppat == nil else { continue }               // BESLUT B72: ingen figur där skälet säger nej
-            for ((d, f), x) in zip(zip(post.grupp, inre.forsk), tri) {
+            for (((d, f), x), p) in zip(zip(zip(post.grupp, inre.forsk), tri), pos) {
                 let n = x.t.count
                 let steg = n > 1 ? x.t[1] - x.t[0] : TvaKameror.rutnatS
                 let fig = TreDFigur(dtl: d.dtl.id, fo: d.fo.id, uppstallning: i, synkS: f, t0: x.t.first ?? 0,
-                                    steg: steg, n: n, p: x.p.map { $0 * sk }, positioner: positionerFor(d, f, faser))
+                                    steg: steg, n: n, p: x.p.map { $0 * sk }, positioner: p)
                 figurer.append(fig)
                 poster.append(TreDFigurIndex.Post(dtl: fig.dtl, fo: fig.fo, uppstallning: i, fil: fig.filnamn))
             }

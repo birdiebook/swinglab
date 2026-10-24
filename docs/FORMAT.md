@@ -360,10 +360,11 @@ läses; den raderas med passet.
 | Fält | Innehåll |
 |---|---|
 | `format`, `pass` | `"swinglab-tre-d-figur/1"` och passets id |
+| `kedja` | kedjans version för figuren (MK10, nu 2): en äldre räknas om |
 | `kallor` | samma buntsummor som `tre_d.json`: figuren gäller bara när de är lika |
 | `langd_m`, `hand` | längden som gav skalan, och spelhanden (`hoger`, `vanster`) |
 | `hoppat` | kedjans skäl när passet hoppades över (som `tre_d.json`), annars utelämnat |
-| `uppstallningar[]` | per uppställning i kedjans ordning: `serie` (`dtl`, `fo`), `slag`, `hoppat`, `sampson_px`, `vinkel` och `vinkel_ok` (som `tre_d.kalibrering`), och när kalibreringen gick (även över spärren): `skala` (`langd` eller `kamerorna`), `skala_m` (meter per kalibreringens enhet), `golv` (markens höjd, m) och `kameror` (`fo`, `dtl`: `C` centrum i m, `R` värld → kamera 3×3 rad för rad, `K` 3×3, `w`, `h` bildens storlek) |
+| `uppstallningar[]` | per uppställning i kedjans ordning: `serie` (`dtl`, `fo`), `slag`, `hoppat`, `sampson_px`, `vinkel` och `vinkel_ok` (som `tre_d.kalibrering`), och när kalibreringen gick (även över spärren): `skala` (`langd` eller `kamerorna`), `skala_m` (meter per kalibreringens enhet), `skala_fel` (skälet till reserven `kamerorna`, annars null), `golv` (markens höjd, m; null med reserven) och `kameror` (`fo`, `dtl`: `C` centrum i m, `R` värld → kamera 3×3 rad för rad, `K` 3×3, `w`, `h` bildens storlek) |
 | `slag[]` | per slag med figur: `dtl`, `fo`, `uppstallning` och `fil` (`<dtl>-<fo>.json`); bara slag i en uppställning som mättes (B72) |
 
 `tre_d_figur/<dtl>-<fo>.json` (ett slag; vyn läser bara det som visas):

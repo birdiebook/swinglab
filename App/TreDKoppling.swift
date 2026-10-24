@@ -53,6 +53,8 @@ final class TreDKoppling {
     @ObservationIgnored private var egen: (pass: PassState, bunt: SlagBunt, data: Data, summa: String)?
     /// Den andra telefonens bunt som den lästes.
     @ObservationIgnored private var annan: (bunt: SlagBunt, summa: String)?
+    /// Buntarna som figuren senast räknades för (en gång per buntar, även när den inte gick).
+    @ObservationIgnored private var figurProvad: [String: String]?
     /// Summan som följaren senast skickade, och den den styrande kvitterat.
     @ObservationIgnored private var skickadSumma: String?
 
@@ -64,10 +66,17 @@ final class TreDKoppling {
         harAnnan = store.hasOtherPhone(passID)
     }
 
-    /// Figuren hör till passets 3D som den är nu (samma buntar): då visas knappen "3D".
+    /// Figuren hör till passets 3D som den är nu (samma buntar) och har något att visa: då visas
+    /// raden "3D".
     var figurAktuell: Bool {
         guard let fil, let figur, aktuell else { return false }
-        return figur.kallor == fil.kallor && figur.pass == passID
+        return figurGiltig(fil) && figur.harInnehall
+    }
+
+    /// Figuren gäller filen: samma buntar, samma pass och dagens kedja (MK10).
+    private func figurGiltig(_ fil: TreDFil) -> Bool {
+        guard let figur else { return false }
+        return figur.kallor == fil.kallor && figur.pass == passID && figur.kedja == TreDFigurIndex.kedjeversion
     }
 
     private var vy: Vy? { store.load(passID)?.setup.view }
@@ -209,9 +218,12 @@ final class TreDKoppling {
         let kallor = [vy.rawValue: egen.summa, annan.bunt.vy.rawValue: annan.summa]
         // En fil som den andra telefonen räknat på de här slagen är facit (den styrande); en egen
         // räknas om bara när någon bunt ändrats. Inga resultat som pendlar.
-        // En egen fil utan figur (räknad före S6d) räknas om en gång, så att figuren finns (B72).
+        // En egen fil utan figur (räknad före S6d), eller med en figur ur en äldre kedja (MK10),
+        // räknas om en gång, så att figuren finns; samma buntar prövas bara en gång, även när
+        // figuren inte gick att skriva (B72).
         if let fil, fil.kallor[vy.rawValue] == egen.summa,
-           fil.raknadAv != vy || (fil.galler(kallor) && figur?.kallor == fil.kallor) { return }
+           fil.raknadAv != vy || (fil.galler(kallor) && (figurGiltig(fil) || figurProvad == kallor)) { return }
+        figurProvad = kallor
         raknar = true
         defer { raknar = false }
         let pass = passID, langd = p.heightM, a = egen.bunt, b = annan.bunt

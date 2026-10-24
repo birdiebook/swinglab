@@ -549,7 +549,8 @@ och synken mellan det de ser; S6d är figuren, S6g videon och S6h 3D-måtten.
 **Byggt (grenen `s6d`, BESLUT B72, B73, METOD MK10, MK11):**
 - **Datan:** telefonen som räknar 3D sparar i samma räkning lederna per slag och kamerorna per
   uppställning i `tre_d_figur/` (index och en fil per slag, int16 i mm, docs/FORMAT.md
-  "Figuren i 3D"), i meter med skalan ur benens längd och lodlinjen uppåt. Inte i paketet.
+  "Figuren i 3D"), i meter med skalan ur benens längd i adressen (med skydd och reserv, samma
+  funktion i PC:ns visare) och lodlinjen uppåt. Inte i paketet.
   `TvaKameror.analysera` lämnar kamerorna och trianguleringarna genom en samlare, även för en
   uppställning över spärren (kameror, ingen figur). Python är facit (`tools/pc/tre_d_figur.py`,
   `figur.json`, TreDFigurTests inom 1e-6). Ett pass räknat före S6d räknas om när det öppnas.
@@ -629,7 +630,10 @@ passet filmas.
 
 När båda vyerna finns visas mått som räknas bättre i 3D, **sway, thrust och lift i verklig
 riktning**, som "3D" bredvid 2D-måtten. **2D är huvudmåttet** med gränserna tills markörerna
-visat att 3D håller (BESLUT B14); 3D-talet visas utan bedömning, som S6c:s kort.
+visat att 3D håller (BESLUT B14); 3D-talet visas utan bedömning, som S6c:s kort. Sträckor (cm)
+visas bara när figurens skala kommer ur benen (`skala == "langd"`, METOD MK10), aldrig med
+reserven, och räknas med samma funktion i båda språken (`tre_d_figur.skala` och
+`TreDFigurer.skala`, B12).
 
 **Klart när:** sway, thrust och lift räknas ur figurens leder i båda språken med samma tal
 (B12), syns som "3D" bredvid 2D-måttet i ett parat pass, och jämförelsen mot markörerna (S6)

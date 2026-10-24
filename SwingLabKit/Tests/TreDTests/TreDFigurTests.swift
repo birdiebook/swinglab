@@ -34,6 +34,8 @@ extension TreDTests {
             let ix = f.index
             XCTAssertEqual(ix.hand.rawValue, py["hand"] as? String, pass)
             XCTAssertEqual(ix.hoppat, py["hoppat"] as? String, pass)
+            XCTAssertEqual(ix.kedja, Fixtur.heltal(py["kedja"]), pass)
+            XCTAssertEqual(ix.kedja, TreDFigurIndex.kedjeversion)
             let pu = py["uppstallningar"] as! [[String: Any]]
             XCTAssertEqual(ix.uppstallningar.count, pu.count, pass)
             for (u, q) in zip(ix.uppstallningar, pu) {
@@ -44,6 +46,8 @@ extension TreDTests {
                 XCTAssertEqual(u.vinkel, Fixtur.tal(q["vinkel"]), pass)
                 XCTAssertEqual(u.vinkelOk, q["vinkel_ok"] as? Bool, pass)
                 XCTAssertEqual(u.skala, q["skala"] as? String, pass)
+                XCTAssertEqual(u.skalaFel, q["skala_fel"] as? String, pass)
+                XCTAssertEqual(u.golv == nil, Fixtur.tal(q["golv"]) == nil, pass)
                 a.notera("skala", (u.skalaM ?? .nan) / (Fixtur.tal(q["skala_m"]) ?? .nan), 1)
                 a.notera("golv", u.golv ?? .nan, Fixtur.tal(q["golv"]) ?? .nan)
                 let pk = q["kameror"] as? [String: Any]
@@ -117,8 +121,15 @@ extension TreDTests {
         XCTAssertEqual(f.figurer, [])
         let u = try XCTUnwrap(f.index.uppstallningar.first)
         XCTAssertTrue(u.overSparren)
+        // Benen skiljer i den här uppställningen: reserven, utan mark, och en meter ur avståndet
+        // mellan telefonerna (MK10, MK11).
+        XCTAssertEqual(u.skala, "kamerorna")
+        XCTAssertEqual(u.skalaFel, "benen skiljer mer än 10 % mellan sidorna")
+        XCTAssertNil(u.golv)
         let r = try XCTUnwrap(TreDRiktning.ur(nil, uppstallning: u, hand: f.index.hand))
-        XCTAssertEqual(r.golv, u.golv)
+        let bas = LA.norm3(zip(u.kameror!["fo"]!.c, u.kameror!["dtl"]!.c).map { $0 - $1 })
+        XCTAssertEqual(r.meter, bas / TreDRiktning.vanligBaslinjeM, accuracy: 1e-12)
+        XCTAssertFalse(r.urFigur)
         // Kamerorna syns i varje färdig vinkel.
         let kameror = u.kameror!.values.map(\.c)
         for v in TreDVinkel.allCases {
@@ -131,10 +142,20 @@ extension TreDTests {
     }
 
     func testVinklarnaVisarSpelarenFranRattHall() throws {
-        let (_, f) = try figur("utan_brus")
+        try vinklarna("utan_brus")
+    }
+
+    /// En vänsterspelare: målet till vänster i Face on, DTL bakom honom längs −målet.
+    func testVinklarnaForEnVansterspelare() throws {
+        try vinklarna("bra_brus_vanster")
+    }
+
+    func vinklarna(_ pass: String) throws {
+        let (_, f) = try figur(pass)
+        let hand = f.index.hand
         let fig = try XCTUnwrap(f.figurer.first)
         let u = f.index.uppstallningar[fig.uppstallning]
-        let r = try XCTUnwrap(TreDRiktning.ur(fig, uppstallning: u, hand: .hoger))
+        let r = try XCTUnwrap(TreDRiktning.ur(fig, uppstallning: u, hand: hand))
         XCTAssertEqual(LA.norm3(r.mal), 1, accuracy: 1e-9)
         XCTAssertEqual(r.mal[2], 0)
         XCTAssertEqual(LA.dot3(r.mal, r.fram), 0, accuracy: 1e-9)
@@ -143,13 +164,17 @@ extension TreDTests {
         let vfo = [fo[0] - r.stans[0], fo[1] - r.stans[1], 0.0], vdtl = [dtl[0] - r.stans[0], dtl[1] - r.stans[1], 0.0]
         XCTAssertGreaterThan(LA.dot3(vfo, r.fram) / LA.norm3(vfo), 0.95)
         XCTAssertLessThan(LA.dot3(vdtl, r.mal) / LA.norm3(vdtl), -0.95)
+        // Mållinjen är DTL-kamerans blick, som ligger inom 15° från fotlinjen här (MK11).
+        XCTAssertEqual(LA.dot3(vdtl, r.mal) / LA.norm3(vdtl), -1, accuracy: 1e-9)
         // Marken under fötterna.
         let p1 = try XCTUnwrap(fig.positionsRutor().first { $0.name == "P1" }?.index)
-        let vfot = try XCTUnwrap(fig.led(p1, 11)), hfot = try XCTUnwrap(fig.led(p1, 12))
+        // Främre foten (mot målet) och bakre: högerspelarens vänstra, vänsterspelarens högra.
+        let (fi, bi) = hand == .hoger ? (11, 12) : (12, 11)
+        let vfot = try XCTUnwrap(fig.led(p1, fi)), hfot = try XCTUnwrap(fig.led(p1, bi))
         XCTAssertEqual(vfot[2] - r.golv, TreDFigurer.fotledAndel * 1.80, accuracy: 0.03)
 
-        // Face on och Top: målet (högerspelarens vänstra fot) till höger; Down the line: den
-        // vänstra foten längre bort än den högra.
+        // Face on: målet till höger för en högerspelare, till vänster för en vänsterspelare; Top:
+        // målet till höger; Down the line: främre foten längre bort än den bakre.
         for v in TreDVinkel.allCases {
             let b = TreDBetraktare.vinkel(v, r)
             let pr = TreDProjektion(b, bredd: 390, hojd: 440)
@@ -158,9 +183,15 @@ extension TreDTests {
                 // Vyn är passad: spelaren i adressen är minst en tredjedel av ytans höjd.
                 let n = try XCTUnwrap(pr.punkt(fig.led(p1, 0)!))
                 XCTAssertGreaterThan(a.p.y - n.p.y, 440 / 3, "figuren för liten")
+                // Pilens spets mot målet ryms (MK11).
+                let spets = [r.stans[0] + TreDRiktning.malFram * r.mal[0], r.stans[1] + TreDRiktning.malFram * r.mal[1],
+                             r.golv]
+                let q = try XCTUnwrap(pr.punkt(spets))
+                XCTAssertTrue((0...390).contains(q.p.x) && (0...440).contains(q.p.y), "\(pass) pilen \(q.p)")
             }
             switch v {
-            case .faceOn, .top: XCTAssertGreaterThan(a.p.x, h.p.x + 10, "\(v)")
+            case .faceOn where hand == .vanster: XCTAssertLessThan(a.p.x, h.p.x - 10, "\(pass) \(v)")
+            case .faceOn, .top: XCTAssertGreaterThan(a.p.x, h.p.x + 10, "\(pass) \(v)")
             case .dtl: XCTAssertGreaterThan(a.djup, h.djup + 0.2, "\(v)")
             }
             // Hela figuren ryms i varje ruta.
@@ -184,6 +215,59 @@ extension TreDTests {
         XCTAssertEqual(pos["P7"]!, fig.ruta(0))
         XCTAssertLessThan(pos["P4"]!!, pos["P7"]!!)
         XCTAssertNil(pos["P2"]!)                               // klubban (S7)
+    }
+
+    /// Utan fot- och höftlinje: målet till vänster om en spelare som ser mot FO-kameran,
+    /// z × (FO − stansen), tvärtom för en vänsterspelare (MK11).
+    func testMalUtanFotlinjeUrFoKameran() throws {
+        var p = [Double](repeating: .nan, count: 3 * 39)
+        for i in 0..<3 { p.replaceSubrange((i * 39)..<(i * 39 + 3), with: [3, 0, 0.6]) }
+        let f = TreDFigur(dtl: "s01", fo: "s01", uppstallning: 0, synkS: 0, t0: -1, steg: 0.01, n: 3, p: p,
+                          positioner: [:])
+        let fo = TreDFigurKamera(c: [0, 0, 0], r: [0, 1, 0, 0, 0, -1, 1, 0, 0], k: [1000, 0, 540, 0, 1000, 960, 0, 0, 1],
+                                 w: 1080, h: 1920)
+        let u = TreDFigurUppstallning(serie: ["dtl": 1, "fo": 1], slag: 1, skala: "langd", skalaM: 1, golv: -1,
+                                      kameror: ["fo": fo])
+        let h = try XCTUnwrap(TreDRiktning.ur(f, uppstallning: u, hand: .hoger))
+        XCTAssertEqual(h.mal, [0, -1, 0])
+        XCTAssertEqual(h.fram, [-1, 0, 0])                       // mot FO-kameran
+        let v = try XCTUnwrap(TreDRiktning.ur(f, uppstallning: u, hand: .vanster))
+        XCTAssertEqual(v.mal, [0, 1, 0])
+        XCTAssertEqual(v.fram, [-1, 0, 0])
+    }
+
+    /// Skyddet runt skalan (MK10), samma fall som Python (test_tre_d_figur).
+    func testSkalansReserv() {
+        func figur(_ v: Double, _ h: Double) -> [Double] {
+            var p = [Double](repeating: .nan, count: 5 * 39)
+            for i in 0..<5 {
+                for (n, (hi, ki, fi)) in TreDFigurer.ben.enumerated() {
+                    let l = n == 0 ? v : h, y = n == 0 ? 0.0 : 0.3
+                    p.replaceSubrange((i * 39 + hi * 3)..<(i * 39 + hi * 3 + 3), with: [0, y, l])
+                    p.replaceSubrange((i * 39 + ki * 3)..<(i * 39 + ki * 3 + 3), with: [0, y, l / 2])
+                    p.replaceSubrange((i * 39 + fi * 3)..<(i * 39 + fi * 3 + 3), with: [0, y, 0])
+                }
+            }
+            return p
+        }
+        let rutor = Array(0..<5), kam: [[Double]] = [[0, -1.8, 0.58]]
+        let ok = TreDFigurer.skala([(p: figur(0.5, 0.5), rutor: rutor)], 1.80, kameror: kam)
+        XCTAssertEqual(ok.kalla, "langd")
+        XCTAssertNil(ok.fel)
+        XCTAssertEqual(ok.golv ?? .nan, -0.039 * 1.80, accuracy: 1e-12)
+        let fall: [([Double], [[Double]], String)] = [
+            (figur(0.5, 0.6), kam, "benen skiljer mer än 10 % mellan sidorna"),
+            ([Double](repeating: .nan, count: 5 * 39), kam, "benen syns inte i adressen"),
+            (figur(0.5, 0.5), [[0, -30, 0.58]], "kamerorna hamnar orimligt med benens skala"),
+            (figur(0.5, 0.5), [[0, -1.8, 20]], "kamerorna hamnar orimligt med benens skala"),
+        ]
+        for (p, k, skal) in fall {
+            XCTAssertEqual(TreDFigurer.skala([(p: p, rutor: rutor)], 1.80, kameror: k),
+                           TreDFigurer.Skala(kalla: "kamerorna", m: 1, golv: nil, fel: skal))
+        }
+        let t = (0..<600).map { -1.5 + Double($0) / 240 }
+        XCTAssertEqual(t[TreDFigurer.adressensRutor(t, ["P1": -1.2]).last!], -1.05, accuracy: 1.0 / 240)
+        XCTAssertEqual(t[TreDFigurer.adressensRutor(t, [:]).last!], -1.2, accuracy: 1.0 / 240)
     }
 
     func testFingretOchNypningenOchLinjenBakomOgat() {

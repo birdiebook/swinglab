@@ -41,6 +41,7 @@ from . import katalog as KAT  # noqa: E402
 from . import paket as P  # noqa: E402
 from . import s3_facit as S3F  # noqa: E402
 from . import session as S  # noqa: E402
+from . import tre_d_figur as TF  # noqa: E402
 from . import tva_kameror as TK  # noqa: E402
 from .format import LEDER_FIL  # noqa: E402
 from .kontaktark import BEN  # noqa: E402
@@ -48,7 +49,6 @@ from .kontaktark import BEN  # noqa: E402
 FORMAT = "swinglab-visa/1"
 UT_ROT = Path.home() / "swinglab-analys"
 THREE_JS = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-NASA_OVER_FOTLED = 0.89        # METOD MK9: figurens skala, bara för bilden (kalibreringen saknar skala)
 NASA, FOTLEDER = LEDER_FIL.index("nasa"), (LEDER_FIL.index("fotled_v"), LEDER_FIL.index("fotled_h"))
 
 
@@ -149,20 +149,6 @@ def _kamera_ut(kam, w: int, h: int, s: float) -> dict:
             "K": np.round(kam.K, 3).tolist(), "w": w, "h": h}
 
 
-def _skala(P_alla: list[np.ndarray], langd: float) -> tuple[float, str]:
-    """Skalan för visningen: figurens näsa över fotlederna = 0,89 × längden (median över
-    rutorna). Utan figur (eller en orimlig) får avståndet mellan kamerorna vara 1."""
-    hojd = []
-    for X in P_alla:
-        z = X[:, NASA, 2] - np.nanmean(X[:, FOTLEDER, 2], axis=1)
-        hojd += [float(v) for v in z[np.isfinite(z)]]
-    if hojd:
-        m = float(np.median(hojd))
-        if m > 0:
-            return NASA_OVER_FOTLED * langd / m, "langd"
-    return 1.0, "kamerorna"
-
-
 def _P_ut(X: np.ndarray, s: float) -> list:
     return [[None if not math.isfinite(v) else round(float(v) * s, 3) for v in rad.ravel()] for rad in X]
 
@@ -173,6 +159,7 @@ def tre_d(dtl: P.Paket, fo: P.Paket, rader: list[dict], langd: float) -> dict:
     steg, så att även en uppställning över spärren kan ritas. METOD MK9"""
     grupper: dict = {}
     inre: list = []
+    rad = {(r["vy"], r["id"]): r for r in rader}
     ut = {"hoppat": None, "uppstallningar": [], "par": [], "osaker": [], "utelamnade": [], "session": {},
           "parning": None, "sparr_px": TK.SAMPSON_MAX_PX, "vinkel_ok": list(TK.VINKEL_OK), "min_slag": TK.MIN_SLAG}
     delvis: dict = {}
@@ -219,7 +206,12 @@ def tre_d(dtl: P.Paket, fo: P.Paket, rader: list[dict], langd: float) -> dict:
             kamA, kamB = TK.kameror(d, R, t, upp)
             tg, X, rep = TK.triangulera(kamA, kamB, d, f)
             figurer.append((d, f, kamA, kamB, tg, X, rep))
-        s, kalla = _skala([x[5] for x in figurer], langd)
+        # Skalan som telefonens figur: benen i adressen, med samma skydd (METOD MK9, MK10, BESLUT B12).
+        pos = [TF.positioner(rad.get(("fo", x[0]["fo"].id)), rad.get(("dtl", x[0]["dtl"].id)), x[0], x[1])
+               for x in figurer]
+        sk = TF.skala([(x[5], TF.adressens_rutor(x[4], p)) for x, p in zip(figurer, pos)], langd,
+                      [figurer[0][2].centrum, figurer[0][3].centrum] if figurer else [])
+        s, kalla = sk["skala_m"], sk["skala"]
         u["skala"] = kalla
         d0 = figurer[0] if figurer else None
         if d0:

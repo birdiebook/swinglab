@@ -1505,13 +1505,22 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
   mått fallerade (t.ex. faserna saknas): figuren beror på kamerorna, inte på adressen.
 - **Inte i paketet:** B63 säger att `tre_d.json` följer med; figuren gör det inte. PC:n räknar
   sin egen figur i visaren (S6f), och paketet växer inte med cirka 2 MB per pass.
-- **Skalan ur benen, inte näsan:** MK9:s näsa över fotlederna (0,89 × längden) antar en upprätt
+- **Skalan ur benen, inte näsan:** visarens första regel, näsan över fotlederna (0,89 × längden), antar en upprätt
   hållning; i en sving är spelaren böjd större delen av tiden, och på facit blev figuren 27 %
   för stor (kamerorna 4,0 m bort i stället för 3,15 m och 1,16 m upp i stället för 0,93 m).
   Lår och smalben (0,491 × längden) är lika långa i varje hållning och gav 3,20 och 0,93 m.
-- **Följaren** får bara `tre_d.json` (B61) och har ingen figur; knappen "3D" visas där
-  figuren finns. Ett pass räknat före S6d räknas om en gång när passet öppnas, så att figuren
-  kommer till.
+- **Följaren** får bara `tre_d.json` (B61) och har ingen figur; raden "3D" visas där
+  figuren finns och har något att visa. **Ett pass räknat före S6d, eller med en figur ur en
+  äldre kedja** (`kedja` i indexet, MK10), räknas om en gång när passet öppnas: hela 3D,
+  också `tre_d.json`, så att figuren och måtten kommer ur samma räkning. Talen i kortet kan då
+  ändras (en ändrad 2D-analys sedan förra räkningen följer med). Samma buntar prövas bara en
+  gång per gång passet är öppet, även när figuren inte gick att skriva.
+- **Skalan** har ett skydd (MK10): benen i adressen, sidorna inom 10 %, och kamerorna på ett
+  rimligt avstånd och i rimlig höjd; annars reserven med skälet i indexet och ingen mark.
+  PC:ns visare använder samma funktion (B12).
+- **Lagringen:** figuren skrivs i en ny mapp som ersätter den gamla (rester av en avbruten
+  skrivning tas bort först) och ligger utanför backupen, eftersom den räknas om ur passets
+  leder.
 - **Bortvalt:** att spara figuren i `tre_d.json` (en fil på 2 MB som läses för kortet och
   skickas till följaren), JSON-tal per led (cirka 4 gånger större), att räkna figuren när vyn
   öppnas (sekunder att vänta, och kedjan körs två gånger), och figuren i paketet.

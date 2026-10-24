@@ -74,6 +74,56 @@ class Figuren(unittest.TestCase):
         self.assertIsNotNone(u["kameror"])
         self.assertTrue(all(math.isfinite(x) for x in u["kameror"]["dtl"]["C"]))
 
+    def test_andra_ben_ger_det_vantade_felet(self) -> None:
+        """Skalan antar benen 0,491 × längden (MK10). En påhittad spelare med benen 0,47 × längden
+        filmad med samma slumptal ger en värld som är 0,491 / 0,47 = 4,5 % för stor: avståndet
+        mellan kamerorna och kamerornas höjd över marken växer med just det, och inget annat."""
+        from pc import analys as A
+        from pc import generera_paket as GP
+        from pc import paket as P
+        ut = {}
+        for ben in (None, 0.47):
+            d, f, _ = GP.tva_paket(Path(TMP.name) / f"ben-{ben}", "20261103-180000", n=4, seed=5, brus="inget",
+                                   ben_andel=ben)
+            pd, pf = P.las(d), P.las(f)
+            u = TF.figurer(pd, pf, A.mat_paket(pd, 1.80) + A.mat_paket(pf, 1.80), 1.80)["uppstallningar"][0]
+            self.assertEqual(u["skala"], "langd")
+            C = [np.array(u["kameror"][v]["C"]) for v in ("fo", "dtl")]
+            ut[ben] = (float(np.linalg.norm(C[0] - C[1])), C[0][2] - u["golv"])
+        self.assertAlmostEqual(ut[None][1], 1.0, delta=0.01)          # kamerans sanna höjd (MK8)
+        for a, b in zip(ut[0.47], ut[None]):
+            self.assertAlmostEqual(a / b, TF.BENETS_ANDEL / 0.47, delta=0.005)
+
+    def test_reserven_nar_benen_saknas_eller_ar_fel(self) -> None:
+        """Skyddet (MK10): utan ben, med sidor som skiljer mer än 10 %, eller med kameror som då
+        hamnar orimligt, blir skalan 1 och marken okänd, med skälet."""
+        def figur(v: float, h: float) -> np.ndarray:
+            X = np.full((5, 13, 3), np.nan)
+            for (hi, ki, fi), langd in zip(TF.BEN, (v, h)):
+                X[:, hi] = [0.0, 0.0, langd]
+                X[:, ki] = [0.0, 0.0, langd / 2]
+                X[:, fi] = [0.0, 0.0, 0.0]
+            X[:, TF.BEN[1], 1] = 0.3
+            return X
+        rutor = np.arange(5)
+        kam = [np.array([0.0, -1.8, 0.58])]                   # 3,4 m bort och 1,1 m upp med benen 0,5
+        ok = TF.skala([(figur(0.5, 0.5), rutor)], 1.80, kam)
+        self.assertEqual(ok["skala"], "langd")
+        self.assertIsNone(ok["skala_fel"])
+        self.assertAlmostEqual(ok["golv"], -0.039 * 1.80)
+        for X, kameror, skal in ((figur(0.5, 0.6), kam, "benen skiljer mer än 10 % mellan sidorna"),
+                                 (np.full((5, 13, 3), np.nan), kam, "benen syns inte i adressen"),
+                                 (figur(0.5, 0.5), [np.array([0.0, -30.0, 0.58])],
+                                  "kamerorna hamnar orimligt med benens skala"),
+                                 (figur(0.5, 0.5), [np.array([0.0, -1.8, 20.0])],
+                                  "kamerorna hamnar orimligt med benens skala")):
+            r = TF.skala([(X, rutor)], 1.80, kameror)
+            self.assertEqual(r, {"skala": "kamerorna", "skala_m": 1.0, "golv": None, "skala_fel": skal})
+        # Adressens rutor: fram till P1 + 0,15 s, annars de första 0,3 s.
+        t = np.arange(-1.5, 1.0, 1 / 240)
+        self.assertAlmostEqual(t[TF.adressens_rutor(t, {"P1": -1.2})[-1]], -1.05, delta=1 / 240)
+        self.assertAlmostEqual(t[TF.adressens_rutor(t, {})[-1]], -1.2, delta=1 / 240)
+
     def test_vanster_och_positionerna_pa_dtl_utan_fo(self) -> None:
         """En vänsterspelare speglas inte i figuren (bara i måtten, MK6), och en position som FO
         saknar tas ur DTL flyttad med synken."""

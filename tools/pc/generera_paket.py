@@ -158,7 +158,8 @@ def _joint_series(t_rel: np.ndarray, klick_s: float, obs: np.ndarray, konf: np.n
 def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "typiskt", hand: str = "hoger",
               par_json: bool = True, lodlinje: bool = False, langd_m: float = 1.80, synkfel_ms: float = 7.0,
               bara_fo: int = 1, klubba: str = "j7", f_px: float | None = None, synfalt: bool = True,
-              styr: str = "dtl", serier: list[dict] | None = None) -> tuple[Path, Path, dict]:
+              styr: str = "dtl", serier: list[dict] | None = None,
+              ben_andel: float | None = None) -> tuple[Path, Path, dict]:
     """Två paket från samma pass och facit:
     (dtl.zip, fo.zip, {"slag": [{"dtl", "fo", "sant"}], "median": {mått: median av de sanna}}).
     `bara_fo` slag filmas bara av FO (de ska inte paras). `f_px` är kamerornas sanna
@@ -170,7 +171,9 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
     kamerorna), "brus", "traff" (False: slagen saknar traff_s, så att träffen tas ur
     avstand_m), "jamna_klick" (True: slagen med exakt 7,3 s mellanrum, så att klicken
     paras tvetydigt utan par.json)}. Utan den är det en serie med `n` och `brus`, som
-    förut och med samma slumptal. METOD MK1–MK8"""
+    förut och med samma slumptal. `ben_andel` (valfri) ger spelaren andra ben: lår + smalben
+    som den andelen av längden i stället för 0,491 (figurens skala, METOD MK10), med samma
+    slumptal. METOD MK1–MK8"""
     from dataclasses import replace
 
     from . import tva_kameror as TK
@@ -206,6 +209,9 @@ def tva_paket(ut_mapp, pass_id: str, n: int = 10, seed: int = 1, brus: str = "ty
             sv = slumpa_sving(rng)
             sv.langd, sv.t_start, sv.efter = langd_m, T_START_3D, EFTER_3D
             sv.__post_init__()
+            if ben_andel is not None:
+                k = ben_andel / (sv.lar + sv.smalben) * langd_m
+                sv.lar, sv.smalben = sv.lar * k, sv.smalben * k
             filmad = sv if hand == "hoger" else _Spegel(sv)
             # svingens t = 0 på en gemensam klocka; med jamna_klick ligger träffarna exakt 7,3 s isär
             T0 = 10.0 + 7.3 * g + (-sv.t_traff if cfg.get("jamna_klick") else float(rng.uniform(0, 1)))

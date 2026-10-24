@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pc import generera_paket as G  # noqa: E402
 from pc import paket as P  # noqa: E402
+from pc import tre_d_figur as TF  # noqa: E402
 from pc import tva_kameror as TK  # noqa: E402
 from pc import visa as V  # noqa: E402
 
@@ -186,8 +187,9 @@ class TestSidan(unittest.TestCase):
         t = d["tre_d"]
         self.assertEqual(t["uppstallningar"][0]["skala"], "langd")
         X = np.array([[np.nan if v is None else v for v in rad] for p in t["par"] for rad in p["P"]]).reshape(-1, 13, 3)
-        hojd = X[:, V.NASA, 2] - np.nanmean(X[:, V.FOTLEDER, 2], axis=1)
-        self.assertAlmostEqual(float(np.nanmedian(hojd)), V.NASA_OVER_FOTLED * LANGD, delta=0.01)
+        # Samma skala som telefonens figur (METOD MK9, MK10): benen = 0,491 × längden.
+        ben = [np.linalg.norm(X[:, h] - X[:, k], axis=1) + np.linalg.norm(X[:, k] - X[:, f], axis=1) for h, k, f in TF.BEN]
+        self.assertAlmostEqual(float(np.nanmedian(np.concatenate(ben))), TF.BENETS_ANDEL * LANGD, delta=0.02)
 
 
 class TestHoppat(unittest.TestCase):

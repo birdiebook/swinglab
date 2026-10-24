@@ -33,12 +33,16 @@ struct TreDFigurSkarm: View {
     @State private var spar: [TreDSpar] = []
     /// Riktningarna ur slagets figur (eller kamerorna), räknade en gång per slag.
     @State private var riktning: TreDRiktning?
+    /// Vyn som fingret lämnade per vinkel, så att den står kvar när vinkeln väljs igen (per slag).
+    @State private var sparad: [TreDVinkel: TreDBetraktare] = [:]
+    /// Fingret vrider figuren: sidan rullar inte under tiden.
+    @State private var dragar = false
 
     private var post: TreDFigurIndex.Post? { index.slag.indices.contains(valt) ? index.slag[valt] : nil }
+    /// Slagets uppställning; utan slag den första som har kameror.
     private var uppstallning: TreDFigurUppstallning? {
-        let i = post?.uppstallning ?? 0
-        return index.uppstallningar.indices.contains(i) ? index.uppstallningar[i]
-            : index.uppstallningar.first { $0.kameror != nil }
+        if let i = post?.uppstallning, index.uppstallningar.indices.contains(i) { return index.uppstallningar[i] }
+        return index.uppstallningar.first { $0.kameror != nil }
     }
     private var rubrik: String {
         guard let post else { return Texter.treD }
@@ -53,6 +57,7 @@ struct TreDFigurSkarm: View {
             innehall
                 .padding(.vertical, 8)
         }
+        .scrollDisabled(dragar)
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
         .task(id: valt) { await ladda() }
@@ -80,7 +85,12 @@ struct TreDFigurSkarm: View {
         v.onVinkel = valjVinkel
         v.onKameror = vaxlaKameror
         v.onSpar = vaxlaSpar
-        v.onBetraktare = { betraktare = $0 }
+        v.onBetraktare = { b in
+            betraktare = b
+            sparad[vinkel] = b
+        }
+        v.onDragar = { dragar = $0 }
+        v.onAterstall = aterstall
         return v
     }
 
@@ -102,11 +112,18 @@ struct TreDFigurSkarm: View {
 
     private func valjVinkel(_ v: TreDVinkel) {
         vinkel = v
+        if let b = sparad[v] { betraktare = b } else { forinstallning() }
+    }
+
+    /// Dubbeltryck: vinkeln som den var från början.
+    private func aterstall() {
+        sparad[vinkel] = nil
         forinstallning()
     }
 
     private func vaxlaKameror() {
         kameror.toggle()
+        sparad = [:]
         forinstallning()
     }
 
@@ -130,6 +147,7 @@ struct TreDFigurSkarm: View {
         guard !Task.isCancelled else { return }
         laddar = false
         figur = f
+        sparad = [:]
         riktning = uppstallning.flatMap { TreDRiktning.ur(f, uppstallning: $0, hand: index.hand) }
         if let f {
             let p1 = f.positionsRutor().first(where: { $0.name == "P1" })?.index
@@ -212,6 +230,10 @@ struct TreDFigurInnehall: View {
     var onKameror: () -> Void = {}
     var onSpar: (SparPunkt) -> Void = { _ in }
     var onBetraktare: (TreDBetraktare) -> Void = { _ in }
+    /// Fingret börjar och slutar vrida (sidan rullar inte under tiden).
+    var onDragar: (Bool) -> Void = { _ in }
+    /// Dubbeltryck på ytan: vinkeln som från början.
+    var onAterstall: () -> Void = {}
 
     @State private var dragFran: CGSize = .zero
     @State private var zoomFran: Double?
@@ -346,15 +368,19 @@ struct TreDFigurInnehall: View {
         }
         .clipShape(.rect(cornerRadius: 2))
         .contentShape(.rect)
-        .gesture(
+        .highPriorityGesture(
             DragGesture(minimumDistance: 2)
                 .onChanged { d in
+                    if dragFran == .zero { onDragar(true) }
                     guard let b = betraktare else { return }
                     let dx = d.translation.width - dragFran.width, dy = d.translation.height - dragFran.height
                     dragFran = d.translation
                     onBetraktare(b.vriden(dx: dx, dy: dy))
                 }
-                .onEnded { _ in dragFran = .zero }
+                .onEnded { _ in
+                    dragFran = .zero
+                    onDragar(false)
+                }
                 .simultaneously(with: MagnifyGesture()
                     .onChanged { m in
                         guard let b = betraktare else { return }
@@ -364,9 +390,34 @@ struct TreDFigurInnehall: View {
                     }
                     .onEnded { _ in zoomFran = nil })
         )
-        .onTapGesture(count: 2) { onVinkel(vinkel) }
+        .onTapGesture(count: 2) { onAterstall() }
         .accessibilityElement()
         .accessibilityLabel(Text(verbatim: Texter.treD))
+        .accessibilityValue(Text(verbatim: tillganglig))
+        .accessibilityAdjustableAction { steg in
+            guard let figur else { return }
+            switch steg {
+            case .increment: onRuta(min(figur.n - 1, ruta + 1))
+            case .decrement: onRuta(max(0, ruta - 1))
+            @unknown default: break
+            }
+        }
+    }
+
+    /// VoiceOver: vinkeln, positionen och tiden ("Face on, P4, −0.275 s").
+    private var tillganglig: String {
+        var delar = [vinkelNamn(vinkel)]
+        if !position.isEmpty { delar.append(position) }
+        if let figur { delar.append(Tal.tecken(figur.t(ruta), decimaler: 3) + " s") }
+        return delar.joined(separator: ", ")
+    }
+
+    private func vinkelNamn(_ v: TreDVinkel) -> String {
+        switch v {
+        case .faceOn: return Texter.treDFaceOn
+        case .dtl: return Texter.treDDtl
+        case .top: return Texter.treDTop
+        }
     }
 
     // MARK: delarna
@@ -455,8 +506,6 @@ struct TreDScen: View {
 
     /// Markens rutnät: steget och hur långt det når från stansen, m.
     static let rutSteg = 0.5, rutUt = 2.0
-    /// Mållinjen bakåt och framåt från stansen, m.
-    static let malBak = 0.5, malFram = 3.0
     /// Telefonens pyramid: djupet i världen, m.
     static let pyramid = 0.35
 
@@ -471,13 +520,14 @@ struct TreDScen: View {
             }
             let r = riktning, g = r.golv
             // Marken: ett tunt rutnät kring stansen (längre ut när telefonerna visas).
-            var ut = Self.rutUt
+            let e = r.meter, steg = Self.rutSteg * e
+            var ut = Self.rutUt * e
             for k in (kameror ?? [:]).values {
                 let dx: Double = k.c[0] - r.stans[0], dy: Double = k.c[1] - r.stans[1]
                 let d: Double = (dx * dx + dy * dy).squareRoot()
-                ut = max(ut, d + 0.5)
+                ut = max(ut, d + 0.5 * e)
             }
-            let n = Int((ut / Self.rutSteg).rounded(.up))
+            let n = min(40, Int((ut / steg).rounded(.up)))
             let u = r.mal, v = r.fram
             func mark(_ a: Double, _ b: Double) -> [Double] {
                 let x: Double = r.stans[0] + a * u[0] + b * v[0]
@@ -485,16 +535,17 @@ struct TreDScen: View {
                 return [x, y, g]
             }
             for i in -n...n {
-                let a = Double(i) * Self.rutSteg, e = Double(n) * Self.rutSteg
-                linje(mark(a, -e), mark(a, e), Theme.line, 0.6)
-                linje(mark(-e, a), mark(e, a), Theme.line, 0.6)
+                let a = Double(i) * steg, ytter = Double(n) * steg
+                linje(mark(a, -ytter), mark(a, ytter), Theme.line, 0.6)
+                linje(mark(-ytter, a), mark(ytter, a), Theme.line, 0.6)
             }
             // Mållinjen genom stansen, med en pil mot målet; bara ur en figur (ingen gissning).
             if r.urFigur {
-                let spets = mark(Self.malFram, 0)
-                linje(mark(-Self.malBak, 0), spets, Theme.secondary, 1, streck: [5, 4])
-                linje(spets, mark(Self.malFram - 0.18, 0.1), Theme.secondary, 1)
-                linje(spets, mark(Self.malFram - 0.18, -0.1), Theme.secondary, 1)
+                let fram = TreDRiktning.malFram * e
+                let spets = mark(fram, 0)
+                linje(mark(-TreDRiktning.malBak * e, 0), spets, Theme.secondary, 1, streck: [5, 4])
+                linje(spets, mark(fram - 0.18 * e, 0.1 * e), Theme.secondary, 1)
+                linje(spets, mark(fram - 0.18 * e, -0.1 * e), Theme.secondary, 1)
             }
 
             if let kameror { ritaKameror(c, pr, kameror, yta: s) }
@@ -581,7 +632,7 @@ struct TreDScen: View {
         }
         for vy in ["fo", "dtl"] {
             guard let k = kameror[vy] else { continue }
-            let f = k.k[0], cx = k.k[2], cy = k.k[5], s = Self.pyramid
+            let f = k.k[0], cx = k.k[2], cy = k.k[5], s = Self.pyramid * riktning.meter
             func hornet(_ u: Double, _ v: Double) -> [Double] {
                 let a: Double = (u - cx) / f, b: Double = (v - cy) / f
                 var ut = [Double](repeating: 0, count: 3)
@@ -603,11 +654,11 @@ struct TreDScen: View {
                 pinne[i] = ovan[i] - s * 0.4 * k.ned[i]
             }
             linje(ovan, pinne, Theme.text, 1.5, [])
-            linje(k.c, [riktning.stans[0], riktning.stans[1], riktning.golv + 1.0], Theme.tertiary, 0.8, [3, 4])
+            linje(k.c, [riktning.stans[0], riktning.stans[1], riktning.golv + riktning.meter], Theme.tertiary, 0.8, [3, 4])
             // Namnet utanför telefonen, på andra sidan från spelaren, så att det inte täcker pyramiden.
             if let q = pr.punkt(k.c) {
                 var dx = 0.0, dy = -1.0
-                if let m = pr.punkt([riktning.stans[0], riktning.stans[1], riktning.golv + 1.0]) {
+                if let m = pr.punkt([riktning.stans[0], riktning.stans[1], riktning.golv + riktning.meter]) {
                     let ex: Double = q.p.x - m.p.x, ey: Double = q.p.y - m.p.y
                     let n = (ex * ex + ey * ey).squareRoot()
                     if n > 1 { (dx, dy) = (ex / n, ey / n) }
