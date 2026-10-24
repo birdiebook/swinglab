@@ -1,0 +1,7 @@
+595995dfbe363901d5ae5d63a09a7c0ed92b9ff2 s6d 2026-10-24T17:24:53Z run 40115892980
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:231:29: error: constant 'self.fram' captured by a closure before being initialized
+|                             `- error: constant 'self.fram' captured by a closure before being initialized
+error: fatalError
+
