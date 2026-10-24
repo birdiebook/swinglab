@@ -392,10 +392,11 @@ final class KlubbaMarkeringTests: XCTestCase {
         n.go(to: "P3")
         n.startZoom(hands: KlubbPunkt(x: 540, y: 960), cmPerPx: 0.25)
         XCTAssertEqual(n.zoomFactor, 1080 / (2 * 1.15 * 300), accuracy: 1e-9)
-        // Ett skaft längre än ytan medger: aldrig under hela ytan.
+        XCTAssertEqual(n.zoom.midX * 1080, 540, accuracy: 1e-6)
+        // Utan händer: kring de markerade greppen, och de markerade skaften går före skalan.
         n.startZoom(hands: nil, cmPerPx: 0.01)
         XCTAssertEqual(n.zoomFactor, 1080 / (2 * 1.15 * 300), accuracy: 1e-9, "de markerade går före skalan")
-        XCTAssertEqual(n.zoom.midX * 1080, 540, accuracy: 1e-6)
+        XCTAssertEqual(n.zoom.midX * 1080, 500, accuracy: 1e-6)
     }
 
     /// Markeringarna i slaget mäter om det: klubbmåtten bland slagets mått och P2 som rutan

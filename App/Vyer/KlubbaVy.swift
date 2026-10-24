@@ -108,10 +108,14 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Guide"))
-                    Button(action: onClose) {
-                        Text("Done").typsnitt(15, .semibold).foregroundStyle(Theme.text).frame(minWidth: 44, minHeight: 40)
+                    // I riktpinnens steg har steget sitt eget Done; märkningen stängs med pilen.
+                    if !stickStep {
+                        Button(action: onClose) {
+                            Text("Done").typsnitt(15, .semibold).foregroundStyle(Theme.text)
+                                .frame(minWidth: 44, minHeight: 40)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }, tillbaka: onClose)
 
@@ -387,6 +391,13 @@ struct ClubSketch: View {
             let tand1 = focus == .grip || focus == .both, tand2 = focus == .clubhead || focus == .both
             c.prick(grepp, r, tand1 ? Theme.text : Theme.tertiary, ihalig: !tand1)
             c.prick(hosel, r, tand2 ? Theme.text : Theme.tertiary, ihalig: !tand2)
+            // I guidens stora skiss står punkternas nummer, som på ytan.
+            if s.width >= 80 {
+                for (text, a, tand) in [("1", grepp, tand1), ("2", hosel, tand2)] {
+                    c.draw(Text(verbatim: text).font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(tand ? Theme.text : Theme.tertiary), at: CGPoint(x: a.x - r - 14, y: a.y))
+                }
+            }
         }
         .accessibilityHidden(true)
     }
@@ -420,28 +431,46 @@ struct ClubPoints: View {
                 let l = marking.surfacePoint(q)
                 return CGPoint(x: CGFloat(l.u) * s.width, y: CGFloat(l.v) * s.height)
             }
-            func etikett(_ text: String, vid a: CGPoint, farg: Color = Theme.text) {
-                c.draw(Text(verbatim: text).font(.system(size: 12, weight: .semibold)).foregroundStyle(farg),
-                       at: CGPoint(x: a.x + 11, y: a.y - 11))
+            // Vitt med en svart kant, så att punkterna, linjen och siffrorna syns mot både ljus
+            // och mörk bild (svartvitt, design/README regel 6).
+            func etikett(_ text: String, vid a: CGPoint) {
+                let t = c.resolve(Text(verbatim: text).font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.text))
+                let sz = t.measure(in: CGSize(width: 100, height: 40))
+                let mitt = CGPoint(x: a.x + 9 + sz.width / 2, y: a.y - 13)
+                let ruta = CGRect(x: mitt.x - sz.width / 2 - 4, y: mitt.y - sz.height / 2 - 1, width: sz.width + 8,
+                                  height: sz.height + 2)
+                c.fill(Path(roundedRect: ruta, cornerRadius: 3), with: .color(Theme.ground.opacity(0.75)))
+                c.draw(t, at: mitt)
             }
-            if stick.count == 2 { c.linje(p(stick[0]), p(stick[1]), Theme.text, 1.2) }
+            func linje(_ a: CGPoint, _ b: CGPoint) {
+                c.linje(a, b, Theme.ground.opacity(0.6), 3.2)
+                c.linje(a, b, Theme.text, 1.4)
+            }
+            func punkt(_ a: CGPoint) {
+                c.prick(a, 5.5, Theme.ground)
+                c.prick(a, 4, Theme.text)
+            }
+            if stick.count == 2 { linje(p(stick[0]), p(stick[1])) }
             for (i, q) in stick.enumerated() {
-                c.prick(p(q), 4, Theme.text)
+                punkt(p(q))
                 etikett("\(i + 1)", vid: p(q))
             }
             if stickStep { return }
             if let r = ring {
+                // Gissningen: en ihålig ring, så att händerna syns genom den.
                 let m = p(r)
-                c.prick(m, 6, Theme.secondary, ihalig: true)
-                etikett("1?", vid: m, farg: Theme.secondary)
+                let ruta = CGRect(x: m.x - 8, y: m.y - 8, width: 16, height: 16)
+                c.stroke(Path(ellipseIn: ruta), with: .color(Theme.ground.opacity(0.6)), lineWidth: 3.5)
+                c.stroke(Path(ellipseIn: ruta), with: .color(Theme.text), lineWidth: 1.5)
+                etikett("1?", vid: m)
             }
-            if let g = marking.grip, let h = marking.hosel { c.linje(p(g), p(h), Theme.text, 1.2) }
+            if let g = marking.grip, let h = marking.hosel { linje(p(g), p(h)) }
             if let g = marking.grip {
-                c.prick(p(g), 4, Theme.text)
+                punkt(p(g))
                 etikett("1", vid: p(g))
             }
             if let h = marking.hosel {
-                c.prick(p(h), 4, Theme.text)
+                punkt(p(h))
                 etikett("2", vid: p(h))
             }
         }
@@ -513,16 +542,12 @@ struct ClubGuideContent: View {
     }
 }
 
-/// Skaftlinjen i guidens sista bild: punkterna 1 och 2 med linjen mellan, som på ytan.
+/// Skaftlinjen i guidens sista bild: linjen mellan punkterna 1 och 2, som på ytan.
 private struct GuideLine: View {
     var body: some View {
         Canvas { c, s in
             let a = CGPoint(x: 0.36 * s.width, y: 0.19 * s.height), b = CGPoint(x: 0.66 * s.width, y: 0.80 * s.height)
             c.linje(a, b, Theme.text, 1.5)
-            c.draw(Text(verbatim: "1").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text),
-                   at: CGPoint(x: a.x - 16, y: a.y))
-            c.draw(Text(verbatim: "2").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text),
-                   at: CGPoint(x: b.x - 16, y: b.y))
         }
         .accessibilityHidden(true)
     }
