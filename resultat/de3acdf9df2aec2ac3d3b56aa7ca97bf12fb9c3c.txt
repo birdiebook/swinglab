@@ -1,0 +1,7 @@
+de3acdf9df2aec2ac3d3b56aa7ca97bf12fb9c3c s4e 2026-10-24T12:17:55Z run 40093288947
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/Visning/Texter.swift:204:24: error: invalid redeclaration of 'svingar'
+|                        `- error: invalid redeclaration of 'svingar'
+error: fatalError
+
