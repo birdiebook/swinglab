@@ -227,15 +227,17 @@ public struct TreDProjektion: Sendable {
     public static let nara = 0.05
 
     public init(_ b: TreDBetraktare, bredd: Double, hojd: Double) {
-        oga = b.oga
-        let f = (0..<3).map { b.mal[$0] - oga[$0] }
+        let o = b.oga
+        oga = o
+        let f: [Double] = [b.mal[0] - o[0], b.mal[1] - o[1], b.mal[2] - o[2]]
         let nf = LA.norm3(f)
-        fram = f.map { $0 / nf }
-        var h = LA.kryss(fram, [0, 0, 1])
+        let fr: [Double] = [f[0] / nf, f[1] / nf, f[2] / nf]
+        fram = fr
+        var h = LA.kryss(fr, [0, 0, 1])
         let nh = LA.norm3(h)
-        h = nh > 1e-9 ? h.map { $0 / nh } : [1, 0, 0]
+        h = nh > 1e-9 ? [h[0] / nh, h[1] / nh, h[2] / nh] : [1, 0, 0]
         hoger = h
-        upp = LA.kryss(hoger, fram)
+        upp = LA.kryss(h, fr)
         brannvidd = (min(bredd, hojd) / 2) / tan(TreDBetraktare.fov / 2 * .pi / 180)
         cx = bredd / 2
         cy = hojd / 2

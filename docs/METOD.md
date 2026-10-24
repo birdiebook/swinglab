@@ -2330,6 +2330,73 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   förskjutningen − `klick_i_klipp_s`; utan förskjutning 0, och sidan säger det.
 
 
+## MK10 — Figuren på telefonen: lederna, kamerorna och skalan (S6d)
+
+`TreDFigurer` (SwingLabKit) och `tools/pc/tre_d_figur.py` (facit, BESLUT B12) sparar det kedjan
+redan räknar och mäter inget eget (BESLUT B72):
+
+- **Lederna** per slag är MK5:s triangulering med uppställningens sista kalibrering och
+  slagets synk (MK3, MK4): samma leder som måtten räknas ur, på tidsaxeln i steg om 1/240 s
+  med träffen = 0 på FO:s klocka. De trianguleringar kedjan redan gjort återanvänds; slag
+  utan faser och slag i en uppställning över spärren trianguleras för skalan. **räkning.**
+- **Kamerorna** per uppställning ur kedjans sista kalibrering (`Kalibrering.varld`):
+  centrum C = −Rᵀ t, R och K för uppställningens första slag. Över spärren sparas de ändå,
+  men ingen figur (B72). **räkning.**
+- **Skalan** (bara för bilden, inget mått beror på den): självkalibreringen saknar skala, så
+  världen skalas så att benets längd, lår + smalben (höft–knä–fotled per sida, medianen över
+  uppställningens alla rutor och båda sidor) blir **0,491** × spelarens längd (lår 0,245 och
+  smalben 0,246 av längden, Drillis och Contini 1966, **ej läst i original**; samma källa som
+  MK9 och felbudgetens påhittade kropp). Utan ben är avståndet mellan kamerorna 1
+  (`skala: "kamerorna"`). Varför inte MK9:s näsa över fotlederna: den antar en upprätt
+  hållning, och på facit (utan brus) blev figuren 27 % för stor, med kamerorna 4,0 m från
+  höfterna i stället för 3,15 m och 1,16 m över fotlederna i stället för 0,93 m; benen gav
+  3,20 m och 0,93 m. **standard** (proportionerna), **räkning.**
+- **Marken** = fotledernas median (alla rutor, båda) minus fotledens höjd, **0,039** ×
+  längden (samma källa, ej läst i original). Prövat på facit: kameran 1,0 m över marken inom
+  5 cm, som uppställningen den filmades i (MK8). **antagande.**
+- **Positionerna** P1–P10 (kroppens, M28) per slag på figurens tid: FO:s 2D-tid minus FO:s
+  träff, annars DTL:s minus DTL:s träff och synken, position för position (samma regel som
+  baksvingens start i MK6). P2, P6 och P8 kräver klubban och saknas. P7 är 0. **räkning.**
+- **Filen:** lederna som int16 i mm (±32,767 m; ett tal utanför blir saknat, aldrig ett annat
+  tal). Avrundningen är 0,5 mm, långt under trianguleringens fel. **räkning.**
+- **Toleransen mot Python** (TreDFigurTests, tre påhittade pass: utan brus, bra brus med
+  vänsterspelare, och över spärren): kamerorna, skalan, marken, synken, tiderna,
+  positionerna och lederna inom **1e-6** (m, s eller relativt), samma antal leder och samma
+  skäl. **räkning.**
+
+## MK11 — Figurens vy: riktningarna, vinklarna och perspektivet (S6d)
+
+Geometrin i `FigurVy.swift` (SwingLabKit, prövad på Linux), ritad av appens `TreDScen`
+(BESLUT B73). Bara bilden: ingen siffra visas ur den.
+
+- **Riktningarna ur kroppen i adressen**, rutorna fram till P1 + **0,15 s** (utan P1 slagets
+  första 0,3 s), medianen per led: **mot målet** = bakre fotleden → främre (för en
+  högerspelare höger → vänster), vågrätt; utan fotleder höfterna. **Framsidan** är vinkelrät
+  mot den, åt det håll näsan står framför höfterna (spelaren böjer sig mot bollen); säger
+  näsan mindre än 2 cm, mot FO-kameran. **Stansen** är fotledernas mitt på marken, mållinjens
+  ankare. Utan figur: där telefonernas blickar möts (närmaste punkten mellan linjerna, 0,5–20 m
+  framför båda), annars 3 m framför FO-kameran, och framsidan mot FO-kameran. Prövat på facit:
+  FO-kameran står inom 18° från framsidan och DTL-kameran inom 18° bakom spelaren längs
+  mållinjen (MK8: 90° ±5°). **antagande** (adressens fönster), **räkning.**
+- **Vinklarna:** Face on ser spelaren framifrån (målet till höger på skärmen för en
+  högerspelare), Down the line bakifrån längs mållinjen, båda **6°** över vågrätt; Top uppifrån,
+  **89°** (vid 90° saknar vyn ett upp), med målet till höger. Avståndet ger figurens sfär
+  (halva diagonalen av lådan kring alla leder i alla rutor, från marken) i synfältet **40°**
+  över skärmens kortsida, med **5 %** marginal; med telefonerna sfären kring figurens mitt och
+  dem, plus 0,5 m. **antagande.**
+- **Fingret:** **0,008** rad per pt runt lodlinjen och i höjd, höjden **−10°…89,5°**; nypningen
+  delar avståndet med faktorn, **0,5–40 m**. **antagande.**
+- **Perspektivet:** en hålkamera i ögat med brännvidden (kortsidan / 2) / tan(20°). En linje
+  som passerar bakom ögat klipps **0,05 m** framför det; en punkt bakom ritas inte. Strecken
+  ritas det bortre först, och opaciteten faller linjärt till **0,55** för den bortersta leden i
+  rutan. **standard** (projektionen), **antagande** (talen).
+- **Spåren** (S4f:s punkter, M60) ur figurens leder: händerna med greppregeln och brott där
+  den byter handled, axlarna och höfterna två serier var, huvudet näsan. Ingen ny utjämning
+  (lederna är jämnade före trianguleringen, MK5). Delningen i spelat och kvar och avbrotten är
+  `SparSerie`:s (M60), med index som pekar ut punkterna i 3D. **räkning.**
+- **Uppspelningen:** farten 1/8 (som granskningen, MS15), 1/4 eller 1, på figurens tidsaxel;
+  den stannar vid slutet och börjar om från början. **Johannes beställning.**
+
 ## M50 — 3D på telefonen: Swift mot Python (S6c-1)
 
 - **Porten.** `SwingLabKit/Sources/TreD` räknar MK1–MK7 rad för rad som

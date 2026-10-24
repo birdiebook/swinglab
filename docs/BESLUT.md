@@ -1486,3 +1486,75 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
 - **Omprövas:** när banan provats på riktiga DTL-klipp mot handmärkta rutor (S7b:s Klart
   när): gränserna i M61, särskilt bakifrån, mitten mot hoseln, om planet kan visas som tal,
   och spökbilderna.
+
+## B72 — Figuren i 3D: lederna och kamerorna sparas på telefonen som räknar, inte i paketet
+*2026-10-24 · prövas · PLAN.md S6d · METOD MK10 · Johannes mål 2026-10-24: Lead-telefonen gör hela analysen*
+
+- **Valt:** den telefon som räknar 3D (den styrande, eller den som importerade) sparar i samma
+  räkning kedjans triangulerade leder per slag och kamerorna per uppställning i passets mapp,
+  `tre_d_figur/` (docs/FORMAT.md "Figuren i 3D"): ett index och en fil per slag, lederna som
+  int16 i mm. Världen är kalibreringens med lodlinjen uppåt och FO-kameran i origo, i meter med
+  skalan ur benens längd (MK10). `TvaKameror.analysera` lämnar uppställningarnas kameror och
+  trianguleringar genom en valfri samlare, även när passet sedan hoppas över, så att kedjan
+  inte räknar om något och måtten är oförändrade. Python är facit (`tools/pc/tre_d_figur.py`,
+  B12).
+- **Ingen figur där skälet säger nej:** en uppställning över spärren (eller vars kalibrering
+  inte gick) får ingen figur. Över spärren sparas ändå kamerorna, Sampson-felet och vinkeln,
+  för det är just där uppställningen behöver synas (första riktiga passet, 2026-10-24:
+  kamerorna 165–177° isär). Ett slag i en uppställning som mättes får figuren även när dess
+  mått fallerade (t.ex. faserna saknas): figuren beror på kamerorna, inte på adressen.
+- **Inte i paketet:** B63 säger att `tre_d.json` följer med; figuren gör det inte. PC:n räknar
+  sin egen figur i visaren (S6f), och paketet växer inte med cirka 2 MB per pass.
+- **Skalan ur benen, inte näsan:** MK9:s näsa över fotlederna (0,89 × längden) antar en upprätt
+  hållning; i en sving är spelaren böjd större delen av tiden, och på facit blev figuren 27 %
+  för stor (kamerorna 4,0 m bort i stället för 3,15 m och 1,16 m upp i stället för 0,93 m).
+  Lår och smalben (0,491 × längden) är lika långa i varje hållning och gav 3,20 och 0,93 m.
+- **Följaren** får bara `tre_d.json` (B61) och har ingen figur; knappen "3D" visas där
+  figuren finns. Ett pass räknat före S6d räknas om en gång när passet öppnas, så att figuren
+  kommer till.
+- **Bortvalt:** att spara figuren i `tre_d.json` (en fil på 2 MB som läses för kortet och
+  skickas till följaren), JSON-tal per led (cirka 4 gånger större), att räkna figuren när vyn
+  öppnas (sekunder att vänta, och kedjan körs två gånger), och figuren i paketet.
+- **Kostnad:** cirka 100 kB per slag på telefonen, och räkningen tar några tiondelar längre
+  (slagen i en uppställning över spärren trianguleras för skalan).
+- **Omprövas:** när S6g för över klippen (då kan figuren läggas över videon), och när PC:n
+  ska jämföra telefonens figur med sin egen.
+
+## B73 — Figurens vy: Canvas med egen projektion, vinklarna ur kroppen, granskningens tidslinje
+*2026-10-24 · prövas · PLAN.md S6d · METOD MK11 · Johannes beställning 2026-10-24*
+
+- **Valt:** passets kort "3D · no markers" får en rad "3D" som öppnar figuren i helskärm.
+  Figuren är streck och leder, vit på svart (B13): personens vänstra sida vit med fyllda
+  leder, den högra grå med ihåliga (som miniatyren vid träffen), näsan som en större prick,
+  och det bortre svagare så att djupet syns utan ytor. Under den en tunn markyta (ett rutnät
+  om 0,5 m) och mållinjen streckad med en pil mot målet.
+- **Ritningen är SwiftUI:s Canvas med en egen perspektivprojektion** (`TreDProjektion` i
+  SwingLabKit), inte SceneKit eller RealityKit. En figur av streck har inga ytor som behöver
+  djupbuffert; Metal ritar linjer en pixel breda, medan Canvas ger formspråkets linjebredder
+  och streck och samma linjestilar som S4f:s spår; och simulatorprovet ritar Canvas med
+  ImageRenderer, vilket det inte gör med en Metal-vy. Geometrin (vinklarna, projektionen,
+  klippningen bakom ögat) prövas på Linux.
+- **Vinklarna:** Face on, Down the line och Top som ett segment; ett finger vrider (runt
+  lodlinjen och i höjd), nypning zoomar, dubbeltryck går tillbaka till vinkeln. Riktningarna
+  tas ur kroppen i adressen (MK11), inte ur telefonernas lägen, så att en fel uppställning
+  inte vrider vyerna.
+- **Tidslinjen är granskningens:** spela och pausa, ruta för ruta (1/240 s), dra i tidslinjen
+  med P1–P10 som streck, och positionsraden som hoppar dit; farten 1/8 (som granskningen), 1/4
+  eller verklig tid. Spåren är S4f:s chips och linjestilar (Hands, Shoulders, Hips, Head),
+  delade i spelat och kvar med `SparSerie`; valet är samma som i granskningen. Club visas inte
+  förrän klubbhuvudet finns i båda vyerna (S7b på båda telefonerna och S6g).
+- **Telefonerna:** valet "Cameras" ritar båda telefonerna där kalibreringen placerade dem (en
+  pyramid ur K och R med bildens överkant markerad och vyns namn), vidgar vyn så att de syns,
+  och visar Sampson-felet mot spärren och vinkelen mellan dem mot 60–120°. Ett pass över
+  spärren öppnar på telefonerna.
+- **Skälen** står i grått (S6c-2:s korta texter): utan 3D bara skälet och ingen figur, över
+  spärren "Sampson error over the limit: no figure", och en vinkel utanför 60–120°.
+- **Prestanda:** bara slaget som visas läses, utanför huvudtråden, och läsningen avbryts när
+  slaget byts. Riktningarna och spåren räknas en gång per slag och val, inte per ruta.
+- **Bortvalt:** SceneKit (enklast av de två, men linjerna blir hårstrån och provet ritar dem
+  inte), RealityKit (byggt för AR och ytor), en modellerad kropp (B13), vinklarna ur
+  telefonernas lägen, en egen tidslinje.
+- **Kostnad:** ingen djupbuffert (ett streck bakom ett annat ritas efter avståndet, inte per
+  pixel), och perspektivet skrivet för hand.
+- **Omprövas:** när Johannes vridit figuren på telefonen: om den syns och förstås, om
+  vinklarna är de han vill ha, och om markytan och mållinjen räcker som referens.

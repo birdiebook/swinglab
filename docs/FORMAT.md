@@ -345,6 +345,42 @@ Konfidensen 0 = saknad. Talen läses tillbaka som n · steg: exakt ledfilens tal
 `pass.json` bär `tre_d` med passets median per mått (`n`, `median`, `q1`, `q3`, null under 10 slag)
 för Progress och förra passet.
 
+### Figuren i 3D (S6d): `tre_d_figur/` i passets mapp
+
+Den telefon som räknar 3D (den styrande, eller den som importerade) sparar figuren bredvid
+`tre_d.json`, i samma räkning: kedjans triangulerade leder per slag och kamerorna per
+uppställning (BESLUT B72, METOD MK10). **Den följer inte med paketet** (B63 säger bara
+`tre_d.json`): PC:n räknar sin egen figur i visaren (S6f). Världen: z uppåt (lodlinjen, MK3),
+FO-kameran i origo och x dess blickriktning i markplanet, i meter med skalan ur benens längd.
+Mappen skrivs som en ny mapp som ersätter den gamla, indexet sist, så att en halv figur aldrig
+läses; den raderas med passet.
+
+`tre_d_figur/index.json` (`swinglab-tre-d-figur/1`):
+
+| Fält | Innehåll |
+|---|---|
+| `format`, `pass` | `"swinglab-tre-d-figur/1"` och passets id |
+| `kallor` | samma buntsummor som `tre_d.json`: figuren gäller bara när de är lika |
+| `langd_m`, `hand` | längden som gav skalan, och spelhanden (`hoger`, `vanster`) |
+| `hoppat` | kedjans skäl när passet hoppades över (som `tre_d.json`), annars utelämnat |
+| `uppstallningar[]` | per uppställning i kedjans ordning: `serie` (`dtl`, `fo`), `slag`, `hoppat`, `sampson_px`, `vinkel` och `vinkel_ok` (som `tre_d.kalibrering`), och när kalibreringen gick (även över spärren): `skala` (`langd` eller `kamerorna`), `skala_m` (meter per kalibreringens enhet), `golv` (markens höjd, m) och `kameror` (`fo`, `dtl`: `C` centrum i m, `R` värld → kamera 3×3 rad för rad, `K` 3×3, `w`, `h` bildens storlek) |
+| `slag[]` | per slag med figur: `dtl`, `fo`, `uppstallning` och `fil` (`<dtl>-<fo>.json`); bara slag i en uppställning som mättes (B72) |
+
+`tre_d_figur/<dtl>-<fo>.json` (ett slag; vyn läser bara det som visas):
+
+| Fält | Innehåll |
+|---|---|
+| `format`, `dtl`, `fo`, `uppstallning` | som indexet |
+| `synk_s` | synken: DTL:s klocka före FO:s efter klicket (MK4) |
+| `t0`, `steg`, `n` | tidsaxeln: ruta i har tiden `t0 + i · steg`, s med träffen = 0 på FO:s klocka (MK2, MK5), `steg` = 1/240 s |
+| `positioner` | kroppens P1–P10 (M28) på samma tid: FO:s, annars DTL:s flyttad med synken; en som saknas står inte med |
+| `leder` | n · 13 · 3 tal (x, y, z per led i filens ordning, M1) som int16 i mm, little endian i base64; −32768 = saknas (också ett tal utanför ±32,767 m) |
+
+Ett slag om 4 s (960 rutor) är cirka 100 kB på disken (75 kB leder, i base64 100 kB), ett pass om 20 slag
+cirka 2 MB. **Facit:** `tools/pc/tre_d_figur.py` skriver samma uppställningar och leder för tre
+påhittade pass till `tools/tests/fixturer/tre_d/figur.json` (fyra rutor per slag hela, och
+summan och antalet av lederna), och TreDFigurTests kräver dem inom 1e-6 (BESLUT B12).
+
 ## Analysen: `analys.json`
 
 `tools/pc/session.py <paket> [<paket>]` skriver passets analys
