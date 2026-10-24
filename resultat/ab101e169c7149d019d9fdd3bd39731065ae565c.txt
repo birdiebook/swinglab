@@ -1,20 +1,20 @@
-ab101e169c7149d019d9fdd3bd39731065ae565c pc-fel-3d 2026-10-24T15:30:35Z run 40107063255
+ab101e169c7149d019d9fdd3bd39731065ae565c main 2026-10-24T15:46:39Z run 40108363561
 == swift-release
-GRÖNT: 329 test, 0 fel, 30 s i testerna, bygget 103 s
+GRÖNT: 329 test, 0 fel, 20 s i testerna, bygget 56 s
 Långsammast (av 329):
-      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.4 s  TreDTests.testTelefonensVagSomPython
-      2.3 s  KlubbSparTests.testBananSomPython
-      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.1 s  TreDTests.testInreIFilenOchUppdateras
-      1.1 s  TreDTests.testKortet
-      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
-      1.1 s  KlubbSparTests.testFeletMotSanningen
-      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.5 s  KlubbSparTests.testGlesaAnkareSomPython
+      1.7 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      1.6 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.3 s  TreDTests.testTelefonensVagSomPython
+      1.3 s  KlubbSparTests.testBananSomPython
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.8 s  KlubbSparTests.testFeletMotSanningen
+      0.8 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.7 s  TreDTests.testKortet
+      0.6 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.6 s  TreDTests.testInreIFilenOchUppdateras
+      0.6 s  TreDTests.testUtanBrusSomPythonOchExakt
+      0.3 s  KlubbSparTests.testGlesaAnkareSomPython
+      0.3 s  TreDTests.testResultatetArJsonSomAnalysens
 
