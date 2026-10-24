@@ -7,10 +7,13 @@ import Swing
 public struct Faser2D: Equatable, Sendable {
     public var start: Double?
     public var topp: Double?
+    /// Kroppens positioner P1–P10 (METOD M28) i samma tid, för figurens stegning (S6d). METOD MK10
+    public var positioner: [String: Double]
 
-    public init(start: Double?, topp: Double?) {
+    public init(start: Double?, topp: Double?, positioner: [String: Double] = [:]) {
         self.start = start
         self.topp = topp
+        self.positioner = positioner
     }
 }
 
@@ -489,7 +492,8 @@ public enum TvaKameror {
 
     // MARK: - Passet
 
-    static func uppstallning(_ dtl: TreDPaket, _ fo: TreDPaket, _ grupp: [SlagData], _ faser: [String: Faser2D])
+    static func uppstallning(_ dtl: TreDPaket, _ fo: TreDPaket, _ grupp: [SlagData], _ faser: [String: Faser2D],
+                             samlare: TreDFigurSamlare? = nil)
         -> (TreDUppstallning, [TreDSlagRad], TreDInre?) {
         let sd = grupp[0].dtl.serie, sf = grupp[0].fo.serie
         var info = TreDUppstallning(serie: ["dtl": sd, "fo": sf], slag: grupp.count,
@@ -534,6 +538,7 @@ public enum TvaKameror {
                 continue
             }
             let (tg, p, rep) = triangulera(kameror(d, k), d, f)
+            samlare?.tri[TreDFigurSamlare.nyckel(d)] = (tg, p)     // figuren återanvänder den (S6d)
             inre.aterprojektion.append(rep)
             r.aterprojektionPx = rep.isFinite ? LA.avrunda(rep, 1) : nil
             switch mattUr(tg, p, tStart, dtl.spelhand) {
@@ -587,7 +592,10 @@ public enum TvaKameror {
     /// 3D för passet ur två telefoners paket och 2D-fasernas start och topp per slag
     /// (nyckel "dtl/s01", "fo/s01"). Kastar TreDFel när 3D inte går (skälet i
     /// `tre_d.hoppat`). METOD MK1–MK7
-    public static func analysera(dtl: TreDPaket, fo: TreDPaket, faser: [String: Faser2D]) throws -> TreDResultat {
+    /// `samlare` får uppställningarnas kameror och slag för figuren (S6d), även när passet
+    /// sedan hoppas över (en uppställning över spärren har kameror). METOD MK10
+    public static func analysera(dtl: TreDPaket, fo: TreDPaket, faser: [String: Faser2D],
+                                 samlare: TreDFigurSamlare? = nil) throws -> TreDResultat {
         let (par, parning) = try Parning.paraSlag(dtl, fo)
         var grupper: [String: [SlagData]] = [:]
         var nycklar: [(Int, Int)] = []
@@ -627,7 +635,8 @@ public enum TvaKameror {
         for (sd, sf) in nycklar.sorted(by: { $0 < $1 }) {
             // Telefonen avbryter räkningen när passet stängs eller ändras (S6c-2, METOD MS19).
             if Task.isCancelled { throw TreDFel(skal: avbruten) }
-            let (info, ut, i) = uppstallning(dtl, fo, grupper["\(sd)-\(sf)"]!, faser)
+            let (info, ut, i) = uppstallning(dtl, fo, grupper["\(sd)-\(sf)"]!, faser, samlare: samlare)
+            samlare?.poster.append((info, i, grupper["\(sd)-\(sf)"]!))
             kalib.append(info)
             utSlag += ut
             inre.append(i)
