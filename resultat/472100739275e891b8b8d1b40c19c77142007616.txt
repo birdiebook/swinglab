@@ -1,0 +1,21 @@
+472100739275e891b8b8d1b40c19c77142007616 s7afo 2026-10-24T07:56:59Z run 40075987455
+== swift-release
+RÖTT: 261 test, 1 fel, 20 s i testerna, bygget 74 s
+  fel: KlubbaMarkeringTests.testZoomenHallerTryckenIBildensPixlar
+Långsammast (av 261):
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
+      0.4 s  TreDTests.testSparrenHopparOver
+      0.4 s  MattTests.testVarjeSvingGerPythonsTal
+      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
+      0.3 s  TreDTests.testOrimligaTiderStopparSlagetUtanAttKrascha
+
