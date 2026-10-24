@@ -1,33 +1,31 @@
-3f1002915520cf17ef9dc790b55ff12ff0892912 s6c2 2026-10-24T10:14:35Z run 40084057610 kompilera
+9a2ceaa21359b5264725e02ddd26959e9b8bd345 s4e 2026-10-24T10:28:50Z run 40085757620 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-RÖTT: 41 test, 1 fel, 105 s i testerna
-  fel: SwingLabProvTreDLink.testSyftetPartnernOchNej
-Långsammast (av 41):
-     49.3 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+GRÖNT: 32 test, 0 fel, 61 s i testerna
+Långsammast (av 32):
+     23.0 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      5.2 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      5.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
-      3.5 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      3.2 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
-      2.7 s  SwingLabProvInspelning.testFilmenMedLPCM
-      2.2 s  SwingLabProvKlubba.testMarkeraKlubban
-      2.2 s  SwingLabProvInspelning.testFilmenMedAAC
-      2.2 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
-      2.1 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
-      1.9 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      1.9 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      1.7 s  SwingLabProvVyer.testClaudeAppen
+      4.4 s  SwingLabProvKlubba.testMarkeraKlubban
+      3.1 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      2.8 s  SwingLabProvVyer.testSessionerOchMe
+      2.0 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      2.0 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      1.9 s  SwingLabProvInspelning.testFilmenMedLPCM
+      1.5 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      1.3 s  SwingLabProvInspelning.testFilmenMedAAC
+      1.3 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      1.2 s  SwingLabProvVyer.testClaudeAppen
       1.2 s  SwingLabProv.testAppenStartarMedStartvyn
+      1.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      1.1 s  SwingLabProvLink.testParningenEfterAttVynStangts
 
-/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvTreDLink.swift:210: error: -[SwingLabProv.SwingLabProvTreDLink testSyftetPartnernOchNej] : XCTAssertFalse failed - kopplade till fel partner
-** TEST FAILED **
+** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
-PROV: String Catalog 158 texter i en.lproj
+PROV: String Catalog 153 texter i en.lproj
 PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
 PROV: granskningen passet: sway −5.0 cm, 7 kort med tal
 PROV: skrev passet-matt.png
@@ -78,11 +76,11 @@ PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad 2.50×, P4
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Shaft plane 60.0 (DTL · P1 · n 1)", "Clubhead to plane +36.9 (DTL · P6 · n 1)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.038 ms, osäkerhet 0.139 ms, 30 prov
+PROV: link klocka θ 0.017 ms, osäkerhet 0.136 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.0 MB, topp 60.6 MB (+1.6 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 55.7 MB, topp 57.5 MB (+1.7 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495132 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -103,9 +101,9 @@ PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666
 PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
-PROV: TreD 4 slag på 0.43 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
-PROV: TreD egen bunt ett slag 55724 byte
-PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
+PROV: TreD 4 slag på 0.40 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: Ask Claude 10859 byte i urklippet, pass ["20261110-110000", "20261113-110000"]
+PROV: skrev claude-blad.png (1170×2435 px)
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
 GRÖNT: paket.py och session.py läste paketen som appen skrev
