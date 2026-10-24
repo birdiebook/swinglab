@@ -301,7 +301,8 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 `SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna. En okänd typ hoppas
 över (sedan S6c-2). `hello` bär `role`, `device` (stabil per installation sedan S6c-2), `model`,
 `app`, `view` och, sedan S6c-2, `mode` (`record` eller `pass`, saknas = `record`) och `caps`
-(`["part1"]`: tar emot bitarna); okända nycklar tål avkodaren.
+(`["part1"]`: tar emot bitarna; sedan S6g också `"video1"`: begär och skickar klipp); okända
+nycklar tål avkodaren.
 
 ### 3D mellan telefonerna (S6c-2): `part`, `swinglab-slag/1` och `tre_d.json`
 
@@ -344,6 +345,51 @@ Konfidensen 0 = saknad. Talen läses tillbaka som n · steg: exakt ledfilens tal
 
 `pass.json` bär `tre_d` med passets median per mått (`n`, `median`, `q1`, `q3`, null under 10 slag)
 för Progress och förra passet.
+
+### Video mellan telefonerna (S6g): `begaran`, `klipp` och `video.json`
+
+Efter passet begär den styrande svingarnas klipp ur följarens filer (BESLUT B80, METOD MS30).
+Bara mellan telefoner vars hello har `video1`.
+
+`begaran` (den styrande → följaren) är en vanlig överföring i bitar (ovan) med
+`swinglab-klippbegaran/1`, som följaren sparar som `Pass/<id>/begaran.json`:
+
+```json
+{"format": "swinglab-klippbegaran/1", "pass": "20261024-153012", "vy": "dtl", "nr": 3,
+ "klipp": [{"namn": "s01", "serie": 1, "fran_s": 0.0, "till_s": 4.74, "klick_s": 2.25, "klar": true},
+           {"namn": "s02", "serie": 1, "fran_s": 0.74, "till_s": 7.24, "klick_s": 4.75, "klar": false,
+            "har_id": "1a2b3c4d-3400000", "har": 9},
+           {"namn": "video-01", "serie": 1, "klar": false}]}
+```
+
+| Fält | Innehåll |
+|---|---|
+| `vy` | den styrandes vy; följaren säger nej (`format`) när den är dess egen |
+| `nr` | ökar för varje begäran, så att varje är en ny överföring |
+| `klipp[].namn` | den styrandes slag, eller `video-NN` för följarens hela serie NN; a–z, 0–9 och `-`, högst 16 tecken |
+| `serie` | serien i följarens pass |
+| `fran_s`, `till_s` | fönstret i följarens fil (4 s före och 2,5 s efter träffen); saknas för en hel serie |
+| `klick_s` | klicket i följarens fil som den styrande väntar sig |
+| `klar` | klippet är framme hos den styrande; alla `klar` = följaren får släppa sina original |
+| `har_id`, `har` | ett påbörjat klipp: summan och antalet hela bitar som kommit |
+
+`klipp` (följaren → den styrande) är bitar som ovan med `"kind": "klipp"` och `namn`, strömmade ur
+filen (högst 8 i luften). `part_ack` för ett klipp bär `namn`, och `ok: false` med `har` betyder
+"börja vid den biten" (utan `har`: från början). Helheten kvitteras när den styrande sparat
+`video.json`.
+
+`<vy>/video.json` i den styrandes pass (`swinglab-annan-video/1`, `<vy>` = den andra vyn, `fo`
+eller `dtl`), med klippen i `<vy>/Klipp/<slag>.mov` och de hela serierna i `<vy>/Video/NN.mov`:
+
+| Fält | Innehåll |
+|---|---|
+| `format`, `pass`, `vy` | `"swinglab-annan-video/1"`, passets id och den andra telefonens vy |
+| `klipp` | namn → `fil` (i passets mapp), `serie` (följarens), `fran_s` (klippets början i följarens fil), `klick_s` (det väntade klicket), `klick_i_klipp_s` (mätt; saknas = följaren hörde det inte), `langd_s`, `bytes`, `id` (summan) |
+
+**Paketen från den styrande** (Send to PC, BESLUT B81): dess eget och den andra vyns
+`swinglab-<pass>-<vy>.zip` i paketets format ovan (manifestet, `enhet.json` och lederna ur
+följarens bunt, och `klipp/<följarslag>.mov` med `klick_i_klipp_s` och `klipp_langd_s` för de
+följarslag som har ett klipp). PC:n läser det som följarens eget.
 
 ## Analysen: `analys.json`
 

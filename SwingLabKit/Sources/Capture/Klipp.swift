@@ -81,6 +81,10 @@ public struct KlippBegaran: Codable, Equatable, Sendable {
     /// Klippet kring träffen: från 4 s före till 2,5 s efter (Johannes 2026-10-24). METOD MS30
     public static let fore = 4.0
     public static let efter = 2.5
+    /// Klicket i ett klipp räknas som slagets när det ligger så nära det väntade, s: ett
+    /// passthrough-klipp kan börja före den begärda tiden (MS12), men nästa sving ligger sekunder
+    /// bort. Längre bort = följaren hörde inte klicket, och synken tar den begärda början. METOD MS30
+    public static let klickSok = 0.5
 
     public var format: String
     public var pass: String

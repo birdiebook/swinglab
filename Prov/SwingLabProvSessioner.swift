@@ -82,12 +82,13 @@ extension SwingLabProvVyer {
         // 1. Listan, appens väg: senaste först, vyn, tiden, klubban, svingarna och paret.
         let rader = await Sessionslista.load(store)
         XCTAssertEqual(rader.map(\.id), [d, c, b, a])
-        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Down the line", "Face on"])
+        // Den styrandes parade pass är en rad "Paired" (S6g, BESLUT B82); följaren behåller sin vy.
+        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Paired", "Face on"])
         XCTAssertEqual(rader.map(\.parad), [false, true, true, false])
         XCTAssertEqual(rader.map(\.svingar), [nil, 3, 8, 8])
         XCTAssertEqual(rader.map(\.klubba), ["PW, 7i", "7i", "7i", "7i"])
         XCTAssertEqual(rader[2].tid, "Fri, Nov 13\u{00A0}· 18:00")
-        XCTAssertEqual(rader[2].upplasning, "Down the line, Fri, Nov 13, 18:00, 7i, 8 swings, paired")
+        XCTAssertEqual(rader[2].upplasning, "Paired, Down the line and Face on, Fri, Nov 13, 18:00, 7i, 8 swings")
         print("PROV: sessions \(rader.map { "\($0.vyNamn) \($0.tid) \($0.klubba) \($0.svingar.map(String.init) ?? "-")\($0.parad ? " paired" : "")" })")
         try await fanga(SessionsVy(rader: rader), namn: "sessions", accent: false)
 

@@ -215,7 +215,7 @@ final class KlippKoppling {
             let start = max(0, f)
             let iKlippet = (try? await MediaReader.clicks(url)) ?? []
             let m = ClipCheck.measure(iKlippet, expected: k - start)
-            klick = m.flagged ? nil : m.time
+            klick = m.time.flatMap { abs($0 - (k - start)) <= KlippBegaran.klickSok ? $0 : nil }
         }
         var v = store.annanVideo(passID) ?? AnnanVideo(pass: passID, vy: vy)
         v.klipp[namn] = AnnanVideo.Klipp(fil: fil, serie: post?.serie ?? 0, fran: post?.fran.map { max(0, $0) },

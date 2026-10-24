@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S6f nu · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S6f nu · S6g nu · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -279,7 +279,7 @@ djupet ett tryck bort i stället för borttaget.
 
 - **Raden** visar översikten innan man går in: vyn (Down the line / Face on), datum och tid,
   klubban och antalet svingar. Ett pass med två telefoner är en rad per vy, med "paired" och en
-  länksymbol. Ett tryck öppnar passet; ett svep raderar efter en fråga (passets mapp och filer:
+  länksymbol (sedan S6g heter den styrandes rad "Paired" och har båda vyerna, B82). Ett tryck öppnar passet; ett svep raderar efter en fråga (passets mapp och filer:
   video, leder, mått, parning, 3D och exporten; `att_jobba_pa` ligger kvar, B64; den andra
   telefonens pass rörs inte). + uppe till
   höger ger Record och Import from Photos. En tom lista visar en kort rad och +.
@@ -583,6 +583,50 @@ med en valfri krok i `TK.analysera` som lämnar uppställningarnas slag.
 **Klart när:** testerna bygger sidan på påhittade pass (med 3D, över spärren och med två
 paket med samma vy) och den bär figuren, kamerorna och måtten; och Johannes har öppnat ett
 riktigt pass i visaren och sett kamerorna och figuren där kalibreringen satte dem.
+
+### S6g — Videon från båda telefonerna på Lead (Johannes 2026-10-24)
+
+Johannes mål: Lead-telefonen ska ha videon från båda telefonerna och kunna göra hela analysen.
+
+**Beställningen:**
+
+1. **Ett parat pass blir en rad "Paired"** i Sessions på Lead. Inne i passet växlar man mellan
+   DTL, FO och 3D. Videorna spelas synkat på träffens tid, och P1–P10-stegningen gäller båda
+   vyerna. Follow-telefonen har kvar sin egen rad.
+2. **Överföringen sker automatiskt via appens koppling** (PhoneLink, direkt wifi/AWDL, ingen
+   mobildata) efter passet. Bara svingarnas klipp, från 4 s före till 2,5 s efter träffen. Lead
+   styr: den begär klipp för de tider den vill ha ur parningen (par.json, klicken och
+   förskjutningen), också för ett klick som Follow missade. Follow behåller hela inspelningen tills
+   Lead kvitterat att alla klipp kommit fram; "Get full video" i passet på Lead är reserven. En rad
+   med förloppet ("Getting video from other phone · 60 %"), och överföringen fortsätter där den
+   slutade när kopplingen återkommer. `beginBackgroundTask`, så att en kort överföring hinner klart
+   om appen läggs undan. AirDrop och "Import other phone" (S6c-2) är reserven och tar också video.
+3. **Passet visar vad som finns,** t.ex. "14 swings · 12 from both phones".
+4. **Samma vy på båda telefonerna:** appen säger tydligt till redan i uppställningen när de kopplas
+   (första riktiga passet 2026-10-24 hade fel vy-etiketter, och då gick 3D inte att räkna).
+
+**Byggt (grenen `s6g`, BESLUT B80–B83, METOD MS30, MS31, docs/FORMAT.md "Video mellan
+telefonerna"):** SwingLabKit `Capture/Klipp.swift` (`KlippBegaran`, `KlippSandare`,
+`KlippMottagare`, `Klippfil`) och `Capture/Parad.swift` (`AnnanVideo`, `Parstatus`,
+`AnnanSession`, `AnnanPaket`, `ImportKlipp`, `Vyvakt`), förmågan `video1` och vägen genom
+`LinkLeader`/`LinkFollower` (`stream`, `streamAck`); appen `App/KlippKoppling.swift` (på 3D:s
+koppling i passet), `App/Vyer/ParadVy.swift` (växlingen, raderna, raden "Paired",
+`TreDSessionPlats` för S6d och varningen), granskningens växling DTL/FO, Send to PC med två paket,
+och varningen i uppställningen med "Switch to FO". Prov: `KlippTests` (Linux),
+`Prov/SwingLabProvVideo.swift` (simulatorn) och `AppensParadePaket` i
+`tools/tests/test_appens_paket.py` (PC:n läser den styrandes två paket).
+
+**Oprövat på telefonerna:** AWDL utan gemensamt wifi, tiden och storleken för riktiga HEVC-klipp
+(MS30 räknar 33 MB per klipp), var ett passthrough-klipp av HEVC börjar (klicket mäts om),
+bakgrunden, och Import other phone med klipp ur AirDrop.
+
+**Klart när:** Johannes har filmat ett pass med två telefoner, och på Lead (1) sett raden "Paired"
+och i passet växlat DTL, FO och 3D, (2) sett förloppet och "N swings · M from both phones" med M lika
+med svingarna som båda telefonerna filmade, (3) stegat P1–P10 i granskningen och sett FO-videon på
+samma ruta som DTL vid träffen, (4) dragit ur kopplingen mitt i (flygplansläge) och sett att den
+fortsatte, (5) hämtat hela videon med "Get full video", (6) fått varningen när båda telefonerna
+stod på samma vy, och (7) skickat Send to PC och fått två paket som `session.py` och
+`tva_kameror.py` läser.
 
 ## S7 — Klubban
 

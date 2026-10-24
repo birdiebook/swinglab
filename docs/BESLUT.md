@@ -1486,3 +1486,117 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
 - **Omprövas:** när banan provats på riktiga DTL-klipp mot handmärkta rutor (S7b:s Klart
   när): gränserna i M61, särskilt bakifrån, mitten mot hoseln, om planet kan visas som tal,
   och spökbilderna.
+
+---
+
+Besluten B80–B83 kommer ur S6g (videon från båda telefonerna på den styrande, Johannes
+2026-10-24). Numren börjar ovanför S6d:s, som byggs parallellt.
+
+## B80 — Videon till den styrande: den styrande begär svingarnas klipp, följaren strömmar dem ur filen
+*2026-10-24 · prövas · Johannes beställning · PLAN.md S6g · METOD MS30*
+
+Johannes 2026-10-24: "Lead-telefonen ska ha videon från båda telefonerna och kunna göra hela
+analysen." B22 sa att kopplingen aldrig bär video; det gäller fortfarande **under** inspelningen
+(klicket är synken, ett tapp kostar ingen data). Efter passet bär den nu svingarnas klipp.
+
+- **Valt: den styrande styr (pull).** I passets skärm, på S6c-2:s koppling (syftet "pass", bara
+  passets partner, B61), begär den styrande ett klipp per sving (dom sving eller osäker) ur sin
+  parning: följarens serie ur `par.json`, och fönstret från **4 s före till 2,5 s efter träffen**
+  i följarens fil (den styrandes träff + `traff_forskjutning_s`). Begäran gäller den styrandes
+  slag, så ett klick som följaren missade begärs ändå. Begäran (`KlippBegaran`) är en vanlig
+  överföring (`part`, `kind: "begaran"`, B61:s kvittenser och nej med skäl) och skickas varje gång
+  följaren säger hello och när ett klipp är framme.
+- **Följaren skär och strömmar:** klippet skärs passthrough (`AVAssetExportSession`, HEVC som det
+  spelades in, ingen omkodning) till `Utskick/<slag>.mov`, och strömmas en bit i taget ur filen
+  (`kind: "klipp"`, bitarna om 192 kB med klippets `namn`, högst 8 i luften). Varje bit kvitteras;
+  helheten kvitteras först när den styrande sparat `video.json`.
+- **Fortsätter där den slutade:** den styrande skriver bitarna i ordning till en `.part`-fil;
+  filens storlek är förloppet, också efter att appen startats om. Begäran bär det som redan
+  kommit (`har_id`, `har`), och följaren börjar där när klippets summa är samma. En bit längre
+  fram får "börja vid `har`", en bit som redan finns kvitteras igen, fel summa börjar om.
+- **Följaren behåller hela inspelningen** tills den styrandes begäran säger att allt kommit fram
+  (`alltFramme`): "Spara bara klippen" (B26) väntar på det, och de skurna klippen tas bort då.
+- **"Get full video"** i passet är reserven: varje parad serie hel (`video-01`), ur originalet
+  utan kopia. **Import other phone** (S6c-2, Filer eller AirDrop) tar också klippen ur den andra
+  telefonens paket när det skickades med klipp.
+- **Raden** "Getting video from other phone · 60 %" hos den styrande och "Sending video to other
+  phone · 60 %" hos följaren, grå, bara medan något pågår. `beginBackgroundTask` på båda, så att
+  en kort överföring hinner klart när appen läggs undan.
+- **Förmågan** `video1` i hello: en äldre app får inga klipp och begär inga.
+- **Varför:** den styrande kan då göra hela analysen och visa båda vyerna synkade (B82) utan PC.
+  Klippen räcker för analysen och är en bråkdel av inspelningen (MS30). Den styrande vet vilka
+  svingar den vill ha och var följaren står, så den styr; följaren behöver inte veta något om
+  parningen.
+- **Bortvalt:** att följaren skickar på eget initiativ (den vet inte vilka klick den missade);
+  hela inspelningarna som standard (minuter i 240 bilder/s är hundratals MB, B26); S6c-2:s
+  `PartSender`/`PartReceiver` för video (håller allt i minnet; de bär bara begäran); att koda om
+  (tid och batteri, och PC:n vill ha originalets rutor); överföring under inspelningen (klicket
+  är synken, B22); mobildata och moln (dataregeln); en egen app-protokollversion (förmågan räcker).
+- **Kostnad:** båda telefonerna ska ha passet öppet en stund efter analysen (som S6c-2), base64
+  gör kopplingen en tredjedel större än klippen, och följaren har kvar sin inspelning tills den
+  styrande kvitterat. Ett klipp som skurits om (följarens app startades om) börjar om från början.
+- **Omprövas:** efter Johannes prov med två telefoner (PLAN S6g, Klart när), med tiden och
+  storleken på riktiga klipp (MS30).
+
+## B81 — Lagringen på den styrande och paketet: den andra vyns mapp, och två paket
+*2026-10-24 · prövas · PLAN.md S6g · METOD MS30, MS31 · docs/FORMAT.md*
+
+- **Valt:** följarens klipp sparas i den styrandes pass under den andra vyn:
+  `Pass/<id>/fo/Klipp/<slag>.mov` (den styrandes slag), `fo/Video/<serie>.mov` (hela serier) och
+  `fo/video.json` (`swinglab-annan-video/1`: per klipp följarens serie, början, det väntade och det
+  mätta klicket, längden, storleken och summan). Mappen ligger utanför backupen (B26). Raderingen
+  (B64) tar hela passets mapp, alltså också den andra vyns video; följarens pass rörs inte.
+- **Paketet (Send to PC) på den styrande ger två zippar:** sitt eget (oförändrat) och den andra
+  vyns, `swinglab-<pass>-fo.zip`, byggt ur följarens bunt (S6c-2: manifestet, enhet.json och
+  lederna) och klippen som kommit. Ett klipp läggs på det följarslag vars klick ligger inom 30 ms
+  från klippets väntade klick, och `klick_i_klipp_s` flyttas lika mycket som följarens klick
+  skiljer från det väntade. **Formatet och kontraktet är oförändrade:** PC:n läser det som om
+  följaren skickat det (`paket.py`), provat med appens egna byte
+  (`test_appens_paket.py`, `AppensParadePaket`).
+- **Bortvalt:** ett gemensamt paket med båda vyerna (ett nytt format för PC:n, och B27:s en zip per
+  telefon och pass bär redan 3D-kedjan); klippen under följarens slag-id (ett missat klick har
+  inget följarslag; den styrandes slag är det passet visar).
+- **Kostnad:** ett klipp för ett klick som följaren missade följer inte med paketet (inga leder
+  för det i följarens bunt). Delningsbladet får två filer.
+- **Omprövas:** om PC:n ska få klippen för missade klick (då behövs leder ur klippet).
+
+## B82 — Ett parat pass: en rad "Paired", och DTL, FO och 3D i passet
+*2026-10-24 · prövas · Johannes beställning · PLAN.md S6g, S4e · METOD MS31 · VISION.md*
+
+Ändrar B64:s rad för ett parat pass på den styrande.
+
+- **Valt: den styrandes rad heter "Paired"** med länksymbolen (dagen, klubban och svingarna som
+  förut); följaren har kvar sin rad med sin vy och "paired". VoiceOver: "Paired, Down the line and
+  Face on, …".
+- **Inne i passet växlar man DTL, FO och 3D** (`Segment` under rubriken). Den här telefonens vy är
+  passet som förut (måtten, längden, Claude och slagen); den andra vyn visar sina mått, räknade ur
+  följarens leder med passets längd (bara den vyns kort, B64:s filter per vy), och samma
+  svingar; 3D visar 3D-kortet (B62) och en plats för S6d:s vy (`TreDSessionPlats`). Under
+  växlingen: "14 swings · 12 from both phones", förloppet (B80) och "Get full video".
+- **Granskningen** har växlingen DTL/FO ovanför videon när slaget har den andra vyns video. Samma
+  rutor, positioner och stegning P1–P10 (den här telefonens leder); den andra telefonens video
+  visas på samma träff (MS31), utan leder och spår (de hör till den här vyn), och raderna under är
+  den andra vyns mått vid positionen.
+- **Varför:** VISION: enkelheten (en rad per pass, ett tryck byter vy) utan att offra djupet (båda
+  vyerna och 3D finns kvar, ett tryck bort). Johannes 2026-10-24.
+- **Bortvalt:** två rader på den styrande (passet är ett); båda videorna sida vid sida (för små på
+  en telefon, och spelaren är en); den andra vyns leder ovanpå (de finns i bunten men inte
+  med rutornas tid i klippet; omprövas med S6d); en egen flik.
+- **Kostnad:** den andra vyns mått syns först när följarens slag kommit (S6c-2), och dess
+  baslinje är bara den styrandes egna tidigare pass med den vyn.
+- **Omprövas:** när S6d:s 3D-vy finns, och efter Johannes prov.
+
+## B83 — Samma vy på båda telefonerna: varningen i uppställningen
+*2026-10-24 · gäller · Johannes beställning · PLAN.md S6g*
+
+Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte att räkna (S6f).
+
+- **Valt:** när telefonerna kopplas i uppställningen och den andra har samma vy står
+  "Both phones are DTL" i signalfärgen (uppställningens varningar, B13) under kopplingens
+  etiketter, med knappen "Switch to FO" så länge passet inte har några serier. Knappen byter den
+  här telefonens vy och startar kopplingen om, så att den andra telefonen hör den nya vyn. I
+  passet står "Both phones filmed the same view: no 3D" (vit, som B60:s felrad), och den styrande
+  begär inga klipp; följaren säger nej till en begäran med samma vy.
+- **Bortvalt:** att välja vyn automatiskt (telefonen vet inte var den står), att vägra
+  inspelningen (Johannes kan vilja filma ändå).
+- **Kostnad:** inga.
