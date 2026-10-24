@@ -377,6 +377,12 @@ final class Store {
         saveSettings()
     }
 
+    /// Ett spår på eller av i granskningen, sparat per användare (S4f, BESLUT B70).
+    func toggleTrail(_ p: SparPunkt) {
+        settings.toggleSpar(p)
+        saveSettings()
+    }
+
     /// En klubba in i eller ut ur Jag: klubborna som uppställningen visar (S4c).
     func toggleClub(_ id: String) {
         settings.toggleClub(id)

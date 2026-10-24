@@ -51,6 +51,8 @@ struct ShotReviewView: View {
     @State private var askDiscard = false
     /// Sparningen utanför huvudtråden; bara den senaste skrivs.
     @State private var saveCount = 0
+    /// Spåren som visas (S4f, BESLUT B70), räknade när valet eller slaget ändras.
+    @State private var spar: [SparSerie] = []
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -107,11 +109,13 @@ struct ShotReviewView: View {
                                                         ovas: ovas),
                                   detectionWrong: shot.detectionWrong == true, impact: shot.impact - shot.click.time,
                                   shaft: review.shaft(frame, marks: shot.klubba),
+                                  spar: spar, sparVal: store.settings.sparVal, onSpar: { store.toggleTrail($0) },
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
                                   onMarkClub: startMarking)
                         .padding(.vertical, 8)
                 }
+                .task(id: store.settings.trails) { spar = review.spar(Array(store.settings.sparVal)) }
             } else {
                 VStack(alignment: .leading) {
                     Navrad(titel: "", hoger: { EmptyView() }, tillbaka: close)
@@ -495,6 +499,10 @@ struct ReviewContent<Surface: View>: View {
     let impact: Double
     /// Skaftet som är markerat i rutan (S7a), i ytans koordinater; nil = inget.
     var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
+    /// Spåren (S4f, BESLUT B70): serierna, valet och ett tryck på ett chip; nil = inget val.
+    var spar: [SparSerie] = []
+    var sparVal: Set<SparPunkt> = []
+    var onSpar: ((SparPunkt) -> Void)? = nil
     /// Menyn är en UIKit-del som provets ImageRenderer inte ritar; utan den bara symbolen.
     var editable = true
     var onClose: () -> Void = {}
@@ -524,6 +532,13 @@ struct ReviewContent<Surface: View>: View {
             if let k = p.index { ut.append((index: k, selected: p.name == position)) }
         }
         return ut
+    }
+
+    /// Spåren i rutan: det som spelats upp till rutans tid (S4f).
+    private var sparBild: SparBild? {
+        guard !spar.isEmpty, review.frames.indices.contains(frame) else { return nil }
+        return SparBild(serier: spar, nu: review.frames[frame].t, bredd: review.width, hojd: review.height,
+                        crop: review.crop)
     }
 
     /// "−0.250 s" från träffen.
@@ -565,7 +580,7 @@ struct ReviewContent<Surface: View>: View {
             }
 
             ReviewStage(surface: surface, overlay: review.overlay(frame), overlayOn: overlayOn, time: timeText,
-                        shaft: shaft)
+                        shaft: shaft, spar: sparBild)
                 .aspectRatio(CGFloat(review.aspect), contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.stageHeight)
@@ -580,6 +595,11 @@ struct ReviewContent<Surface: View>: View {
                 .padding(.leading, 8)
             }
             .padding(.top, 8)
+
+            if let onSpar {
+                SparVal(valda: sparVal, onToggle: onSpar)
+                    .padding(.top, 6)
+            }
 
             // Positionerna på en rad; de som saknas (armen aldrig vågrät) är grå och går inte att välja.
             HStack(spacing: 0) {
@@ -655,10 +675,13 @@ struct ReviewStage<Surface: View>: View {
     var time: String = ""
     /// Skaftet som är markerat i rutan (S7a): en tunn linje mellan greppet och hoseln.
     var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
+    /// Spåren (S4f, BESLUT B70): ett eget lager under lederna, oberoende av ögat.
+    var spar: SparBild? = nil
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             surface
+            if let spar { SparLager(bild: spar) }
             if overlayOn { LedOverlay(overlay: overlay) }
             if overlayOn { ShaftOverlay(shaft: shaft) }
             if !time.isEmpty {

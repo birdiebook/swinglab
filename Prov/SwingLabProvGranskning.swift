@@ -232,11 +232,13 @@ final class SwingLabProvGranskning: XCTestCase {
         let stillP4 = try await XCTUnwrapAsync(try await ShotImages.frame(pass: klar, shot: s4, store: store,
                                                                            at: review.frames[k4].pts))
         func granskning(_ k: Int, _ position: String, overlayOn: Bool = true, wrong: Bool = false,
-                        still: CGImage) -> ReviewContent<Image> {
+                        still: CGImage, spar: [SparPunkt]? = nil) -> ReviewContent<Image> {
             ReviewContent(surface: Image(decorative: still, scale: 1).resizable(), review: review, number: 4, frame: k,
                           overlayOn: overlayOn, position: position, positions: pos,
                           rows: ReviewRows.rows(pass: klar, shot: s4, position: position, baseline: [:]),
-                          detectionWrong: wrong, impact: s4.impact - s4.click.time, editable: false)
+                          detectionWrong: wrong, impact: s4.impact - s4.click.time,
+                          spar: spar.map { review.spar($0) } ?? [], sparVal: Set(spar ?? []),
+                          onSpar: spar == nil ? nil : { _ in }, editable: false)
         }
         try rita(granskning(k4, "P4", still: stillP4), "granskning-video")
         try rita(granskning(k4, "P4", overlayOn: false, still: stillP4), "granskning-utan-leder")
@@ -246,6 +248,27 @@ final class SwingLabProvGranskning: XCTestCase {
         try rita(granskning(k7, "P7", still: stillP7), "granskning-video-p7")
         XCTAssertTrue(ReviewRows.rows(pass: klar, shot: s4, position: "P7", baseline: [:])
             .contains { $0.matt == "sway_gap_traff" })
+
+        // 3b. Spåren (S4f, BESLUT B70, METOD M60): händerna vid toppen, och alla fyra vid träffen.
+        let alla: [SparPunkt] = [.hands, .shoulders, .hips, .head]
+        let spar = review.spar(alla)
+        XCTAssertEqual(spar.map(\.id), ["hands", "shoulders_v", "shoulders_h", "hips_v", "hips_h", "head"])
+        let hander = spar[0]
+        XCTAssertEqual(hander.t.count, review.frames.count, "en punkt per ruta")
+        XCTAssertTrue(hander.p.allSatisfy(\.hel), "den påhittade svingen har händerna i varje ruta")
+        let d4 = hander.delar(nu: review.frames[k4].t)
+        XCTAssertEqual(d4.map(\.spelad), [true, false], "spelat fram till toppen, resten svagt")
+        // Händernas spår går genom handledernas mitt i rutan (utjämnat högst några px).
+        let o4 = review.overlay(k4)
+        let mitt = try XCTUnwrap(hander.punkt(nu: review.frames[k4].t))
+        let hv = try XCTUnwrap(review.frames[k4].joints[5]), hh = try XCTUnwrap(review.frames[k4].joints[6])
+        print("PROV: spåren vid P4: händerna (\(f1(mitt.x)), \(f1(mitt.y))) mot handledernas mitt "
+              + "(\(f1((hv.x + hh.x) / 2)), \(f1((hv.y + hh.y) / 2))), \(d4.map { $0.punkter.count }) punkter, "
+              + "\(o4.points.compactMap { $0 }.count) leder")
+        XCTAssertEqual(mitt.x, (hv.x + hh.x) / 2, accuracy: 3)
+        XCTAssertEqual(mitt.y, (hv.y + hh.y) / 2, accuracy: 3)
+        try rita(granskning(k4, "P4", still: stillP4, spar: [.hands]), "granskning-spar-p4")
+        try rita(granskning(k7, "P7", overlayOn: false, still: stillP7, spar: alla), "granskning-spar-p7")
 
         // 4. "Detection wrong" på slag 4 (−9 cm): passet räknar tre, sparat; ångra ger fyra.
         var p = try XCTUnwrap(store.load(klar.id))

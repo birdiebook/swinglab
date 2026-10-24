@@ -2377,6 +2377,31 @@ som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (res
 - **Synken:** en parabel med en granne utan värde ger toppen själv, och en synk som inte
   är ett tal ger förra värdet. `synk_ms`, `sampson_px`, vinkeln och
   `lodlinje_mot_vagrata` blir aldrig NaN (den sista står bara med när den är ett tal).
+## M60 — Spåren i granskningen (S4f)
+
+Ett spår är en punkts bana genom hela slaget i granskningen (PLAN S4f, BESLUT B70). Det är
+en bild, inget mått: mätningen och slagets tal rörs inte.
+
+- **Punkterna** ur slagets leder (M1), rutorna i granskningen (MS15): **händerna** =
+  handledernas mitt, där en saknad handled tar den andras plats (greppregeln, M1);
+  **axlarna** och **höfterna** = två serier var (vänster och höger led), så att vridningen
+  syns som att linjerna närmar sig och korsar varandra; **huvudet** = näsan. En led räknas
+  från konfidensen **0,3** (M1). **Klubbhuvudet** kommer ur S7b:s bana (M61).
+- **Utjämningen** är mätningens (M3): gaussvikt över tiden med **σ = 7,5 ms**, x och y var
+  för sig, som inte fyller luckor (`Spar.serier`, `Faser.jamna`). Med 240 bilder/s tar den
+  bort skakningen i Visions leder ruta för ruta utan att runda av svingens vändningar
+  (fönstret 3σ = 22,5 ms). **antagande** (samma som mätningen, inte kalibrerad för bilden).
+- **Avbrott:** en ruta där punkten saknas ger ett avbrott i linjen, och likaså en lucka i
+  rutnätet längre än **0,10 s** (M3); ingen gissning över luckan. En ensam punkt ritas inte.
+- **Spelat och kvar:** delen fram till rutan som visas (t ≤ rutans tid) ritas fast, resten
+  med opaciteten **0,22**, och de två delarna delar punkten vid gränsen så att linjen är hel
+  (`SparSerie.delar`). Punktens läge i rutan är en prick. **antagande** (0,22 valt för att
+  formen ska synas utan att konkurrera med det spelade; oprövat på telefonen).
+- **Ritningen** (`SparLager`, appen): seriernas punkter i hela bildens pixlar räknas om till
+  utsnittets yta som lederna (MS13), så att ett spår hamnar på sin led. Provat i
+  simulatorprovet: händernas spår vid P4 ligger inom 3 px från handledernas mitt
+  (`granskning-spar-p4`).
+
 ---
 
 # Facit (S3 och S7)

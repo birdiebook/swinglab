@@ -1343,3 +1343,32 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
   jämförelsen gör varje pass till ett prov, utan att PC:n litar på telefonen.
 - **Bortvalt:** att PC:n tar telefonens tal (då finns inget facit), och att PC:n slutar räkna 3D.
 - **Omprövas:** när riktiga pass visat att telefonen och PC:n är lika.
+
+## B70 — Spåren i granskningen: chips under videon, gråtoner, det spelade fast
+*2026-10-24 · prövas · PLAN.md S4f · METOD M60 · Johannes beställning 2026-10-24*
+
+- **Varför:** Johannes vill se hur händerna, axlarna, höfterna, huvudet och klubbhuvudet rört
+  sig genom svingen, och i förlängningen en 3D-figur (S6d).
+- **Valt:**
+  - **Valet** är en rad chips direkt under videons kontroller: "Hands · Shoulders · Hips ·
+    Head · Club", ett tryck slår på eller av. Ett påslaget chip visar sin linje (gråton och
+    streck) och är därmed teckenförklaringen; inget annat behöver läsas. "Club" går att välja
+    när S7b kan ge banan. Valet sparas per användare (`AppSettings.trails`), så att samma spår
+    står kvar i nästa slag och nästa pass.
+  - **Färgen:** svartvitt (B13). Händerna vit 1,6 pt, axlarna grå hel, höfterna grå streckad,
+    huvudet vit prickad, klubbhuvudet vit 2 pt (interpolerade rutor streckade). **Ingen
+    accent:** ett spår är inget mått, och accenten betyder bara det som övas (B31).
+  - **Ritningen:** det som spelats upp ritas fast, resten svagt (opacitet 0,22). Hela banans
+    form syns från första rutan, och det spelade växer med videon, så att man ser var punkten
+    är på väg. Spåren är ett eget lager under lederna och oberoende av ögat (lederna av och
+    på), så att man kan se spåren ensamma.
+  - **Lagret är återanvändbart:** `SparLager` tar namngivna punktserier i bildens pixlar med
+    tider (`SparSerie`), så att S7b:s bana och senare 3D (S6d) ritas av samma lager.
+- **Bortvalt:** en meny bakom en symbol (valet syns då inte och linjestilarna får ingen
+  förklaring), att rita bara det spelade (banans form syns först i slutet), att inte rita
+  resten alls, och färger per punkt (B13).
+- **Kostnad:** en rad till i granskningen (28 pt) och ett chip per punkt som måste få plats i
+  telefonens bredd.
+- **Omprövas:** när Johannes slagit på spåren på telefonen: om fem chips är tydligt, om
+  0,22 räcker mot en ljus bakgrund, och om axlarna och höfterna ska vara mitten i stället för
+  två linjer var.

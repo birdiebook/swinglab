@@ -486,6 +486,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var clubs: [String]?
     /// Guiden till klubbans märkning har visats (S7c, BESLUT B59); nil = inte än.
     public var clubGuideSeen: Bool?
+    /// Spåren som granskningen visar (S4f, BESLUT B70): `SparPunkt` råvärden; nil = inga.
+    public var trails: [String]?
 
     public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil, hand: Hand? = nil,
                 clubs: [String]? = nil) {
@@ -493,6 +495,16 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.heightM = heightM
         self.hand = hand
         self.clubs = clubs
+    }
+
+    /// Spåren som är påslagna (S4f, BESLUT B70); okända namn hoppas över.
+    public var sparVal: Set<SparPunkt> { Set((trails ?? []).compactMap(SparPunkt.init(rawValue:))) }
+
+    /// Ett spår slås på eller av; valet sparas i punkternas ordning (S4f, BESLUT B70).
+    public mutating func toggleSpar(_ p: SparPunkt) {
+        var v = sparVal
+        if v.contains(p) { v.remove(p) } else { v.insert(p) }
+        trails = SparPunkt.allCases.filter { v.contains($0) }.map(\.rawValue)
     }
 
     /// Klubborna i uppställningen, i `PassSetup.clubs` ordning; aldrig tom (alla när inga är valda).

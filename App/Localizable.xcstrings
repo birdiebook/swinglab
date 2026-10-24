@@ -573,6 +573,28 @@
         }
       }
     },
+    "Hands": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hands"
+          }
+        }
+      }
+    },
+    "Head": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Head"
+          }
+        }
+      }
+    },
     "Height": {
       "extractionState": "manual",
       "localizations": {
@@ -580,6 +602,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Height"
+          }
+        }
+      }
+    },
+    "Hips": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hips"
           }
         }
       }
@@ -1255,6 +1288,17 @@
         }
       }
     },
+    "Shoulders": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shoulders"
+          }
+        }
+      }
+    },
     "Skip": {
       "extractionState": "manual",
       "localizations": {
@@ -1504,6 +1548,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Top"
+          }
+        }
+      }
+    },
+    "Trails": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trails"
           }
         }
       }
