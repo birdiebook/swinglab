@@ -647,7 +647,8 @@ och varningen i uppställningen med "Switch to FO". Prov: `KlippTests` (Linux),
 **Efter granskningen (B84):** klippets början läses ur filen och klicket räknas bara inom 30 ms,
 slag utan klick märks, nej med skälen `disk` och `saknas`, en gammal begäran vinner aldrig,
 följarens original släpps när allt är framme (och efter en vecka), taket 128 MB per klipp, "Paired"
-bara med par.json eller den andra telefonens slag, "Get full video" under den andra vyn.
+bara med par.json eller den andra telefonens slag, "Get full video" under den andra vyn. Efter S6d
+bär 3D-fliken i Leads parade pass S6d:s rad "3D", som öppnar figuren (prövat i simulatorn).
 
 **Uppmätt i simulatorn** (påhittad film, loopback, MS30): fyra klipp 2,74 MB i 15 bitar på 2,0 s
 med ett avbrott om 1,5 s (inga bitar igen), också klippet för klicket följaren missade (märkt utan klick); hela

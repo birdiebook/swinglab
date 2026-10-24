@@ -244,9 +244,9 @@ extension SwingLabProvVyer {
         let fig = try XCTUnwrap(f.figurer.first)
         let u = f.index.uppstallningar[fig.uppstallning]
         let r = try XCTUnwrap(TreDRiktning.ur(fig, uppstallning: u, hand: f.index.hand))
-        let k7 = try XCTUnwrap(fig.positionsRutor().first { $0.name == "P7" }?.index ?? nil)
+        let kFig = try XCTUnwrap(fig.positionsRutor().first { $0.name == "P7" }?.index ?? nil)
         try rendera(TreDFigurInnehall(index: f.index, figur: fig, uppstallning: u, riktning: r,
-                                      betraktare: TreDBetraktare.vinkel(.faceOn, r), rubrik: "Shot 1", nu: fig.t(k7),
+                                      betraktare: TreDBetraktare.vinkel(.faceOn, r), rubrik: "Shot 1", nu: fig.t(kFig),
                                       vinkel: .faceOn, spar: TreDSpar.spar(fig, val: [.hands]), sparVal: [.hands],
                                       forra: false, nasta: true),
                     namn: "parad-3d-figur", accent: false)
