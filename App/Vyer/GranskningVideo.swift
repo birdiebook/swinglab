@@ -73,9 +73,9 @@ struct ShotReviewView: View {
                                     onDoubleTap: doubleTapped,
                                     onStep: markingStep, onUndo: { change { $0.undo() } },
                                     onSkip: { change { $0.skip(t: review.frames[frame].t) } },
-                                    onStickSkip: skipStick, onStickDone: { saveStick(stickPoints) },
+                                    onStickSkip: skipStick,
                                     hasStick: pass?.riktpinne(series: shot.series) != nil, onStickRemove: removeStick,
-                                    onStickMenu: openStickStep,
+                                    onStickMenu: openStickStep, onStickDone: { saveStick(stickPoints) },
                                     onPosition: { p in change { $0.go(to: p) } }, onHelp: { guidePage = 0 },
                                     onClose: closeMarking)
                         .padding(.vertical, 8)
