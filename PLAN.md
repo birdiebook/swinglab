@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S6f nu · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g · S6h · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -541,10 +541,37 @@ parabelns topp eller synkens minimum) och med hur mycket, innan toleransen ändr
 ### S6d — 3D-banor och 3D-figur ur två telefoner (Johannes 2026-10-24)
 
 S6c triangulerar redan 13 leder per ruta. Visa banorna (S4f:s punkter) i 3D och en figur av
-streck och leder som spelas upp med svingen och kan vridas (SceneKit eller RealityKit), i
-formspråket B13: ett mätinstrument, ingen modellerad kropp. Klubban kommer med när S7b ger
-klubbhuvudet i båda vyerna. **Kräver** att S6c-2 har landat. **Klart när:** ett riktigt pass
-med två telefoner spelas upp i 3D på telefonen, och banorna går att vrida och stega P1–P10.
+streck och leder som spelas upp med svingen och kan vridas, i formspråket B13: ett
+mätinstrument, ingen modellerad kropp. Klubban kommer med när S7b ger klubbhuvudet i båda vyerna.
+Johannes mål (2026-10-24): Lead-telefonen gör hela analysen för ett pass med två telefoner, 3D
+och synken mellan det de ser; S6d är figuren, S6g videon och S6h 3D-måtten.
+
+**Byggt (grenen `s6d`, BESLUT B72, B73, METOD MK10, MK11):**
+- **Datan:** telefonen som räknar 3D sparar i samma räkning lederna per slag och kamerorna per
+  uppställning i `tre_d_figur/` (index och en fil per slag, int16 i mm, docs/FORMAT.md
+  "Figuren i 3D"), i meter med skalan ur benens längd och lodlinjen uppåt. Inte i paketet.
+  `TvaKameror.analysera` lämnar kamerorna och trianguleringarna genom en samlare, även för en
+  uppställning över spärren (kameror, ingen figur). Python är facit (`tools/pc/tre_d_figur.py`,
+  `figur.json`, TreDFigurTests inom 1e-6). Ett pass räknat före S6d räknas om när det öppnas.
+- **Figuren:** passets kort "3D · no markers" har en rad "3D" som öppnar figuren i helskärm:
+  streck och leder (vänster vit och fylld, höger grå och ihålig, det bortre svagare), en tunn
+  markyta och mållinjen med en pil, ritad med Canvas och en egen projektion (B73). Ett finger
+  vrider, nypning zoomar, dubbeltryck och segmentet Face on · Down the line · Top ger de
+  färdiga vinklarna (ur kroppen i adressen). Granskningens tidslinje: spela, ruta för ruta,
+  P1–P10, farten 1/8, 1/4 eller 1, och spåren Hands, Shoulders, Hips och Head i 3D med S4f:s
+  `SparSerie` och val. Pilarna uppe till höger byter sving; bara den som visas läses.
+- **Kamerorna:** valet "Cameras" ritar telefonerna där kalibreringen placerade dem, med
+  Sampson-felet mot spärren och vinkeln mellan dem mot 60–120°. Ett pass över spärren öppnar på
+  telefonerna med skälet; ett pass utan 3D visar bara skälet i grått.
+- **Simulatorprovet** (`Prov/SwingLabProvTreDFigur.swift`): figuren vid P4 och P7 från de tre
+  vinklarna (`tred-figur-p4-faceOn` osv.), telefonerna (`tred-figur-kameror`), över spärren
+  (`tred-figur-over-sparren`), utan 3D (`tred-figur-utan`), och figuren sparad och läst.
+
+**Oprövat på telefonen:** att vrida och nypa med fingrarna, farten i verklig tid, tiden att
+räkna figuren på en iPhone, och ett riktigt pass.
+
+**Klart när:** ett riktigt pass med två telefoner spelas upp i 3D på telefonen, och banorna går
+att vrida och stega P1–P10.
 
 ### S6e — 3D ur en telefon (Johannes 2026-10-24)
 
@@ -583,6 +610,30 @@ med en valfri krok i `TK.analysera` som lämnar uppställningarnas slag.
 **Klart när:** testerna bygger sidan på påhittade pass (med 3D, över spärren och med två
 paket med samma vy) och den bär figuren, kamerorna och måtten; och Johannes har öppnat ett
 riktigt pass i visaren och sett kamerorna och figuren där kalibreringen satte dem.
+
+### S6g — Videon från Follow till Lead och ett parat pass som en rad (Johannes 2026-10-24, inte byggt)
+
+Johannes val: ett pass med två telefoner blir **en rad "Paired"** i Sessions på Lead, och inne
+i passet växlar man mellan **DTL, FO och 3D** med synkad uppspelning (synken ur S6c, figuren
+ur S6d). **Bara svingarnas klipp** (cirka 4 s per sving) förs över automatiskt över PhoneLink
+efter passet, med en rad som visar förloppet; AirDrop och "Import other phone" är reserven.
+Appen **upptäcker och säger till när båda telefonerna har samma vy** (första riktiga passet,
+2026-10-24: båda var märkta likadant och ingen 3D blev av). Klubbhuvudet i 3D kräver
+Follows märkning på Lead och kommer med här.
+
+**Klart när:** ett riktigt pass med två telefoner är en rad på Lead, klippen kom fram av sig
+själva, DTL, FO och 3D spelas upp i takt, och två telefoner med samma vy får ett besked innan
+passet filmas.
+
+### S6h — 3D-måtten bredvid 2D (Johannes 2026-10-24, inte byggt)
+
+När båda vyerna finns visas mått som räknas bättre i 3D, **sway, thrust och lift i verklig
+riktning**, som "3D" bredvid 2D-måtten. **2D är huvudmåttet** med gränserna tills markörerna
+visat att 3D håller (BESLUT B14); 3D-talet visas utan bedömning, som S6c:s kort.
+
+**Klart när:** sway, thrust och lift räknas ur figurens leder i båda språken med samma tal
+(B12), syns som "3D" bredvid 2D-måttet i ett parat pass, och jämförelsen mot markörerna (S6)
+avgör om 3D får egna gränser.
 
 ## S7 — Klubban
 
