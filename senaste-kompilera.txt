@@ -1,31 +1,31 @@
-ff253574faa3e774f723948d58356f784b7a9cac main 2026-10-24T07:18:02Z run 40072844131 kompilera
-Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+fe20798b85c3fbec71d3e921dc26e184dbaf2d11 s7afo 2026-10-24T07:21:35Z run 40072995836 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 33 test, 0 fel, 180 s i testerna
-Långsammast (av 33):
-     73.9 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-     16.0 s  SwingLabProvKlubba.testMarkeraKlubban
-     14.1 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
-      9.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      8.3 s  SwingLabProvInspelning.testFilmenMedLPCM
+GRÖNT: 34 test, 0 fel, 139 s i testerna
+Långsammast (av 34):
+     54.6 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+      9.8 s  SwingLabProvGranskning.testLedernaPaRattStalleIBilden
+      8.3 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.7 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
-      6.4 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
-      5.3 s  SwingLabProvInspelning.testFilmenMedAAC
-      5.1 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      5.0 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      3.7 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      3.2 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
-      3.1 s  SwingLabProvSlag.testSteg6Klippet
-      2.7 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      6.4 s  SwingLabProvVyer.testFlikarnaMedPassenPaTelefonen
+      6.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
+      4.7 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      4.5 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      3.9 s  SwingLabProvInspelning.testFilmenMedLPCM
+      3.8 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+      3.8 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      2.9 s  SwingLabProvSlag.testKedjanMedPahittadeLeder
+      2.9 s  SwingLabProvInspelning.testLuckaILjudet
+      2.8 s  SwingLabProvKlubba.testMarkeraKlubban
+      2.7 s  SwingLabProvInspelning.testImportenVagrarDenOmraknade
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
-PROV: String Catalog 126 texter i en.lproj
+PROV: String Catalog 127 texter i en.lproj
 PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
 PROV: granskningen passet: sway −5.0 cm, 7 kort med tal
 PROV: skrev passet-matt.png
@@ -53,6 +53,14 @@ PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
 PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Length 0:03
 PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
 PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
+PROV: framifrån P2 föreslås -0.8700 s ur skaftet (kroppens mitt -1.0492 s, starten -1.1371 s)
+PROV: framifrån P6 föreslås -0.1021 s ur skaftet (kroppens mitt -0.1044 s, starten -1.1371 s)
+PROV: framifrån P8 föreslås 0.3469 s ur skaftet (kroppens mitt 0.3060 s, starten -1.1371 s)
+PROV: klubban framifrån: 20 tryck för P1–P10 utan steg, ingen riktpinne
+PROV: klubban framifrån P1–P10: P1 -95.00, P2 178.00, P3 130.00, P4 10.00, P5 100.00, P6 178.00, P7 -104.00, P8 2.00, P9 80.00, P10 –; toppen 10.00, armen P5 100.23, P6 115.34, lutningen 14.00
+PROV: granskningen framifrån vid P7: ["Shaft angle −104.0", "Shaft lean +14.0"]
+PROV: skrev klubba-fo-granskning.png
+PROV: skrev klubba-fo-markera.png
 PROV: klubban: 19 tryck för P1–P10 utan steg (P8 hoppad), ringen vid P1
 PROV: klubban P1–P10: P1 -60.00, P2 -35.00, P3 100.00, P4 -75.00, P5 95.00, P6 60.00, P7 -58.00, P8 –, P9 110.00, P10 170.00; skaftplan 60.00, P6 mot planet 36.91
 PROV: skrev klubba-granskning.png
@@ -63,12 +71,12 @@ PROV: skrev klubba-markera-ringen.png
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Shaft plane 60.0 (DTL · P1 · n 1)", "Clubhead to plane +36.9 (DTL · P6 · n 1)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.048 ms, osäkerhet 0.243 ms, 30 prov
+PROV: link klocka θ 0.040 ms, osäkerhet 0.205 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.6 MB, topp 60.0 MB (+1.4 MB)
-PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495119 byte
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 58.3 MB, topp 60.3 MB (+2.1 MB)
+PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495132 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
 PROV: lodlinjen i paketet utan klipp [-0.0691, -0.9879, -0.1392] (orientering 6); med klipp ingen (simulatorn)
@@ -88,7 +96,7 @@ PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666
 PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
 PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
 PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
-PROV: TreD 4 slag på 0.71 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD 4 slag på 0.72 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: skrev jobba.png (1170×4618 px)
 PROV: skrev jobba-stor.png (390×4467 px)
 PROV: flikarna Idag: Sat, Jan 9 · 7i · 8, sway −2.3 cm, 7 rader, fokus ["Hip sway", "Trail elbow flare"]
@@ -96,14 +104,6 @@ PROV: flikarna Utveckling: 7i · Nov–Jan · 6, 1 at another height, sway ["-
 PROV: skrev flik-idag.png (1170×2669 px)
 PROV: skrev flik-idag-utan-fokus.png (1170×1914 px)
 PROV: skrev flik-utveckling.png (1170×1785 px)
-PROV: skrev flik-utveckling-resa.png (1170×1785 px)
-PROV: skrev flik-jobba.png (1170×4618 px)
-PROV: skrev flik-passet.png (1170×5313 px)
-PROV: skrev infoblad.png (1170×828 px)
-PROV: infobladet Hip sway: Assumption from manufacturer (help.sportsbox.ai, golf.com)
-PROV: skrev flik-jag.png (1170×1246 px)
-PROV: flikarna Jag: 1.9 m, 13 klubbor, 9 pass
-PROV: skrev granskning-fo.png (1170×2178 px)
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
 GRÖNT: paket.py och session.py läste paketen som appen skrev
