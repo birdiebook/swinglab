@@ -40,7 +40,11 @@ public enum TreDTelefon {
                   let sv = try? ShotMeasuring.sving(js, view: p.vy, hand: p.spelhand, heightM: langdM,
                                                     impact: TvaKameror.traffISerien(p, s)),
                   let r = try? Matt.mat(sv) else { continue }
-            ut["\(p.vy.rawValue)/\(s.id)"] = Faser2D(start: r.faser.start, topp: r.faser.topp)
+            var pos: [String: Double] = [:]
+            for namn in Positioner.namn {
+                if let v = r.positioner.tid(namn), v.isFinite { pos[namn] = v }
+            }
+            ut["\(p.vy.rawValue)/\(s.id)"] = Faser2D(start: r.faser.start, topp: r.faser.topp, positioner: pos)
         }
         return ut
     }
@@ -50,6 +54,18 @@ public enum TreDTelefon {
     /// standarden 1,80 m (PC:n: första paketets). Varje fel blir `hoppat` med skälet. Tung:
     /// körs i `Task.detached` (PLAN S6c). METOD MK1–MK7, MS19
     public static func rakna(_ a: TreDIndata, _ b: TreDIndata, langdM: Double? = nil) -> TreDUt {
+        rakna(a, b, langdM: langdM, figur: false).ut
+    }
+
+    /// Som `rakna`, och med `figur` också figuren (S6d): kamerorna per uppställning och lederna
+    /// per slag, eller bara skälet (BESLUT B72). Figuren är nil när räkningen avbröts eller inte
+    /// begärdes. METOD MK10
+    public static func rakna(_ a: TreDIndata, _ b: TreDIndata, langdM: Double? = nil, figur: Bool)
+        -> (ut: TreDUt, figur: TreDFigurer?) {
+        let samlare = figur ? TreDFigurSamlare() : nil
+        var hand = Hand.hoger, langd = langdM ?? ShotMeasuring.assumedHeightM
+        var f2d: [String: Faser2D] = [:]
+        let ut: TreDUt
         do {
             let pa = try TreDPaket.las(manifest: a.manifest, lederna: a.lederna, par: a.par, enhet: a.enhet)
             let pb = try TreDPaket.las(manifest: b.manifest, lederna: b.lederna, par: b.par, enhet: b.enhet)
@@ -57,16 +73,21 @@ public enum TreDTelefon {
                 throw TreDFel(skal: "parningen: paketen ska vara ett DTL- och ett FO-paket")
             }
             let (dtl, fo) = pa.vy == .dtl ? (pa, pb) : (pb, pa)
-            let langd = langdM ?? dtl.spelarensLangdM ?? fo.spelarensLangdM ?? ShotMeasuring.assumedHeightM
-            let f2d = Self.faser(dtl, langdM: langd).merging(Self.faser(fo, langdM: langd)) { x, _ in x }
-            return .resultat(try TvaKameror.analysera(dtl: dtl, fo: fo, faser: f2d))
+            hand = dtl.spelhand
+            langd = langdM ?? dtl.spelarensLangdM ?? fo.spelarensLangdM ?? ShotMeasuring.assumedHeightM
+            f2d = Self.faser(dtl, langdM: langd).merging(Self.faser(fo, langdM: langd)) { x, _ in x }
+            ut = .resultat(try TvaKameror.analysera(dtl: dtl, fo: fo, faser: f2d, samlare: samlare))
         } catch let e as TreDPaketFel {
-            return .hoppat(e.skal)
+            ut = .hoppat(e.skal)
         } catch let e as TreDFel {
-            return .hoppat(e.skal)
+            ut = .hoppat(e.skal)
         } catch {
-            return .hoppat("3D gick inte (\(type(of: error)))")
+            ut = .hoppat("3D gick inte (\(type(of: error)))")
         }
+        guard let samlare else { return (ut, nil) }
+        var skal: String?
+        if case let .hoppat(s) = ut { skal = s }
+        return (ut, TreDFigurer.bygg(samlare, hand: hand, faser: f2d, langd: langd, hoppat: skal))
     }
 }
 
