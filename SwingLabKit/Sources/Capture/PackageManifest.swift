@@ -397,6 +397,7 @@ public enum PassPackage {
         let slag = Dictionary(pass.shots.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let serier = Dictionary(pass.series.map { ($0.nr, $0) }, uniquingKeysWith: { a, _ in a })
         var rutor: [KlubbFil.Ruta] = []
+        var harBana = false
         for m in manifest.shots {
             guard let s = slag[m.id], let marks = s.klubba, !marks.isEmpty, let serie = serier[s.series] else { continue }
             let w = serie.uprightWidth, h = serie.uprightHeight
@@ -406,13 +407,22 @@ public enum PassPackage {
                                            visad: [visad.x, visad.y, visad.width, visad.height],
                                            tKlipp: m.clickInClip.flatMap { iKlippet(k.t + $0, m.clipDuration) }))
             }
+            // Klubbhuvudets bana (S7b), bara när den är räknad ur dagens markeringar: version 3. BESLUT B71
+            if let b = s.klubbaBana, b.aktuell(marks) {
+                rutor += KlubbFil.banrutor(b, vy: pass.setup.view, slag: m.id, fil: fileName(pass), bredd: w, hojd: h,
+                                           visad: [visad.x, visad.y, visad.width, visad.height],
+                                           tKlipp: { t in m.clickInClip.flatMap { iKlippet(t + $0, m.clipDuration) } })
+                harBana = true
+            }
         }
         guard !rutor.isEmpty else { return nil }
         // När markeringarna senast ändrades; utan tid (före granskningen) paketets tid.
         let andrad = ClubMarking.lastChange(manifest.shots.flatMap { m in slag[m.id]?.klubba ?? [] })
-        return KlubbFil(pass: pass.id, kalla: [fileName(pass)],
-                        andrad: andrad.map { PackageManifest.timestamp($0, timeZone: timeZone) } ?? manifest.created,
-                        rutor: rutor)
+        var fil = KlubbFil(pass: pass.id, kalla: [fileName(pass)],
+                           andrad: andrad.map { PackageManifest.timestamp($0, timeZone: timeZone) } ?? manifest.created,
+                           rutor: rutor)
+        if harBana { fil.format = KlubbFil.format3 }
+        return fil
     }
 
     /// Tiden i klippet när den ligger bland klippets rutor, [0; längd); annars nil. METOD MS12

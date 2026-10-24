@@ -245,3 +245,13 @@ extension ShotReview {
     /// Kroppens spår för granskningens rutor (S4f). METOD M60
     public func spar(_ val: [SparPunkt]) -> [SparSerie] { Spar.serier(frames, val: val) }
 }
+
+extension SparSerie {
+    /// Klubbhuvudets spår ur S7b:s bana (BESLUT B70, B71): de interpolerade rutorna märkta, så
+    /// att lagret ritar dem streckade. METOD M60, M61
+    public init(bana: KlubbBana) {
+        self.init(id: SparPunkt.club.rawValue, punkt: .club, t: bana.punkter.map(\.t),
+                  p: bana.punkter.map { Punkt($0.x, $0.y) },
+                  interpolerad: bana.punkter.map { $0.kalla == KlubbSpar.kallaInterpolerad })
+    }
+}

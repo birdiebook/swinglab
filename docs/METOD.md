@@ -2440,6 +2440,60 @@ en bild, inget mått: mätningen och slagets tal rörs inte.
 - **Återanvändningen:** datamodellen (`SparSerie`) och delningen (avbrotten, spelat och kvar)
   återanvänds av klubbhuvudets bana (S7b) och av 3D (S6d); 3D ritar med en egen vy.
 
+## M61 — Klubbhuvudets bana mellan ankarna (S7b)
+
+Johannes tryck vid P1–P10 (S7a, M45) är **ankare**; mellan två ankare spåras klubbhuvudet
+mekaniskt i gråskalerutor (`tools/pc/klubbspar.py` är facit, `KlubbSpar` i SwingLabKit ger
+samma tal inom 1e-6, B12). Indata i hela bildens pixlar, rutorna i sin egen upplösning
+(`skala` = rutans px per bildens px). Klubbmåtten (M46–M49) tar fortfarande bara tryckta
+punkter.
+
+- **Rörelsen** i ruta k är min(|I_k − I_(k−2)|, |I_k − I_(k+2)|) (**steget 2 rutor** i
+  rutnätet): pixlar som skiljer sig från både rutan före och efter, alltså det som är där
+  just i ruta k, utan spöket där klubban var. En pixel rör sig från **40** gråtoner i båda.
+  **antagande** (40: med brus σ ≈ 7 gråtoner per pixel blir en brusig pixel i korridoren
+  sällsynt, under 1 per ruta; 25 gav runt 14 per ruta i den påhittade filmen).
+- **Kroppen maskeras** ur Visions leder i rutan (konfidens ≥ 0,3, M1): streck kring
+  benen och armarna (radien **0,18** av bålens längd), bålen (axlarnas mitt → höfternas mitt,
+  **0,35**), huvudet (skiva kring näsan, **0,40**) och händerna (skiva kring handledernas
+  mitt, **0,20**). Bålens längd är medianen över slaget. **antagande** (radierna, så att
+  kläder och ledernas fel ryms; bålen 0,29 · längden, M2).
+- **Korridoren:** greppet i rutan är handledernas mitt (greppregeln M1, utjämnad M3) plus
+  ankarnas förskjutning mellan handlederna och det tryckta greppet, linjärt i tiden; skaftets
+  längd L och riktning är ankarnas, linjärt i tiden (vinkeln den kortaste vägen). Sökningen
+  är radien **0,5–1,35 L** kring greppet och vinkeln inom **max(30°, halva vridningen mellan
+  ankarna)** från den väntade riktningen. **antagande.**
+- **Klubbhuvudet** är mitten av de rörliga pixlarna i det yttersta bandet (**0,12 L** brett,
+  räknat från den tredje yttersta pixeln, så att två brusiga pixlar inte styr). Är bandet
+  smalare än **0,05 L** tvärs riktningen från greppet syns bara skaftet (huvudet mot en mörk
+  bakgrund, eller nästan stilla så att differensen bara ger skaftets kant), och rutan är
+  tappad. Färre än **5** rörliga pixlar, eller ett steg längre än **0,5 L per ruta** från förra
+  säkra punkten, är också tappat. **antagande.**
+- **Tappade rutor interpoleras** mellan de säkra grannarna (spårade eller ankare) i polära
+  koordinater kring rutans grepp: vinkeln och radien linjärt i tiden. De märks
+  `interpolerad` och ritas streckade (M60, B70). Banan finns från första till sista ankaret.
+- **Mitten, inte hoseln:** spårningen ger klubbhuvudets rörliga mitt, ankarna hoseln (B44).
+  I den påhittade filmen är huvudet en skiva med mitten i hoseln, så de sammanfaller; på
+  riktiga klipp ligger mitten några cm från hoseln åt tån. **Oprövat på telefonen.**
+- **Planet genom nedsvingen** (`klubbspar.planet`, `KlubbSpar.planet`): för varje ruta från
+  P5 till P7 vinkeln vid P1:s hosel från P1-linjen till banans punkt, som `skaft_plan_p6`
+  (M47), + = över planet. Närmare P1:s hosel än **0,25** P1-skaft mäts inte (vinkeln är
+  obestämd kring träffen). Exakt i 2D med M47:s uppställning bakifrån; visas inte som tal än
+  (B71).
+- **Facit (påhittat, `tools/pc/klubbfilm.py`, `KlubbFilm`):** bilden 600 × 560 px, rutorna i
+  halv upplösning, 240 bilder/s med var nionde ruta borta, en klubba med skaftet 150 px längs
+  en känd båge (armens vinkel och handledens vinkling), brus σ ≈ 7 gråtoner, en kropp som
+  ritas över klubban, ett mörkt fält där huvudet inte syns, och ankare vid P1–P10 med ±1,5 px
+  tryckbrus. Uppmätt (`test_klubbspar`, `KlubbSparTests`): **151 spårade rutor med felet median
+  0,59 px, p95 2,26 px, högst 10,9 px**; **118 interpolerade (42 %) med median 12,2 px och högst
+  23,5 px** (vid toppen i det mörka fältet, i adressen innan klubban rör sig och i finishen när
+  den nästan står still); planet P5–P7 inom **0,52°** (median 0,05°) från sanningens.
+- **Klart när (den påhittade filmen):** spårade rutor median ≤ **2 %** och p95 ≤ **5 %** av
+  skaftet, interpolerade högst **20 %**, högst hälften interpolerade, och planet inom **1°**.
+  **Klart när (S7b):** på DTL-klipp ligger banan inom **5 % av skaftet** (median) från
+  handmärkta rutor mellan ankarna, med andelen interpolerade redovisad. **antagande**
+  (gränserna).
+
 ---
 
 # Facit (S3 och S7)

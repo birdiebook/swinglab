@@ -300,6 +300,10 @@ public enum Klubba {
 public struct KlubbFil: Codable, Equatable, Sendable {
     public static let format1 = "swinglab-klubba/1"
     public static let format = "swinglab-klubba/2"
+    /// Version 3 (S7b, BESLUT B71): dessutom klubbhuvudets bana, rutor med `val` "bana".
+    public static let format3 = "swinglab-klubba/3"
+    /// Banans rutor (BESLUT B71).
+    public static let valBana = "bana"
     /// Filen i paketet.
     public static let filnamn = "klubba.json"
     public static let punktnamn = ["grepp", "skaft_mitt", "klubbhuvud"]
@@ -396,15 +400,18 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         public var status: String
         public var punkter: Punkter
         public var forslag: [String: Forslag]
+        /// Banans ruta (version 3, BESLUT B71): nil = ogranskad, "godkand" eller "rattad".
+        /// Skrivs bara i banans rutor.
+        public var granskning: String?
 
         enum CodingKeys: String, CodingKey {
             case id, fil, vy, slag, val, t, tKlipp = "t_klipp", forskjutningMs = "forskjutning_ms", tRuta = "t_ruta"
-            case bredd, hojd, visad, status, punkter, forslag
+            case bredd, hojd, visad, status, punkter, forslag, granskning
         }
 
         public init(id: String, fil: String, vy: String?, slag: String?, val: String, t: Double?, tKlipp: Double?,
                     forskjutningMs: Double?, tRuta: Double?, bredd: Int, hojd: Int, visad: [Int], status: String,
-                    punkter: Punkter, forslag: [String: Forslag] = [:]) {
+                    punkter: Punkter, forslag: [String: Forslag] = [:], granskning: String? = nil) {
             self.id = id
             self.fil = fil
             self.vy = vy
@@ -420,6 +427,7 @@ public struct KlubbFil: Codable, Equatable, Sendable {
             self.status = status
             self.punkter = punkter
             self.forslag = forslag
+            self.granskning = granskning
         }
 
         /// Null-fälten skrivs som null (formatet kräver nycklarna).
@@ -440,6 +448,7 @@ public struct KlubbFil: Codable, Equatable, Sendable {
             try c.encode(status, forKey: .status)
             try c.encode(punkter, forKey: .punkter)
             try c.encode(forslag, forKey: .forslag)
+            if val == KlubbFil.valBana { try c.encode(granskning, forKey: .granskning) }
         }
     }
 
@@ -471,7 +480,8 @@ public struct KlubbFil: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey { case format, pass, kalla, punkter, andrad, rutor }
 
-    /// Läser version 1 eller 2 och uppgraderar till 2. Felen nämner fältet, aldrig värdet.
+    /// Läser version 1, 2 eller 3; version 1 uppgraderas till 2 och version 3 behålls (BESLUT
+    /// B71). Felen nämner fältet, aldrig värdet.
     public static func las(_ data: Data) throws -> KlubbFil {
         var f: KlubbFil
         do {
@@ -483,9 +493,11 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         } catch {
             throw FormatFel("klubba: går inte att läsa")
         }
-        guard f.format == format || f.format == format1 else { throw FormatFel("klubba: format ska vara \(format)") }
+        guard f.format == format || f.format == format1 || f.format == format3 else {
+            throw FormatFel("klubba: format ska vara \(format) eller \(format3)")
+        }
         guard f.punkter == punktnamn else { throw FormatFel("klubba: punkter ska vara \(punktnamn)") }
-        f.format = format
+        if f.format == format1 { f.format = format }
         return f
     }
 
@@ -503,6 +515,38 @@ public struct KlubbFil: Codable, Equatable, Sendable {
                 hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil, greppKalla: gk))
         }
         return ut
+    }
+
+    /// Klubbhuvudets bana per slag (version 3, BESLUT B71): banans rutor i tidsordning. Som
+    /// `klubba.bana`.
+    public func banor() -> [String: [KlubbBanPunkt]] {
+        var ut: [String: [KlubbBanPunkt]] = [:]
+        for r in rutor where r.val == Self.valBana {
+            guard let t = r.t, case let .klick(x, y, k)? = r.punkter.klubbhuvud else { continue }
+            var fore: KlubbPunkt? = nil
+            if let f = r.forslag["klubbhuvud"] { fore = KlubbPunkt(x: f.x, y: f.y) }
+            ut[r.slag ?? "", default: []].append(KlubbBanPunkt(t: t, x: x, y: y, kalla: k, granskning: r.granskning,
+                                                               fore: fore))
+        }
+        for k in ut.keys { ut[k]?.sort { $0.t < $1.t } }
+        return ut
+    }
+
+    /// Banans rutor för ett slag (version 3, BESLUT B71): en per punkt utom ankarna (de står
+    /// som markeringar), `val` "bana", bara klubbhuvudet, och en rättad ruta med maskinens
+    /// punkt som förslag.
+    public static func banrutor(_ bana: KlubbBana, vy: Vy, slag: String, fil: String, bredd: Int, hojd: Int,
+                                visad: [Int], tKlipp: (Double) -> Double?) -> [Ruta] {
+        bana.punkter.enumerated().compactMap { n, p -> Ruta? in
+            guard p.kalla != Klubba.kalla || p.granskning == KlubbBanPunkt.rattad else { return nil }
+            var forslag: [String: Forslag] = [:]
+            if let f = p.fore { forslag["klubbhuvud"] = Forslag(x: f.x, y: f.y, kalla: p.foreKalla ?? KlubbSpar.kallaSpar) }
+            return Ruta(id: "\(vy.rawValue)-\(slag)-bana-\(n + 1)", fil: fil, vy: vy.rawValue, slag: slag, val: valBana,
+                        t: p.t, tKlipp: tKlipp(p.t), forskjutningMs: nil, tRuta: nil, bredd: bredd, hojd: hojd,
+                        visad: visad, status: "markerad",
+                        punkter: Punkter(grepp: nil, skaftMitt: nil, klubbhuvud: .klick(x: p.x, y: p.y, kalla: p.kalla)),
+                        forslag: forslag, granskning: p.granskning)
+        }
     }
 
     /// En ruta ur telefonens markering (BESLUT B47): `val` = positionen, ingen klipptid

@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 import Swing
 import SwingDemo
+@testable import Capture
 
 /// S7b: klubbhuvudets bana mellan ankarna på den PÅHITTADE filmen (CLAUDE.md, Dataregeln):
 /// samma bytes och samma bana som Python (tools/tests/fixturer/klubbspar.json, skriven av
@@ -106,5 +107,82 @@ final class KlubbSparTests: XCTestCase {
         let b = KlubbSpar.spara([r], bredd: 4, hojd: 4, skala: 1, ankare: [a])
         XCTAssertEqual(b.first??.kalla, "klick")
         XCTAssertEqual(b.first??.x, 2)
+    }
+}
+
+/// S7b: datamodellen för banan och formatets version 3 (BESLUT B71).
+final class KlubbBanaTests: XCTestCase {
+    static let marks = [
+        KlubbMarkering(position: "P4", t: -0.25, grepp: KlubbPunkt(x: 10, y: 10), hosel: KlubbPunkt(x: 20, y: 0)),
+        KlubbMarkering(position: "P1", t: -0.9, grepp: KlubbPunkt(x: 10, y: 50), hosel: KlubbPunkt(x: 12, y: 90),
+                       greppKalla: Klubba.kallaRing),
+        KlubbMarkering(position: "P2", t: -0.6, grepp: nil, hosel: nil, hoppad: true),
+    ]
+
+    static func bana() -> KlubbBana {
+        KlubbBana([KlubbSpar.BanPunkt(t: -0.9, x: 12, y: 90, kalla: "klick"),
+                   KlubbSpar.BanPunkt(t: -0.5, x: 30, y: 60, kalla: "spar"),
+                   KlubbSpar.BanPunkt(t: -0.4, x: 31, y: 40, kalla: "interpolerad"),
+                   KlubbSpar.BanPunkt(t: -0.25, x: 20, y: 0, kalla: "klick")], ankare: marks)
+    }
+
+    func testAnkarnaOchAktuell() {
+        let b = Self.bana()
+        XCTAssertEqual(b.ankare.map(\.position), ["P1", "P4"], "bara markerade, i tidsordning")
+        XCTAssertTrue(b.aktuell(Self.marks))
+        XCTAssertTrue(b.aktuell(Array(Self.marks.reversed())), "greppets källa och ordningen spelar ingen roll")
+        var m = Self.marks
+        m[0].hosel = KlubbPunkt(x: 21, y: 0)
+        XCTAssertFalse(b.aktuell(m), "en flyttad markering ger en ny bana")
+        XCTAssertFalse(KlubbBana.mojlig([Self.marks[0]]))
+        XCTAssertTrue(KlubbBana.mojlig(Self.marks))
+        XCTAssertEqual(b.andelInterpolerade, 0.25)
+    }
+
+    func testGodkannOchRatta() {
+        var b = Self.bana()
+        b.godkann(1)
+        XCTAssertEqual(b.punkter[1].granskning, KlubbBanPunkt.godkand)
+        b.godkann(0)
+        XCTAssertNil(b.punkter[0].granskning, "ett ankare godkänns inte här")
+        b.ratta(2, till: KlubbPunkt(x: 33, y: 41))
+        XCTAssertEqual(b.punkter[2].kalla, "klick")
+        XCTAssertEqual(b.punkter[2].granskning, KlubbBanPunkt.rattad)
+        XCTAssertEqual(b.punkter[2].fore, KlubbPunkt(x: 31, y: 40))
+        XCTAssertEqual(b.punkter[2].foreKalla, "interpolerad")
+        b.ratta(0, till: KlubbPunkt(x: 1, y: 1))
+        XCTAssertEqual(b.punkter[0].x, 12, "ett ankare rättas i märkningen")
+    }
+
+    func testFilensVersion3() throws {
+        var b = Self.bana()
+        b.ratta(2, till: KlubbPunkt(x: 33, y: 41))
+        let rutor = KlubbFil.banrutor(b, vy: .dtl, slag: "s01", fil: "f.zip", bredd: 100, hojd: 100,
+                                      visad: [0, 0, 100, 100], tKlipp: { $0 + 1 })
+        XCTAssertEqual(rutor.map(\.val), ["bana", "bana"], "ankarna står som markeringar, inte i banan")
+        var fil = KlubbFil(pass: "20261103-180000", kalla: ["f.zip"], andrad: "2026-11-03T21:15:00+01:00",
+                           rutor: Self.marks.map { KlubbFil.ruta($0, vy: .dtl, slag: "s01", fil: "f.zip", bredd: 100,
+                                                                 hojd: 100, visad: [0, 0, 100, 100], tKlipp: nil) }
+                               + rutor)
+        fil.format = KlubbFil.format3
+        let data = try JSONEncoder().encode(fil)
+        let text = String(decoding: data, as: UTF8.self)
+        XCTAssertEqual(text.components(separatedBy: "\"granskning\"").count - 1, 2, "granskning bara i banans rutor")
+        let las = try KlubbFil.las(data)
+        XCTAssertEqual(las.format, KlubbFil.format3)
+        XCTAssertEqual(las.markeringar()["s01"]?.count, 3, "banans rutor är inga markeringar")
+        let banan = try XCTUnwrap(las.banor()["s01"])
+        XCTAssertEqual(banan.map(\.kalla), ["spar", "klick"])
+        XCTAssertEqual(banan[1].granskning, "rattad")
+        XCTAssertEqual(banan[1].fore, KlubbPunkt(x: 31, y: 40))
+        XCTAssertEqual(rutor[1].forslag["klubbhuvud"]?.kalla, "interpolerad")
+        XCTAssertEqual(rutor[0].tKlipp, 0.5)
+    }
+
+    func testSparSerienUrBanan() {
+        let s = SparSerie(bana: Self.bana())
+        XCTAssertEqual(s.punkt, .club)
+        XCTAssertEqual(s.interpolerad, [false, false, true, false])
+        XCTAssertEqual(s.p[1], Punkt(30, 60))
     }
 }

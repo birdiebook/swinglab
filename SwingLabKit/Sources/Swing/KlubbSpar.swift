@@ -275,3 +275,99 @@ public enum KlubbSpar {
         return ut
     }
 }
+
+// MARK: - Datamodellen (BESLUT B71)
+
+/// En punkt i klubbhuvudets sparade bana (S7b): tiden, punkten i hela bildens pixlar, källan
+/// (`klick` = ankaret, `spar`, `interpolerad`, eller `klick` i en rättad ruta) och Johannes
+/// granskning. En rättad punkt behåller maskinens punkt i `fore` och dess källa i
+/// `foreKalla`, så att träningsdatan kan skilja dem. BESLUT B71
+public struct KlubbBanPunkt: Codable, Equatable, Sendable {
+    public static let godkand = "godkand", rattad = "rattad"
+    public var t: Double
+    public var x: Double
+    public var y: Double
+    public var kalla: String
+    /// nil = ogranskad, "godkand" eller "rattad".
+    public var granskning: String?
+    public var fore: KlubbPunkt?
+    public var foreKalla: String?
+
+    public init(t: Double, x: Double, y: Double, kalla: String, granskning: String? = nil, fore: KlubbPunkt? = nil,
+                foreKalla: String? = nil) {
+        self.t = t
+        self.x = x
+        self.y = y
+        self.kalla = kalla
+        self.granskning = granskning
+        self.fore = fore
+        self.foreKalla = foreKalla
+    }
+
+    /// Spårad eller interpolerad, inte ett ankare och inte rättad.
+    public var maskinens: Bool { kalla == KlubbSpar.kallaSpar || kalla == KlubbSpar.kallaInterpolerad }
+}
+
+/// Klubbhuvudets bana för ett slag (S7b), sparad i `pass.json` (`slag[].klubbaBana`) med
+/// ankarna den räknades ur, så att en ändrad markering ger en ny bana. BESLUT B71, METOD M61
+public struct KlubbBana: Codable, Equatable, Sendable {
+    /// Räkningens version (M61); en annan version räknas om.
+    public static let aktuellVersion = 1
+    public var version: Int
+    public var ankare: [KlubbMarkering]
+    public var punkter: [KlubbBanPunkt]
+
+    public init(version: Int = KlubbBana.aktuellVersion, ankare: [KlubbMarkering], punkter: [KlubbBanPunkt]) {
+        self.version = version
+        self.ankare = ankare
+        self.punkter = punkter
+    }
+
+    /// Ankarna som räknas: markerade positioner, med bara det som spårningen läser.
+    public static func ankare(_ marks: [KlubbMarkering]?) -> [KlubbMarkering] {
+        (marks ?? []).filter(\.markerad).map {
+            KlubbMarkering(position: $0.position, t: $0.t, grepp: $0.grepp, hosel: $0.hosel)
+        }.sorted { $0.t < $1.t }
+    }
+
+    /// Minst två markerade positioner behövs för en bana.
+    public static func mojlig(_ marks: [KlubbMarkering]?) -> Bool { ankare(marks).count >= 2 }
+
+    /// Banan ur spårningen (KlubbSpar.spara) och ankarna.
+    public init(_ bana: [KlubbSpar.BanPunkt?], ankare marks: [KlubbMarkering]?) {
+        self.init(ankare: Self.ankare(marks),
+                  punkter: bana.compactMap { $0.map { KlubbBanPunkt(t: $0.t, x: $0.x, y: $0.y, kalla: $0.kalla) } })
+    }
+
+    /// Banan är räknad ur dessa markeringar med dagens räkning.
+    public func aktuell(_ marks: [KlubbMarkering]?) -> Bool {
+        version == Self.aktuellVersion && ankare == Self.ankare(marks)
+    }
+
+    /// Andelen interpolerade punkter (0–1).
+    public var andelInterpolerade: Double {
+        punkter.isEmpty ? 0 : Double(punkter.filter { $0.kalla == KlubbSpar.kallaInterpolerad }.count) / Double(punkter.count)
+    }
+
+    /// Johannes godkänner maskinens punkt i rutan (ett tryck, senare i appen). BESLUT B71
+    public mutating func godkann(_ i: Int) {
+        guard punkter.indices.contains(i), punkter[i].maskinens else { return }
+        punkter[i].granskning = KlubbBanPunkt.godkand
+    }
+
+    /// Johannes flyttar punkten: källan blir `klick`, och maskinens punkt sparas. BESLUT B71
+    public mutating func ratta(_ i: Int, till p: KlubbPunkt) {
+        guard punkter.indices.contains(i) else { return }
+        var q = punkter[i]
+        if q.maskinens {
+            q.fore = KlubbPunkt(x: q.x, y: q.y)
+            q.foreKalla = q.kalla
+        }
+        guard q.fore != nil else { return }        // ett ankare rättas i märkningen, inte här
+        q.x = p.x
+        q.y = p.y
+        q.kalla = Klubba.kalla
+        q.granskning = KlubbBanPunkt.rattad
+        punkter[i] = q
+    }
+}

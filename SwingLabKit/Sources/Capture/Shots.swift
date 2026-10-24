@@ -41,6 +41,9 @@ public struct ShotRecord: Codable, Equatable, Sendable {
     /// Klubbans markeringar i granskningen, en per P-position (S7a, `Klubba.swift`); nil =
     /// inga. Ett pass.json från före S7a saknar fältet. METOD M45, BESLUT B47
     public var klubba: [KlubbMarkering]?
+    /// Klubbhuvudets bana mellan markeringarna (S7b, `KlubbSpar`), med ankarna den räknades ur;
+    /// nil = inte räknad. METOD M61, BESLUT B71
+    public var klubbaBana: KlubbBana?
 
     public init(id: String, series: Int, click: Click, impact: Double, verdict: SwingVerdict? = nil,
                 verdictByJohannes: Bool = false, joints: String? = nil, jointFrames: Int? = nil,
