@@ -294,6 +294,13 @@ final class Store {
         saveSettings()
     }
 
+    /// Guiden till klubbans märkning har visats (S7c, BESLUT B59).
+    func setClubGuideSeen() {
+        guard settings.clubGuideSeen != true else { return }
+        settings.clubGuideSeen = true
+        saveSettings()
+    }
+
     /// En klubba in i eller ut ur Jag: klubborna som uppställningen visar (S4c).
     func toggleClub(_ id: String) {
         settings.toggleClub(id)

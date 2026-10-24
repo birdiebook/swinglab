@@ -100,6 +100,28 @@
         }
       }
     },
+    "1 · Tap the grip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 · Tap the grip"
+          }
+        }
+      }
+    },
+    "2 · Tap the clubhead": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 · Tap the clubhead"
+          }
+        }
+      }
+    },
     "About the measure": {
       "extractionState": "manual",
       "localizations": {
@@ -118,6 +140,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Address"
+          }
+        }
+      }
+    },
+    "All positions marked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All positions marked"
           }
         }
       }
@@ -375,6 +408,17 @@
         }
       }
     },
+    "Drag a point to move it": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag a point to move it"
+          }
+        }
+      }
+    },
     "Drill": {
       "extractionState": "manual",
       "localizations": {
@@ -496,13 +540,13 @@
         }
       }
     },
-    "Grip": {
+    "Guide": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grip"
+            "value": "Guide"
           }
         }
       }
@@ -525,17 +569,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Height"
-          }
-        }
-      }
-    },
-    "Hosel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hosel"
           }
         }
       }
@@ -793,17 +826,6 @@
         }
       }
     },
-    "Not visible": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not visible"
-          }
-        }
-      }
-    },
     "On the hands' line, at hand height, aimed along the target line": {
       "extractionState": "manual",
       "localizations": {
@@ -815,6 +837,17 @@
         }
       }
     },
+    "On the shaft, between the hands. Tap 1? to use the guess.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the shaft, between the hands. Tap 1? to use the guess."
+          }
+        }
+      }
+    },
     "Open Claude": {
       "extractionState": "manual",
       "localizations": {
@@ -822,6 +855,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Claude"
+          }
+        }
+      }
+    },
+    "Optional: tap both ends of an alignment stick on the ground": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional: tap both ends of an alignment stick on the ground"
           }
         }
       }
@@ -1101,6 +1145,17 @@
         }
       }
     },
+    "Skip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip"
+          }
+        }
+      }
+    },
     "Solo": {
       "extractionState": "manual",
       "localizations": {
@@ -1130,17 +1185,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Start session"
-          }
-        }
-      }
-    },
-    "Stick": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stick"
           }
         }
       }
@@ -1277,6 +1321,17 @@
         }
       }
     },
+    "The next position opens": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next position opens"
+          }
+        }
+      }
+    },
     "The package could not be written.": {
       "extractionState": "manual",
       "localizations": {
@@ -1295,6 +1350,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The recording was interrupted."
+          }
+        }
+      }
+    },
+    "The shaft line is drawn, and the app goes on by itself.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The shaft line is drawn, and the app goes on by itself."
           }
         }
       }
@@ -1372,6 +1438,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "View"
+          }
+        }
+      }
+    },
+    "Where the shaft goes into the head.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where the shaft goes into the head."
           }
         }
       }

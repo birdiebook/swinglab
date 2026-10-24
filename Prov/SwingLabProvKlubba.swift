@@ -8,9 +8,12 @@
 //               ångra, P8 hoppad; sparat i pass.json och läst tillbaka;
 //   måtten      slaget mäts om: skaftets vinkel vid positionerna är den satta, skaftplanet vid
 //               P1, och P2 och P6 är rutorna som valdes;
-//   bilderna    granskningen med skaftlinjen (klubba-granskning), märkningsläget med
-//               förstoringsglaset under fingret (klubba-markera) och passet med antalet
-//               markerade svingar och klubbmåttens kort (klubba-passet).
+//   bilderna    granskningen med skaftlinjen (klubba-granskning), märkningsläget (S7c, BESLUT
+//               B59): guiden (klubba-guide-1 … 3), riktpinnens steg (klubba-riktpinne),
+//               "1 · Tap the grip" inzoomat med gissningen "1?" (klubba-greppet), "2 · Tap the
+//               clubhead" med fingret och glaset (klubba-klubbhuvudet), en klar position
+//               (klubba-klar), och passet med antalet markerade svingar och klubbmåttens kort
+//               (klubba-passet).
 // Kontraktet med PC:n (klubba.json i paketet) prövas i SwingLabProvPaket. TRYCKEN MED ETT
 // RIKTIGT FINGER PÅ EN RIKTIG SVING PROVAS BARA PÅ TELEFONEN.
 
@@ -162,42 +165,61 @@ final class SwingLabProvKlubba: XCTestCase {
                                frame: k1, position: "P1", positions: pos, rows: rader, impact: s1.impact - s1.click.time,
                                shaft: shaft, editable: false), "klubba-granskning")
 
-        // 4. Märkningsläget för slag 2 vid P4: greppet satt, fingret på hoseln med glaset.
+        // 4. Märkningsläget (S7c, BESLUT B59) för slag 2: guiden, riktpinnens steg, P4 inzoomad
+        // med "1 · Tap the grip" och gissningen "1?", "2 · Tap the clubhead" med fingret och
+        // glaset, och en klar position med punkterna 1 och 2 och skaftlinjen.
+        for i in 0..<ClubGuideContent.pages { try rita(ClubGuideContent(page: i), "klubba-guide-\(i + 1)") }
         let s2 = last.shots[1]
         let j2 = try XCTUnwrap(leder[s2.id])
         let r2 = ShotReview(series: j2, crop: serie.activeCrop)
         var m2 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .dtl,
                              xTecken: sv1.xTecken)
+        let k1b = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
+        let hel1 = try await fullFrame(store.url(fil, in: last.id), at: r2.frames[k1b].pts)
+        let tid1 = Tal.tecken(r2.frames[k1b].t - (s2.impact - s2.click.time), decimaler: 3) + " s"
+        XCTAssertTrue(last.asksForRiktpinne(series: 1), "bakifrån utan pinne: riktpinnens steg före P1")
+        try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel1, $0), scale: 1).resizable() },
+                                 loupe: { LoupeImage(image: hel1, crop: $0) }, marking: m2, time: tid1, stickStep: true,
+                                 stick: [KlubbPunkt(x: 150, y: 455), KlubbPunkt(x: 140, y: 380)]), "klubba-riktpinne")
         for p in ["P1", "P3"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
         XCTAssertEqual(m2.position, "P4")
         let k4 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
         let f4 = r2.frames[k4].joints
         let g4 = KlubbPunkt(x: ((f4[5]?.x ?? 0) + (f4[6]?.x ?? 0)) / 2, y: ((f4[5]?.y ?? 0) + (f4[6]?.y ?? 0)) / 2)
-        let ug = m2.surfacePoint(g4)
-        XCTAssertTrue(m2.tap(u: ug.u + 0.08, v: ug.v, t: r2.frames[k4].t))
-        let uh = m2.surfacePoint(KlubbPunkt(x: g4.x + 25, y: g4.y + 85))
+        m2.startZoom(hands: g4, cmPerPx: s2.measure?.cmPerPx)
+        XCTAssertGreaterThan(m2.zoomFactor, 1.2, "positionen öppnas inzoomad kring händerna")
         let hel = try await fullFrame(store.url(fil, in: last.id), at: r2.frames[k4].pts)
         let tid = Tal.tecken(r2.frames[k4].t - (s2.impact - s2.click.time), decimaler: 3) + " s"
-        // Glaset förstorar loupeZoom gånger i punkter: ytan är stageHeight · aspect punkter bred.
+        func yta(_ m: ClubMarking, touch: (u: Double, v: Double)? = nil, ring: KlubbPunkt? = nil) -> some View {
+            ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
+                            loupe: { LoupeImage(image: hel, crop: $0) }, marking: m, time: tid, ring: ring,
+                            previewTouch: touch)
+        }
+        try rita(yta(m2, ring: g4), "klubba-greppet")
+        let ug = m2.surfacePoint(g4)
+        XCTAssertTrue(m2.tap(u: ug.u, v: ug.v, t: r2.frames[k4].t, ring: g4), "1? godtas med ett tryck")
+        XCTAssertEqual(m2.gripSource, Klubba.kallaRing)
+        let hoselP = KlubbPunkt(x: g4.x + 25, y: g4.y + 60)
+        let uh = m2.surfacePoint(hoselP)
+        // Glaset förstorar loupeZoom gånger i punkter också inzoomat: ytan är stageHeight · aspect punkter bred.
         let bredd = Double(ClubMarkContent<Color, Color>.stageHeight) * m2.aspect
         let lc = m2.loupeCrop(u: uh.u, v: uh.v, surfaceWidthPt: bredd, loupePt: Double(ClubMarkContent<Color, Color>.loupeSize))
         let zoom = m2.loupeMagnification(lc, surfaceWidthPt: bredd, loupePt: Double(ClubMarkContent<Color, Color>.loupeSize))
-        print(String(format: "PROV: glaset förstorar %.3f× (ytan %.1f pt bred, glaset %.0f pt, %d × %d px i glaset)", zoom, bredd,
-                     Double(ClubMarkContent<Color, Color>.loupeSize), Int((lc.width * Double(m2.width)).rounded()),
-                     Int((lc.height * Double(m2.height)).rounded())))
+        print(String(format: "PROV: glaset förstorar %.3f× ovanpå zoomen %.2f× (ytan %.1f pt bred, glaset %.0f pt, %d × %d px i glaset)",
+                     zoom, m2.zoomFactor, bredd, Double(ClubMarkContent<Color, Color>.loupeSize),
+                     Int((lc.width * Double(m2.width)).rounded()), Int((lc.height * Double(m2.height)).rounded())))
         XCTAssertEqual(zoom, ClubMarking.loupeZoom, accuracy: 1e-9)
-        try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
-                                 loupe: { LoupeImage(image: hel, crop: $0) }, marking: m2, time: tid, ring: g4,
-                                 previewTouch: uh), "klubba-markera")
-        try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
-                                 loupe: { LoupeImage(image: hel, crop: $0) }, marking: m2, time: tid, ring: g4),
-                 "klubba-markera-utan-finger")
-        let m3 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .dtl,
-                             xTecken: sv1.xTecken)
-        try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
-                                 loupe: { LoupeImage(image: hel, crop: $0) }, marking: m3, time: tid, ring: g4,
-                                 stick: [KlubbPunkt(x: 140, y: 470), KlubbPunkt(x: 138, y: 400)]),
-                 "klubba-markera-ringen")
+        try rita(yta(m2, touch: uh), "klubba-klubbhuvudet")
+        XCTAssertTrue(m2.tap(u: uh.u, v: uh.v, t: r2.frames[k4].t))
+        XCTAssertEqual(m2.position, "P5", "appen går vidare själv")
+        let h4 = try XCTUnwrap(m2.marks["P4"]?.hosel)
+        XCTAssertEqual(h4.x, hoselP.x, accuracy: 1e-6, "inzoomat tryck = hela bildens pixel")
+        XCTAssertEqual(h4.y, hoselP.y, accuracy: 1e-6)
+        m2.go(to: "P4")
+        m2.startZoom(hands: g4, cmPerPx: s2.measure?.cmPerPx)
+        try rita(yta(m2), "klubba-klar")
+        print("PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad \(String(format: "%.2f", m2.zoomFactor))×, "
+              + (m2.positionLine ?? ""))
 
         // 5. Passet: antalet markerade svingar och klubbmåttens kort med n.
         let v = try XCTUnwrap(PassShotsView.visning(last, earlier: []))
@@ -368,6 +390,7 @@ final class SwingLabProvKlubba: XCTestCase {
         let k6 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
         let f6 = r2.frames[k6].joints
         let g6 = KlubbPunkt(x: ((f6[5]?.x ?? 0) + (f6[6]?.x ?? 0)) / 2 + 20, y: ((f6[5]?.y ?? 0) + (f6[6]?.y ?? 0)) / 2)
+        m2.startZoom(hands: KlubbPunkt(x: g6.x - 20, y: g6.y), cmPerPx: s2.measure?.cmPerPx)
         let ug = m2.surfacePoint(g6)
         XCTAssertTrue(m2.tap(u: ug.u, v: ug.v, t: r2.frames[k6].t))
         let (v6, l6) = try XCTUnwrap(Self.sattaFO["P6"])

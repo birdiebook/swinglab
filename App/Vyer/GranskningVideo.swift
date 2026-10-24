@@ -37,9 +37,13 @@ struct ShotReviewView: View {
     /// Märkningen av klubban (S7a); nil = granskningen.
     @State private var marking: ClubMarking?
     @State private var series: JointSeries?
-    /// Riktpinnen: nästa två tryck sätter den (S7a, METOD M48).
-    @State private var stickMode = false
+    /// Riktpinnens steg före P1 (bakifrån, en gång per serie, BESLUT B59, METOD M48) och dess tryck.
+    @State private var stickStep = false
     @State private var stickPoints: [KlubbPunkt] = []
+    /// Guiden till märkningen (BESLUT B59): sidan som visas, nil = ingen guide.
+    @State private var guidePage: Int?
+    /// Senaste trycket ändrade märkningen (ett dubbeltryck ångrar det).
+    @State private var lastTapChanged = false
     /// Rutan som stillbild för glaset (toleransen 0), och vilken ruta den är.
     @State private var loupeImage: (frame: Int, image: CGImage)?
     /// Ett steg till en annan ruta när punkter är satta: frågan om de ska tömmas.
@@ -52,18 +56,26 @@ struct ShotReviewView: View {
 
     var body: some View {
         Group {
-            if let shot, let review, let m = marking {
+            if marking != nil, let page = guidePage {
+                ScrollView {
+                    ClubGuideContent(page: page, onNext: { guidePage = page + 1 }, onClose: closeGuide)
+                        .padding(.vertical, 8)
+                }
+            } else if let shot, let review, let m = marking {
                 ScrollView {
                     ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) },
                                     loupe: { LoupeImage(image: loupeImage?.frame == frame ? loupeImage?.image : nil, crop: $0) },
                                     marking: m, time: timeText(review, shot), ring: ring(review),
-                                    stick: !m.stickAvailable ? [] : stickMode ? stickPoints
-                                        : (pass?.riktpinne(series: shot.series) ?? []),
-                                    stickMode: stickMode, onTap: tapped, onMove: { g, u, v in change { $0.move(g, u: u, v: v) } },
+                                    stickStep: stickStep, stick: stickPoints,
+                                    onTap: tapped, onMove: { g, u, v in change { $0.move(g, u: u, v: v) } },
+                                    onPan: { du, dv in marking?.pan(du: du, dv: dv) },
+                                    onZoom: { k, u, v in marking?.zoom(by: k, u: u, v: v) },
+                                    onDoubleTap: doubleTapped,
                                     onStep: markingStep, onUndo: { change { $0.undo() } },
                                     onSkip: { change { $0.skip(t: review.frames[frame].t) } },
-                                    onNext: { change { $0.advance() } }, onStick: toggleStick,
-                                    onPosition: { p in change { $0.go(to: p) } }, onClose: closeMarking)
+                                    onStickSkip: skipStick, onStickDone: { saveStick(stickPoints) },
+                                    onPosition: { p in change { $0.go(to: p) } }, onHelp: { guidePage = 0 },
+                                    onClose: closeMarking)
                         .padding(.vertical, 8)
                 }
                 .task(id: frame) { await readLoupe() }
@@ -241,7 +253,9 @@ struct ShotReviewView: View {
 
     /// "Mark club": märkningen börjar på den första positionen utan markering i märkningens
     /// ordning (kroppens först, skaftets sist, BESLUT B58), i passets vy (framifrån utan
-    /// riktpinne, P2/P6/P8 ur skaftets vinkel, B57), med svingens `xTecken`. METOD M45
+    /// riktpinne, P2/P6/P8 ur skaftets vinkel, B57), med svingens `xTecken`. Bakifrån kommer
+    /// riktpinnens steg först när serien inte har någon och steget inte hoppats över, och guiden
+    /// första gången (B59). METOD M45
     private func startMarking() {
         guard let review, let shot, let pass, let series,
               let sv = try? ShotMeasuring.sving(series, view: pass.setup.view, hand: pass.setup.hand,
@@ -251,22 +265,33 @@ struct ShotReviewView: View {
         let serie = pass.series.first { $0.nr == shot.series }
         marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
                               crop: serie?.activeCrop, view: pass.setup.view, xTecken: sv.xTecken)
-        seekToPosition()
+        stickStep = pass.asksForRiktpinne(series: shot.series)
+        stickPoints = []
+        guidePage = store.settings.clubGuideSeen == true ? nil : 0
+        seekToPosition(zoom: !stickStep)
     }
 
-    /// Rutan för positionen som märks: punkternas, markeringens, annars förslaget ur kroppens
-    /// positioner (METOD M45).
-    private func seekToPosition() {
+    /// Guiden stängs: den har visats (en inställning per användare, B59).
+    private func closeGuide() {
+        guidePage = nil
+        store.setClubGuideSeen()
+    }
+
+    /// Rutan för positionen som märks: punkternas, annars förslaget (METOD M45). Med `zoom`
+    /// öppnas positionen inzoomad kring händerna i den rutan.
+    private func seekToPosition(zoom: Bool = true) {
         guard let m = marking, !m.done, let review, let shot else { return }
-        seek(review.index(nearestT: m.shownTime(measure: shot.measure, impact: shot.impact - shot.click.time)) ?? frame)
+        let k = review.index(nearestT: m.shownTime(measure: shot.measure, impact: shot.impact - shot.click.time)) ?? frame
+        seek(k)
+        if zoom { marking?.startZoom(hands: ring(review, at: k), cmPerPx: shot.measure?.cmPerPx) }
     }
 
-    /// Ringen ur handlederna i rutan (förslaget till greppet, BESLUT B47): handledernas mitt,
-    /// eller den som syns.
-    private func ring(_ r: ShotReview) -> KlubbPunkt? {
-        guard r.frames.indices.contains(frame) else { return nil }
+    /// Appens gissning av greppet i rutan (BESLUT B47, B59): handledernas mitt, eller den som syns.
+    private func ring(_ r: ShotReview, at k: Int? = nil) -> KlubbPunkt? {
+        let k = k ?? frame
+        guard r.frames.indices.contains(k) else { return nil }
         let h = [5, 6].compactMap { i -> PoseJoint? in
-            guard i < r.frames[frame].joints.count, let j = r.frames[frame].joints[i], j.c >= Sving.minKonfidens else {
+            guard i < r.frames[k].joints.count, let j = r.frames[k].joints[i], j.c >= Sving.minKonfidens else {
                 return nil
             }
             return j
@@ -275,43 +300,63 @@ struct ShotReviewView: View {
         return KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
     }
 
-    /// Ett tryck: riktpinnens punkt i det läget, annars nästa punkt i rutan.
+    /// Ett tryck: riktpinnens ände i det steget, annars nästa punkt i rutan.
     private func tapped(_ u: Double, _ v: Double) {
         guard let m = marking, let review, review.frames.indices.contains(frame) else { return }
-        if stickMode {
+        if stickStep {
             guard let p = m.imagePoint(u: u, v: v) else { return }
-            stickPoints.append(p)
-            if stickPoints.count == 2 { saveStick(stickPoints) }
+            stickPoints = Array((stickPoints + [p]).suffix(2))
             return
         }
         let t = review.frames[frame].t
         let r = ring(review)
+        let fore = m
         change { $0.tap(u: u, v: v, t: t, ring: r) }
+        lastTapChanged = marking != fore
     }
 
-    /// Riktpinnen (valfri, en gång per serie): två tryck på en pinne på marken, parallell med
-    /// mållinjen; ett tryck på knappen när den finns tar bort den. METOD M48
-    private func toggleStick() {
-        guard let shot else { return }
-        if stickMode {
-            stickMode = false
-            stickPoints = []
-        } else if pass?.riktpinne(series: shot.series) != nil {
-            saveStick(nil)
-        } else {
-            stickMode = true
-            stickPoints = []
+    /// Dubbeltrycket: hela bilden, eller tillbaka till startzoomen; ett första tryck som satte en
+    /// punkt ångras (METOD M45).
+    private func doubleTapped() {
+        guard var m = marking, let review, let shot else { return }
+        if lastTapChanged && !stickStep {
+            change { $0.undo() }
+            m = marking ?? m
         }
+        lastTapChanged = false
+        if m.zoom == m.crop {
+            m.startZoom(hands: ring(review), cmPerPx: shot.measure?.cmPerPx)
+        } else {
+            m.showWhole()
+        }
+        marking = m
     }
 
-    private func saveStick(_ pinne: [KlubbPunkt]?) {
-        guard var p = pass, let shot, let series else { return }
-        stickMode = false
-        stickPoints = []
+    /// Riktpinnen sparas (två tryck på en pinne på marken, parallell med mållinjen), och märkningen
+    /// går vidare till P1. METOD M48
+    private func saveStick(_ pinne: [KlubbPunkt]) {
+        guard var p = pass, let shot, let series, pinne.count == 2 else { return }
         let id = shotID, nr = shot.series, passID = p.id
         p.setRiktpinne(pinne, series: nr) { s in s.id == id ? series : store.joints(s.joints ?? "", in: passID) }
         store.save(p)
         pass = p
+        endStickStep()
+    }
+
+    /// Riktpinnens steg hoppas över för serien; märkningen frågar inte igen (BESLUT B59).
+    private func skipStick() {
+        guard var p = pass, let shot else { return }
+        p.skipRiktpinne(series: shot.series)
+        store.save(p)
+        pass = p
+        endStickStep()
+    }
+
+    private func endStickStep() {
+        stickStep = false
+        stickPoints = []
+        marking?.showWhole()
+        seekToPosition()
     }
 
     /// Ett steg i rutorna: med punkter satta på en annan ruta frågas först om de ska tömmas.
@@ -332,7 +377,7 @@ struct ShotReviewView: View {
         f(&m)
         marking = m
         if m.result != foreMarks { saveMarks(m.result) }
-        if m.position != fore.0 || m.frameT != fore.1 || m.done { seekToPosition() }
+        if m.position != fore.0 { seekToPosition() } else if m.frameT != fore.1 || m.done { seekToPosition(zoom: false) }
     }
 
     /// Markeringarna sparas och slaget mäts om utanför huvudtråden; bara den senaste
@@ -379,8 +424,9 @@ struct ShotReviewView: View {
     private func finishMarking() {
         askDiscard = false
         marking = nil
-        stickMode = false
+        stickStep = false
         stickPoints = []
+        guidePage = nil
     }
 }
 

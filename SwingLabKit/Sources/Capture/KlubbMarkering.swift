@@ -57,8 +57,12 @@ public struct ClubMarking: Equatable, Sendable {
     public let view: Vy
     /// +1 eller −1: bildens x mot målet (FO) eller bollen (DTL), svingens `xTecken` (M1).
     public let xTecken: Double
-    /// Det visade utsnittet (`shownCrop`, på hela pixlar).
+    /// Märkningens yta (`shownCrop`, på hela pixlar): hela bilden ytan kan visa.
     public let crop: CropRect
+    /// Den del av `crop` som syns nu (S7c, BESLUT B59): inzoomad kring händerna när en position
+    /// öppnas, nyp och dra ändrar den, dubbeltryck växlar mot hela `crop`. Samma proportioner
+    /// som `crop`, så att ytan inte byter form. Ytans koordinater 0–1 gäller den. METOD M45
+    public private(set) var zoom: CropRect
     /// Positionen som märks nu (index i `order`); `order.count` = klar.
     public private(set) var index: Int
     /// De sparade markeringarna per position.
@@ -89,6 +93,7 @@ public struct ClubMarking: Equatable, Sendable {
         self.view = view
         self.xTecken = xTecken
         self.crop = Self.shownCrop(crop).snapped(width: width, height: height)
+        zoom = self.crop
         let m = Dictionary((existing ?? []).map { ($0.position, $0) }, uniquingKeysWith: { _, b in b })
         marks = m
         index = Self.order.firstIndex { m[$0] == nil } ?? 0
@@ -100,6 +105,10 @@ public struct ClubMarking: Equatable, Sendable {
 
     public var done: Bool { index >= Self.order.count }
     public var position: String { done ? Self.order[Self.order.count - 1] : Self.order[index] }
+    /// Positionen i klartext, "P4 · Top of backswing · 3 of 10" (BESLUT B59); nil när alla är klara.
+    public var positionLine: String? {
+        done ? nil : Texter.markeringsPosition(position, nummer: index + 1, av: Self.order.count)
+    }
     /// Nästa tryck sätter den punkten; nil när båda är satta.
     public var next: Point? { grip == nil ? .grip : hosel == nil ? .hosel : nil }
     public var hasPoints: Bool { grip != nil || hosel != nil }
@@ -123,18 +132,104 @@ public struct ClubMarking: Equatable, Sendable {
 
     // MARK: ytan
 
-    /// Ytans punkt (0–1 i det visade utsnittet) i hela bildens pixlar; nil nära kanten eller
-    /// utanför ytan (bilden). METOD M45
+    /// Ytans punkt (0–1 i den del som syns, `zoom`) i hela bildens pixlar; nil nära kanten
+    /// eller utanför ytan. METOD M45
     public func imagePoint(u: Double, v: Double) -> KlubbPunkt? {
         guard u.isFinite, v.isFinite, u >= Self.edge, u <= 1 - Self.edge, v >= Self.edge, v <= 1 - Self.edge else {
             return nil
         }
-        return KlubbPunkt(x: (crop.x + u * crop.width) * Double(width), y: (crop.y + v * crop.height) * Double(height))
+        return KlubbPunkt(x: (zoom.x + u * zoom.width) * Double(width), y: (zoom.y + v * zoom.height) * Double(height))
     }
 
-    /// Bildens punkt på ytan (0–1 i det visade utsnittet).
+    /// Bildens punkt på ytan (0–1 i den del som syns).
     public func surfacePoint(_ p: KlubbPunkt) -> (u: Double, v: Double) {
-        ((p.x / Double(width) - crop.x) / crop.width, (p.y / Double(height) - crop.y) / crop.height)
+        ((p.x / Double(width) - zoom.x) / zoom.width, (p.y / Double(height) - zoom.y) / zoom.height)
+    }
+
+    // MARK: zoomen (S7c)
+
+    /// En position öppnas så här mycket inzoomad, högst. BESLUT B59, METOD M45
+    public static let zoomStart = 2.5
+    /// Nypet zoomar högst så här mycket. METOD M45
+    public static let zoomMax = 8.0
+    /// Skaftet grepp → hosel när inget är markerat än, m (järn 7, METOD M49).
+    public static let shaftM = 0.80
+    /// Cirkeln med skaftets längd kring mitten ska få plats med så mycket marginal. METOD M45
+    public static let fitMargin = 1.15
+
+    /// Hur mycket som är inzoomat: 1 = hela ytan.
+    public var zoomFactor: Double { crop.width / zoom.width }
+
+    /// Startzoomen (METOD M45): `zoomStart` gånger, men aldrig så mycket att en cirkel med
+    /// skaftets längd `length` (px) och marginalen `fitMargin` kring `center` inte får plats,
+    /// och aldrig under 1; mitten i `center` (hela bildens pixlar), flyttad in i ytan. nil
+    /// mitt = ytans mitt. Räknas i pixlar, som `klubba.zoom_start`.
+    public static func startZoomRect(crop: CropRect, width: Int, height: Int, center: KlubbPunkt?,
+                                     length: Double?) -> CropRect {
+        let W = Double(width), H = Double(height)
+        let cx0 = crop.x * W, cy0 = crop.y * H, cw = crop.width * W, ch = crop.height * H
+        var z = zoomStart
+        if let L = length, L > 0 { z = min(z, min(cw, ch) / (2 * fitMargin * L)) }
+        z = max(1, z)
+        let w = cw / z, h = ch / z
+        let c = center ?? KlubbPunkt(x: cx0 + cw / 2, y: cy0 + ch / 2)
+        let x = min(max(cx0, c.x - w / 2), cx0 + cw - w), y = min(max(cy0, c.y - h / 2), cy0 + ch - h)
+        return CropRect(x: x / W, y: y / H, width: w / W, height: h / H)
+    }
+
+    /// Zoomen när en position öppnas (METOD M45): kring positionens egen markering när den
+    /// finns, annars kring händerna (`hands`, handledernas mitt), annars kring de markerade
+    /// greppens mitt; skaftets längd ur positionens markering, annars medianen av de
+    /// markerade, annars `shaftM` genom skalan (`cmPerPx`).
+    public mutating func startZoom(hands: KlubbPunkt?, cmPerPx: Double?) {
+        let egen = marks[position].flatMap { $0.markerad ? $0 : nil }
+        func langd(_ m: KlubbMarkering) -> Double {
+            ((m.hosel!.x - m.grepp!.x) * (m.hosel!.x - m.grepp!.x) + (m.hosel!.y - m.grepp!.y) * (m.hosel!.y - m.grepp!.y))
+                .squareRoot()
+        }
+        let markerade = result.filter(\.markerad)
+        var mitt = hands
+        if let e = egen {
+            mitt = KlubbPunkt(x: (e.grepp!.x + e.hosel!.x) / 2, y: (e.grepp!.y + e.hosel!.y) / 2)
+        } else if mitt == nil, !markerade.isEmpty {
+            mitt = KlubbPunkt(x: markerade.map { $0.grepp!.x }.reduce(0, +) / Double(markerade.count),
+                              y: markerade.map { $0.grepp!.y }.reduce(0, +) / Double(markerade.count))
+        }
+        var L: Double? = nil
+        if let e = egen {
+            L = langd(e)
+        } else if !markerade.isEmpty {
+            let l = markerade.map(langd).sorted()
+            L = l.count % 2 == 1 ? l[l.count / 2] : (l[l.count / 2 - 1] + l[l.count / 2]) / 2
+        } else if let c = cmPerPx, c > 0 {
+            L = Self.shaftM * 100 / c
+        }
+        zoom = Self.startZoomRect(crop: crop, width: width, height: height, center: mitt, length: L)
+    }
+
+    /// Hela ytan.
+    public mutating func showWhole() { zoom = crop }
+
+    /// Nypet: zoomar `scale` gånger med bildens punkt under (u, v) kvar under fingrarna, mellan
+    /// hela ytan och `zoomMax`.
+    public mutating func zoom(by scale: Double, u: Double, v: Double) {
+        guard scale.isFinite, scale > 0, u.isFinite, v.isFinite else { return }
+        let ax = zoom.x + u * zoom.width, ay = zoom.y + v * zoom.height
+        let w = min(crop.width, max(crop.width / Self.zoomMax, zoom.width / scale))
+        let h = w * crop.height / crop.width
+        zoom = Self.inom(CropRect(x: ax - u * w, y: ay - v * h, width: w, height: h), crop)
+    }
+
+    /// Dra: flyttar det som syns med fingret (du, dv i ytans 0–1), inom ytan.
+    public mutating func pan(du: Double, dv: Double) {
+        guard du.isFinite, dv.isFinite else { return }
+        zoom = Self.inom(CropRect(x: zoom.x - du * zoom.width, y: zoom.y - dv * zoom.height, width: zoom.width,
+                                  height: zoom.height), crop)
+    }
+
+    static func inom(_ r: CropRect, _ c: CropRect) -> CropRect {
+        CropRect(x: min(max(c.x, r.x), c.maxX - r.width), y: min(max(c.y, r.y), c.maxY - r.height),
+                 width: r.width, height: r.height)
     }
 
     /// Ytans proportioner, bredd / höjd i bildpunkter.
@@ -160,16 +255,16 @@ public struct ClubMarking: Equatable, Sendable {
     /// ett glas `loupePt` punkter brett över en yta `surfaceWidthPt` punkter bred förstorar
     /// då exakt `loupeZoom` gånger. METOD M45, M46
     public func loupeCrop(u: Double, v: Double, surfaceWidthPt: Double, loupePt: Double) -> CropRect {
-        let w = crop.width * loupePt / (Self.loupeZoom * max(1, surfaceWidthPt))
+        let w = zoom.width * loupePt / (Self.loupeZoom * max(1, surfaceWidthPt))
         let h = w * Double(width) / Double(height)
-        let cx = crop.x + u * crop.width, cy = crop.y + v * crop.height
+        let cx = zoom.x + u * zoom.width, cy = zoom.y + v * zoom.height
         let x = min(max(0, cx - w / 2), 1 - w), y = min(max(0, cy - h / 2), 1 - h)
         return CropRect(x: x, y: y, width: w, height: h)
     }
 
     /// Förstoringen som glaset ger: glasets bredd i punkter genom den del av ytan det visar.
     public func loupeMagnification(_ lc: CropRect, surfaceWidthPt: Double, loupePt: Double) -> Double {
-        loupePt / (lc.width / crop.width * surfaceWidthPt)
+        loupePt / (lc.width / zoom.width * surfaceWidthPt)
     }
 
     // MARK: handlingarna

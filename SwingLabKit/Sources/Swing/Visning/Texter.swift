@@ -339,4 +339,19 @@ public enum Texter {
 
     /// "Use" kunde inte spara filen: fältet och koden, som felen ovan.
     public static let focusSparadesInte = "\(filen): could not be saved"
+
+    // MARK: klubbans märkning (S7c, BESLUT B59)
+
+    /// P1–P10 i klartext, korta och utan värdeord: kroppens positioner som METOD M28 (armen
+    /// "parallel" = vågrät i bild), skaftets som Sportsbox BCH, DCH och FCH (club horizontal,
+    /// research 5a, M28).
+    public static let positionsnamn: [String: String] = [
+        "P1": "Address", "P2": "Club parallel, backswing", "P3": "Lead arm parallel, backswing",
+        "P4": "Top of backswing", "P5": "Lead arm parallel, downswing", "P6": "Club parallel, downswing",
+        "P7": "Impact", "P8": "Club parallel, follow-through", "P9": "Trail arm parallel", "P10": "Finish"]
+
+    /// "P4 · Top of backswing · 3 of 10": positionen, dess namn och var i märkningens ordning.
+    public static func markeringsPosition(_ p: String, nummer: Int, av: Int) -> String {
+        "\(p)\(skilje)\(positionsnamn[p] ?? p)\(skilje)\(nummer) of \(av)"
+    }
 }

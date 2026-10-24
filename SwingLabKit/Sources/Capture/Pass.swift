@@ -194,6 +194,9 @@ public struct SeriesRecord: Codable, Equatable, Sendable {
     /// Riktpinnen bakifrån (S7a): två tryck i hela bildens pixlar på en pinne på marken,
     /// parallell med mållinjen, för flyktpunkten; nil = ingen (bildens mitt, antagen). METOD M48
     public var riktpinne: [KlubbPunkt]?
+    /// Riktpinnens steg hoppades över för serien (S7c, BESLUT B59): märkningen frågar inte igen.
+    /// nil = inte hoppat.
+    public var riktpinneHoppad: Bool?
 
     public init(nr: Int, source: SeriesSource, club: String, file: String, start: Date, startHost: Double?,
                 duration: Double, bytes: Int64, timing: FrameTiming, clicks: [Click], orientation: UInt32,
@@ -475,6 +478,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     /// Klubborna i Jag (manifestets id, `PassSetup.clubs`), de som uppställningen visar;
     /// nil = alla. Saknas före S4c.
     public var clubs: [String]?
+    /// Guiden till klubbans märkning har visats (S7c, BESLUT B59); nil = inte än.
+    public var clubGuideSeen: Bool?
 
     public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil, hand: Hand? = nil,
                 clubs: [String]? = nil) {

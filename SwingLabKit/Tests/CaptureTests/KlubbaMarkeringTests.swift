@@ -261,6 +261,11 @@ final class KlubbaMarkeringTests: XCTestCase {
     /// tools/pc/klubba.py), och det visade utsnittet är samma pixlar, i båda vyerna (vyn ingår
     /// inte). METOD M45
     func testTryckenArSammaPixelSomPC() throws {
+        struct Zoom: Decodable {
+            let hander: [Double]
+            let cm_per_px: Double?
+            let rect: [Double]
+        }
         struct Yta: Decodable {
             let utsnitt: [Double]?
             let bredd: Int
@@ -268,22 +273,128 @@ final class KlubbaMarkeringTests: XCTestCase {
             let u: Double
             let v: Double
             let visad: [Int]
+            let zoom: Zoom?
             let punkt: [Double]
         }
         let fall = try JSONDecoder().decode([Yta].self, from: Data(KlubbYtaFixturer.json.utf8))
-        XCTAssertEqual(fall.count, 5)
+        XCTAssertEqual(fall.count, 9)
+        XCTAssertEqual(fall.filter { $0.zoom != nil }.count, 4, "inzoomat (S7c)")
         for f in fall {
             let c = f.utsnitt.map { CropRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
-            // Vyn ingår inte i trycket: samma pixel i båda.
             let px = ClubMarking.shownCrop(c).pixels(width: f.bredd, height: f.hojd)
             XCTAssertEqual([px.x, px.y, px.width, px.height], f.visad)
+            // Vyn ingår inte i trycket: samma pixel i båda.
             for vy in [Vy.dtl, .fo] {
-                let m = ClubMarking(existing: nil, width: f.bredd, height: f.hojd, crop: c, view: vy, xTecken: 1)
+                var m = ClubMarking(existing: nil, width: f.bredd, height: f.hojd, crop: c, view: vy, xTecken: 1)
+                if let z = f.zoom {
+                    // Startzoomen kring händerna, med skaftets längd ur skalan, som PC:ns zoom_start.
+                    m.startZoom(hands: KlubbPunkt(x: z.hander[0], y: z.hander[1]), cmPerPx: z.cm_per_px)
+                    let r = [m.zoom.x * Double(f.bredd), m.zoom.y * Double(f.hojd), m.zoom.width * Double(f.bredd),
+                             m.zoom.height * Double(f.hojd)]
+                    for (a, b) in zip(r, z.rect) { XCTAssertEqual(a, b, accuracy: 1e-6) }
+                }
                 let p = try XCTUnwrap(m.imagePoint(u: f.u, v: f.v))
-                XCTAssertEqual(p.x, f.punkt[0], accuracy: 1e-9)
-                XCTAssertEqual(p.y, f.punkt[1], accuracy: 1e-9)
+                XCTAssertEqual(p.x, f.punkt[0], accuracy: 1e-6)
+                XCTAssertEqual(p.y, f.punkt[1], accuracy: 1e-6)
             }
         }
+    }
+
+    /// Positionen i klartext i märkningens ordning (S7c, BESLUT B58, B59), namnen för P1–P10, och
+    /// riktpinnens steg bakifrån en gång per serie före P1.
+    func testPositionenIKlartextOchRiktpinnensSteg() throws {
+        let nbsp = "\u{00A0}"
+        var m = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .fo, xTecken: 1)
+        XCTAssertEqual(m.positionLine, "P1\(nbsp)· Address\(nbsp)· 1 of 10")
+        m.skip(t: -1.2)
+        XCTAssertEqual(m.positionLine, "P3\(nbsp)· Lead arm parallel, backswing\(nbsp)· 2 of 10")
+        m.go(to: "P4")
+        XCTAssertEqual(m.positionLine, "P4\(nbsp)· Top of backswing\(nbsp)· 3 of 10")
+        m.go(to: "P8")
+        XCTAssertEqual(m.positionLine, "P8\(nbsp)· Club parallel, follow-through\(nbsp)· 10 of 10")
+        XCTAssertEqual(Set(Texter.positionsnamn.keys), Set(Klubba.positioner))
+        for (p, namn) in Texter.positionsnamn {
+            XCTAssertNil(namn.range(of: "[åäöÅÄÖ]", options: .regularExpression), p)
+            XCTAssertFalse(namn.lowercased().contains("hosel"), p)
+        }
+        // Riktpinnens steg: bakifrån, när serien saknar pinne och steget inte hoppats över.
+        var pass = PassState(id: "20261103-180000", created: Date(timeIntervalSince1970: 1_792_848_612),
+                             setup: PassSetup(view: .dtl, club: "j7", distance: 3, hand: .hoger), shots: [])
+        pass.series = [SeriesRecord(nr: 1, source: .recording, club: "j7", file: "Video/01.mov", start: pass.created,
+                                    startHost: nil, duration: 9, bytes: 1, timing: FrameTiming.analyze([0, 1.0 / 240]),
+                                    clicks: [], orientation: 6, uprightWidth: 1080, uprightHeight: 1920)]
+        XCTAssertTrue(pass.asksForRiktpinne(series: 1))
+        pass.skipRiktpinne(series: 1)
+        XCTAssertFalse(pass.asksForRiktpinne(series: 1), "hoppat över: frågar inte igen")
+        let data = try PassCoding.encoder().encode(pass)
+        XCTAssertEqual(try PassCoding.decoder().decode(PassState.self, from: data).series[0].riktpinneHoppad, true)
+        pass.series[0].riktpinneHoppad = nil
+        pass.setRiktpinne([KlubbPunkt(x: 560, y: 1800), KlubbPunkt(x: 548, y: 1300)], series: 1) { _ in nil }
+        XCTAssertFalse(pass.asksForRiktpinne(series: 1), "pinnen finns")
+        pass.setup.view = .fo
+        pass.series[0].riktpinne = nil
+        XCTAssertFalse(pass.asksForRiktpinne(series: 1), "framifrån aldrig")
+        // Guiden visas en gång: inställningen sparas per användare.
+        var installningar = AppSettings()
+        XCTAssertNil(installningar.clubGuideSeen)
+        installningar.clubGuideSeen = true
+        let sparad = try PassCoding.decoder().decode(AppSettings.self, from: PassCoding.encoder().encode(installningar))
+        XCTAssertEqual(sparad.clubGuideSeen, true)
+    }
+
+    /// Zoomen (S7c): nypet håller bildens punkt under fingrarna, dragningen flyttar det som syns
+    /// inom ytan, dubbeltrycket (hela ytan) och startzoomen kring positionens egen markering;
+    /// trycken blir hela bildens pixlar i varje läge och glaset förstorar fortfarande 3 ×. METOD M45
+    func testZoomenHallerTryckenIBildensPixlar() throws {
+        var m = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .dtl, xTecken: 1)
+        XCTAssertEqual(m.zoomFactor, 1, accuracy: 1e-12)
+        m.startZoom(hands: KlubbPunkt(x: 540, y: 960), cmPerPx: nil)
+        XCTAssertEqual(m.zoomFactor, ClubMarking.zoomStart, accuracy: 1e-12)
+        let fore = try XCTUnwrap(m.imagePoint(u: 0.3, v: 0.4))
+        m.zoom(by: 2, u: 0.3, v: 0.4)
+        XCTAssertEqual(m.zoomFactor, 5, accuracy: 1e-9)
+        let efter = try XCTUnwrap(m.imagePoint(u: 0.3, v: 0.4))
+        XCTAssertEqual(efter.x, fore.x, accuracy: 1e-6, "punkten under fingrarna står kvar")
+        XCTAssertEqual(efter.y, fore.y, accuracy: 1e-6)
+        m.zoom(by: 100, u: 0.5, v: 0.5)
+        XCTAssertEqual(m.zoomFactor, ClubMarking.zoomMax, accuracy: 1e-9)
+        m.zoom(by: 0.001, u: 0.5, v: 0.5)
+        XCTAssertEqual(m.zoomFactor, 1, accuracy: 1e-9, "aldrig mindre än hela ytan")
+        m.zoom(by: 2, u: 0.5, v: 0.5)
+        let a = try XCTUnwrap(m.imagePoint(u: 0.5, v: 0.5))
+        m.pan(du: 0.1, dv: 0)
+        let b = try XCTUnwrap(m.imagePoint(u: 0.6, v: 0.5))
+        XCTAssertEqual(b.x, a.x, accuracy: 1e-6, "bilden följer fingret")
+        m.pan(du: 10, dv: 10)
+        XCTAssertEqual(m.zoom.x, 0, accuracy: 1e-12, "inom ytan")
+        XCTAssertEqual(m.zoom.y, 0, accuracy: 1e-12)
+        let l = m.loupeCrop(u: 0.5, v: 0.5, surfaceWidthPt: 259, loupePt: 124)
+        XCTAssertEqual(m.loupeMagnification(l, surfaceWidthPt: 259, loupePt: 124), ClubMarking.loupeZoom, accuracy: 1e-9)
+        m.showWhole()
+        XCTAssertEqual(m.zoom, m.crop)
+        // En markerad punkt sitter kvar på samma bildpunkt när zoomen ändras.
+        XCTAssertTrue(m.tap(u: 0.5, v: 0.5, t: -1.2))
+        let g = try XCTUnwrap(m.grip)
+        m.zoom(by: 3, u: 0.2, v: 0.2)
+        let s = m.surfacePoint(g)
+        let tillbaka = try XCTUnwrap(m.imagePoint(u: s.u, v: s.v))
+        XCTAssertEqual(tillbaka.x, g.x, accuracy: 1e-6)
+        // Startzoomen kring positionens egen markering, med dess längd: P1 med ett skaft på 300 px
+        // ger 1080 / (2 · 1,15 · 300) gånger kring skaftets mitt.
+        let p1 = KlubbMarkering(position: "P1", t: -1.2, grepp: KlubbPunkt(x: 500, y: 900), hosel: KlubbPunkt(x: 500, y: 1200))
+        var n = ClubMarking(existing: [p1], width: 1080, height: 1920, crop: nil, view: .fo, xTecken: 1)
+        n.go(to: "P1")
+        n.startZoom(hands: KlubbPunkt(x: 100, y: 100), cmPerPx: 0.25)
+        XCTAssertEqual(n.zoomFactor, 1080 / (2 * 1.15 * 300), accuracy: 1e-9)
+        XCTAssertEqual(n.zoom.midY * 1920, 1050, accuracy: 1e-6)
+        // En omarkerad position: kring händerna med medianen av de markerade skaften.
+        n.go(to: "P3")
+        n.startZoom(hands: KlubbPunkt(x: 540, y: 960), cmPerPx: 0.25)
+        XCTAssertEqual(n.zoomFactor, 1080 / (2 * 1.15 * 300), accuracy: 1e-9)
+        // Ett skaft längre än ytan medger: aldrig under hela ytan.
+        n.startZoom(hands: nil, cmPerPx: 0.01)
+        XCTAssertEqual(n.zoomFactor, 1080 / (2 * 1.15 * 300), accuracy: 1e-9, "de markerade går före skalan")
+        XCTAssertEqual(n.zoom.midX * 1080, 540, accuracy: 1e-6)
     }
 
     /// Markeringarna i slaget mäter om det: klubbmåtten bland slagets mått och P2 som rutan

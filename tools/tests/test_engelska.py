@@ -99,6 +99,10 @@ INTE_TEXT = {
     "eye", "eye.slash", "ellipsis", "\\(…) / \\(…)", "—",
     "smallcircle.filled.circle", "chart.xyaxis.line", "person", "chevron.right", "info.circle",
     "claude://", "ej_i_analysen",
+
+    # Klubbans märkning (S7c, BESLUT B59): punkternas nummer på ytan, gissningen "1?", och
+    # positionen med SwingLabKits namn för VoiceOver.
+    "1", "2", "1?", "\\(…), \\(…)",
 }
 
 

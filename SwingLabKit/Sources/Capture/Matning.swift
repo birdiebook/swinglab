@@ -183,6 +183,19 @@ extension PassState {
         }
     }
 
+    /// Riktpinnens steg i märkningen (S7c, BESLUT B59): bakifrån, en gång per serie före P1, när
+    /// serien inte har någon riktpinne och steget inte hoppats över.
+    public func asksForRiktpinne(series nr: Int) -> Bool {
+        guard setup.view == .dtl, let s = series.first(where: { $0.nr == nr }) else { return false }
+        return s.riktpinne == nil && s.riktpinneHoppad != true
+    }
+
+    /// Riktpinnens steg hoppades över för serien.
+    public mutating func skipRiktpinne(series nr: Int) {
+        guard let k = series.firstIndex(where: { $0.nr == nr }) else { return }
+        series[k].riktpinneHoppad = true
+    }
+
     /// Slagen som räknas och har klubban markerad (S7a): passet visar antalet.
     public var clubMarkedCount: Int { shots.filter { $0.counts && $0.klubbaMarkerad }.count }
 

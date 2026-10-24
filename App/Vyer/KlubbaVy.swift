@@ -2,14 +2,17 @@ import SwiftUI
 import Swing
 import Capture
 
-/// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B57, B58, METOD M45), bakifrån och
-/// framifrån: rutan för positionen, ett tryck på greppet (eller på ringen ur handlederna) och
-/// sedan på hoseln, och positionen sparas av sig själv; förstoringsglaset under fingret, en
-/// punkt flyttas genom att dra den mer än 4 pt, ångra, hoppa över en position där klubban inte
-/// syns, och P1–P10 i ordning. Riktpinnen (valfri, en gång per serie, bara bakifrån) sätts med
-/// två tryck. B13: svartvitt, bara punkterna och linjen mellan dem. Allt som avgör vad ett
-/// tryck blir står i `ClubMarking` (SwingLabKit). Innehållet tar sina värden utifrån, så att provet kan rita det med en
-/// stillbild och ett finger på ytan.
+/// Läget "Mark club" i granskningen (PLAN S7a, S7c; BESLUT B47, B57, B58, B59; METOD M45),
+/// bakifrån och framifrån. Överst står vad nästa tryck gör i klartext ("1 · Tap the grip",
+/// "2 · Tap the clubhead") bredvid en skiss av en klubba där punkten lyser; det är märkningens
+/// enda instruktionsrad, ett undantag från B13 som bara gäller här (B59). Ytan öppnas inzoomad
+/// kring händerna; nyp zoomar, dra panorerar och dubbeltryck växlar mot hela bilden. Punkterna
+/// heter 1 och 2, och skaftlinjen dras mellan dem. Appens gissning av greppet är en ihålig punkt
+/// "1?". Positionen sparas av sig själv när punkt 2 är satt. Under ytan står positionen i
+/// klartext ("P4 · Top of backswing · 3 of 10"), raden med positionerna i märkningens ordning,
+/// Undo och Skip. Bakifrån kommer riktpinnen som ett eget valfritt steg före P1. Allt som avgör
+/// vad ett tryck blir står i `ClubMarking` (SwingLabKit). Innehållet tar sina värden utifrån,
+/// så att provet kan rita det med en stillbild och ett finger på ytan.
 struct ClubMarkContent<Surface: View, Loupe: View>: View {
     /// Ytan för ett utsnitt: videon i appen, en stillbild i provet.
     let surface: (CropRect) -> Surface
@@ -18,21 +21,25 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     let marking: ClubMarking
     /// "−0.250 s" från träffen.
     let time: String
-    /// Ringen ur handlederna i rutan (förslaget till greppet), i hela bildens pixlar.
+    /// Appens gissning av greppet (handledernas mitt), i hela bildens pixlar: "1?".
     var ring: KlubbPunkt? = nil
-    /// Riktpinnens punkter (0–2) och om nästa tryck sätter den.
+    /// Riktpinnens steg (bara bakifrån, före P1, BESLUT B59) och dess punkter (0–2).
+    var stickStep = false
     var stick: [KlubbPunkt] = []
-    var stickMode = false
-    /// Ett finger på ytan för provets bild (0–1 i utsnittet); i appen fingret självt.
+    /// Ett finger på ytan för provets bild (0–1 i det som syns); i appen fingret självt.
     var previewTouch: (u: Double, v: Double)? = nil
     var onTap: (Double, Double) -> Void = { _, _ in }
     var onMove: (ClubMarking.Point, Double, Double) -> Void = { _, _, _ in }
+    var onPan: (Double, Double) -> Void = { _, _ in }
+    var onZoom: (Double, Double, Double) -> Void = { _, _, _ in }
+    var onDoubleTap: () -> Void = {}
     var onStep: (Int) -> Void = { _ in }
     var onUndo: () -> Void = {}
     var onSkip: () -> Void = {}
-    var onNext: () -> Void = {}
-    var onStick: () -> Void = {}
+    var onStickSkip: () -> Void = {}
+    var onStickDone: () -> Void = {}
     var onPosition: (String) -> Void = { _ in }
+    var onHelp: () -> Void = {}
     var onClose: () -> Void = {}
 
     /// Fingret: var det började, var det är, och punkten det tog (en flytt). Nollställs när
@@ -44,16 +51,46 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     }
 
     @GestureState private var drag: Drag? = nil
+    /// Senaste läget under en panorering och ett nyp, för stegen mellan två uppdateringar.
+    @State private var panLast: CGPoint? = nil
+    @State private var magnifyLast: CGFloat? = nil
+    /// Senaste trycket, för dubbeltrycket.
+    @State private var lastTap: (date: Date, at: CGPoint)? = nil
 
     static var stageHeight: CGFloat { 460 }
     static var loupeSize: CGFloat { 124 }
+    /// Två tryck inom så kort tid och så nära varandra är ett dubbeltryck. METOD M45
+    static var doubleTapS: Double { 0.3 }
+    static var doubleTapPt: CGFloat { 20 }
 
-    /// Var glaset ska visa: den dragna punktens nya plats, annars fingret.
+    /// Vad nästa tryck gör, i klartext (BESLUT B59).
+    var instruction: String {
+        if stickStep { return String(localized: "Optional: tap both ends of an alignment stick on the ground") }
+        if marking.done { return String(localized: "All positions marked") }
+        switch marking.next {
+        case .grip: return String(localized: "1 · Tap the grip")
+        case .hosel: return String(localized: "2 · Tap the clubhead")
+        case nil: return String(localized: "Drag a point to move it")
+        }
+    }
+
+    private var sketch: ClubSketch.Focus {
+        if stickStep { return .stick }
+        switch marking.next {
+        case .grip: return marking.done ? .both : .grip
+        case .hosel: return .clubhead
+        case nil: return .both
+        }
+    }
+
+    /// Var glaset ska visa: den dragna punktens nya plats, annars fingret (inte under en panorering).
     private func shown(_ size: CGSize) -> (u: Double, v: Double)? {
         guard let d = drag else { return previewTouch }
         let u = Double(d.now.x / max(1, size.width)), v = Double(d.now.y / max(1, size.height))
-        guard let g = d.grabbed, let o = punkt(g) else { return (u, v) }
         let dx = Double(d.now.x - d.start.x), dy = Double(d.now.y - d.start.y)
+        guard let g = d.grabbed, let o = punkt(g) else {
+            return ClubMarking.isDrag(dx: dx, dy: dy) ? nil : (u, v)
+        }
         guard ClubMarking.isDrag(dx: dx, dy: dy) else { return (u, v) }
         let s = marking.surfacePoint(o)
         return (s.u + dx / Double(max(1, size.width)), s.v + dy / Double(max(1, size.height)))
@@ -64,115 +101,171 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Navrad(titel: String(localized: "Mark club"), hoger: {
-                Button(action: onClose) {
-                    Text("Done").typsnitt(15, .semibold).foregroundStyle(Theme.text).frame(minWidth: 44, minHeight: 40)
+                HStack(spacing: 2) {
+                    Button(action: onHelp) {
+                        Text(verbatim: "?").typsnitt(17, .semibold).foregroundStyle(Theme.text)
+                            .frame(minWidth: 44, minHeight: 40)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Guide"))
+                    Button(action: onClose) {
+                        Text("Done").typsnitt(15, .semibold).foregroundStyle(Theme.text).frame(minWidth: 44, minHeight: 40)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }, tillbaka: onClose)
 
-            GeometryReader { geo in
-                ZStack(alignment: .topLeading) {
-                    surface(marking.crop)
-                    ClubPoints(marking: marking, ring: marking.next == .grip && !stickMode ? ring : nil, stick: stick)
-                    if !time.isEmpty {
-                        Text(verbatim: time)
-                            .typsnitt(11, .medium, siffror: true)
-                            .foregroundStyle(Theme.secondary)
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-                    if let t = shown(geo.size) { loupeView(t, size: geo.size) }
-                }
-                .contentShape(.rect)
-                .gesture(DragGesture(minimumDistance: 0)
-                    .updating($drag) { v, state, _ in
-                        if state == nil {
-                            let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
-                                                        width: Double(geo.size.width), height: Double(geo.size.height))
-                            state = Drag(start: v.startLocation, now: v.location,
-                                         grabbed: stickMode ? nil : marking.grab(u: s.u, v: s.v))
-                        } else {
-                            state?.now = v.location
-                        }
-                    }
-                    .onEnded { v in
-                        let w = Double(geo.size.width), h = Double(geo.size.height)
-                        let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
-                                                    width: w, height: h)
-                        let e = ClubMarking.surface(x: Double(v.location.x), y: Double(v.location.y), width: w, height: h)
-                        let dx = Double(v.location.x - v.startLocation.x), dy = Double(v.location.y - v.startLocation.y)
-                        // En satt punkt flyttas först när fingret rört sig mer än 4 pt, och behåller
-                        // avståndet mellan finger och punkt. METOD M45
-                        if !stickMode, let g = marking.grab(u: s.u, v: s.v), ClubMarking.isDrag(dx: dx, dy: dy),
-                           let o = punkt(g) {
-                            let p = marking.surfacePoint(o)
-                            onMove(g, p.u + dx / w, p.v + dy / h)
-                        } else {
-                            onTap(e.u, e.v)
-                        }
-                    })
+            // Instruktionen: skissen och vad nästa tryck gör (BESLUT B59). VoiceOver läser texten.
+            HStack(spacing: 12) {
+                ClubSketch(focus: sketch).frame(width: 34, height: 48)
+                Text(instruction)
+                    .typsnitt(17, .semibold)
+                    .foregroundStyle(Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
             }
-            .background(Theme.cam)
-            .clipped()
-            .aspectRatio(CGFloat(marking.aspect), contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .frame(height: Self.stageHeight)
-            .accessibilityElement()
-            .accessibilityLabel(Text("Frame"))
+            .padding(.bottom, 10)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(instruction))
+            .accessibilityAddTraits(.isHeader)
+
+            stage
 
             HStack(spacing: 2) {
                 symbol("backward.frame.fill", "Previous frame") { onStep(-1) }
                 symbol("forward.frame.fill", "Next frame") { onStep(1) }
                 Spacer(minLength: 8)
-                Text(verbatim: marking.done ? "" : marking.position)
-                    .typsnitt(15, .semibold, siffror: true)
-                    .foregroundStyle(Theme.text)
-                if stickMode {
-                    Text("Stick").typsnitt(13, .medium).foregroundStyle(Theme.secondary).padding(.leading, 6)
-                } else if let n = marking.next, !marking.done {
-                    Text(n == .grip ? LocalizedStringKey("Grip") : LocalizedStringKey("Hosel"))
-                        .typsnitt(13, .medium)
-                        .foregroundStyle(Theme.secondary)
-                        .padding(.leading, 6)
+                if !stickStep, let rad = marking.positionLine {
+                    Text(verbatim: rad)
+                        .typsnitt(13.5, .medium, siffror: true)
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.trailing)
+                        .accessibilityLabel(Text(verbatim: rad))
                 }
-                Spacer(minLength: 8)
-                Button(action: onSkip) {
-                    Text("Not visible").typsnitt(14, .medium).foregroundStyle(Theme.secondary).frame(minHeight: 40)
-                }
-                .buttonStyle(.plain)
-                .disabled(marking.done || stickMode)
             }
             .padding(.top, 8)
 
-            strip.padding(.top, 6)
+            if !stickStep { strip.padding(.top, 6) }
 
             HStack(spacing: 12) {
-                Button(action: onUndo) {
-                    Text("Undo").typsnitt(16, .medium).foregroundStyle(marking.canUndo ? Theme.text : Theme.tertiary)
-                        .frame(minWidth: 64, minHeight: 52)
-                }
-                .buttonStyle(.plain)
-                .disabled(!marking.canUndo)
-                // Riktpinnen ger flyktpunkten bakifrån; framifrån behövs den inte (METOD M48, M49).
-                if marking.stickAvailable {
-                    Button(action: onStick) {
-                        Text("Stick").typsnitt(16, .medium)
-                            .foregroundStyle(stickMode || stick.count == 2 ? Theme.text : Theme.secondary)
-                            .frame(minWidth: 56, minHeight: 52)
+                if stickStep {
+                    Button(action: onStickSkip) {
+                        Text("Skip").typsnitt(16, .medium).foregroundStyle(Theme.text).frame(minWidth: 64, minHeight: 52)
                     }
                     .buttonStyle(.plain)
+                    Button("Done", action: onStickDone)
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(stick.count < 2)
+                } else {
+                    Button(action: onUndo) {
+                        Text("Undo").typsnitt(16, .medium).foregroundStyle(marking.canUndo ? Theme.text : Theme.tertiary)
+                            .frame(minWidth: 64, minHeight: 52)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!marking.canUndo)
+                    Spacer(minLength: 8)
+                    Button(action: onSkip) {
+                        Text("Skip").typsnitt(16, .medium)
+                            .foregroundStyle(marking.done ? Theme.tertiary : Theme.text)
+                            .frame(minWidth: 64, minHeight: 52)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(marking.done)
                 }
-                Button(marking.done ? LocalizedStringKey("Done") : LocalizedStringKey("Next"),
-                       action: marking.done ? onClose : onNext)
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!marking.done && (marking.grip == nil || marking.hosel == nil))
             }
             .padding(.top, 10)
         }
         .padding(.horizontal, 20)
     }
 
-    /// P1–P10: markerad vit, hoppad grå med streck, den som märks understruken; ett tryck går dit.
+    /// Ytan: det som syns av bilden (`marking.zoom`), punkterna, tiden och glaset. Ett tryck
+    /// sätter en punkt, ett drag på en punkt flyttar den, ett drag någon annanstans panorerar,
+    /// nypet zoomar och ett dubbeltryck växlar mot hela bilden (METOD M45).
+    private var stage: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                surface(marking.zoom)
+                ClubPoints(marking: marking, ring: !stickStep && marking.next == .grip ? ring : nil,
+                           stick: stickStep ? stick : [], stickStep: stickStep)
+                if !time.isEmpty {
+                    Text(verbatim: time)
+                        .typsnitt(11, .medium, siffror: true)
+                        .foregroundStyle(Theme.secondary)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                if let t = shown(geo.size) { loupeView(t, size: geo.size) }
+            }
+            .contentShape(.rect)
+            .gesture(DragGesture(minimumDistance: 0)
+                .updating($drag) { v, state, _ in
+                    if state == nil {
+                        let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
+                                                    width: Double(geo.size.width), height: Double(geo.size.height))
+                        state = Drag(start: v.startLocation, now: v.location,
+                                     grabbed: stickStep ? nil : marking.grab(u: s.u, v: s.v))
+                    } else {
+                        state?.now = v.location
+                    }
+                }
+                .onChanged { v in
+                    // Panorera när fingret inte tog en punkt och rört sig mer än 4 pt.
+                    let w = Double(geo.size.width), h = Double(geo.size.height)
+                    let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y), width: w, height: h)
+                    let dx = Double(v.location.x - v.startLocation.x), dy = Double(v.location.y - v.startLocation.y)
+                    guard (stickStep || marking.grab(u: s.u, v: s.v) == nil), ClubMarking.isDrag(dx: dx, dy: dy) else { return }
+                    let forra = panLast ?? v.startLocation
+                    onPan(Double(v.location.x - forra.x) / w, Double(v.location.y - forra.y) / h)
+                    panLast = v.location
+                }
+                .onEnded { v in
+                    let w = Double(geo.size.width), h = Double(geo.size.height)
+                    let panorerade = panLast != nil
+                    panLast = nil
+                    let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
+                                                width: w, height: h)
+                    let e = ClubMarking.surface(x: Double(v.location.x), y: Double(v.location.y), width: w, height: h)
+                    let dx = Double(v.location.x - v.startLocation.x), dy = Double(v.location.y - v.startLocation.y)
+                    if panorerade { return }
+                    // En satt punkt flyttas först när fingret rört sig mer än 4 pt, och behåller
+                    // avståndet mellan finger och punkt. METOD M45
+                    if !stickStep, let g = marking.grab(u: s.u, v: s.v), ClubMarking.isDrag(dx: dx, dy: dy),
+                       let o = punkt(g) {
+                        let p = marking.surfacePoint(o)
+                        onMove(g, p.u + dx / w, p.v + dy / h)
+                        return
+                    }
+                    let nu = Date()
+                    if let l = lastTap, nu.timeIntervalSince(l.date) < Self.doubleTapS,
+                       hypot(l.at.x - v.location.x, l.at.y - v.location.y) < Self.doubleTapPt {
+                        lastTap = nil
+                        onDoubleTap()
+                    } else {
+                        lastTap = (nu, v.location)
+                        onTap(e.u, e.v)
+                    }
+                })
+            .simultaneousGesture(MagnifyGesture()
+                .onChanged { v in
+                    let forra = magnifyLast ?? 1
+                    onZoom(Double(v.magnification / forra), Double(v.startAnchor.x), Double(v.startAnchor.y))
+                    magnifyLast = v.magnification
+                }
+                .onEnded { _ in magnifyLast = nil })
+        }
+        .background(Theme.cam)
+        .clipped()
+        .aspectRatio(CGFloat(marking.aspect), contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .frame(height: Self.stageHeight)
+        .accessibilityElement()
+        .accessibilityLabel(Text("Frame"))
+        .accessibilityHint(Text(instruction))
+    }
+
+    /// Positionerna i märkningens ordning (BESLUT B58): markerad vit, hoppad grå med streck, den
+    /// som märks understruken; ett tryck går dit.
     private var strip: some View {
         HStack(spacing: 0) {
             ForEach(ClubMarking.order, id: \.self) { p in
@@ -189,7 +282,7 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                         }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(verbatim: p))
+                .accessibilityLabel(Text(verbatim: Texter.positionsnamn[p].map { "\(p), \($0)" } ?? p))
                 .accessibilityValue(nu ? Text("current") : m?.hoppad == true ? Text("skipped")
                                     : m?.markerad == true ? Text("marked") : Text(verbatim: ""))
                 .accessibilityAddTraits(nu ? .isSelected : [])
@@ -203,8 +296,8 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     private func loupeView(_ t: (u: Double, v: Double), size: CGSize) -> some View {
         let s = Self.loupeSize
         let lc = marking.loupeCrop(u: t.u, v: t.v, surfaceWidthPt: Double(size.width), loupePt: Double(s))
-        let cx = (marking.crop.x + t.u * marking.crop.width - lc.x) / lc.width
-        let cy = (marking.crop.y + t.v * marking.crop.height - lc.y) / lc.height
+        let cx = (marking.zoom.x + t.u * marking.zoom.width - lc.x) / lc.width
+        let cy = (marking.zoom.y + t.v * marking.zoom.height - lc.y) / lc.height
         let fx = CGFloat(t.u) * size.width, fy = CGFloat(t.v) * size.height
         let satta = [marking.grip, marking.hosel].compactMap { $0 }.map { k -> CGPoint in
             let l = marking.surfacePoint(k)
@@ -229,7 +322,7 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                 }
                 if let g = marking.grip, let h = marking.hosel { c.linje(q(g), q(h), Theme.text, 1.2) }
                 if let g = marking.grip { c.prick(q(g), 3.5, Theme.text) }
-                if let h = marking.hosel { c.prick(q(h), 4.5, Theme.text, ihalig: true) }
+                if let h = marking.hosel { c.prick(q(h), 3.5, Theme.text) }
                 let p = CGPoint(x: CGFloat(cx) * z.width, y: CGFloat(cy) * z.height)
                 c.linje(CGPoint(x: p.x - 14, y: p.y), CGPoint(x: p.x - 4, y: p.y), Theme.text, 1)
                 c.linje(CGPoint(x: p.x + 4, y: p.y), CGPoint(x: p.x + 14, y: p.y), Theme.text, 1)
@@ -258,6 +351,47 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     }
 }
 
+/// En liten skiss av en klubba, svartvit (BESLUT B59, design/README regel 6): greppet som ett
+/// tjockare stycke överst, skaftet och huvudet. Punkten som nästa tryck sätter lyser: 1 mitt på
+/// greppet (mitt mellan händerna), 2 där skaftet går in i huvudet. Riktpinnen är en pinne på
+/// marken med sina två ändar.
+struct ClubSketch: View {
+    enum Focus: Equatable { case grip, clubhead, both, stick }
+    let focus: Focus
+
+    var body: some View {
+        Canvas { c, s in
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * s.width, y: y * s.height) }
+            let r = max(2.5, s.width * 0.09)
+            if focus == .stick {
+                // Marken och pinnen på den, i perspektiv, med ändarna.
+                c.linje(p(0.02, 0.92), p(0.98, 0.92), Theme.line, 1)
+                let a = p(0.22, 0.86), b = p(0.78, 0.40)
+                c.linje(a, b, Theme.secondary, max(1.5, s.width * 0.05))
+                c.prick(a, r, Theme.text)
+                c.prick(b, r, Theme.text)
+                return
+            }
+            let topp = p(0.30, 0.04), greppSlut = p(0.42, 0.34), hosel = p(0.66, 0.80)
+            c.linje(topp, greppSlut, Theme.secondary, max(3, s.width * 0.16))
+            c.linje(greppSlut, hosel, Theme.secondary, max(1, s.width * 0.04))
+            var huvud = Path()
+            huvud.move(to: hosel)
+            huvud.addLine(to: p(0.98, 0.86))
+            huvud.addLine(to: p(0.96, 0.98))
+            huvud.addLine(to: p(0.60, 0.95))
+            huvud.closeSubpath()
+            c.fill(huvud, with: .color(Theme.line))
+            c.stroke(huvud, with: .color(Theme.secondary), lineWidth: 1)
+            let grepp = p(0.36, 0.19)
+            let tand1 = focus == .grip || focus == .both, tand2 = focus == .clubhead || focus == .both
+            c.prick(grepp, r, tand1 ? Theme.text : Theme.tertiary, ihalig: !tand1)
+            c.prick(hosel, r, tand2 ? Theme.text : Theme.tertiary, ihalig: !tand2)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 /// Glasets yta: rutan som stillbild, skuren till glasets utsnitt; svart innan den lästs.
 struct LoupeImage: View {
     let image: CGImage?
@@ -272,12 +406,13 @@ struct LoupeImage: View {
     }
 }
 
-/// Punkterna som är satta på positionen (greppet fyllt, hoseln ihålig, en tunn linje mellan
-/// dem), ringen ur handlederna som förslag till greppet (streckad), och riktpinnen.
+/// Punkterna 1 (greppet) och 2 (klubbhuvudet) med skaftlinjen mellan dem när båda är satta,
+/// appens gissning av greppet som en ihålig punkt "1?", och riktpinnens ändar (BESLUT B59).
 struct ClubPoints: View {
     let marking: ClubMarking
     var ring: KlubbPunkt? = nil
     var stick: [KlubbPunkt] = []
+    var stickStep = false
 
     var body: some View {
         Canvas { c, s in
@@ -285,23 +420,115 @@ struct ClubPoints: View {
                 let l = marking.surfacePoint(q)
                 return CGPoint(x: CGFloat(l.u) * s.width, y: CGFloat(l.v) * s.height)
             }
-            if stick.count == 2 { c.linje(p(stick[0]), p(stick[1]), Theme.secondary, 1, streckad: [4, 4]) }
-            for q in stick { c.prick(p(q), 2.5, Theme.secondary) }
+            func etikett(_ text: String, vid a: CGPoint, farg: Color = Theme.text) {
+                c.draw(Text(verbatim: text).font(.system(size: 12, weight: .semibold)).foregroundStyle(farg),
+                       at: CGPoint(x: a.x + 11, y: a.y - 11))
+            }
+            if stick.count == 2 { c.linje(p(stick[0]), p(stick[1]), Theme.text, 1.2) }
+            for (i, q) in stick.enumerated() {
+                c.prick(p(q), 4, Theme.text)
+                etikett("\(i + 1)", vid: p(q))
+            }
+            if stickStep { return }
             if let r = ring {
-                let m = p(r), radie = CGFloat(ClubMarking.grabRadius) * s.width
-                c.stroke(Path(ellipseIn: CGRect(x: m.x - radie, y: m.y - radie, width: 2 * radie, height: 2 * radie)),
-                         with: .color(Theme.text), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                let m = p(r)
+                c.prick(m, 6, Theme.secondary, ihalig: true)
+                etikett("1?", vid: m, farg: Theme.secondary)
             }
             if let g = marking.grip, let h = marking.hosel { c.linje(p(g), p(h), Theme.text, 1.2) }
-            if let g = marking.grip { c.prick(p(g), 3.5, Theme.text) }
-            if let h = marking.hosel { c.prick(p(h), 4.5, Theme.text, ihalig: true) }
+            if let g = marking.grip {
+                c.prick(p(g), 4, Theme.text)
+                etikett("1", vid: p(g))
+            }
+            if let h = marking.hosel {
+                c.prick(p(h), 4, Theme.text)
+                etikett("2", vid: p(h))
+            }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
 
-/// Skaftet som är markerat i granskningens ruta: en tunn linje mellan greppet och hoseln (B13).
+/// Guiden första gången (BESLUT B59): tre bilder, greppet, klubbhuvudet och klart (skaftlinjen,
+/// och att appen går vidare själv). Öppnas igen med "?".
+struct ClubGuideContent: View {
+    let page: Int
+    var onNext: () -> Void = {}
+    var onClose: () -> Void = {}
+
+    static let pages = 3
+
+    private var titel: String {
+        switch page {
+        case 0: return String(localized: "1 · Tap the grip")
+        case 1: return String(localized: "2 · Tap the clubhead")
+        default: return String(localized: "The next position opens")
+        }
+    }
+
+    private var rad: String {
+        switch page {
+        case 0: return String(localized: "On the shaft, between the hands. Tap 1? to use the guess.")
+        case 1: return String(localized: "Where the shaft goes into the head.")
+        default: return String(localized: "The shaft line is drawn, and the app goes on by itself.")
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Navrad(titel: String(localized: "Mark club"), hoger: {
+                Button(action: onClose) {
+                    Text("Done").typsnitt(15, .semibold).foregroundStyle(Theme.text).frame(minWidth: 44, minHeight: 40)
+                }
+                .buttonStyle(.plain)
+            }, tillbaka: onClose)
+            Spacer(minLength: 24)
+            ZStack {
+                ClubSketch(focus: page == 0 ? .grip : page == 1 ? .clubhead : .both)
+                    .frame(width: 150, height: 210)
+                if page == 2 { GuideLine().frame(width: 150, height: 210) }
+            }
+            .frame(maxWidth: .infinity)
+            Spacer(minLength: 24)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(titel).typsnitt(22, .semibold).foregroundStyle(Theme.text)
+                Text(rad).typsnitt(15).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            HStack(spacing: 6) {
+                ForEach(0..<Self.pages, id: \.self) { i in
+                    Circle().fill(i == page ? Theme.text : Theme.line).frame(width: 6, height: 6)
+                }
+            }
+            .padding(.top, 20)
+            .accessibilityHidden(true)
+            Button(page + 1 < Self.pages ? LocalizedStringKey("Next") : LocalizedStringKey("Start"),
+                   action: page + 1 < Self.pages ? onNext : onClose)
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 20)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+}
+
+/// Skaftlinjen i guidens sista bild: punkterna 1 och 2 med linjen mellan, som på ytan.
+private struct GuideLine: View {
+    var body: some View {
+        Canvas { c, s in
+            let a = CGPoint(x: 0.36 * s.width, y: 0.19 * s.height), b = CGPoint(x: 0.66 * s.width, y: 0.80 * s.height)
+            c.linje(a, b, Theme.text, 1.5)
+            c.draw(Text(verbatim: "1").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text),
+                   at: CGPoint(x: a.x - 16, y: a.y))
+            c.draw(Text(verbatim: "2").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text),
+                   at: CGPoint(x: b.x - 16, y: b.y))
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Skaftet som är markerat i granskningens ruta: en tunn linje mellan greppet och klubbhuvudet (B13).
 struct ShaftOverlay: View {
     let shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))?
 

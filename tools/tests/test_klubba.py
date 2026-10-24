@@ -193,9 +193,22 @@ class Mattet(unittest.TestCase):
         v = KL.visad_telefonen((0.2, 0.1, 0.5, 0.6), 1080, 1920)
         self.assertEqual(v, [135, 19, 702, 1498])
         self.assertEqual(KL.yta_till_bild(0.0, 1.0, v), (135.0, 19.0 + 1498.0))
-        fo = KL.fixturer()["yta"][3]
+        yta = KL.fixturer()["yta"]
+        fo = yta[3]
         self.assertEqual(fo["visad"], [48, 168, 984, 1752])
         self.assertEqual(fo["punkt"], [48 + 0.62 * 984, 168 + 0.18 * 1752])
+        # Inzoomat (S7c, M45): 2,5 gånger utan skala; med skaftet 320 px får cirkeln plats
+        # (984 / (2 · 1,15 · 320) = 1,34 gånger), mitten flyttas in i ytan, och trycket är
+        # zoomens pixel.
+        zoomade = [y for y in yta if y["zoom"]]
+        self.assertEqual(len(zoomade), 4)
+        self.assertEqual(KL.zoom_start([0, 0, 1080, 1920], (540.0, 960.0), None), [324.0, 576.0, 432.0, 768.0])
+        z = zoomade[0]["zoom"]["rect"]
+        self.assertAlmostEqual(984 / z[2], 984 / (2 * 1.15 * 320), delta=1e-9)
+        self.assertEqual(zoomade[1]["zoom"]["rect"][0], 48.0, "mitten vid kanten flyttas in")
+        self.assertAlmostEqual(KL.zoom_start([0, 0, 1080, 1920], (540.0, 960.0), 2000.0)[2], 1080.0,
+                               msg="aldrig under 1 gång")
+        self.assertEqual(zoomade[2]["punkt"], [384 + 0.04 * 432, 516 + 0.96 * 768])
 
 
 class Formatet(unittest.TestCase):
