@@ -89,9 +89,12 @@ public struct TreDFil: Codable, Equatable, Sendable {
     public var sekunder: Double?
     public var treD: TreDResultat?
     public var hoppat: String?
+    /// De oavrundade talen per uppställning (`TreDInre`), så att PC:n kan redovisa grenar som
+    /// slog om (BESLUT B63, METOD MS19).
+    public var inre: [TreDInre?]?
 
     enum CodingKeys: String, CodingKey {
-        case format, pass, raknad, kallor, sekunder, hoppat
+        case format, pass, raknad, kallor, sekunder, hoppat, inre
         case raknadAv = "raknad_av", treD = "tre_d"
     }
 
@@ -105,7 +108,9 @@ public struct TreDFil: Codable, Equatable, Sendable {
         self.kallor = kallor
         self.sekunder = sekunder
         switch ut {
-        case let .resultat(r): treD = r
+        case let .resultat(r):
+            treD = r
+            inre = r.inre
         case let .hoppat(s): hoppat = s
         }
     }
@@ -168,8 +173,21 @@ public struct TreDKort: Equatable, Sendable {
     public let skal: [String]
 
     /// `forra` = förra passet med 3D (samma klubba, vy och längd, `PassHistory.earlierTreD`).
-    public init(_ fil: TreDFil, forra: (datum: Date, median: [String: TreDMedian])? = nil, katalog: Katalog? = nil) {
+    /// `aktuell` = filen gäller passets slag som de är nu; annars visas inga tal, bara "Updating…"
+    /// (S6c-2, METOD MS19).
+    public init(_ fil: TreDFil, forra: (datum: Date, median: [String: TreDMedian])? = nil, katalog: Katalog? = nil,
+                aktuell: Bool = true) {
         rubrik = Texter.treDRubrik
+        guard aktuell else {
+            rader = (katalog?.treD.map(\.matt) ?? TvaKameror.matt).map { m in
+                let e = Etiketter.etikett(m)
+                return Rad(matt: m, namn: e.namn, varde: nil, enhet: e.enhet, mot: nil, tydlig: false, n: 0,
+                           info: katalog?.treD.first { $0.matt == m }.map { Infoblad($0, namn: e.namn) })
+            }
+            svingar = nil
+            skal = [Texter.treDUppdateras]
+            return
+        }
         guard let r = fil.treD else {
             rader = []
             svingar = nil

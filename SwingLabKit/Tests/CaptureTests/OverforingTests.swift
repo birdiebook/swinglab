@@ -148,187 +148,387 @@ final class OverforingTests: XCTestCase {
     // MARK: Bitarna
 
     static func innehall(_ n: Int) -> Data {
-        Data((0..<n).map { UInt8(truncatingIfNeeded: $0 &* 2_654_435_761 >> 7) })
+        Data((0..<n).map { UInt8(truncatingIfNeeded: ($0 &* 2_654_435_761) >> 7) })
     }
 
-    func testBitarnaKommerFramIOrdningOchUtan() {
+    func testBitarnaKommerFramOchDubbletterSlangs() {
         let d = Self.innehall(3 * Overforing.delBytes + 1000)
         var s = PartSender()
-        let delar = s.enqueue(kind: Overforing.slag, pass: Self.pass, data: d)
+        let delar = s.enqueue(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: d))
         XCTAssertEqual(delar.count, 4)
         XCTAssertEqual(Set(delar.map(\.id)), [Overforing.summa(d)])
-        var r = PartReceiver()
+        var r = PartReceiver(tillatna: [Overforing.slag])
         var hel: Data?
-        // Baklänges och en bit två gånger.
-        for p in [delar[3], delar[1], delar[1], delar[0], delar[2]] {
+        for p in [delar[0], delar[2], delar[1], delar[1], delar[3]] {
             switch r.receive(p) {
             case let .kvittera(a):
                 XCTAssertEqual(a.map(\.index), [p.index])
-                for k in a { _ = s.receive(k) }
-            case let .hel(kind, pass, id, data, a):
+                for k in a { XCTAssertEqual(s.receive(k), .inget) }
+            case let .hel(kind, pass, id, bytes, bitar, a):
                 XCTAssertEqual(kind, Overforing.slag)
-                XCTAssertEqual(pass, Self.pass)
                 XCTAssertEqual(a.map(\.index), [p.index])
-                hel = data
+                hel = Overforing.foga(id: id, bytes: bytes, delar: bitar)
                 for k in a { _ = s.receive(k) }
-                // Alla bitar kvitterade men inte helheten: den sista skickas igen vid ett tapp.
-                XCTAssertEqual(s.unacked().map(\.index), [3])
-                let klar = r.klar(kind: kind, pass: pass, id: id)
-                XCTAssertTrue(s.receive(klar).done)
+                XCTAssertEqual(s.unacked(), [])
+                XCTAssertEqual(s.count, 1, "helheten är inte kvitterad")
+                let klar = r.svara(kind: kind, pass: pass, id: id, .sparad)!
+                XCTAssertEqual(s.receive(klar), .klar(kind: kind, pass: pass, id: id))
             }
         }
         XCTAssertEqual(hel, d)
         XCTAssertEqual(s.count, 0)
-        XCTAssertEqual(s.unacked(), [])
         // En bit som kommer igen efter helheten får helhetens kvittens igen.
-        if case let .kvittera(a) = r.receive(delar[2]) {
-            XCTAssertEqual(a.map(\.index), [2, nil])
-        } else {
-            XCTFail("biten togs emot på nytt")
+        guard case let .kvittera(a) = r.receive(delar[2]) else { return XCTFail("biten togs emot på nytt") }
+        XCTAssertEqual(a.map(\.index), [2, nil])
+        XCTAssertEqual(a.last?.ok, true)
+    }
+
+    /// Mottagaren startas om mitt i: avsändaren skickar allt igen vid nästa hello (`alla`), och en
+    /// bit för en överföring som mottagaren inte känner ger "börja om".
+    func testOmstartMittIOchOkandOverforing() {
+        let d = Self.innehall(2 * Overforing.delBytes + 5)
+        var s = PartSender()
+        let delar = s.enqueue(kind: Overforing.slag, pass: Self.pass, data: d)
+        var r = PartReceiver(tillatna: [Overforing.slag])
+        for p in delar.prefix(2) {
+            guard case let .kvittera(a) = r.receive(p) else { return XCTFail() }
+            for k in a { _ = s.receive(k) }
         }
+        XCTAssertEqual(s.unacked().map(\.index), [2])
+        // Omstart: en ny mottagare. Den sista biten ensam ger "börja om".
+        r = PartReceiver(tillatna: [Overforing.slag])
+        guard case let .kvittera(a) = r.receive(delar[2]) else { return XCTFail() }
+        XCTAssertEqual(a, [LinkPartAck(kind: Overforing.slag, pass: Self.pass, id: delar[0].id, index: nil, ok: false)])
+        XCTAssertEqual(s.receive(a[0]), .igen(delar))
+        // Och allt vid nästa hello.
+        let igen = s.alla()
+        XCTAssertEqual(igen, delar)
+        var fick: Data?
+        for p in igen {
+            if case let .hel(_, _, id, bytes, bitar, _) = r.receive(p) { fick = Overforing.foga(id: id, bytes: bytes, delar: bitar) }
+        }
+        XCTAssertEqual(fick, d)
     }
 
     func testFelSummaSkickarAlltIgen() {
         let d = Self.innehall(Overforing.delBytes + 10)
         var s = PartSender()
         var delar = s.enqueue(kind: Overforing.treD, pass: Self.pass, data: d)
-        // En bit med fel innehåll men rätt storlek.
         var b = [UInt8](Data(base64Encoded: delar[1].data)!)
         b[0] ^= 0xFF
         delar[1].data = Data(b).base64EncodedString()
-        var r = PartReceiver()
+        var r = PartReceiver(tillatna: [Overforing.treD])
         _ = r.receive(delar[0])
-        guard case let .kvittera(a) = r.receive(delar[1]) else { return XCTFail("fel summa togs emot") }
-        XCTAssertEqual(a.last?.index, nil)
-        XCTAssertEqual(a.last?.ok, false)
-        let igen = s.receive(a.last!)
-        XCTAssertFalse(igen.done)
-        XCTAssertEqual(igen.resend.count, 2)
+        guard case let .hel(kind, pass, id, bytes, bitar, _) = r.receive(delar[1]) else { return XCTFail("inte hel") }
+        XCTAssertNil(Overforing.foga(id: id, bytes: bytes, delar: bitar))
+        let a = r.svara(kind: kind, pass: pass, id: id, .felSumma)!
+        XCTAssertEqual(a.ok, false)
+        XCTAssertNil(a.fel)
+        XCTAssertEqual(s.receive(a), .igen(s.pagaende[Overforing.treD]!.delar))
     }
 
-    func testBitarSomInteGarAttLasaKvitterasInte() {
-        let d = Self.innehall(100)
-        var p = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: d)[0]
-        var r = PartReceiver()
+    /// Granskningen: count 2 index 0, sedan count 6 index 5 för samma id. Förut kraschade
+    /// ihopfogningen; nu börjar den senare biten en ny överföring, och den börjar inte med 0.
+    func testFelaktigaBitarKrascharInte() {
+        var r = PartReceiver(tillatna: [Overforing.slag])
+        let a = LinkPart(kind: Overforing.slag, pass: Self.pass, id: "x-1", index: 0, count: 2,
+                         bytes: Overforing.delBytes + 1, data: Data([1]).base64EncodedString())
+        XCTAssertEqual(r.receive(a), .kvittera([LinkPartAck(kind: Overforing.slag, pass: Self.pass, id: "x-1", index: 0, ok: true)]))
+        let b = LinkPart(kind: Overforing.slag, pass: Self.pass, id: "x-1", index: 5, count: 6,
+                         bytes: 5 * Overforing.delBytes + 1, data: Data([2]).base64EncodedString())
+        XCTAssertEqual(r.receive(b), .kvittera([LinkPartAck(kind: Overforing.slag, pass: Self.pass, id: "x-1", index: nil, ok: false)]))
+        // Fel storlek mot antalet, ett negativt index och för stora: läses inte.
+        var c = a
+        c.count = 3
+        XCTAssertEqual(r.receive(c), .kvittera([]))
+        c = a
+        c.index = -1
+        XCTAssertEqual(r.receive(c), .kvittera([]))
+        c = a
+        c.bytes = SlagBunt.maxBytes + 1
+        c.count = Overforing.antal(c.bytes)
+        XCTAssertEqual(r.receive(c), .kvittera([]))
+        // En bit med fel storlek fogas inte ihop.
+        let d = Self.innehall(Overforing.delBytes + 1)
+        let delar = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: d)
+        XCTAssertNil(Overforing.foga(id: delar[0].id, bytes: d.count, delar: [delar[0].data, delar[0].data]))
+        XCTAssertNil(Overforing.foga(id: delar[0].id, bytes: d.count, delar: [delar[0].data]))
+        XCTAssertEqual(Overforing.foga(id: delar[0].id, bytes: d.count, delar: delar.map(\.data)), d)
+    }
+
+    func testNejOchSkalen() {
+        var r = PartReceiver(tillatna: [Overforing.slag])
+        let p = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: Self.innehall(100))[0]
         var v = p
-        v.v = 2                                                     // en senare version
-        XCTAssertEqual(r.receive(v), .kvittera([]))
-        v = p
-        v.count = 3                                                 // fel antal för storleken
-        XCTAssertEqual(r.receive(v), .kvittera([]))
-        p.data = "!!"
-        XCTAssertEqual(r.receive(p), .kvittera([]))
+        v.v = 2
+        XCTAssertEqual(r.receive(v), .kvittera([LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false,
+                                                            fel: Overforing.felVersion)]))
+        var k = p
+        k.kind = Overforing.treD                                    // den styrande tar bara slagen
+        XCTAssertEqual(r.receive(k), .kvittera([LinkPartAck(kind: k.kind, pass: p.pass, id: p.id, index: nil, ok: false,
+                                                            fel: Overforing.felFormat)]))
+        // Ett nej från appen gäller också en bit som kommer igen.
+        guard case let .hel(kind, pass, id, _, _, _) = r.receive(p) else { return XCTFail() }
+        let nej = r.svara(kind: kind, pass: pass, id: id, .nej(Overforing.felFormat))
+        XCTAssertEqual(nej?.fel, Overforing.felFormat)
+        guard case let .kvittera(a) = r.receive(p) else { return XCTFail() }
+        XCTAssertEqual(a.last?.fel, Overforing.felFormat)
+        var s = PartSender()
+        _ = s.enqueue([p])
+        XCTAssertEqual(s.receive(nej!), .nekad(kind: kind, pass: pass, fel: Overforing.felFormat))
+        XCTAssertEqual(s.count, 0, "efter ett nej skickas inget mer")
+        // Osparad: ingen kvittens, och biten tas emot igen.
+        var r2 = PartReceiver(tillatna: [Overforing.slag])
+        guard case .hel = r2.receive(p) else { return XCTFail() }
+        XCTAssertNil(r2.svara(kind: p.kind, pass: p.pass, id: p.id, .osparad))
+        guard case .hel = r2.receive(p) else { return XCTFail("osparad togs inte emot igen") }
     }
 
-    func testEnBitRymsIRamen() throws {
+    func testEnBitRymsIRamenOchOkandTypHoppasOver() throws {
         let d = Self.innehall(Overforing.delBytes)
         let p = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: d)[0]
         let ram = try Wire.frame(.part(p))
         XCTAssertLessThan(ram.count, Wire.maxLength)
+        XCTAssertLessThan(ram.count, 270_000)
+        let a = LinkPartAck(kind: Overforing.slag, pass: Self.pass, id: p.id, index: nil, ok: false, fel: "pass")
+        // En okänd typ (en senare app) mellan två kända: hoppas över, förbindelsen lever.
+        let okand = Data(#"{"type":"framtid","x":[1,2]}"#.utf8)
+        var strom = ram
+        strom.append(Data([0, 0, 0, UInt8(okand.count)]) + okand)
+        strom.append(try Wire.frame(.partAck(a)))
         var r = Wire.Reader()
-        XCTAssertEqual(try r.feed(ram), [.part(p)])
-        let a = LinkPartAck(kind: Overforing.slag, pass: Self.pass, id: p.id, index: nil, ok: true)
-        var r2 = Wire.Reader()
-        XCTAssertEqual(try r2.feed(try Wire.frame(.partAck(a))), [.partAck(a)])
+        XCTAssertEqual(try r.feed(strom), [.part(p), .partAck(a)])
+        XCTAssertEqual(r.skipped, 1)
         let json = String(decoding: try Wire.frame(.partAck(a)).dropFirst(4), as: UTF8.self)
         XCTAssertTrue(json.contains(#""type":"part_ack""#), json)
+        // Ett hello från en senare app med okända nycklar läses, och ett från en äldre utan syfte och
+        // förmågor räknas som inspelning utan bitar.
+        let nytt = Data(#"{"type":"hello","hello":{"role":"folj","device":"B","model":"m","app":"9","view":"fo","mode":"pass","caps":["part1","part2"],"ny":1}}"#.utf8)
+        let gammalt = Data(#"{"type":"hello","hello":{"role":"folj","device":"B","model":"m","app":"0.1","view":"fo"}}"#.utf8)
+        guard case let .hello(h1) = try JSONDecoder().decode(LinkMessage.self, from: nytt),
+              case let .hello(h2) = try JSONDecoder().decode(LinkMessage.self, from: gammalt) else { return XCTFail() }
+        XCTAssertEqual(h1.syfte, .pass)
+        XCTAssertTrue(h1.kanDelar)
+        XCTAssertEqual(h2.syfte, .record)
+        XCTAssertFalse(h2.kanDelar)
     }
 
     // MARK: Telefonerna
 
-    /// Följaren skickar sina slag under ett tapp, den styrande tar emot dem när kopplingen
-    /// kommer tillbaka, och 3D går tillbaka till följaren, även till en som ansluter senare.
-    func testSlagenOchTreDMellanTelefonerna() {
-        let lead = LinkHello(role: .lead, device: "A", model: "iPhone18,3", app: "0.1.0", view: .dtl)
-        let follow = LinkHello(role: .follow, device: "B", model: "iPhone14,5", app: "0.1.0", view: .fo)
-        var f = LinkFollower(hello: follow)
-        var l = LinkLeader(hello: lead, passID: Self.pass)
-        let slag = Self.innehall(2 * Overforing.delBytes + 77)
+    static let ledare = LinkHello(role: .lead, device: "A", model: "iPhone18,3", app: "0.1.0", view: .dtl, mode: .pass)
+    static let foljare = LinkHello(role: .follow, device: "B", model: "iPhone14,5", app: "0.1.0", view: .fo, mode: .pass)
 
-        // Tappad koppling: inget skickas, och biten väntar.
-        XCTAssertEqual(f.send(kind: Overforing.slag, pass: Self.pass, data: slag), [])
-        XCTAssertEqual(f.parts.count, 1)
+    /// Nätet i minnet: meddelandena går genom Wire, och appens svar på en hel överföring
+    /// (`svar`) körs som PhoneLink gör det.
+    final class Nat {
+        var f: LinkFollower
+        var l: LinkLeader
+        var peer = 1
+        var uppe = false
+        var tillLedare = Wire.Reader()
+        var tillFoljare = Wire.Reader()
+        var ledarensSvar: Mottagning = .sparad
+        var foljarensSvar: Mottagning = .sparad
+        var ledarenFick: [Data] = []
+        var foljarenFick: [Data] = []
+        var levererat: [String] = []
+        var nekat: [String] = []
+        var stangt: [Int] = []
+        /// Släpp den här bitens svar (ett tapp precis efter).
+        var tappaEfter: ((LinkMessage) -> Bool)?
 
-        // Kopplingen uppe: hello och alla bitar; den styrande tar emot dem.
-        var tillLedare: [LinkMessage] = f.connected().compactMap { if case let .send(m) = $0 { return m } else { return nil } }
-        XCTAssertEqual(tillLedare.count, 1 + 3)
-        _ = l.connected(peer: 1)
-        var mottaget: Data?
-        var tillFoljare: [LinkMessage] = []
-        // Tappet: den sista bitens svar når inte fram.
-        for (i, m) in tillLedare.enumerated() {
-            for a in l.receive(m, from: 1, at: 0) {
-                switch a {
-                case let .received(dev, kind, pass, data):
-                    XCTAssertEqual(dev, "B")
-                    XCTAssertEqual(kind, Overforing.slag)
-                    XCTAssertEqual(pass, Self.pass)
-                    mottaget = data
-                case let .send(_, m) where i < tillLedare.count - 1:
-                    tillFoljare.append(m)
-                default:
-                    break
+        init(f: LinkFollower = LinkFollower(hello: OverforingTests.foljare),
+             l: LinkLeader = LinkLeader(hello: OverforingTests.ledare, passID: OverforingTests.pass)) {
+            self.f = f
+            self.l = l
+        }
+
+        func anslut() {
+            uppe = true
+            peer += 1
+            tillLedare = Wire.Reader()
+            tillFoljare = Wire.Reader()
+            // Följarens hello går först (det skickas när förbindelsen är uppe), sedan den styrandes.
+            foljare(f.connected())
+            ledare(l.connected(peer: peer))
+        }
+
+        func tapp() {
+            uppe = false
+            l.disconnected(peer: peer)
+            f.disconnected()
+        }
+
+        func ledare(_ a: [LinkLeader.Action]) {
+            for x in a {
+                switch x {
+                case let .send(p, m):
+                    guard uppe, p == peer else { continue }
+                    for m in try! tillFoljare.feed(try! Wire.frame(m)) { foljare(f.receive(m, at: 0, now: { 0 })) }
+                case let .received(dev, kind, pass, id, bytes, delar):
+                    let d = Overforing.foga(id: id, bytes: bytes, delar: delar)
+                    if let d, ledarensSvar == .sparad { ledarenFick.append(d) }
+                    ledare(l.svara(device: dev, kind: kind, pass: pass, id: id, d == nil ? .felSumma : ledarensSvar))
+                case let .close(p): stangt.append(p)
+                case .paired, .store: break
                 }
             }
         }
-        XCTAssertEqual(mottaget, slag)
-        for m in tillFoljare { _ = f.receive(m, at: 0, now: { 0 }) }
-        XCTAssertEqual(f.parts.count, 1, "helheten är inte kvitterad")
 
-        // Tillbaka: den sista biten igen, och den styrande svarar med helhetens kvittens.
-        f.disconnected()
-        tillLedare = f.connected().compactMap { if case let .send(m) = $0 { return m } else { return nil } }
-        XCTAssertEqual(tillLedare.count, 2)
-        l.disconnected(peer: 1)
-        _ = l.connected(peer: 2)
-        var levererat = false
-        for m in tillLedare {
-            for a in l.receive(m, from: 2, at: 0) {
-                if case .received = a { XCTFail("togs emot två gånger") }
-                if case let .send(_, svar) = a {
-                    for b in f.receive(svar, at: 0, now: { 0 }) {
-                        if case .delivered(Overforing.slag, Self.pass, _) = b { levererat = true }
+        func foljare(_ a: [LinkFollower.Action]) {
+            for x in a {
+                switch x {
+                case let .send(m):
+                    guard uppe else { continue }
+                    let tappa = tappaEfter?(m) == true
+                    for m in try! tillLedare.feed(try! Wire.frame(m)) {
+                        let svar = l.receive(m, from: peer, at: 0)
+                        if tappa {
+                            tappaEfter = nil
+                            tapp()
+                            continue
+                        }
+                        ledare(svar)
                     }
+                case let .received(kind, pass, id, bytes, delar):
+                    let d = Overforing.foga(id: id, bytes: bytes, delar: delar)
+                    if let d, foljarensSvar == .sparad { foljarenFick.append(d) }
+                    foljare(f.svara(kind: kind, pass: pass, id: id, d == nil ? .felSumma : foljarensSvar))
+                case let .delivered(kind, _, _): levererat.append(kind)
+                case let .refused(_, _, fel): nekat.append(fel)
+                case .startRecording, .stopRecording: break
                 }
             }
         }
-        XCTAssertTrue(levererat)
-        XCTAssertEqual(f.parts.count, 0)
-
-        // 3D tillbaka till följaren.
-        let tred = Self.innehall(5000)
-        var tillF: [LinkMessage] = l.sendToFollowers(kind: Overforing.treD, pass: Self.pass, data: tred)
-            .compactMap { if case let .send(2, m) = $0 { return m } else { return nil } }
-        XCTAssertEqual(tillF.count, 1)
-        var fick: Data?
-        var svar: [LinkMessage] = []
-        for m in tillF {
-            for a in f.receive(m, at: 0, now: { 0 }) {
-                if case let .received(kind, _, data) = a, kind == Overforing.treD { fick = data }
-                if case let .send(s) = a { svar.append(s) }
-            }
-        }
-        XCTAssertEqual(fick, tred)
-        for s in svar { _ = l.receive(s, from: 2, at: 0) }
-        XCTAssertEqual(l.unsentParts, 0)
-
-        // En ny följare som ansluter efteråt får 3D vid sitt hello.
-        let ny = LinkHello(role: .follow, device: "C", model: "iPhone14,5", app: "0.1.0", view: .fo)
-        _ = l.connected(peer: 3)
-        tillF = l.receive(.hello(ny), from: 3, at: 0).compactMap { if case let .send(3, m) = $0 { return m } else { return nil } }
-        XCTAssertTrue(tillF.contains { if case .part = $0 { return true } else { return false } })
-        // Och följaren B, som redan kvitterat, får den inte igen.
-        _ = l.connected(peer: 4)
-        tillF = l.receive(.hello(follow), from: 4, at: 0).compactMap { if case let .send(4, m) = $0 { return m } else { return nil } }
-        XCTAssertFalse(tillF.contains { if case .part = $0 { return true } else { return false } })
     }
 
-    /// En överföring för ett annat pass tas inte emot av den styrande.
-    func testAnnatPassTasInteEmot() {
-        let follow = LinkHello(role: .follow, device: "B", model: "iPhone14,5", app: "0.1.0", view: .fo)
-        var l = LinkLeader(hello: LinkHello(role: .lead, device: "A", model: "m", app: "1", view: .dtl), passID: Self.pass)
-        _ = l.receive(.hello(follow), from: 1, at: 0)
-        let p = Overforing.dela(kind: Overforing.slag, pass: "20261103-190000", data: Self.innehall(10))[0]
-        XCTAssertEqual(l.receive(.part(p), from: 1, at: 0), [])
+    /// Följaren skickar sina slag under ett tapp, ett tapp mitt i, och den styrande tar emot dem
+    /// när kopplingen kommer tillbaka; 3D går tillbaka till följaren, även till en som ansluter senare.
+    func testSlagenOchTreDMellanTelefonerna() {
+        let n = Nat()
+        let slag = Self.innehall(3 * Overforing.delBytes + 77)
+        let delar = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: slag)
+        n.foljare(n.f.send(delar))                                   // nere: väntar
+        XCTAssertEqual(n.f.parts.count, 1)
+        // Uppe, men tappet efter andra biten.
+        var bitar = 0
+        n.tappaEfter = { m in
+            if case .part = m { bitar += 1 }
+            return bitar == 2
+        }
+        n.anslut()
+        XCTAssertFalse(n.uppe)
+        XCTAssertEqual(n.ledarenFick, [])
+        // Tillbaka: allt igen, och den styrande fogar ihop.
+        n.anslut()
+        XCTAssertEqual(n.ledarenFick, [slag])
+        XCTAssertEqual(n.levererat, [Overforing.slag])
+        XCTAssertEqual(n.f.parts.count, 0)
+
+        // 3D tillbaka.
+        let tred = Self.innehall(5000)
+        n.ledare(n.l.sendToFollowers(Overforing.dela(kind: Overforing.treD, pass: Self.pass, data: tred)))
+        XCTAssertEqual(n.foljarenFick, [tred])
+        XCTAssertEqual(n.l.unsentParts, 0)
+        // Samma följare igen (nytt hello): får den inte igen.
+        n.tapp()
+        n.anslut()
+        XCTAssertEqual(n.foljarenFick, [tred])
+        // En ny följare som ansluter efteråt får 3D vid sitt hello.
+        let ny = LinkHello(role: .follow, device: "C", model: "m", app: "1", view: .fo, mode: .pass)
+        let svar = n.l.receive(.hello(ny), from: 99, at: 0)
+        XCTAssertTrue(svar.contains { if case .send(99, .part) = $0 { return true } else { return false } })
+    }
+
+    /// Den styrande startas om mitt i (en ny LinkLeader): följaren skickar allt igen vid dess hello.
+    func testDenStyrandeStartasOmMittI() {
+        let n = Nat()
+        let slag = Self.innehall(2 * Overforing.delBytes + 1)
+        var bitar = 0
+        n.tappaEfter = { m in
+            if case .part = m { bitar += 1 }
+            return bitar == 2
+        }
+        n.anslut()
+        n.foljare(n.f.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: slag)))
+        XCTAssertFalse(n.uppe)
+        n.l = LinkLeader(hello: Self.ledare, passID: Self.pass)
+        n.anslut()
+        XCTAssertEqual(n.ledarenFick, [slag])
+        XCTAssertEqual(n.levererat, [Overforing.slag])
+    }
+
+    /// Sparningen misslyckas hos den styrande: ingen kvittens, och allt kommer igen när
+    /// kopplingen kommer tillbaka (`osparad`).
+    func testOsparadKommerIgen() {
+        let n = Nat()
+        n.ledarensSvar = .osparad
+        n.anslut()
+        let slag = Self.innehall(1000)
+        n.foljare(n.f.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: slag)))
+        XCTAssertEqual(n.levererat, [])
+        XCTAssertEqual(n.f.parts.count, 1)
+        n.ledarensSvar = .sparad
+        n.tapp()
+        n.anslut()
+        XCTAssertEqual(n.ledarenFick, [slag])
+        XCTAssertEqual(n.levererat, [Overforing.slag])
+    }
+
+    /// Ett annat pass hos den styrande: nej med skälet, och följaren slutar skicka.
+    func testAnnatPassFarNej() {
+        let n = Nat(l: LinkLeader(hello: Self.ledare, passID: "20261103-190000"))
+        n.anslut()
+        n.foljare(n.f.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: Self.innehall(10))))
+        XCTAssertEqual(n.nekat, [Overforing.felPass])
+        XCTAssertEqual(n.f.parts.count, 0)
+        n.tapp()
+        n.anslut()
+        XCTAssertEqual(n.ledarenFick, [])
+        XCTAssertEqual(n.nekat, [Overforing.felPass], "inget skickades igen efter nejet")
+    }
+
+    /// Syftet: passets 3D kopplar inte till inspelningen, och en annan telefon än passets partner
+    /// kopplas bort (BESLUT B61).
+    func testSyftetOchPartnern() {
+        var l = LinkLeader(hello: LinkHello(role: .lead, device: "A", model: "m", app: "1", view: .dtl, mode: .record))
+        XCTAssertEqual(l.receive(.hello(Self.foljare), from: 1, at: 0), [.close(peer: 1)])
+        XCTAssertTrue(l.followers.isEmpty)
+        var f = LinkFollower(hello: Self.foljare)
+        _ = f.receive(.hello(LinkHello(role: .lead, device: "A", model: "m", app: "1", view: .dtl, mode: .record)),
+                      at: 0, now: { 0 })
+        XCTAssertNil(f.lead)
+        var p = LinkLeader(hello: Self.ledare, passID: Self.pass)
+        p.partner = "Z"
+        XCTAssertEqual(p.receive(.hello(Self.foljare), from: 1, at: 0), [.close(peer: 1)])
+        p.partner = "B"
+        XCTAssertNotEqual(p.receive(.hello(Self.foljare), from: 2, at: 0), [.close(peer: 2)])
+        XCTAssertEqual(p.followers.count, 1)
+    }
+
+    /// Förmågorna: en äldre app utan "part1" får inga bitar, åt något håll.
+    func testUtanFormaganSkickasInget() {
+        let gammal = LinkHello(role: .lead, device: "A", model: "m", app: "0.1", view: .dtl, mode: .pass, caps: nil)
+        var f = LinkFollower(hello: Self.foljare)
+        _ = f.connected()
+        _ = f.receive(.hello(gammal), at: 0, now: { 0 })
+        XCTAssertEqual(f.send(Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: Self.innehall(10))), [])
+        XCTAssertEqual(f.parts.count, 1)
+        var l = LinkLeader(hello: Self.ledare, passID: Self.pass)
+        _ = l.receive(.hello(LinkHello(role: .follow, device: "B", model: "m", app: "0.1", view: .fo, mode: .pass, caps: nil)),
+                      from: 1, at: 0)
+        XCTAssertEqual(l.sendToFollowers(Overforing.dela(kind: Overforing.treD, pass: Self.pass, data: Self.innehall(10))), [])
+    }
+
+    /// Minnet: högst `maxMottagare` följare tas emot samtidigt.
+    func testHogstFyraMottagare() {
+        var l = LinkLeader(hello: Self.ledare, passID: Self.pass)
+        let d = Overforing.dela(kind: Overforing.slag, pass: Self.pass, data: Self.innehall(2 * Overforing.delBytes))
+        for i in 0..<5 {
+            _ = l.receive(.hello(LinkHello(role: .follow, device: "F\(i)", model: "m", app: "1", view: .fo, mode: .pass)),
+                          from: 10 + i, at: 0)
+            let svar = l.receive(.part(d[0]), from: 10 + i, at: 0)
+            XCTAssertEqual(svar.isEmpty, i == LinkLeader.maxMottagare, "följare \(i)")
+        }
     }
 }

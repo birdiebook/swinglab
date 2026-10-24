@@ -347,7 +347,7 @@ public final class ZipLasare {
 /// hela innehållets summa (`Overforing.summa`), så att samma innehåll är samma överföring och
 /// ett nytt ersätter ett gammalt av samma slag. METOD MS19
 public struct LinkPart: Codable, Equatable, Sendable {
-    /// Meddelandets version. En bit med en annan version läses inte (och kvitteras inte).
+    /// Meddelandets version. En bit med en annan version tas inte emot (kvittensen säger "version").
     public static let version = 1
 
     public var v: Int
@@ -374,8 +374,10 @@ public struct LinkPart: Codable, Equatable, Sendable {
     }
 }
 
-/// Kvittensen för en bit (`index`), eller för hela överföringen (`index` nil): `ok` = sparad,
-/// annars stämde inte summan och allt skickas igen.
+/// Kvittensen för en bit (`index`), eller för hela överföringen (`index` nil). `ok` = sparad.
+/// `ok: false` utan `fel`: summan stämde inte eller mottagaren känner inte överföringen, och allt
+/// skickas igen. `ok: false` med `fel` är ett nej, och avsändaren slutar: "pass" (ett annat pass),
+/// "version" (en annan version av bitarna) eller "format" (innehållet går inte att läsa).
 public struct LinkPartAck: Codable, Equatable, Sendable {
     public var v: Int
     public var kind: String
@@ -383,27 +385,32 @@ public struct LinkPartAck: Codable, Equatable, Sendable {
     public var id: String
     public var index: Int?
     public var ok: Bool
+    public var fel: String?
 
-    public init(v: Int = LinkPart.version, kind: String, pass: String, id: String, index: Int?, ok: Bool) {
+    public init(v: Int = LinkPart.version, kind: String, pass: String, id: String, index: Int?, ok: Bool,
+                fel: String? = nil) {
         self.v = v
         self.kind = kind
         self.pass = pass
         self.id = id
         self.index = index
         self.ok = ok
+        self.fel = fel
     }
 }
 
-/// Överföringens konstanter och delningen. METOD MS19
+/// Överföringens konstanter, delningen och ihopfogningen. METOD MS19
 public enum Overforing {
     /// Följarens slag till den styrande.
     public static let slag = "slag"
     /// 3D-resultatet tillbaka till följaren.
     public static let treD = "tre_d"
-    /// Byte per bit: base64 och JSON runt om ger cirka 350 kB, under ramens 1 MB (`Wire.maxLength`).
+    /// Byte per bit: base64 ger cirka 262 kB per meddelande, under ramens 1 MB (`Wire.maxLength`).
     public static let delBytes = 192 * 1024
-    /// Största överföring, byte.
-    public static let maxBytes = SlagBunt.maxBytes
+    /// Största överföring per slag, byte: bunten (`SlagBunt.maxBytes`) och 3D-filen.
+    public static let maxBytes = [slag: SlagBunt.maxBytes, treD: 2 << 20]
+    /// Nejens skäl i kvittensen.
+    public static let felPass = "pass", felVersion = "version", felFormat = "format"
 
     /// Innehållets summa: CRC-32 och längden, "1a2b3c4d-123456". Kännetecknet för innehållet,
     /// och kontrollen att alla bitar kom fram hela.
@@ -416,17 +423,43 @@ public enum Overforing {
         max(1, (bytes + delBytes - 1) / delBytes)
     }
 
-    /// Innehållet delat i bitar.
+    /// Innehållet delat i bitar. Tungt för en stor bunt (summan och base64): utanför huvudtråden.
     public static func dela(kind: String, pass: String, data: Data) -> [LinkPart] {
         let id = summa(data)
         let n = antal(data.count)
-        let b = [UInt8](data)
         return (0..<n).map { i in
-            let a = i * delBytes, e = min(b.count, a + delBytes)
-            return LinkPart(kind: kind, pass: pass, id: id, index: i, count: n, bytes: b.count,
-                            data: Data(b[a..<e]).base64EncodedString())
+            let a = data.startIndex + i * delBytes, e = min(data.endIndex, a + delBytes)
+            return LinkPart(kind: kind, pass: pass, id: id, index: i, count: n, bytes: data.count,
+                            data: data.subdata(in: a..<e).base64EncodedString())
         }
     }
+
+    /// Bitarna (base64) ihop till innehållet, eller nil när en bit inte går att läsa, har fel
+    /// storlek eller summan inte är `id`. Tungt: utanför huvudtråden.
+    public static func foga(id: String, bytes: Int, delar: [String]) -> Data? {
+        guard delar.count == antal(bytes) else { return nil }
+        var hel = Data()
+        hel.reserveCapacity(bytes)
+        for (i, b) in delar.enumerated() {
+            guard let d = Data(base64Encoded: b) else { return nil }
+            let vantat = i == delar.count - 1 ? bytes - i * delBytes : delBytes
+            guard d.count == vantat else { return nil }
+            hel.append(d)
+        }
+        return summa(hel) == id ? hel : nil
+    }
+}
+
+/// Hur mottagaren tog emot en hel överföring.
+public enum Mottagning: Equatable, Sendable {
+    /// Sparad: helheten kvitteras.
+    case sparad
+    /// Nej, med skälet (`Overforing.felPass`, `felVersion`, `felFormat`): avsändaren slutar.
+    case nej(String)
+    /// Bitarna gick inte ihop eller summan stämde inte: allt skickas igen.
+    case felSumma
+    /// Sparningen misslyckades: ingen kvittens, och allt kommer igen när kopplingen kommer tillbaka.
+    case osparad
 }
 
 /// Avsändarens sida: en överföring per slag (`kind`), bitarna som inte kvitterats och om
@@ -441,106 +474,156 @@ public struct PartSender: Equatable, Sendable {
 
     public init() {}
 
+    public enum Svar: Equatable, Sendable {
+        case inget
+        /// Helheten kvitterad.
+        case klar(kind: String, pass: String, id: String)
+        /// Att skicka igen (summan stämde inte, eller mottagaren kände inte överföringen).
+        case igen([LinkPart])
+        /// Ett nej: överföringen är struken.
+        case nekad(kind: String, pass: String, fel: String)
+    }
+
     /// Överföringar som inte kvitterats hela.
     public var count: Int { pagaende.count }
 
-    /// En ny överföring: alla bitar, att skicka nu.
-    public mutating func enqueue(kind: String, pass: String, data: Data) -> [LinkPart] {
-        let delar = Overforing.dela(kind: kind, pass: pass, data: data)
-        pagaende[kind] = Pagaende(delar: delar, kvitterade: [])
+    /// En ny överföring ur färdiga bitar (`Overforing.dela`, utanför huvudtråden): att skicka nu.
+    public mutating func enqueue(_ delar: [LinkPart]) -> [LinkPart] {
+        guard let f = delar.first else { return [] }
+        pagaende[f.kind] = Pagaende(delar: delar, kvitterade: [])
         return delar
     }
 
-    /// Det som ska skickas igen när kopplingen kommer tillbaka: bitarna som inte kvitterats,
-    /// eller den sista när alla bitar kvitterats men inte helheten (kvittensen kan ha tappats;
-    /// mottagaren svarar då med helhetens kvittens igen).
-    public func unacked() -> [LinkPart] {
+    /// En ny överföring ur innehållet (små, och proven).
+    public mutating func enqueue(kind: String, pass: String, data: Data) -> [LinkPart] {
+        enqueue(Overforing.dela(kind: kind, pass: pass, data: data))
+    }
+
+    /// Allt igen, när kopplingen kommer tillbaka: mottagaren kan ha startats om och tappat det
+    /// den hade, och den slänger dubbletter (BESLUT B22, METOD MS19).
+    public mutating func alla() -> [LinkPart] {
         var ut: [LinkPart] = []
         for k in pagaende.keys.sorted() {
-            guard let p = pagaende[k] else { continue }
-            let kvar = p.delar.filter { !p.kvitterade.contains($0.index) }
-            ut += kvar.isEmpty ? Array(p.delar.suffix(1)) : kvar
+            pagaende[k]?.kvitterade = []
+            ut += pagaende[k]?.delar ?? []
         }
         return ut
     }
 
-    /// En kvittens. Svarar bitarna som ska skickas igen (alla, när summan inte stämde) och
-    /// om överföringen är klar.
-    public mutating func receive(_ a: LinkPartAck) -> (done: Bool, resend: [LinkPart]) {
-        guard a.v == LinkPart.version, var p = pagaende[a.kind], p.delar.first?.id == a.id,
-              p.delar.first?.pass == a.pass else { return (false, []) }
-        if let i = a.index {
-            p.kvitterade.insert(i)
-            pagaende[a.kind] = p
-            return (false, [])
-        }
+    /// Bitarna som inte kvitterats (provet).
+    public func unacked() -> [LinkPart] {
+        pagaende.keys.sorted().flatMap { k in pagaende[k].map { p in p.delar.filter { !p.kvitterade.contains($0.index) } } ?? [] }
+    }
+
+    /// En kvittens.
+    public mutating func receive(_ a: LinkPartAck) -> Svar {
+        guard var p = pagaende[a.kind], let f = p.delar.first, f.id == a.id, f.pass == a.pass else { return .inget }
         if a.ok {
+            if let i = a.index {
+                p.kvitterade.insert(i)
+                pagaende[a.kind] = p
+                return .inget
+            }
             pagaende[a.kind] = nil
-            return (true, [])
+            return .klar(kind: a.kind, pass: a.pass, id: a.id)
+        }
+        if let fel = a.fel {
+            pagaende[a.kind] = nil
+            return .nekad(kind: a.kind, pass: a.pass, fel: fel)
         }
         p.kvitterade = []
         pagaende[a.kind] = p
-        return (false, p.delar)
+        return .igen(p.delar)
     }
 }
 
-/// Mottagarens sida: bitarna per slag tills alla kommit, sedan summan. En bit med en annan
-/// version, ett orimligt antal eller fel storlek läses inte. METOD MS19
+/// Mottagarens sida: bitarna per slag tills alla kommit (som text; ihopfogningen och summan
+/// görs utanför huvudtråden, `Overforing.foga`), och svaret på helheten. Bara slagen i
+/// `tillatna`, högst `Overforing.maxBytes`; en bit som inte passar den överföring som pågår
+/// börjar en ny. METOD MS19
 public struct PartReceiver: Equatable, Sendable {
     struct Mottagen: Equatable, Sendable {
         let id: String
         let pass: String
         let count: Int
         let bytes: Int
-        var delar: [Int: Data]
+        var delar: [Int: String]
     }
 
+    let tillatna: Set<String>
     var pagaende: [String: Mottagen] = [:]
-    /// Den senaste sparade överföringen per slag ("kind" → id), så att en bit som kommer igen
-    /// efter en tappad helhetskvittens får kvittensen igen i stället för att tas emot igen.
-    var klara: [String: String] = [:]
+    /// Den senast besvarade överföringen per slag: id och kvittensen (sparad eller nej), så att en
+    /// bit som kommer igen får samma svar i stället för att tas emot igen.
+    var besvarade: [String: (id: String, ok: Bool, fel: String?)] = [:]
 
-    public init() {}
+    public init(tillatna: Set<String>) {
+        self.tillatna = tillatna
+    }
+
+    public static func == (a: PartReceiver, b: PartReceiver) -> Bool {
+        a.tillatna == b.tillatna && a.pagaende == b.pagaende && a.besvarade.keys.sorted() == b.besvarade.keys.sorted()
+    }
 
     public enum Utfall: Equatable, Sendable {
         /// Kvittenser att skicka.
         case kvittera([LinkPartAck])
-        /// Allt kom fram och summan stämmer: spara, och kvittera sedan helheten (`klar`).
-        case hel(kind: String, pass: String, id: String, data: Data, kvittenser: [LinkPartAck])
+        /// Alla bitar kom: foga ihop dem, pröva summan och svara (`svara`).
+        case hel(kind: String, pass: String, id: String, bytes: Int, delar: [String], kvittenser: [LinkPartAck])
     }
 
     public mutating func receive(_ p: LinkPart) -> Utfall {
-        guard p.v == LinkPart.version, p.count == Overforing.antal(p.bytes), p.bytes >= 0,
-              p.bytes <= Overforing.maxBytes, p.index >= 0, p.index < p.count,
-              let d = Data(base64Encoded: p.data) else { return .kvittera([]) }
-        let vantat = p.index == p.count - 1 ? p.bytes - p.index * Overforing.delBytes : Overforing.delBytes
-        guard d.count == vantat else { return .kvittera([]) }
-        let bit = LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: p.index, ok: true)
-        if klara[p.kind] == p.id {
-            return .kvittera([bit, LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: true)])
+        func nej(_ fel: String) -> Utfall {
+            .kvittera([LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false, fel: fel)])
         }
-        var m = pagaende[p.kind]
-        if m == nil || m?.id != p.id || m?.pass != p.pass {
+        guard p.v == LinkPart.version else { return nej(Overforing.felVersion) }
+        guard tillatna.contains(p.kind), let tak = Overforing.maxBytes[p.kind] else { return nej(Overforing.felFormat) }
+        guard p.bytes >= 0, p.bytes <= tak, p.count == Overforing.antal(p.bytes), p.index >= 0, p.index < p.count,
+              p.data.utf8.count <= (Overforing.delBytes / 3 + 1) * 4 else { return .kvittera([]) }
+        let bit = LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: p.index, ok: true)
+        if let b = besvarade[p.kind], b.id == p.id {
+            return .kvittera([bit, LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: b.ok, fel: b.fel)])
+        }
+        var m: Mottagen
+        if let g = pagaende[p.kind], g.id == p.id, g.pass == p.pass, g.count == p.count, g.bytes == p.bytes {
+            m = g
+        } else {
+            // En ny överföring. Börjar den inte med första biten har mottagaren tappat början
+            // (startats om): avsändaren får börja om.
+            guard p.index == 0 else {
+                pagaende[p.kind] = nil
+                return .kvittera([LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false)])
+            }
             m = Mottagen(id: p.id, pass: p.pass, count: p.count, bytes: p.bytes, delar: [:])
         }
-        m!.delar[p.index] = d
-        guard m!.delar.count == m!.count else {
+        m.delar[p.index] = p.data
+        guard m.delar.count == m.count else {
             pagaende[p.kind] = m
             return .kvittera([bit])
         }
         pagaende[p.kind] = nil
-        var hel = Data()
-        hel.reserveCapacity(p.bytes)
-        for i in 0..<m!.count { hel.append(m!.delar[i]!) }
-        guard Overforing.summa(hel) == p.id else {
-            return .kvittera([bit, LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false)])
+        var delar: [String] = []
+        for i in 0..<m.count {
+            guard let d = m.delar[i] else { return .kvittera([bit]) }
+            delar.append(d)
         }
-        return .hel(kind: p.kind, pass: p.pass, id: p.id, data: hel, kvittenser: [bit])
+        return .hel(kind: p.kind, pass: p.pass, id: p.id, bytes: p.bytes, delar: delar, kvittenser: [bit])
     }
 
-    /// Helheten är sparad: kvittensen att skicka.
-    public mutating func klar(kind: String, pass: String, id: String) -> LinkPartAck {
-        klara[kind] = id
-        return LinkPartAck(kind: kind, pass: pass, id: id, index: nil, ok: true)
+    /// Svaret på en hel överföring: kvittensen att skicka, eller nil (osparad: ingen kvittens).
+    public mutating func svara(kind: String, pass: String, id: String, _ svar: Mottagning) -> LinkPartAck? {
+        switch svar {
+        case .sparad:
+            besvarade[kind] = (id, true, nil)
+            return LinkPartAck(kind: kind, pass: pass, id: id, index: nil, ok: true)
+        case let .nej(fel):
+            besvarade[kind] = (id, false, fel)
+            return LinkPartAck(kind: kind, pass: pass, id: id, index: nil, ok: false, fel: fel)
+        case .felSumma:
+            besvarade[kind] = nil
+            return LinkPartAck(kind: kind, pass: pass, id: id, index: nil, ok: false)
+        case .osparad:
+            besvarade[kind] = nil
+            return nil
+        }
     }
 }

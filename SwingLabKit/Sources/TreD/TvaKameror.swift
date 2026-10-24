@@ -140,8 +140,9 @@ public enum TreDUt: Equatable, Sendable {
     case hoppat(String)
 }
 
-/// Uppställningens kameror och slagens synk, oavrundade.
-public struct TreDInre: Equatable, Sendable {
+/// Uppställningens kameror och slagens synk, oavrundade. Följer med i telefonens `tre_d.json`
+/// (S6c-2), så att PC:n kan redovisa vilka grenar som slog om och med hur mycket (METOD MS19).
+public struct TreDInre: Equatable, Sendable, Codable {
     /// B:s (DTL:s) läge mot A (FO): x_B = R · x_A + t, |t| = 1.
     public var r: [Double]
     public var t: [Double]
@@ -149,8 +150,44 @@ public struct TreDInre: Equatable, Sendable {
     public var upp: [Double]
     /// Synken per slag, s.
     public var forsk: [Double]
-    /// Återprojektionens median per slag, px (nil = faserna saknas).
+    /// Återprojektionens median per slag, px (nil = faserna saknas, eller inget tal).
     public var aterprojektion: [Double?]
+    /// Grenarnas tal oavrundade: Sampson-felet (spärren 8 px), vinkeln mellan kamerorna (60–120°)
+    /// och lodlinjen mot de vågräta (skyddet 15°).
+    public var sampsonPx: Double?
+    public var vinkel: Double?
+    public var lodlinjeMotVagrata: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case r = "R", t, upp, forsk, aterprojektion
+        case sampsonPx = "sampson_px", vinkel, lodlinjeMotVagrata = "lodlinje_mot_vagrata"
+    }
+
+    public init(r: [Double], t: [Double], upp: [Double], forsk: [Double], aterprojektion: [Double?],
+                sampsonPx: Double? = nil, vinkel: Double? = nil, lodlinjeMotVagrata: Double? = nil) {
+        self.r = r
+        self.t = t
+        self.upp = upp
+        self.forsk = forsk
+        self.aterprojektion = aterprojektion
+        self.sampsonPx = sampsonPx
+        self.vinkel = vinkel
+        self.lodlinjeMotVagrata = lodlinjeMotVagrata
+    }
+
+    /// JSON tål inte NaN: ett tal som inte är ändligt skrivs som null (METOD M51).
+    public func encode(to encoder: Encoder) throws {
+        func ren(_ v: Double?) -> Double? { v.flatMap { $0.isFinite ? $0 : nil } }
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(r.map { $0.isFinite ? $0 : 0 }, forKey: .r)
+        try c.encode(t.map { $0.isFinite ? $0 : 0 }, forKey: .t)
+        try c.encode(upp.map { $0.isFinite ? $0 : 0 }, forKey: .upp)
+        try c.encode(forsk.map { $0.isFinite ? $0 : 0 }, forKey: .forsk)
+        try c.encode(aterprojektion.map(ren), forKey: .aterprojektion)
+        try c.encodeIfPresent(ren(sampsonPx), forKey: .sampsonPx)
+        try c.encodeIfPresent(ren(vinkel), forKey: .vinkel)
+        try c.encodeIfPresent(ren(lodlinjeMotVagrata), forKey: .lodlinjeMotVagrata)
+    }
 }
 
 /// 3D gick inte för passet: steget, aldrig ett värde (CLAUDE.md, Dataregeln).
@@ -163,6 +200,8 @@ public struct TreDFel: Error, Equatable, Sendable {
 /// (BESLUT B12, B48); Python är facit (METOD M50). METOD MK1–MK7
 public enum TvaKameror {
     public static let lage = "utan_markorer"           // BESLUT B14
+    /// Skälet när räkningen avbröts (Task.isCancelled): visas aldrig, resultatet sparas inte.
+    public static let avbruten = "avbruten"
     static let minKonf = 0.3                           // METOD M1
     static let fPx1920 = 1444.0                        // METOD MK3
     static let kalibKonf = 0.5                         // METOD MK3
@@ -314,6 +353,8 @@ public enum TvaKameror {
         var vinkel: Double
         var motVagrata: Double?
         var lodlinjeFel: [String]
+        /// Vinkeln mot de vågräta oavrundad (marginalen mot skyddet, S6c-2).
+        var motVagrataRa: Double? = nil
     }
 
     /// Kamerorna för en uppställning ur dess slags leder ihop. Som `kalibrera`. METOD MK3
@@ -354,6 +395,7 @@ public enum TvaKameror {
         var upp: [Double]?
         var kalla = "kamerornas_vagrata"
         var motVagrata: Double?
+        var motVagrataRa: Double?
         var fel: [String] = []
         if uppA != nil || uppB != nil {
             var u = uppA ?? [0, 0, 0]
@@ -366,7 +408,10 @@ public enum TvaKameror {
             if let vagrata {
                 let c = min(max(LA.dot3(u, vagrata) / LA.norm3(u), -1), 1)
                 let avvik = Matt3D.grader(acos(c))
-                if avvik.isFinite { motVagrata = LA.avrunda(avvik, 1) }
+                if avvik.isFinite {
+                    motVagrata = LA.avrunda(avvik, 1)
+                    motVagrataRa = avvik
+                }
                 if !(avvik <= lodlinjeMotVagrataMax) {       // även NaN (summan noll): de vågräta
                     upp = nil
                     kalla = "kamerornas_vagrata"
@@ -387,7 +432,7 @@ public enum TvaKameror {
             throw TreDFel(skal: "kalibreringen: kamerornas läge gick inte att räkna")
         }
         return Kalib(r: r, t: t, upp: upp!, kalla: kalla, sampsonPx: sampsonPx,
-                     vinkel: vinkel, motVagrata: motVagrata, lodlinjeFel: fel)
+                     vinkel: vinkel, motVagrata: motVagrata, lodlinjeFel: fel, motVagrataRa: motVagrataRa)
     }
 
     static func kameror(_ d: SlagData, _ k: Kalib) -> (Kamera3D, Kamera3D) {
@@ -456,6 +501,7 @@ public enum TvaKameror {
         let k: Kalib
         do {
             for varv in 0..<kalibVarv {
+                if Task.isCancelled { throw TreDFel(skal: avbruten) }
                 let kv = try kalibrera(grupp, forsk, uppA, uppB)
                 let sok = varv == 0 ? synkSokS : synkSok2S
                 forsk = zip(grupp, forsk).map { d, f in synka(kameror(d, kv), d, f, sok) }
@@ -465,7 +511,8 @@ public enum TvaKameror {
             info.hoppat = (error as? TreDFel)?.skal ?? "kalibreringen: för få leder syns i båda vyerna"
             return (info, [], nil)
         }
-        var inre = TreDInre(r: k.r, t: k.t, upp: k.upp, forsk: forsk, aterprojektion: [])
+        var inre = TreDInre(r: k.r, t: k.t, upp: k.upp, forsk: forsk, aterprojektion: [], sampsonPx: k.sampsonPx,
+                            vinkel: k.vinkel, lodlinjeMotVagrata: k.motVagrataRa)
         info.lodlinje = k.kalla
         info.sampsonPx = LA.avrunda(k.sampsonPx, 2)
         info.vinkelMellanKamerorna = LA.avrunda(k.vinkel, 1)
@@ -578,6 +625,8 @@ public enum TvaKameror {
         var kalib: [TreDUppstallning] = [], utSlag: [TreDSlagRad] = [], osaker: [String] = []
         var inre: [TreDInre?] = []
         for (sd, sf) in nycklar.sorted(by: { $0 < $1 }) {
+            // Telefonen avbryter räkningen när passet stängs eller ändras (S6c-2, METOD MS19).
+            if Task.isCancelled { throw TreDFel(skal: avbruten) }
             let (info, ut, i) = uppstallning(dtl, fo, grupper["\(sd)-\(sf)"]!, faser)
             kalib.append(info)
             utSlag += ut

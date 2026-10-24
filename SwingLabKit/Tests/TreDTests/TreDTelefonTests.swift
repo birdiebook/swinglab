@@ -125,7 +125,37 @@ extension TreDTests {
         XCTAssertEqual(k3.skal, ["Cameras could not be placed"])
     }
 
+    /// Längden ger skalan i cm men inte faserna (MS19): telefonens och PC:ns längd kan skilja.
+    func testFasernaBerorInteAvLangden() throws {
+        let (d, f) = try Fixtur.paket(pass: "bra_brus_vanster", andra: [:])
+        for p in [d, f] {
+            XCTAssertEqual(TreDTelefon.faser(p, langdM: 1.55), TreDTelefon.faser(p, langdM: 1.95))
+        }
+    }
+
+    /// Filen bär de oavrundade talen (marginalerna vid grenarna) och tål NaN; kortet utan tal
+    /// när slagen ändrats.
+    func testInreIFilenOchUppdateras() throws {
+        let (dtl, fo) = try Fixtur.paket(pass: "utan_brus", andra: [:])
+        let r = try TvaKameror.analysera(dtl: dtl, fo: fo, faser: Fixtur.faser("utan_brus"))
+        var fil = TreDFil(pass: "20261103-180000", raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
+                          ut: .resultat(r))
+        XCTAssertEqual(fil.inre?.count, r.kalibrering.count)
+        XCTAssertNotNil(fil.inre?.first??.sampsonPx)
+        let lest = try TreDFil.las(try fil.data())
+        XCTAssertEqual(lest.inre?.first??.forsk, r.inre.first??.forsk)
+        fil.inre = [TreDInre(r: [.nan], t: [], upp: [], forsk: [], aterprojektion: [.nan, 1], sampsonPx: .infinity)]
+        let text = String(decoding: try fil.data(), as: UTF8.self)
+        XCTAssertFalse(text.contains("nan"))
+        let k = TreDKort(fil, katalog: nil, aktuell: false)
+        XCTAssertEqual(k.rader.count, 5)
+        XCTAssertTrue(k.rader.allSatisfy { $0.varde == nil && $0.mot == nil })
+        XCTAssertNil(k.svingar)
+        XCTAssertEqual(k.skal, ["Updating…"])
+    }
+
     func testKatalogensTreDArTvaKamerornas() throws {
+        XCTAssertEqual(TreDFil.filnamn, PassPackage.treDFile)
         XCTAssertEqual(Katalog.treDMatt, TvaKameror.matt)
         let k = try Katalog.las(Data(contentsOf: Fixtur.rot.appendingPathComponent("katalog.json")))
         XCTAssertEqual(k.treD.map(\.matt), TvaKameror.matt)

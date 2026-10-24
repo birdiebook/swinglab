@@ -15,22 +15,46 @@ public enum LinkRole: String, Codable, Sendable, CaseIterable {
     case follow = "folj"
 }
 
-/// Vem som talar: rollen, en slumpad id per start av appen (känner igen en telefon som
-/// ansluter igen), modellen, appens version och vyn.
+/// Vem som talar: rollen, en id för telefonen (stabil per installation sedan S6c-2, så att
+/// passets partner känns igen, BESLUT B61), modellen, appens version och vyn. Sedan S6c-2 också
+/// syftet (`mode`: inspelningen eller passets 3D) och förmågorna (`caps`); en äldre app saknar
+/// båda och räknas som inspelning utan bitar. Okända nycklar tål avkodaren.
 public struct LinkHello: Codable, Equatable, Sendable {
+    /// Kopplingens syfte: inspelningen (start, stopp, klick) eller passets 3D (bitarna). En
+    /// telefon kopplar bara till en med samma syfte. METOD MS19
+    public enum Mode: String, Sendable {
+        case record, pass
+    }
+
     public var role: LinkRole
     public var device: String
     public var model: String
     public var app: String
     public var view: Vy
+    /// `Mode`:s text; nil = en äldre app (inspelningen).
+    public var mode: String?
+    /// Förmågorna: "part1" = bitarna version 1 (`LinkPart`).
+    public var caps: [String]?
 
-    public init(role: LinkRole, device: String, model: String, app: String, view: Vy) {
+    /// Den här appens förmågor.
+    public static let ourCaps = ["part1"]
+
+    public init(role: LinkRole, device: String, model: String, app: String, view: Vy, mode: Mode = .record,
+                caps: [String]? = LinkHello.ourCaps) {
         self.role = role
         self.device = device
         self.model = model
         self.app = app
         self.view = view
+        self.mode = mode.rawValue
+        self.caps = caps
     }
+
+    /// Syftet; nil för ett okänt (en senare app).
+    public var syfte: Mode? { Mode(rawValue: mode ?? Mode.record.rawValue) }
+
+    /// Telefonen tar emot bitarna (`part`, version 1).
+    public var kanDelar: Bool { caps?.contains("part1") ?? false }
 }
 
 /// En inspelad serie som klick på telefonens egen tidslinje: följaren skickar den efter
@@ -102,7 +126,7 @@ public enum LinkMessage: Equatable, Sendable {
 }
 
 extension LinkMessage: Codable {
-    enum Typ: String, Codable {
+    enum Typ: String, Codable, CaseIterable {
         case hello, ping, pong, start, stop, recorded, status, ack, part
         case partAck = "part_ack"
     }
@@ -186,7 +210,7 @@ public enum Wire {
     public static let bonjourService = "_swinglab._tcp"
 
     /// Längsta meddelande, byte. En serie med tusen klick är cirka 60 kB, en bit av en
-    /// överföring cirka 350 kB (`Overforing.delBytes`).
+    /// överföring cirka 262 kB (`Overforing.delBytes` i base64).
     public static let maxLength = 1 << 20
 
     /// Felen säger var, aldrig vad (dataregeln): meddelandets nummer på strömmen.
@@ -219,6 +243,12 @@ public enum Wire {
         private var buffer: [UInt8] = []
         /// Lästa meddelanden hittills (för felets plats).
         public private(set) var count = 0
+        /// Meddelanden med en okänd typ som hoppats över.
+        public private(set) var skipped = 0
+
+        struct Huvud: Decodable {
+            let type: String
+        }
 
         public init() {}
 
@@ -232,6 +262,13 @@ public enum Wire {
                 guard buffer.count - i - 4 >= n else { break }
                 let json = Data(buffer[(i + 4)..<(i + 4 + n)])
                 count += 1
+                // En typ som den här appen inte känner (en senare app) hoppas över i stället för
+                // att stänga förbindelsen (S6c-2). Ett känt meddelande som inte går att läsa är fel.
+                if let h = try? JSONDecoder().decode(Huvud.self, from: json), LinkMessage.Typ(rawValue: h.type) == nil {
+                    skipped += 1
+                    i += 4 + n
+                    continue
+                }
                 do {
                     ut.append(try JSONDecoder().decode(LinkMessage.self, from: json))
                 } catch {

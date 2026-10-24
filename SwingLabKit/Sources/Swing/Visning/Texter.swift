@@ -154,6 +154,8 @@ public enum Texter {
     public static func treDSerie(_ dtl: Int, _ fo: Int) -> String { "Set \(dtl) · \(fo) not measured" }
     public static func treDUtelamnade(_ n: Int) -> String { n == 1 ? "1 swing left out" : "\(n) swings left out" }
     public static func treDFarre(_ min: Int) -> String { "Fewer than \(min) swings" }
+    /// Slagen har ändrats sedan 3D räknades: inga tal förrän den räknats om (METOD MS19).
+    public static let treDUppdateras = "Updating…"
     /// Uppställningen: telefonen lutar för mycket för 3D (lodlinjen, METOD MS17, MS19).
     public static let lutningForStor = "Tilt too large for 3D"
 

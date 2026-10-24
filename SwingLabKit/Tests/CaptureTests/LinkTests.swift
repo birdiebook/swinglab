@@ -144,7 +144,7 @@ final class LinkTests: XCTestCase {
                         ledare(leader.receive(m, from: peer, at: klocka))
                     }
                 case .startRecording, .stopRecording: logg.append(x)
-                case .received, .delivered: break
+                case .received, .delivered, .refused: break
                 }
             }
         }

@@ -14,12 +14,13 @@ public struct LinkFollower: Sendable {
         case send(LinkMessage)
         case startRecording(passID: String, series: Int)
         case stopRecording(series: Int)
-        /// En hel överföring från den styrande (3D tillbaka, S6c-2): spara den. Kvittensen
-        /// för helheten följer som nästa `send` och ska inte skickas om sparningen
-        /// misslyckas (`forget`). METOD MS19
-        case received(kind: String, pass: String, data: Data)
+        /// Alla bitar av en överföring från den styrande kom (3D tillbaka, S6c-2): foga ihop
+        /// dem utanför huvudtråden (`Overforing.foga`), spara, och svara med `svara`. METOD MS19
+        case received(kind: String, pass: String, id: String, bytes: Int, delar: [String])
         /// En egen överföring är kvitterad hel av den styrande.
         case delivered(kind: String, pass: String, id: String)
+        /// Den styrande sa nej till en egen överföring (skälet: "pass", "version", "format").
+        case refused(kind: String, pass: String, fel: String)
     }
 
     public let hello: LinkHello
@@ -39,7 +40,8 @@ public struct LinkFollower: Sendable {
     public private(set) var lead: LinkHello?
     /// Följarens stora överföringar (slagen, S6c-2) och de som tas emot (3D). METOD MS19
     public private(set) var parts = PartSender()
-    var inbox = PartReceiver()
+    /// Följaren tar bara emot 3D (S6c-2, METOD MS19).
+    var inbox = PartReceiver(tillatna: [Overforing.treD])
 
     public init(hello: LinkHello) {
         self.hello = hello
@@ -52,7 +54,6 @@ public struct LinkFollower: Sendable {
         for n in outbox.keys.sorted() {
             if let s = outbox[n] { ut.append(.send(.recorded(s))) }
         }
-        for p in parts.unacked() { ut.append(.send(.part(p))) }
         return ut
     }
 
@@ -60,16 +61,17 @@ public struct LinkFollower: Sendable {
         isConnected = false
     }
 
-    /// En stor överföring till den styrande (slagen, S6c-2): bitarna nu om kopplingen är
-    /// uppe, och det som inte kvitterats igen när den kommer tillbaka. METOD MS19
-    public mutating func send(kind: String, pass: String, data: Data) -> [Action] {
-        let delar = parts.enqueue(kind: kind, pass: pass, data: data)
-        return isConnected ? delar.map { .send(.part($0)) } : []
+    /// En stor överföring till den styrande (slagen, S6c-2), i färdiga bitar (`Overforing.dela`):
+    /// nu om kopplingen är uppe och den styrande tar bitar, och allt igen varje gång den styrande
+    /// säger hello (den kan ha startats om). METOD MS19
+    public mutating func send(_ delar: [LinkPart]) -> [Action] {
+        let d = parts.enqueue(delar)
+        return isConnected && lead?.kanDelar == true ? d.map { .send(.part($0)) } : []
     }
 
-    /// Sparningen av en mottagen överföring misslyckades: nästa bit som kommer tas emot på nytt.
-    public mutating func forget(kind: String) {
-        inbox.klara[kind] = nil
+    /// Svaret på en hel överföring från den styrande: kvittensen, eller inget (osparad).
+    public mutating func svara(kind: String, pass: String, id: String, _ svar: Mottagning) -> [Action] {
+        inbox.svara(kind: kind, pass: pass, id: id, svar).map { [.send(.partAck($0))] } ?? []
     }
 
     /// Svaret på en ping: t1 när den kom, t2 när svaret skickas (följarens värdklocka).
@@ -81,8 +83,12 @@ public struct LinkFollower: Sendable {
     public mutating func receive(_ m: LinkMessage, at t1: Double, now: () -> Double) -> [Action] {
         switch m {
         case let .hello(h):
+            // Bara en styrande med samma syfte (inspelningen eller passets 3D, S6c-2); appen
+            // stänger förbindelsen till en annan.
+            guard h.syfte == hello.syfte else { return [] }
             lead = h
-            return []
+            // Allt som inte kvitterats hela igen: den styrande kan ha startats om. METOD MS19
+            return h.kanDelar ? parts.alla().map { .send(.part($0)) } : []
         case let .ping(id, t0):
             return [.send(Self.pong(id, t0: t0, t1: t1, t2: now()))]
         case let .start(pass, series):
@@ -118,15 +124,16 @@ public struct LinkFollower: Sendable {
             switch inbox.receive(p) {
             case let .kvittera(a):
                 return a.map { .send(.partAck($0)) }
-            case let .hel(kind, pass, id, data, a):
-                return a.map { .send(.partAck($0)) }
-                    + [.received(kind: kind, pass: pass, data: data),
-                       .send(.partAck(inbox.klar(kind: kind, pass: pass, id: id)))]
+            case let .hel(kind, pass, id, bytes, delar, a):
+                return a.map { .send(.partAck($0)) } + [.received(kind: kind, pass: pass, id: id, bytes: bytes, delar: delar)]
             }
         case let .partAck(a):
-            let r = parts.receive(a)
-            if r.done { return [.delivered(kind: a.kind, pass: a.pass, id: a.id)] }
-            return r.resend.map { .send(.part($0)) }
+            switch parts.receive(a) {
+            case .inget: return []
+            case let .klar(kind, pass, id): return [.delivered(kind: kind, pass: pass, id: id)]
+            case let .igen(d): return d.map { .send(.part($0)) }
+            case let .nekad(kind, pass, fel): return [.refused(kind: kind, pass: pass, fel: fel)]
+            }
         case .pong, .recorded, .status:
             return []
         }
@@ -168,10 +175,9 @@ public struct LinkLeader: Sendable {
         case store(FollowerRecord)
         /// En serie är parad (ny eller ändrad): skriv par.json.
         case paired(PairEntry)
-        /// En hel överföring från en följare (slagen, S6c-2): spara den. Kvittensen för
-        /// helheten följer som nästa `send` och ska inte skickas om sparningen misslyckas
-        /// (`forget`). METOD MS19
-        case received(device: String, kind: String, pass: String, data: Data)
+        /// Alla bitar av en överföring från en följare kom (slagen, S6c-2): foga ihop dem utanför
+        /// huvudtråden (`Overforing.foga`), spara, och svara med `svara`. METOD MS19
+        case received(device: String, kind: String, pass: String, id: String, bytes: Int, delar: [String])
     }
 
     public enum Command: Equatable, Sendable {
@@ -274,7 +280,12 @@ public struct LinkLeader: Sendable {
     /// följare som säger hello senare. METOD MS19
     public private(set) var senders: [String: PartSender] = [:]
     var inboxes: [String: PartReceiver] = [:]
-    var broadcast: [String: (pass: String, data: Data)] = [:]
+    var broadcast: [String: [LinkPart]] = [:]
+    /// Följaren som passet parades med vid inspelningen (S6c-2, BESLUT B61): bara den tas emot.
+    /// nil = vilken som helst (ett pass från före S6c-2).
+    public var partner: String?
+    /// Följare vars överföring tas emot samtidigt (minnet, METOD MS19).
+    public static let maxMottagare = 4
 
     public init(hello: LinkHello, passID: String? = nil) {
         self.hello = hello
@@ -318,6 +329,9 @@ public struct LinkLeader: Sendable {
         switch m {
         case let .hello(h):
             guard h.role == .follow else { return [] }
+            // En följare med ett annat syfte (inspelningen mot passets 3D) eller en annan telefon
+            // än passets partner kopplas bort (S6c-2, BESLUT B61).
+            guard h.syfte == hello.syfte, partner == nil || partner == h.device else { return [.close(peer: peer)] }
             var ut: [Action] = []
             if let gammal = followers[h.device]?.peer, gammal != peer {
                 peerDevice.removeValue(forKey: gammal)
@@ -335,13 +349,17 @@ public struct LinkLeader: Sendable {
             case let .recording(p, n): ut.append(.send(peer: peer, .start(passID: p, series: n)))
             case let .stopped(_, n): ut.append(.send(peer: peer, .stop(series: n)))
             }
-            // Överföringarna som inte kvitterats, och de som gjordes innan följaren kom.
+            // Överföringarna som inte kvitterats hela, igen från början (följaren kan ha startats
+            // om), och de som gjordes innan följaren kom. METOD MS19
+            guard h.kanDelar else { return ut }
             var sender = senders[h.device] ?? PartSender()
-            for k in broadcast.keys.sorted() where sender.pagaende[k] == nil && sent[h.device]?[k] != Overforing.summa(broadcast[k]!.data) {
-                _ = sender.enqueue(kind: k, pass: broadcast[k]!.pass, data: broadcast[k]!.data)
+            for k in broadcast.keys.sorted() {
+                guard let d = broadcast[k], let id = d.first?.id, sender.pagaende[k] == nil, sent[h.device]?[k] != id
+                else { continue }
+                _ = sender.enqueue(d)
             }
+            ut += sender.alla().map { .send(peer: peer, .part($0)) }
             senders[h.device] = sender
-            ut += sender.unacked().map { .send(peer: peer, .part($0)) }
             return ut
         case let .pong(id, t0, t1, t2):
             // t0 stämplas när pingen lämnar telefonen (App, nätets kö) och kommer tillbaka i svaret.
@@ -364,27 +382,35 @@ public struct LinkLeader: Sendable {
             }
             return []
         case let .part(p):
-            // En överföring för ett annat pass tas inte emot och kvitteras inte.
-            guard let dev = peerDevice[peer], passID == nil || passID == p.pass else { return [] }
-            var inbox = inboxes[dev] ?? PartReceiver()
+            guard let dev = peerDevice[peer] else { return [] }
+            // En överföring för ett annat pass får ett nej, så att följaren slutar och visar det.
+            if let mitt = passID, mitt != p.pass {
+                return [.send(peer: peer, .partAck(LinkPartAck(kind: p.kind, pass: p.pass, id: p.id, index: nil, ok: false,
+                                                               fel: Overforing.felPass)))]
+            }
+            guard inboxes[dev] != nil || inboxes.count < Self.maxMottagare else { return [] }
+            // Den styrande tar bara emot följarens slag (S6c-2).
+            var inbox = inboxes[dev] ?? PartReceiver(tillatna: [Overforing.slag])
             let r = inbox.receive(p)
-            var ut: [Action] = []
+            inboxes[dev] = inbox
             switch r {
             case let .kvittera(a):
-                ut = a.map { .send(peer: peer, .partAck($0)) }
-            case let .hel(kind, pass, id, data, a):
-                ut = a.map { .send(peer: peer, .partAck($0)) }
-                ut.append(.received(device: dev, kind: kind, pass: pass, data: data))
-                ut.append(.send(peer: peer, .partAck(inbox.klar(kind: kind, pass: pass, id: id))))
+                return a.map { .send(peer: peer, .partAck($0)) }
+            case let .hel(kind, pass, id, bytes, delar, a):
+                return a.map { .send(peer: peer, .partAck($0)) }
+                    + [.received(device: dev, kind: kind, pass: pass, id: id, bytes: bytes, delar: delar)]
             }
-            inboxes[dev] = inbox
-            return ut
         case let .partAck(a):
             guard let dev = peerDevice[peer], var sender = senders[dev] else { return [] }
             let r = sender.receive(a)
             senders[dev] = sender
-            if r.done { sent[dev, default: [:]][a.kind] = a.id }
-            return r.resend.map { .send(peer: peer, .part($0)) }
+            switch r {
+            case .inget, .nekad: return []
+            case let .klar(kind, _, id):
+                sent[dev, default: [:]][kind] = id
+                return []
+            case let .igen(d): return d.map { .send(peer: peer, .part($0)) }
+            }
         case let .recorded(s):
             guard let dev = peerDevice[peer], var f = followers[dev] else { return [] }
             // En serie från ett annat pass: inte här, och ingen kvittens (följaren skickar
@@ -403,23 +429,27 @@ public struct LinkLeader: Sendable {
         }
     }
 
-    /// En stor överföring till varje följare (3D tillbaka, S6c-2): bitarna nu till dem som är
-    /// uppkopplade, och till en följare som säger hello senare. METOD MS19
-    public mutating func sendToFollowers(kind: String, pass: String, data: Data) -> [Action] {
-        broadcast[kind] = (pass, data)
+    /// En stor överföring till varje följare (3D tillbaka, S6c-2), i färdiga bitar: nu till dem
+    /// som är uppkopplade och tar bitar, och till en följare som säger hello senare. METOD MS19
+    public mutating func sendToFollowers(_ delar: [LinkPart]) -> [Action] {
+        guard let kind = delar.first?.kind else { return [] }
+        broadcast[kind] = delar
         var ut: [Action] = []
         for dev in followers.keys.sorted() {
+            guard followers[dev]?.hello.kanDelar == true, sent[dev]?[kind] != delar.first?.id else { continue }
             var sender = senders[dev] ?? PartSender()
-            let delar = sender.enqueue(kind: kind, pass: pass, data: data)
+            let d = sender.enqueue(delar)
             senders[dev] = sender
-            if let peer = followers[dev]?.peer { ut += delar.map { .send(peer: peer, .part($0)) } }
+            if let peer = followers[dev]?.peer { ut += d.map { .send(peer: peer, .part($0)) } }
         }
         return ut
     }
 
-    /// Sparningen av en mottagen överföring misslyckades: nästa bit tas emot på nytt.
-    public mutating func forget(device: String, kind: String) {
-        inboxes[device]?.klara[kind] = nil
+    /// Svaret på en hel överföring från en följare: kvittensen till den, eller inget (osparad).
+    public mutating func svara(device: String, kind: String, pass: String, id: String, _ svar: Mottagning) -> [Action] {
+        guard let a = inboxes[device]?.svara(kind: kind, pass: pass, id: id, svar),
+              let peer = followers[device]?.peer else { return [] }
+        return [.send(peer: peer, .partAck(a))]
     }
 
     /// Överföringar till följarna som inte kvitterats hela.
