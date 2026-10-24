@@ -130,9 +130,9 @@ private struct SparBas: View, Equatable {
                 let k = 4 * max(s.width, s.height) / n
                 c.linje(CGPoint(x: a.x - dx * k, y: a.y - dy * k), CGPoint(x: b.x + dx * k, y: b.y + dy * k),
                         Theme.secondary, 1, streckad: [4, 4])
-                // Etiketten vid P1:s hosel: linjen är P1-planet (M47).
+                // Etiketten vid P1:s grepp, som ligger inne i bilden: linjen är P1-planet (M47).
                 c.draw(Text("P1 plane").font(.system(size: 10, weight: .medium)).foregroundColor(Theme.secondary),
-                       at: CGPoint(x: b.x + 6, y: b.y + 8), anchor: .topLeading)
+                       at: CGPoint(x: a.x + 6, y: a.y), anchor: .leading)
             }
             for (i, serie) in bild.serier.enumerated() {
                 let st = SparLager.stil(serie.punkt), langd = SparLager.langd(bild.yta[i], s)
