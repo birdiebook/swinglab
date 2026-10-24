@@ -180,7 +180,8 @@ final class SwingLabProvKlubba: XCTestCase {
         XCTAssertTrue(last.asksForRiktpinne(series: 1), "bakifrån utan pinne: riktpinnens steg före P1")
         try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel1, $0), scale: 1).resizable() },
                                  loupe: { LoupeImage(image: hel1, crop: $0) }, marking: m2, time: tid1, stickStep: true,
-                                 stick: [KlubbPunkt(x: 150, y: 455), KlubbPunkt(x: 140, y: 380)]), "klubba-riktpinne")
+                                 stick: [KlubbPunkt(x: 150, y: 455), KlubbPunkt(x: 140, y: 380)], editable: false),
+                 "klubba-riktpinne")
         for p in ["P1", "P3"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
         XCTAssertEqual(m2.position, "P4")
         let k4 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
@@ -193,7 +194,7 @@ final class SwingLabProvKlubba: XCTestCase {
         func yta(_ m: ClubMarking, touch: (u: Double, v: Double)? = nil, ring: KlubbPunkt? = nil) -> some View {
             ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
                             loupe: { LoupeImage(image: hel, crop: $0) }, marking: m, time: tid, ring: ring,
-                            previewTouch: touch)
+                            previewTouch: touch, editable: false)
         }
         try rita(yta(m2, ring: g4), "klubba-greppet")
         let ug = m2.surfacePoint(g4)
@@ -399,7 +400,7 @@ final class SwingLabProvKlubba: XCTestCase {
         let tid = Tal.tecken(r2.frames[k6].t - (s2.impact - s2.click.time), decimaler: 3) + " s"
         try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
                                  loupe: { LoupeImage(image: hel, crop: $0) }, marking: m2, time: tid,
-                                 previewTouch: uh), "klubba-fo-markera")
+                                 previewTouch: uh, editable: false), "klubba-fo-markera")
     }
 
     // MARK: Hjälp

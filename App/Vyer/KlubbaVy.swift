@@ -41,6 +41,9 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     var hasStick = false
     var onStickRemove: () -> Void = {}
     var onStickMenu: () -> Void = {}
+    /// Menyn som riktig meny; provet ritar bara symbolen (ImageRenderer ritar inte UIKit-menyer,
+    /// som `ReviewContent.editable`).
+    var editable = true
     var onStickDone: () -> Void = {}
     var onPosition: (String) -> Void = { _ in }
     var onHelp: () -> Void = {}
@@ -111,13 +114,16 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                 HStack(spacing: 2) {
                     // Riktpinnen sätts om eller tas bort för serien (bara bakifrån, B59).
                     if marking.stickAvailable && !stickStep {
-                        Menu {
-                            Button("Alignment stick", action: onStickMenu)
-                        } label: {
-                            Image(systemName: "ellipsis").typsnitt(17, .medium).foregroundStyle(Theme.text)
-                                .frame(width: 40, height: 40)
+                        if editable {
+                            Menu {
+                                Button("Alignment stick", action: onStickMenu)
+                            } label: {
+                                menyEtikett
+                            }
+                            .accessibilityLabel(Text("Alignment stick"))
+                        } else {
+                            menyEtikett
                         }
-                        .accessibilityLabel(Text("Alignment stick"))
                     }
                     Button(action: onHelp) {
                         Text(verbatim: "?").typsnitt(17, .semibold).foregroundStyle(Theme.text)
@@ -301,6 +307,10 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
         .accessibilityElement()
         .accessibilityLabel(Text("Frame"))
         .accessibilityHint(Text(instruction))
+    }
+
+    private var menyEtikett: some View {
+        Image(systemName: "ellipsis").typsnitt(17, .medium).foregroundStyle(Theme.text).frame(width: 40, height: 40)
     }
 
     /// Positionerna i märkningens ordning (BESLUT B58): markerad vit, hoppad grå med streck, den
