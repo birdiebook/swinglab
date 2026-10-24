@@ -1,21 +1,20 @@
-c8507f31e86a6436b5d8ff20642fe39465f80370 spar 2026-10-24T13:45:22Z run 40099327730
+f4918e57c648663357b8f5ea4fa9dcefc61e27dd spar 2026-10-24T13:47:57Z run 40099473930
 == swift-release
-RÖTT: 325 test, 292 fel, 22 s i testerna, bygget 75 s
-  fel: KlubbSparTests.testBananSomPython
-Långsammast (av 325):
-      2.4 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      2.3 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.0 s  TreDTests.testTelefonensVagSomPython
-      1.1 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.1 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  KlubbSparTests.testBananSomPython
-      0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.8 s  TreDTests.testInreIFilenOchUppdateras
-      0.8 s  TreDTests.testKortet
-      0.8 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.4 s  TreDTests.testResultatetArJsonSomAnalysens
-      0.4 s  KatalogTests.testKontrollernaSomPython
-      0.3 s  InspelningTests.testKlockanSomGarFelGerAnda240
+GRÖNT: 326 test, 0 fel, 31 s i testerna, bygget 105 s
+Långsammast (av 326):
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.4 s  TreDTests.testTelefonensVagSomPython
+      2.4 s  KlubbSparTests.testBananSomPython
+      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testInreIFilenOchUppdateras
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testKortet
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  KlubbSparTests.testFeletMotSanningen
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.5 s  KlubbSparTests.testGlesaAnkareSomPython
+      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
 
