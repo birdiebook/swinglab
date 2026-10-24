@@ -151,10 +151,10 @@ public struct TreDRiktning: Equatable, Sendable {
         var mot = [fo.c[0] + tre * fo.fram[0], fo.c[1] + tre * fo.fram[1], fo.c[2] + tre * fo.fram[2]]
         let w = [fo.c[0] - dtl.c[0], fo.c[1] - dtl.c[1], fo.c[2] - dtl.c[2]]
         let a = LA.dot3(fo.fram, fo.fram), b = LA.dot3(fo.fram, dtl.fram), cc = LA.dot3(dtl.fram, dtl.fram)
-        let d = LA.dot3(fo.fram, w), e = LA.dot3(dtl.fram, w)
+        let d = LA.dot3(fo.fram, w), ew = LA.dot3(dtl.fram, w)
         let nam = a * cc - b * b
         if abs(nam) > 1e-6 {
-            let s = (b * e - cc * d) / nam, t = (a * e - b * d) / nam
+            let s = (b * ew - cc * d) / nam, t = (a * ew - b * d) / nam
             if s > 0.5, t > 0.5, s < 20, t < 20 {
                 var m = [Double](repeating: 0, count: 3)
                 for i in 0..<3 {
