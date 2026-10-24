@@ -5,6 +5,9 @@ the line och face on. Telefonen filmar, mäter och visar; PC:n tar emot samma
 session och fortsätter där, med tyngre mätning och Claude som tolkar. Den hör
 till Johannes vinterträning, bredvid Airtime (hoppen) och Golf SG (rundorna).
 
+**Visionen står i [VISION.md](VISION.md):** enkelhet för användaren, utan att
+offra djupet i analysen. Läs den före ett val som rör vad användaren ser.
+
 ## Dataregeln — läs först
 
 **Videor och mätningar lämnar bara telefonen när Johannes själv skickar dem.**
