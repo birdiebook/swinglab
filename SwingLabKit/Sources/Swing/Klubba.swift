@@ -117,16 +117,23 @@ public enum Klubba {
     /// speglade bilden (baksvingen medurs, nedsvingen moturs). Som `klubba.SKAFT_VAGRATT`. METOD M45
     public static let skaftVagratt: [String: (fore: String, efter: String, vagratt: Double, hall: Double)] = [
         "P2": ("P1", "P3", 180, -1), "P6": ("P5", "P7", 180, 1), "P8": ("P7", "P9", 0, 1)]
+    /// Mer än så åt svingens håll mellan ändarna är skaftet åt fel håll, grader. METOD M45
+    public static let skaftMaxSpann = 270.0
 
     /// Framifrån (FO): rutan där skaftets vinkel (M46), linjärt i tiden mellan de markerade
-    /// positionerna före och efter, går genom vågrätt, s relativt klicket (METOD M45). nil när en
-    /// ände saknas eller är hoppad, tiderna inte är i ordning eller vinkeln inte passerar
-    /// vågrätt. Som `klubba.forslag_tid_skaft`.
-    public static func forslagTidSkaft(_ position: String, marks: [KlubbMarkering], xTecken: Double) -> Double? {
+    /// positionerna före och efter, går genom vågrätt, s relativt klicket (METOD M45). För P2
+    /// räknas vinkeln från baksvingens start `start` (M4) när den ligger efter P1. nil när en
+    /// ände saknas eller är hoppad, tiderna inte är i ordning, vinkeln går mer än
+    /// `skaftMaxSpann` (fel håll) eller inte passerar vågrätt. Som `klubba.forslag_tid_skaft`.
+    public static func forslagTidSkaft(_ position: String, marks: [KlubbMarkering], xTecken: Double,
+                                       start: Double? = nil) -> Double? {
         guard let r = skaftVagratt[position] else { return nil }
         var pos: [String: KlubbMarkering] = [:]
         for m in marks where m.grepp != nil && m.hosel != nil { pos[m.position] = m }
-        guard let a = pos[r.fore], let b = pos[r.efter], b.t > a.t else { return nil }
+        guard let a = pos[r.fore], let b = pos[r.efter] else { return nil }
+        var ta = a.t
+        if position == "P2", let start { ta = max(ta, start) }
+        guard b.t > ta else { return nil }
         func vinkel(_ m: KlubbMarkering) -> Double {
             riktning(Punkt(xTecken * m.grepp!.x, m.grepp!.y), Punkt(xTecken * m.hosel!.x, m.hosel!.y))
         }
@@ -136,8 +143,8 @@ public enum Klubba {
         }
         let va = vinkel(a), vb = vinkel(b)
         let spann = mod360((vb - va) * r.hall), dit = mod360((r.vagratt - va) * r.hall)
-        guard spann > 0, dit <= spann else { return nil }
-        return a.t + (b.t - a.t) * dit / spann
+        guard spann > 0, spann <= skaftMaxSpann, dit <= spann else { return nil }
+        return ta + (b.t - ta) * dit / spann
     }
 
     /// Mållinjens flyktpunkt i bild och om den är antagen (METOD M48): där riktpinnens linje

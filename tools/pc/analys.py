@@ -98,9 +98,11 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
             km = s.klubba_markeringar
             pinne = p.serier[s.serie].riktpinne if s.serie in p.serier else None
             r["matt"].update(KL.mat(km, p.vy, sv.x_tecken, km[0]["bredd"], km[0]["hojd"], sv, pinne=pinne))
-            # Flyktpunkten bakifrån ur riktpinnen, eller antagen i bildens mitt (METOD M48).
-            rad["klubba_flyktpunkt"] = "bildens_mitt" if KL.flyktpunkt(pinne, km[0]["bredd"], km[0]["hojd"])[1] \
-                else "riktpinne"
+            # Flyktpunkten bakifrån ur riktpinnen, eller antagen i bildens mitt (METOD M48);
+            # framifrån finns ingen.
+            if p.vy == "dtl":
+                rad["klubba_flyktpunkt"] = "bildens_mitt" if KL.flyktpunkt(pinne, km[0]["bredd"], km[0]["hojd"])[1] \
+                    else "riktpinne"
             for m in km:
                 if m["position"] in KL.SKAFTETS and m["grepp"] is not None:
                     r["positioner"][m["position"]] = m["t"]

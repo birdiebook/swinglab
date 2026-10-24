@@ -10,7 +10,7 @@ import Capture
 /// dess linjer streckade), en växel som döljer dem, positionsraden P1–P10 som hoppar dit,
 /// och under videon slagets mått vid positionen. Menyn märker slaget "Detection wrong"
 /// (räknas inte i passets mått, går att ångra). B13: ingen figur, ingen förklarande text.
-/// Menyn öppnar också "Mark club" (S7a, bakifrån och framifrån, BESLUT B47, B56): klubban
+/// Menyn öppnar också "Mark club" (S7a, bakifrån och framifrån, BESLUT B47, B57, B58): klubban
 /// markeras för hand per position (`ClubMarkContent`), och det som är markerat syns som en tunn
 /// linje i rutan. METOD MS14, MS15, M45
 struct ShotReviewView: View {
@@ -239,15 +239,18 @@ struct ShotReviewView: View {
         return Tal.tecken(r.frames[frame].t - (s.impact - s.click.time), decimaler: 3) + " s"
     }
 
-    /// "Mark club": märkningen börjar på den första positionen utan markering, i passets vy
-    /// (framifrån utan riktpinne, P2/P6/P8 ur skaftets vinkel, BESLUT B56). METOD M45
+    /// "Mark club": märkningen börjar på den första positionen utan markering i märkningens
+    /// ordning (kroppens först, skaftets sist, BESLUT B58), i passets vy (framifrån utan
+    /// riktpinne, P2/P6/P8 ur skaftets vinkel, B57), med svingens `xTecken`. METOD M45
     private func startMarking() {
-        guard let review, let shot, let pass else { return }
+        guard let review, let shot, let pass, let series,
+              let sv = try? ShotMeasuring.sving(series, view: pass.setup.view, hand: pass.setup.hand,
+                                                heightM: pass.heightM ?? ShotMeasuring.assumedHeightM,
+                                                impact: shot.impact - shot.click.time) else { return }
         pause()
         let serie = pass.series.first { $0.nr == shot.series }
         marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
-                              crop: serie?.activeCrop, view: pass.setup.view,
-                              xTecken: pass.setup.hand == .hoger ? 1 : -1)
+                              crop: serie?.activeCrop, view: pass.setup.view, xTecken: sv.xTecken)
         seekToPosition()
     }
 

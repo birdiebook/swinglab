@@ -24,6 +24,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     public var problem: String?
     /// Baksvingens start är osäker bakifrån, och tempot saknas (METOD M40); nil = säker.
     public var startUncertain: Bool?
+    /// Baksvingens start (s relativt klicket, METOD M4); nil = saknas eller mätt före S7a-FO.
+    /// Förslaget till P2 framifrån räknas från den (M45).
+    public var start: Double?
     /// Mätningens version (`ShotMeasuring.version`); nil = 1, mätt före S1d.
     public var version: Int?
     /// Bakifrån med klubban markerad: flyktpunkten är bildens mitt (ingen riktpinne), så
@@ -88,6 +91,7 @@ public enum ShotMeasuring {
             }
             ut.values = r.matt.filter { $0.value.isFinite }
             ut.startUncertain = r.faser.startOsaker ? true : nil
+            ut.start = r.faser.start.flatMap { $0.isFinite ? $0 : nil }
             // Klubbans mått ur markeringarna (S7a, METOD M46–M49) bland slagets mått, och rutan
             // han valde för P2, P6 och P8 som slagets position (M45). Samma som PC:ns analys.
             if let marks = shot.klubba, !marks.isEmpty {

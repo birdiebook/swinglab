@@ -20,8 +20,7 @@ enum KlubbYtaFixturer {
    0,
    1080,
    1920
-  ],
-  "vy": "dtl"
+  ]
  },
  {
   "bredd": 1080,
@@ -43,8 +42,7 @@ enum KlubbYtaFixturer {
    19,
    702,
    1498
-  ],
-  "vy": "dtl"
+  ]
  },
  {
   "bredd": 1080,
@@ -66,8 +64,7 @@ enum KlubbYtaFixturer {
    374,
    1080,
    1546
-  ],
-  "vy": "dtl"
+  ]
  },
  {
   "bredd": 1080,
@@ -89,8 +86,7 @@ enum KlubbYtaFixturer {
    168,
    984,
    1752
-  ],
-  "vy": "fo"
+  ]
  },
  {
   "bredd": 1080,
@@ -112,8 +108,7 @@ enum KlubbYtaFixturer {
    417,
    702,
    1374
-  ],
-  "vy": "fo"
+  ]
  }
 ]
 """#

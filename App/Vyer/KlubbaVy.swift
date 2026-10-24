@@ -2,7 +2,7 @@ import SwiftUI
 import Swing
 import Capture
 
-/// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B56, METOD M45), bakifrån och
+/// Läget "Mark club" i granskningen (PLAN S7a, BESLUT B47, B57, B58, METOD M45), bakifrån och
 /// framifrån: rutan för positionen, ett tryck på greppet (eller på ringen ur handlederna) och
 /// sedan på hoseln, och positionen sparas av sig själv; förstoringsglaset under fingret, en
 /// punkt flyttas genom att dra den mer än 4 pt, ångra, hoppa över en position där klubban inte

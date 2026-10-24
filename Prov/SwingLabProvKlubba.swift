@@ -1,4 +1,4 @@
-// SIMULATORPROVET FÖR KLUBBANS MÄRKNING (PLAN S7a, BESLUT B47, B56, METOD M45–M49), bakifrån och
+// SIMULATORPROVET FÖR KLUBBANS MÄRKNING (PLAN S7a, BESLUT B47, B57, B58, METOD M45–M49), bakifrån och
 // framifrån (testMarkeraKlubbanFramifran).
 //
 // Vad som bevisas här, på provets PÅHITTADE film och PÅHITTADE leder (SwingDemo:s DTL-sving;
@@ -72,7 +72,9 @@ final class SwingLabProvKlubba: XCTestCase {
         let s1 = pass.shots[0]
         let j1 = try XCTUnwrap(leder[s1.id])
         let review = ShotReview(series: j1, crop: serie.activeCrop)
-        var m = ClubMarking(existing: s1.klubba, width: review.width, height: review.height, crop: serie.activeCrop)
+        let sv1 = try ShotMeasuring.sving(j1, view: .dtl, hand: .hoger, heightM: 1.8, impact: s1.impact - s1.click.time)
+        var m = ClubMarking(existing: s1.klubba, width: review.width, height: review.height, crop: serie.activeCrop,
+                            view: .dtl, xTecken: sv1.xTecken)
         XCTAssertEqual(m.position, "P1")
         var satt: [String: (grip: KlubbPunkt, t: Double)] = [:]
         var tryck = 0
@@ -164,8 +166,10 @@ final class SwingLabProvKlubba: XCTestCase {
         let s2 = last.shots[1]
         let j2 = try XCTUnwrap(leder[s2.id])
         let r2 = ShotReview(series: j2, crop: serie.activeCrop)
-        var m2 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop)
-        for p in ["P1", "P2", "P3"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
+        var m2 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .dtl,
+                             xTecken: sv1.xTecken)
+        for p in ["P1", "P3"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
+        XCTAssertEqual(m2.position, "P4")
         let k4 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
         let f4 = r2.frames[k4].joints
         let g4 = KlubbPunkt(x: ((f4[5]?.x ?? 0) + (f4[6]?.x ?? 0)) / 2, y: ((f4[5]?.y ?? 0) + (f4[6]?.y ?? 0)) / 2)
@@ -188,7 +192,8 @@ final class SwingLabProvKlubba: XCTestCase {
         try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
                                  loupe: { LoupeImage(image: hel, crop: $0) }, marking: m2, time: tid, ring: g4),
                  "klubba-markera-utan-finger")
-        let m3 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop)
+        let m3 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .dtl,
+                             xTecken: sv1.xTecken)
         try rita(ClubMarkContent(surface: { Image(decorative: ShotImages.cropped(hel, $0), scale: 1).resizable() },
                                  loupe: { LoupeImage(image: hel, crop: $0) }, marking: m3, time: tid, ring: g4,
                                  stick: [KlubbPunkt(x: 140, y: 470), KlubbPunkt(x: 138, y: 400)]),
@@ -212,7 +217,7 @@ final class SwingLabProvKlubba: XCTestCase {
                                    editable: false), "klubba-passet")
     }
 
-    /// Satta skaft framifrån (S7a-FO, BESLUT B56): vinkeln grepp → hosel (grader, y uppåt, +X mot
+    /// Satta skaft framifrån (S7a-FO, BESLUT B57): vinkeln grepp → hosel (grader, y uppåt, +X mot
     /// målet) och längden i px i bilden 270 × 480, som de påhittade svingarna (1080 × 1920,
     /// 400 px/m) skalade en fjärdedel: grepp → hosel 0,80 m är 80 px i bildens plan, P2, P6 och
     /// P8 78 px, adressen och träffen 72–74 px (skaftet lutar mot kameran), P3 och P9 62 px och
@@ -221,8 +226,9 @@ final class SwingLabProvKlubba: XCTestCase {
         "P1": (-95, 72), "P2": (178, 78), "P3": (130, 62), "P4": (10, 72), "P5": (100, 70),
         "P6": (178, 78), "P7": (-104, 74), "P8": (2, 78), "P9": (80, 62), "P10": (-20, 45)]
 
-    /// Framifrån: ett FO-pass märks genom appens logik utan riktpinne; P2, P6 och P8 tas efter
-    /// ändarna och föreslås där skaftets vinkel går genom vågrätt (METOD M45); måtten ur M49;
+    /// Framifrån: ett FO-pass märks genom appens logik i appens ordning (kroppens positioner
+    /// först, BESLUT B58) utan riktpinne; P2, P6 och P8 föreslås där skaftets vinkel går genom
+    /// vågrätt, kontrollerat mot värden räknade för hand (METOD M45); måtten ur M49;
     /// bilderna klubba-fo-granskning (träffen med skaftlinjen) och klubba-fo-markera (P6 med
     /// glaset och utan riktpinnen).
     func testMarkeraKlubbanFramifran() async throws {
@@ -257,21 +263,21 @@ final class SwingLabProvKlubba: XCTestCase {
         let s1 = pass.shots[0]
         let j1 = try XCTUnwrap(leder[s1.id])
         let review = ShotReview(series: j1, crop: serie.activeCrop)
+        let sv1 = try ShotMeasuring.sving(j1, view: .fo, hand: .hoger, heightM: 1.8, impact: s1.impact - s1.click.time)
         var m = ClubMarking(existing: s1.klubba, width: review.width, height: review.height, crop: serie.activeCrop,
-                            view: .fo, xTecken: 1)
+                            view: .fo, xTecken: sv1.xTecken)
         XCTAssertFalse(m.stickAvailable, "riktpinnen bara bakifrån")
+        let start = try XCTUnwrap(s1.measure?.start, "baksvingens start sparad i måtten")
         var tryck = 0
         var satt: [String: Double] = [:]
-        for p in ["P1", "P3", "P2", "P4", "P5", "P7", "P6", "P9", "P8", "P10"] {
-            m.go(to: p)
-            XCTAssertEqual(m.position, p)
+        var forslag: [String: Double] = [:]
+        var ordning: [String] = []
+        // Appens ordning: nästa position av sig själv, kroppens först och skaftets sist (BESLUT B58).
+        while !m.done {
+            let p = m.position
+            ordning.append(p)
             let ts = m.shownTime(measure: s1.measure, impact: s1.impact - s1.click.time)
-            if Klubba.skaftets.contains(p) {
-                let ur = try XCTUnwrap(Klubba.forslagTidSkaft(p, marks: m.result, xTecken: 1), "\(p): ändarna är markerade")
-                XCTAssertEqual(ts, ur, accuracy: 1e-12, "\(p): förslaget ur skaftet")
-                let kropp = try XCTUnwrap(Klubba.forslagTid(p, positioner: s1.measure?.positions ?? [:]))
-                print(String(format: "PROV: framifrån %@ föreslås %.4f s ur skaftet (kroppens mitt %.4f s)", p, ts, kropp))
-            }
+            if Klubba.skaftets.contains(p) { forslag[p] = ts }
             let k = try XCTUnwrap(review.index(nearestT: ts))
             let tk = review.frames[k].t
             let (vinkel, langd) = try XCTUnwrap(Self.sattaFO[p])
@@ -289,6 +295,22 @@ final class SwingLabProvKlubba: XCTestCase {
             XCTAssertNotNil(m.marks[p], "\(p): sparad av sig själv")
             tryck += 2
             satt[p] = tk
+        }
+        XCTAssertEqual(ordning, ["P1", "P3", "P4", "P5", "P7", "P9", "P10", "P2", "P6", "P8"])
+        // Förslaget till P2, P6 och P8 räknat för hand ur de satta vinklarna och rutorna där
+        // ändarna markerades (METOD M45): P2 från starten, −95° → 130° medurs 135°, vågrätt efter
+        // 85°; P6 100° → −104° moturs 156°, efter 80°; P8 −104° → 80° moturs 184°, efter 104°.
+        let t1 = try XCTUnwrap(satt["P1"]), t3 = try XCTUnwrap(satt["P3"]), t5 = try XCTUnwrap(satt["P5"])
+        let t7 = try XCTUnwrap(satt["P7"]), t9 = try XCTUnwrap(satt["P9"])
+        XCTAssertGreaterThan(start, t1, "starten efter adressens mitt")
+        let fran = max(t1, start)
+        XCTAssertEqual(forslag["P2"] ?? .nan, fran + (t3 - fran) * 85 / 135, accuracy: 1e-6)
+        XCTAssertEqual(forslag["P6"] ?? .nan, t5 + (t7 - t5) * 80 / 156, accuracy: 1e-6)
+        XCTAssertEqual(forslag["P8"] ?? .nan, t7 + (t9 - t7) * 104 / 184, accuracy: 1e-6)
+        for p in Klubba.skaftets {
+            let kropp = try XCTUnwrap(Klubba.forslagTid(p, positioner: s1.measure?.positions ?? [:]))
+            print(String(format: "PROV: framifrån %@ föreslås %.4f s ur skaftet (kroppens mitt %.4f s, starten %.4f s)",
+                         p, forslag[p] ?? .nan, kropp, start))
         }
         XCTAssertEqual(m.result.map(\.position), Klubba.positioner)
         print("PROV: klubban framifrån: \(tryck) tryck för P1–P10 utan steg, ingen riktpinne")
@@ -340,8 +362,8 @@ final class SwingLabProvKlubba: XCTestCase {
         let s2 = last.shots[1]
         let r2 = ShotReview(series: try XCTUnwrap(leder[s2.id]), crop: serie.activeCrop)
         var m2 = ClubMarking(existing: nil, width: r2.width, height: r2.height, crop: serie.activeCrop, view: .fo,
-                             xTecken: 1)
-        for p in ["P1", "P2", "P3", "P4", "P5"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
+                             xTecken: sv1.xTecken)
+        for p in ["P1", "P3", "P4", "P5", "P7", "P9", "P10", "P2"] { m2.skip(t: s2.measure?.positions[p] ?? 0) }
         XCTAssertEqual(m2.position, "P6")
         let k6 = try XCTUnwrap(r2.index(nearestT: m2.shownTime(measure: s2.measure, impact: s2.impact - s2.click.time)))
         let f6 = r2.frames[k6].joints

@@ -30,11 +30,11 @@ private struct Fixtur: Decodable {
     struct Skaft: Decodable {
         let position: String
         let x_tecken: Double
+        let start: Double?
         let markeringar: [Fall.M]
         let tid: Double?
     }
     struct Yta: Decodable {
-        let vy: String
         let utsnitt: [Double]?
         let bredd: Int
         let hojd: Int
@@ -96,18 +96,20 @@ final class KlubbaTests: XCTestCase {
     }
 
     /// Framifrån: rutan där skaftets vinkel mellan positionerna före och efter går genom vågrätt
-    /// (METOD M45), samma tid som Python; ingen när en ände saknas eller vinkeln inte når dit.
+    /// (METOD M45, P2 från baksvingens start), samma tid som Python; ingen när vinkeln inte når
+    /// dit eller går åt fel håll.
     func testForslagetUrSkaftetFramifran() throws {
         let fall = try fixtur().forslag_skaft
-        XCTAssertEqual(fall.count, 7)
-        XCTAssertGreaterThanOrEqual(fall.filter { $0.tid == nil }.count, 2)
+        XCTAssertEqual(fall.count, 9)
+        XCTAssertEqual(fall.filter { $0.tid == nil }.count, 3, "kort baksving och fel håll två gånger")
+        XCTAssertEqual(fall.filter { $0.x_tecken < 0 && $0.tid != nil }.count, 3, "vänsterspelarens P2, P6 och P8")
         for c in fall {
             let marks = c.markeringar.map { m in
                 KlubbMarkering(position: m.position, t: m.t, grepp: m.grepp.map { KlubbPunkt(x: $0[0], y: $0[1]) },
                                hosel: m.hosel.map { KlubbPunkt(x: $0[0], y: $0[1]) },
                                hoppad: m.grepp == nil ? true : nil)
             }
-            let t = Klubba.forslagTidSkaft(c.position, marks: marks, xTecken: c.x_tecken)
+            let t = Klubba.forslagTidSkaft(c.position, marks: marks, xTecken: c.x_tecken, start: c.start)
             if let v = c.tid { XCTAssertEqual(t ?? .nan, v, accuracy: 1e-9, c.position) } else { XCTAssertNil(t, c.position) }
         }
     }

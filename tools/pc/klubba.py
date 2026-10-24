@@ -247,13 +247,16 @@ def forslag_tid(position: str, positioner: dict) -> float | None:
 # vinkeln som är vågrätt (M46: 180 = bort från målet, 0 = mot målet) och åt vilket håll
 # vinkeln går i den speglade bilden: baksvingen medurs (minskar), nedsvingen moturs (ökar).
 SKAFT_VAGRATT = {"P2": ("P1", "P3", 180.0, -1.0), "P6": ("P5", "P7", 180.0, 1.0), "P8": ("P7", "P9", 0.0, 1.0)}
+SKAFT_MAX_SPANN = 270.0   # METOD M45: mer än så åt svingens håll mellan ändarna = skaftet gick åt fel håll
 
 
-def forslag_tid_skaft(position: str, marks: list[dict], x_tecken: float) -> float | None:
+def forslag_tid_skaft(position: str, marks: list[dict], x_tecken: float, start: float | None = None) -> float | None:
     """Framifrån (FO): rutan där skaftets vinkel (M46), linjärt i tiden mellan de markerade
     positionerna före och efter (P1 och P3 för P2, P5 och P7 för P6, P7 och P9 för P8), går
-    genom vågrätt, s relativt klicket (METOD M45). Vinkeln följer svingens håll (SKAFT_VAGRATT),
-    så att ett varv över ±180° räknas rätt. None när en ände saknas eller är hoppad, när
+    genom vågrätt, s relativt klicket (METOD M45). För P2 räknas vinkeln från baksvingens
+    start `start` (M4) när den ligger efter P1: skaftet står still i adressen. Vinkeln följer
+    svingens håll (SKAFT_VAGRATT), så att ett varv över ±180° räknas rätt, och mer än
+    SKAFT_MAX_SPANN åt det hållet är fel håll. None när en ände saknas eller är hoppad, när
     tiderna inte är i ordning, eller när vinkeln inte passerar vågrätt mellan ändarna."""
     if position not in SKAFT_VAGRATT:
         return None
@@ -263,6 +266,8 @@ def forslag_tid_skaft(position: str, marks: list[dict], x_tecken: float) -> floa
         return None
     a, b = pos[fore], pos[efter]
     ta, tb = float(a["t"]), float(b["t"])
+    if position == "P2" and start is not None:
+        ta = max(ta, float(start))
     if not tb > ta:
         return None
     s = float(x_tecken)
@@ -272,7 +277,7 @@ def forslag_tid_skaft(position: str, marks: list[dict], x_tecken: float) -> floa
     va, vb = vinkel(a), vinkel(b)
     spann = ((vb - va) * hall) % 360.0
     dit = ((vagratt - va) * hall) % 360.0
-    if not spann > 0 or dit > spann:
+    if not spann > 0 or spann > SKAFT_MAX_SPANN or dit > spann:
         return None
     return ta + (tb - ta) * dit / spann
 
@@ -453,10 +458,12 @@ SATTA = {
 FIXTUR_PINNE = ((585.0, 2700.0), (560.0, 2100.0))
 
 
-def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], Sving]:
+def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = (), lana: dict | None = None
+                          ) -> tuple[list[dict], Sving]:
     """Påhittade markeringar på en påhittad sving i filformatet (generera.py): greppet på
     handledernas mitt + en förskjutning i bild, hoseln längs den satta vinkeln (SATTA), på
     rutan närmast förslaget för varje position (M45). Positionerna i `hoppa` hoppas över.
+    `lana` = kroppens positioner att låna där svingen saknar dem (klubban märks ändå där).
     Svarar markeringarna (i bildens pixlar, ospeglade) och svingen."""
     from . import format as fm
     from . import matt as M
@@ -464,9 +471,10 @@ def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[lis
     r = M.mat(sv)
     d = json.loads(indata)
     t = np.array([x["t"] for x in d["rutor"]])
+    positioner = {**(lana or {}), **{k: v for k, v in r["positioner"].items() if v is not None}}
     marks = []
     for p in POSITIONER:
-        tf = forslag_tid(p, r["positioner"])
+        tf = forslag_tid(p, positioner)
         if tf is None:
             continue
         k = int(np.argmin(np.abs(t - tf)))
@@ -487,10 +495,30 @@ def pahittade_markeringar(indata: str, hoppa: tuple[str, ...] = ()) -> tuple[lis
     return marks, sv
 
 
+# Svingar som saknar kroppens positioner där klubban ändå märks: fo_vanster har den främre
+# handleden dold (P3 och P5 saknas) och lånar fo:s tider, så att vänsterspelarens P2 och P6
+# prövas framifrån.
+LANA = {"fo_vanster": "fo"}
+
+
 def fixtur_markeringar(namn_: str, hoppa: tuple[str, ...] = ()) -> tuple[list[dict], Sving]:
     """Påhittade markeringar på en av Fixturer.swifts svingar (generera.py --swift)."""
     from . import generera as gen
-    return pahittade_markeringar(gen.fixtursving(namn_), hoppa)
+    from . import format as fm
+    from . import matt as M
+    lana = None
+    if namn_ in LANA:
+        lana = {k: v for k, v in M.mat(fm.las(gen.fixtursving(LANA[namn_])))["positioner"].items()
+                if v is not None}
+    return pahittade_markeringar(gen.fixtursving(namn_), hoppa, lana)
+
+
+def fixtur_start(namn_: str) -> float | None:
+    """Baksvingens start (M4) i en av Fixturer.swifts svingar."""
+    from . import generera as gen
+    from . import format as fm
+    from . import matt as M
+    return M.mat(fm.las(gen.fixtursving(namn_)))["faser"]["start"]
 
 
 FIXTURFALL = (("dtl", (), FIXTUR_PINNE), ("dtl_vanster", (), None), ("fo", (), None), ("fo_vanster", ("P8",), None))
@@ -559,26 +587,36 @@ def fixturer() -> dict:
     marks[0] = {**marks[0], "grepp_kalla": "handlederna_bekraftad"}
     fil = fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
     yta = []
-    # Samma tryck, samma pixel i båda vyerna; framifrån ett utsnitt kring spelaren med plats för
-    # klubban vid toppen och i finishen.
-    for vy, utsnitt, u, v in (("dtl", None, 0.5, 0.5), ("dtl", (0.2, 0.1, 0.5, 0.6), 0.25, 0.75),
-                              ("dtl", (0.0, 0.3, 0.9, 0.7), 0.031, 0.969), ("fo", (0.15, 0.2, 0.7, 0.75), 0.62, 0.18),
-                              ("fo", (0.25, 0.3, 0.5, 0.55), 0.97, 0.03)):
+    # Trycket blir pixeln på samma sätt i båda vyerna (vyn ingår inte); de två sista är utsnitt
+    # som framifrån, kring spelaren med plats för klubban vid toppen och i finishen, med tryck
+    # nära kanterna.
+    for utsnitt, u, v in ((None, 0.5, 0.5), ((0.2, 0.1, 0.5, 0.6), 0.25, 0.75), ((0.0, 0.3, 0.9, 0.7), 0.031, 0.969),
+                          ((0.15, 0.2, 0.7, 0.75), 0.62, 0.18), ((0.25, 0.3, 0.5, 0.55), 0.97, 0.03)):
         visad = visad_telefonen(utsnitt, 1080, 1920)
-        yta.append({"vy": vy, "utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u,
-                    "v": v, "visad": visad, "punkt": list(yta_till_bild(u, v, visad))})
+        yta.append({"utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u, "v": v,
+                    "visad": visad, "punkt": list(yta_till_bild(u, v, visad))})
     # Framifrån: förslaget ur skaftets vinkel mellan de markerade positionerna (M45), på de
     # påhittade svingarna och på ett skaft som inte når vågrätt (inget förslag).
     skaft = []
     for namn_ in ("fo", "fo_vanster"):
         marks, sv = fixtur_markeringar(namn_)
+        start = fixtur_start(namn_)
         for p in SKAFTETS:
-            skaft.append({"position": p, "x_tecken": sv.x_tecken, "markeringar": _som_lista(marks),
-                          "tid": forslag_tid_skaft(p, marks, sv.x_tecken)})
-    kort = [{"position": "P1", "t": -1.2, "grepp": (500.0, 1300.0), "hosel": (480.0, 1585.0)},
-            {"position": "P3", "t": -0.5, "grepp": (380.0, 1100.0), "hosel": (210.0, 1240.0)}]
-    skaft.append({"position": "P2", "x_tecken": 1.0, "markeringar": _som_lista(kort),
-                  "tid": forslag_tid_skaft("P2", kort, 1.0)})
+            skaft.append({"position": p, "x_tecken": sv.x_tecken, "start": start, "markeringar": _som_lista(marks),
+                          "tid": forslag_tid_skaft(p, marks, sv.x_tecken, start)})
+
+    def _skaft(p, vinkel, langd, t):
+        g = (500.0, 1300.0)
+        return {"position": p, "t": t, "grepp": g, "hosel": (round(g[0] + langd * math.cos(math.radians(vinkel)), 1),
+                                                             round(g[1] - langd * math.sin(math.radians(vinkel)), 1))}
+    # Skaftet når inte vågrätt (−95° → −150°), och skaftet åt fel håll: −95° → −85° i
+    # baksvingen och −104° → −110° efter träffen (mer än 270° åt svingens håll).
+    for p, a, b in (("P2", ("P1", -95.0, 285.0, -1.2), ("P3", -150.0, 220.0, -0.5)),
+                    ("P2", ("P1", -95.0, 285.0, -1.2), ("P3", -85.0, 220.0, -0.5)),
+                    ("P8", ("P7", -104.0, 290.0, 0.0), ("P9", -110.0, 220.0, 0.3))):
+        marks = [_skaft(*a), _skaft(*b)]
+        skaft.append({"position": p, "x_tecken": 1.0, "start": None, "markeringar": _som_lista(marks),
+                      "tid": forslag_tid_skaft(p, marks, 1.0)})
     return {"fall": fall, "fil": fil, "yta": yta, "forslag_skaft": skaft,
             "forslag": [{"position": p, "positioner": pos, "tid": forslag_tid(p, pos)}
                         for p, pos in (
