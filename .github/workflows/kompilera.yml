@@ -125,7 +125,7 @@ jobs:
               python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
               grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
               echo "== provets mätningar (påhittad film)"
-              grep -E '^PROV: ' prov.log | head -80 || true
+              grep -E '^PROV: ' prov.log | head -160 || true
             fi
             echo
             echo "== PC:n läser appens paket (tools/tests/test_appens_paket.py)"

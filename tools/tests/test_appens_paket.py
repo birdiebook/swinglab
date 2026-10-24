@@ -150,5 +150,44 @@ class AppensPaket(unittest.TestCase):
                               for sid in sorted(self.facit["slag"])))
 
 
+PARAT = (Path(MAPP).parent / "paket-parat") if MAPP else None
+
+
+@unittest.skipUnless(PARAT, "SWINGLAB_APPENS_PAKET saknas: inget paket från appen (körs i kompilera.yml)")
+class AppensParadePaket(unittest.TestCase):
+    """S6g (BESLUT B81): Send to PC på den styrande telefonen ger två paket, dess eget (DTL) och den
+    andra vyns (FO) byggt ur följarens slag och klippen som kom över kopplingen. Båda har paketets
+    format och kontrakt: paket.py läser dem som två telefoners paket, och klippen spelar."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.facit = json.loads((PARAT / "facit.json").read_text(encoding="utf-8"))
+        cls.paket = sorted(PARAT.glob("swinglab-*.zip"))
+
+    def test_tva_paket_med_var_sin_vy(self) -> None:
+        pid = self.facit["pass"]
+        self.assertEqual([f.name for f in self.paket], [f"swinglab-{pid}-dtl.zip", f"swinglab-{pid}-fo.zip"])
+        dtl, fo = (P.las(f) for f in self.paket)
+        self.assertEqual((dtl.vy, fo.vy), ("dtl", "fo"))
+        self.assertEqual(dtl.pass_id, pid)
+        self.assertEqual(fo.pass_id, pid)
+        self.assertEqual(sorted(s.id for s in dtl.slag), self.facit["dtl_slag"])
+        klipp = sorted(s.id for s in fo.slag if s.klipp)
+        self.assertEqual(klipp, self.facit["fo_klipp"])
+        for s in fo.slag:
+            if not s.klipp:
+                continue
+            self.assertTrue(P.i_klippet(s, float(s.klick_i_klipp_s)), "klicket bland klippets rutor")
+            with zipfile.ZipFile(self.paket[1]) as z:
+                data = z.read(s.klipp)
+            self.assertEqual(data[4:8], b"ftyp", f"{s.klipp} är en QuickTime-fil")
+            n, sist = _avkoda(data)
+            self.assertGreater(n, 0, f"{s.klipp} spelar inte")
+            print(f"PAKET: parat FO {s.id} klippet från den styrande avkodat: {n} rutor, sista vid {sist:.4f} s, "
+                  f"klicket i klippet {float(s.klick_i_klipp_s):.4f} s")
+        print(f"PAKET: parat {self.paket[0].name} ({len(dtl.slag)} slag) och {self.paket[1].name} "
+              f"({len(fo.slag)} slag, {len(klipp)} klipp) lästa av paket.py")
+
+
 if __name__ == "__main__":
     unittest.main()

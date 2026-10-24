@@ -84,6 +84,8 @@ struct TreDKortVy: View {
 /// kopplingen inte fanns under passet. Grå text som Claude-raden; räkningen visas som ett hjul.
 struct AnnanTelefonRad: View {
     let koppling: TreDKoppling
+    /// Efter importen av slagen: klippen ur samma paket (S6g, `KlippKoppling.importera`).
+    var efterImport: ((URL) async -> Void)? = nil
     @State private var valj = false
 
     /// Följarens överföring: "Sent", "Waiting for other phone", eller den andra telefonens nej.
@@ -127,7 +129,12 @@ struct AnnanTelefonRad: View {
         }
         .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
         .fileImporter(isPresented: $valj, allowedContentTypes: [.zip]) { r in
-            if case let .success(url) = r { Task { await koppling.importera(url) } }
+            if case let .success(url) = r {
+                Task {
+                    await koppling.importera(url)
+                    await efterImport?(url)
+                }
+            }
         }
     }
 }

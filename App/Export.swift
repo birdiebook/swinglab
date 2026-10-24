@@ -113,6 +113,39 @@ enum Export {
         }
         return url
     }
+
+    /// Paketen som "Send to PC" delar: passets eget, och på den styrande med den andra telefonens
+    /// slag också den andra vyns (S6g, BESLUT B81), byggt ur bunten och klippen som kommit, i samma
+    /// format och kontrakt som den andra telefonens eget paket. Går den andra vyns paket inte att
+    /// skriva delas passets eget ensamt.
+    @MainActor
+    static func packages(passID: String, store: Store, includeClips: Bool, now: Date = Date()) async throws -> [URL] {
+        let egen = try await package(passID: passID, store: store, includeClips: includeClips, now: now)
+        guard let annan = await otherPackage(passID: passID, store: store, includeClips: includeClips, now: now) else {
+            return [egen]
+        }
+        return [egen, annan]
+    }
+
+    /// Den andra vyns paket på den styrande (S6g, BESLUT B81), eller nil (ingen bunt, inga slag med
+    /// leder, eller ett fel). METOD MS31
+    @MainActor
+    static func otherPackage(passID: String, store: Store, includeClips: Bool, now: Date = Date()) async -> URL? {
+        guard let p = store.load(passID), p.setup.role == .lead, let bunt = store.otherPhone(passID),
+              bunt.vy != p.setup.view else { return nil }
+        let folder = store.passFolder(passID), scratch = store.scratchFolder
+        let url = store.exportFolder.appending(path: AnnanPaket.filnamn(bunt))
+        let video = store.annanVideo(passID)
+        store.setExporting(passID, true)
+        defer { store.setExporting(passID, false) }
+        let ok = await Task.detached(priority: .userInitiated) { () -> Bool in
+            (try? AnnanPaket.write(bunt: bunt, video: video, folder: folder, to: url, scratch: scratch, created: now,
+                                   medKlipp: includeClips)) != nil
+        }.value
+        guard ok else { return nil }
+        Store.createOutsideBackup(store.exportFolder)
+        return url
+    }
 }
 
 /// Delningsbladet (Idunn): AirDrop, Filer, iCloud Drive.
@@ -138,8 +171,8 @@ struct SendToPCButton: View {
     @State private var problem: String?
 
     struct SharedFile: Identifiable {
-        let url: URL
-        var id: String { url.path }
+        let urls: [URL]
+        var id: String { urls.map(\.path).joined() }
     }
 
     var body: some View {
@@ -155,7 +188,7 @@ struct SendToPCButton: View {
             }
         }
         .sheet(item: $shared) { f in
-            ActivitySheet(items: [f.url])
+            ActivitySheet(items: f.urls)
         }
         .alert(Text(verbatim: problem ?? ""), isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
             Button("Close", role: .cancel) { problem = nil }
@@ -167,8 +200,9 @@ struct SendToPCButton: View {
         Task {
             defer { working = false }
             do {
-                let url = try await Export.package(passID: passID, store: store, includeClips: clips)
-                shared = SharedFile(url: url)
+                // På den styrande också den andra vyns paket (S6g, BESLUT B81).
+                let urls = try await Export.packages(passID: passID, store: store, includeClips: clips)
+                shared = SharedFile(urls: urls)
             } catch {
                 problem = error.localizedDescription
             }

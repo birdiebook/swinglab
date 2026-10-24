@@ -82,6 +82,8 @@ extension SwingLabProvVyer {
         // 1. Listan, appens väg: senaste först, vyn, tiden, klubban, svingarna och paret.
         let rader = await Sessionslista.load(store)
         XCTAssertEqual(rader.map(\.id), [d, c, b, a])
+        // Det styrande passet här har varken par.json eller den andra telefonens slag: ingen rad
+        // "Paired" (S6g, BESLUT B82), bara vyn och "paired".
         XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Down the line", "Face on"])
         XCTAssertEqual(rader.map(\.parad), [false, true, true, false])
         XCTAssertEqual(rader.map(\.svingar), [nil, 3, 8, 8])

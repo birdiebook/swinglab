@@ -46,10 +46,15 @@ final class SessionerTests: XCTestCase {
         ny.series[1].club = "pw"
         let tom = PassState(id: "20261101-120000", created: Tal.dag(2026, 11, 1), setup: PassSetup(view: .fo, club: "dr"))
 
-        let rader = Sessionsrad.rader([fo, dtl, tom, halv, ny, foljer])
+        let rader = Sessionsrad.rader([fo, dtl, tom, halv, ny, foljer], parade: [dtl.id])
+        // Utan par.json eller den andra telefonens slag är den styrandes rad sin vy (S6g).
+        XCTAssertEqual(Sessionsrad(dtl).vyNamn, "Down the line")
+        XCTAssertFalse(Sessionsrad(dtl).styr)
         XCTAssertEqual(rader.map(\.id), ["20261115-120000", "20261114-090000", "20261113-180000", "20261110-180500",
                                          "20261109-120000", "20261101-120000"], "senaste först")
-        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Down the line", "Face on", "Face on", "Face on"])
+        // Den styrandes parade pass är en rad "Paired" (S6g, BESLUT B82); följaren behåller sin vy.
+        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Paired", "Face on", "Face on", "Face on"])
+        XCTAssertEqual(rader.map(\.styr), [false, false, true, false, false, false])
         XCTAssertEqual(rader.map(\.vy), [.dtl, .fo, .dtl, .fo, .fo, .fo])
         XCTAssertEqual(rader.map(\.svingar), [nil, 2, 4, 8, nil, 0])
         // Samma tal som sessionens rad ("7i · 2").
@@ -58,7 +63,8 @@ final class SessionerTests: XCTestCase {
         XCTAssertEqual(rader.map(\.parad), [false, true, true, false, false, false])
         XCTAssertEqual(rader.map(\.klubba), ["7i, PW", "7i", "PW", "7i", "7i", "Dr"])
         XCTAssertEqual(rader[3].tid, "Tue, Nov 10\u{00A0}· 18:05")
-        XCTAssertEqual(rader[2].upplasning, "Down the line, Fri, Nov 13, 18:00, PW, 4 swings, paired")
+        XCTAssertEqual(rader[2].upplasning, "Paired, Down the line and Face on, Fri, Nov 13, 18:00, PW, 4 swings")
+        XCTAssertEqual(rader[1].upplasning, "Face on, Sat, Nov 14, 09:00, 7i, 2 swings, paired")
         XCTAssertEqual(rader[0].upplasning, "Down the line, Sun, Nov 15, 12:00, 7i, PW, Not analyzed")
         XCTAssertEqual(Texter.sessionsrad(vy: "Face on", dag: "Sat, Jan 9", klocka: "09:00", klubba: "7i", svingar: 1,
                                           parad: false), "Face on, Sat, Jan 9, 09:00, 7i, 1 swing")

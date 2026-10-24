@@ -1917,6 +1917,104 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   frågan (också med felet), en FO- och en DTL-session med 3D-kortet, raderingens filer, att det
   raderade passet inte skrivs igen, och Me.
 
+## MS30 — Klippen mellan telefonerna (S6g)
+
+- **Fönstret:** från **4 s** före till **2,5 s** efter träffen i följarens fil (Johannes
+  2026-10-24): träffen = den styrandes träff + parningens `traff_forskjutning_s` (MS6, MS10), det
+  väntade klicket = den styrandes klick + `forskjutning_s`. Bara svingar (dom sving eller osäker);
+  också ett klick som följaren inte hörde. En serie utan parning ger inget klipp. Början klampas
+  till 0 och slutet till filens längd. **Johannes beslut** (fönstret), **räkning**.
+- **Skärningen:** passthrough (`AVAssetExportSession`), inget omkodat. **Klippets verkliga början
+  läses ur filen** (`KlippStart`): har videospårets första segment en edit list som skär bort
+  rutorna före den begärda tiden (segmentet börjar senare i mediet än på tidslinjen) börjar klippet
+  där det begärdes; annars visar det allt från en tidigare I-ruta, och början ligger så mycket
+  tidigare som klippet är längre än det begärda (inte före filen). Början sparas i `video.json`
+  (`start_s`). **Klicket i klippet** är det närmast det väntade (klicket − den verkliga början) och
+  inom **30 ms** (MS10:s tolerans, `KlippBegaran.klickTolerans`); ett annat ljud längre bort räknas
+  inte. Utan klick: följaren hörde det inte, synken tar det väntade, och slaget märks ("No click in
+  this video", "no click" i den andra vyns lista). **räkning**.
+- **Bitarna:** S6c-2:s (MS19) om **192 kB**, i base64 i `part` med `kind: "klipp"` och klippets
+  `namn` (den styrandes slag, eller `video-NN` för en hel serie; bara a–z, 0–9 och bindestreck,
+  högst 16 tecken). Högst **8** bitar i luften (cirka 1,5 MB, 2 MB i base64); en kvittens släpper
+  nästa. `id` = summan över filen (CRC-32 och längden), läst 1 MB i taget. **räkning**.
+- **Mottagningen** skriver varje bit i ordning till `<vy>/Delar/<namn>~<id>.part`. Antalet hela
+  bitar = storleken / 192 kB (en halvskriven bit kapas). En bit som redan finns kvitteras igen; en
+  bit längre fram får `ok: false` med `har` (börja där); när den sista kommit prövas summan, och
+  fel summa ger `har: 0`. Klippet flyttas till `<vy>/Klipp/<namn>.mov` (`<vy>/Video/NN.mov`), och
+  helheten kvitteras när `video.json` är sparad. Ett annat innehåll med samma namn tar bort det
+  gamla. Nej med skäl (MS19): `pass`, `version`, `format` (ett namn som inte begärts).
+  **räkning**.
+- **Återupptaget:** begäran bär varje påbörjat klipps `har_id` och `har`; följaren börjar vid `har`
+  när summan är densamma, annars från början. Varje begäran (`nr` ökar) startar strömmen om där
+  den styrande står, så högst 8 bitar per avbrott skickas två gånger. **räkning**.
+- **Taket:** ett klipp högst **128 MB** (cirka fyra gånger ett klipp om 6,5 s i 240 bilder/s,
+  33 MB), en hel serie högst **4 GB** (zippens gräns, B27), begäran högst **1 MB**. Summan i biten
+  (`id`) ska vara åtta gemena hexsiffror, ett bindestreck och längden, och längden ska vara bitens
+  `bytes`. **antagande** (taket), **räkning**.
+- **Disken:** före ett klipps första bit ska klippet och **200 MB** vara ledigt
+  (`volumeAvailableCapacityForImportantUsage`); annars, och när en skrivning felar, svarar den
+  styrande nej med skälet `disk`, följaren slutar, och passet säger "Not enough space for the other
+  phone's video". Nästa hello börjar om. **antagande** (marginalen).
+- **Nej per klipp:** följaren svarar nej med skälet `saknas` när originalet fattas eller klippet
+  inte gick att skära; den styrande sparar namnet (`video.json`: `saknas`), begär det inte igen och
+  döljer "Get full video" när en hel serie saknas. **räkning**.
+- **Ordningen:** en begäran skickas aldrig igen ur kopplingens kö när följaren säger hello (den
+  styrande skickar en ny), `nr` sparas hos den styrande (`video.json`) så att det fortsätter uppåt
+  efter en omstart, och följaren gör inget med en begäran med lägre `nr` än den senaste.
+  **räkning**.
+- **Städningen:** påbörjade klipp i `Delar/` vars namn inte står i begäran tas bort när den
+  skickas (ett avbrutet "Get full video"); inget skrivs när passets mapp saknas (raderat), och
+  den andra vyns mapp ligger utanför backupen från början. **räkning**.
+- **Följarens original:** behålls tills den senaste begäran har alla klipp framme (`alltFramme`),
+  och tas då bort om "Spara bara klippen" (B26) gäller och passet är exporterat. Utan begäran
+  släpps de när den styrande saknar `video1`, och i alla fall efter **7 dagar** från passet
+  (`Originalen.tidsgrans`, B84). **antagande** (7 dagar).
+- **Storleken, räknad:** en iPhone i 240 bilder/s skriver några hundra MB per minut (MS11,
+  antagande): med 300 MB/min är ett klipp om 6,5 s cirka **33 MB** i 166 bitar och **43 MB** på
+  kopplingen, och ett pass om 14 svingar cirka **460 MB** (600 MB på kopplingen). En bit är 262 kB
+  som meddelande (1,33 · 192 kB plus JSON), under ramens 1 MB. **räkning** (prövad i
+  `KlippTests.testStorlekenPaKopplingen`). Tiden över AWDL är inte uppmätt; med 10–30 MB/s
+  effektivt tar 14 svingar 20–60 s. **antagande**.
+- **Uppmätt i simulatorn** (påhittad film 480 × 270 i 240 bilder/s, H.264 4 Mbit/s, 12 s, över
+  loopback, 2026-10-24): fyra klipp om 4,7–6,5 s, **2,74 MB** (686 kB per klipp) i 15 bitar,
+  **2,0 s** inklusive ett avbrott om 1,5 s, inga bitar skickade två gånger; hela serien
+  **1,37 MB** i 7 bitar på **0,09 s**. Passthrough-klippens klick låg på det väntade inom
+  0,1 ms (4,0086–4,0088 s mot 4,0087 s), och de vita rutorna på samma träff i båda vyerna.
+  Loopback säger inget om AWDL; filmen är en bråkdel av en riktig (cirka 1 MB/s mot 5 MB/s).
+- **Bakgrunden:** `beginBackgroundTask` medan något skickas eller tas emot; iOS ger en kort stund
+  (några tiotal sekunder). **standard** (Apples API), **antagande** (tiden).
+
+## MS31 — Synken och vyerna i ett parat pass (S6g)
+
+- **Synken på träffen:** granskningens rutor, positioner och stegning är den styrandes (lederna).
+  Den andra vyns video visas på samma träff: videons tid − den styrandes seriens tid =
+  (klicket i klippet − följarens avstånd / 343) − den styrandes träff; för en hel serie
+  `traff_forskjutning_s`. Utan mätt klick: det väntade (klicket − klippets början). **fysik**
+  (MS6), **räkning**.
+- **Den andra vyns mått** på den styrande: följarens slag ur bunten (S6c-2, manifestet och
+  lederna), mätta med den styrandes längd (M2, MS16), filtrerade per vy (MS20). Granskningens
+  rader i den vyn är måtten för följarslaget vars klick ligger inom **30 ms** från det väntade
+  (MS10:s tolerans). **räkning**.
+- **"14 swings · 12 from both phones":** svingarna som räknas hos den styrande (MS20), och av dem
+  de som har den andra vyns video (ett klipp, eller den hela serien). **räkning**.
+- **Förloppet:** (klipp framme + andelen hela bitar av påbörjade) / begärda klipp, i procent
+  avrundat nedåt, så att 100 % betyder framme. **räkning**.
+- **Paketet för den andra vyn** (B81): ett klipp på det följarslag vars klick ligger inom 30 ms
+  från klippets väntade klick; `klick_i_klipp_s` = klicket i klippet + (följarslagets klick − det
+  väntade); bara inom [0; längden). **räkning**.
+- **Importen** (reserven): klippen i den andra telefonens paket läggs under den styrandes slag
+  vars klick + förskjutningen ligger inom 30 ms; förskjutningen ur `par.json`, annars ur
+  seriernas klick med samma nummer (`ClickPairing`, MS10). **räkning**.
+- **Samma vy** (B83): den andra telefonens vy i hello är den här telefonens. **räkning**.
+- **Vad provas var.** Linux (`KlippTests`): begäran (fönstret, det missade klicket, det som
+  kommit, hela serien), strömmen med avbrott och omstart (förloppet ur filen), dubbletter,
+  luckor, fel summa och nejen, storleken på kopplingen, synken mot hela serien, raden, den andra
+  vyns pass och paket, importen och vägen genom `LinkLeader`/`LinkFollower`. Simulatorn
+  (`SwingLabProvVideo`): två telefoner över loopback med riktiga passthrough-klipp, ett missat
+  klick, ett avbrott, "Get full video", originalen, synken som vita rutor på samma träff, de två
+  paketen som PC:n läser, och bilderna. Telefonen: AWDL, tiden och storleken på riktiga klipp,
+  bakgrunden.
+
 ## MT1 — Paketet till svingar
 
 - Varje slag i paketet (S2_SPEC §8.3, docs/FORMAT.md "Paketet") blir en sving i

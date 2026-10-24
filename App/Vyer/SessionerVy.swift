@@ -21,35 +21,26 @@ enum Sessionslista {
         let r = await Task.detached(priority: .userInitiated) { () -> ([Sessionsrad], [PassState], [PassState]) in
             let fore = Store.reading(ids, root: root, height: hojd)
             let efter = Store.measuring(fore, root: root)
-            return (Sessionsrad.rader(efter), fore, efter)
+            // "Paired" bara när en följare var kopplad och parades (S6g, BESLUT B82).
+            let pass = root.appending(path: "Pass", directoryHint: .isDirectory)
+            let parade = Set(ids.filter { Sessionsrad.parad(mapp: pass.appending(path: $0, directoryHint: .isDirectory)) })
+            return (Sessionsrad.rader(efter, parade: parade), fore, efter)
         }.value
         for (a, b) in zip(r.1, r.2) where a != b && store.load(a.id) == a { store.save(b) }
         return r.0
     }
 }
 
-/// En rad: vyn (med "paired" för två telefoner), dagen och klockslaget med klubban, och
+/// En rad: vyn (med "paired" för följaren, "Paired" för den styrandes parade pass), dagen och klockslaget med klubban, och
 /// svingarna till höger. Värden in, så att provet kan rita den.
 struct SessionRadVy: View {
     let rad: Sessionsrad
     /// Pilen till höger: raden öppnar passet (inte i raderingens fråga).
     var pil = true
 
+    /// Vyn, eller "Paired" för den styrandes parade pass (S6g, BESLUT B82).
     private var vyn: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(verbatim: rad.vyNamn)
-                .typsnitt(17, .medium)
-                .foregroundStyle(Theme.text)
-            if rad.parad {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Image(systemName: "link")
-                        .typsnitt(11, .semibold)
-                    Text(verbatim: Texter.parad)
-                        .typsnitt(13)
-                }
-                .foregroundStyle(Theme.secondary)
-            }
-        }
+        SessionRadRubrik(rad: rad)
     }
 
     private var under: some View {

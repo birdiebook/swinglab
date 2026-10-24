@@ -18,20 +18,28 @@ public struct Sessionsrad: Identifiable, Equatable, Sendable {
     /// Passet filmades med två telefoner (styr eller följ, BESLUT B21): den andra telefonens
     /// rad står i dess egen lista.
     public let parad: Bool
+    /// Den styrandes rad för ett parat pass, "Paired" (S6g, BESLUT B82): en följare var kopplad och
+    /// parades (`par.json` eller den andra telefonens slag finns), och passet växlar mellan vyerna.
+    /// Följaren har kvar sin egen rad med sin vy.
+    public let styr: Bool
     /// Raden i ord för VoiceOver.
     public let upplasning: String
 
-    public init(_ p: PassState) {
+    /// `parad` = passets mapp har `par.json` eller den andra telefonens slag (S6g).
+    public init(_ p: PassState, parad harAndra: Bool = false) {
         id = p.id
         vy = p.setup.view
-        vyNamn = Texter.vyNamn(p.setup.view)
+        styr = p.setup.role == .lead && harAndra
+        vyNamn = styr ? Texter.paradRubrik : Texter.vyNamn(p.setup.view)
         let dag = Tal.dag(p.created), klocka = Tal.klocka(p.created)
         tid = dag + Texter.skilje + klocka
         klubba = Self.klubbor(p).map(PassSetup.clubLabel).joined(separator: ", ")
         svingar = Self.svingar(p)
         parad = p.setup.role != .solo
-        upplasning = Texter.sessionsrad(vy: vyNamn, dag: dag, klocka: klocka, klubba: klubba, svingar: svingar,
-                                        parad: parad)
+        upplasning = styr
+            ? Texter.sessionsrad(vy: vyNamn + ", " + Texter.badaVyerna, dag: dag, klocka: klocka, klubba: klubba,
+                                 svingar: svingar, parad: false)
+            : Texter.sessionsrad(vy: vyNamn, dag: dag, klocka: klocka, klubba: klubba, svingar: svingar, parad: parad)
     }
 
     /// Seriernas klubbor i ordning, utan dubbletter; uppställningens när passet saknar serier.
@@ -50,8 +58,18 @@ public struct Sessionsrad: Identifiable, Equatable, Sendable {
         return ShotPlan.next(p) == nil ? p.countedSwings.count : nil
     }
 
-    /// Raderna, senaste först (som passens index).
-    public static func rader(_ passes: [PassState]) -> [Sessionsrad] {
-        passes.sorted { ($0.created, $0.id) > ($1.created, $1.id) }.map(Sessionsrad.init)
+    /// Raderna, senaste först (som passens index). `parade` = passen vars mapp har `par.json` eller
+    /// den andra telefonens slag.
+    public static func rader(_ passes: [PassState], parade: Set<String> = []) -> [Sessionsrad] {
+        passes.sorted { ($0.created, $0.id) > ($1.created, $1.id) }.map { Sessionsrad($0, parad: parade.contains($0.id)) }
+    }
+
+    /// Passets mapp visar att en följare var kopplad och parades: `par.json` eller den andra
+    /// telefonens slag (`annan_telefon.json`). Läses utanför huvudtråden.
+    public static func parad(mapp: URL) -> Bool {
+        let fm = FileManager.default
+        return [PassPackage.pairingFile, SlagBunt.filnamn].contains {
+            fm.fileExists(atPath: mapp.appendingPathComponent($0).path)
+        }
     }
 }

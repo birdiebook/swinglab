@@ -34,6 +34,14 @@ struct PassShotsView: View {
     @State private var forraTreD: PassState?
     /// Figuren i 3D är öppen (S6d, BESLUT B73).
     @State private var visarFigur = false
+    /// Den andra telefonens video (S6g, BESLUT B80): klippen till den styrande, och valet DTL, FO
+    /// eller 3D i ett parat pass (B82). Den andra vyns mått ur dess slag (S6c-2:s bunt).
+    @State private var klipp: KlippKoppling?
+    @State private var parvy: Parvy?
+    @State private var annanVisning: Passvisning?
+    @State private var par: PairFile?
+    /// Den andra telefonens slag finns i passet (B82: raden och växlingen bara för ett parat pass).
+    @State private var harAnnan = false
 
     struct SeriesID: Identifiable {
         let id: Int
@@ -51,8 +59,11 @@ struct PassShotsView: View {
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
                                   onHeight: setHeight, sendToPC: true,
                                   claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)),
-                                  treD: treDKort, annanTelefon: annanTelefon(pass),
-                                  onFigur: figurKnapp)
+                                  treD: treDKort, annanTelefon: annanTelefon(pass), onFigur: figurKnapp, parad: paradLage(pass),
+                                  annanVisning: annanVisning,
+                                  onParvy: { parvy = $0 }, onHela: { klipp?.hamtaHela() },
+                                  foljarRad: pass.setup.role == .follow ? klipp?.rad : nil,
+                                  foljarSammaVy: pass.setup.role == .follow && klipp?.sammaVy == true)
                     // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
                     // och granskningen, så att pass.json inte ändras under.
                     .disabled(store.exporting.contains(passID))
@@ -66,6 +77,8 @@ struct PassShotsView: View {
         }
         .onDisappear {
             job?.cancel()
+            klipp?.stop()
+            klipp = nil
             tred?.stop()
             tred = nil
         }
@@ -88,7 +101,7 @@ struct PassShotsView: View {
         }
         // Granskningen: tillbaka läser passet om ("Detection wrong" ändrar måtten).
         .fullScreenCover(item: $reviewing) { s in
-            ShotReviewView(passID: passID, shotID: s.id) {
+            ShotReviewView(passID: passID, shotID: s.id, startVy: parvy?.vy) {
                 reviewing = nil
                 reload()
             }
@@ -124,6 +137,48 @@ struct PassShotsView: View {
         t.onAndrat = { reload() }
         tred = t
         t.start()
+        // Videon från den andra telefonen på samma koppling (S6g, BESLUT B80).
+        let k = KlippKoppling(passID: passID, store: store)
+        k.onAndrat = { reload() }
+        klipp = k
+        k.start(link: t.link)
+    }
+
+    /// Huvudet i ett parat pass på den styrande (S6g, BESLUT B82): DTL, FO och 3D, vad som finns
+    /// och förloppet. nil för ett pass med en telefon och för följaren.
+    private func paradLage(_ p: PassState) -> ParadLage? {
+        // Bara när en följare faktiskt var kopplad och parades (par.json eller dess slag).
+        guard p.setup.role == .lead, par != nil || harAnnan else { return nil }
+        let video = klipp?.video
+        let helaFinns = video.map { v in
+            Set(par?.entries.map(\.follower.series) ?? []).allSatisfy { v.klipp[KlippPost.videoNamn($0)] != nil }
+        } ?? false
+        var annanKlipp = Set<String>()
+        for s in p.shots {
+            if let v = video, let e = KlippBegaran.parning(par, serie: s.series, vy: p.setup.view),
+               v.kalla(slag: s, par: e) != nil { annanKlipp.insert(s.id) }
+        }
+        return ParadLage(egen: p.setup.view, valt: parvy ?? Parvy.av(p.setup.view),
+                         franBada: Parstatus.text(pass: p, par: par, video: video), forlopp: klipp?.rad,
+                         sammaVy: klipp?.sammaVy ?? false,
+                         kanHamtaHela: par != nil && !helaFinns && video?.originalenBorta != true,
+                         hamtarHela: klipp?.hamtarHela ?? false, annanKlipp: annanKlipp,
+                         utanKlick: video?.utanKlick ?? [])
+    }
+
+    /// Den andra vyns mått i den styrandes pass: dess slag ur bunten, mätta med passets längd,
+    /// utanför huvudtråden (METOD MS31).
+    private func laddaAnnan(_ p: PassState) {
+        guard p.setup.role == .lead else { return }
+        let folder = store.passFolder(passID), ovas = store.focus?.ovas ?? []
+        Task {
+            let annan = await Task.detached(priority: .userInitiated) { () -> PassState? in
+                guard let d = Store.otherPhoneData(folder), let b = try? SlagBunt.las(d) else { return nil }
+                return try? AnnanSession.pass(b, lead: p)
+            }.value
+            guard let annan, annan.id == pass?.id else { return }
+            annanVisning = Self.visning(annan, earlier: [], ovas: ovas)
+        }
     }
 
     /// Passets kort "3D" när passet har 3D (BESLUT B62).
@@ -142,9 +197,12 @@ struct PassShotsView: View {
     /// "Import other phone" och följarens grå rad, för ett mätt pass med två telefoner utan 3D
     /// med tal (ingen fil, en som hoppades över eller en som inte gäller slagen nu). BESLUT B61
     private func annanTelefon(_ p: PassState) -> AnyView? {
-        guard let tred, p.setup.role != .solo, tred.fil?.treD == nil || !tred.aktuell || tred.status != nil
+        // Den styrande utan den andra vyns video: importen är reserven också för klippen (S6g).
+        let utanVideo = p.setup.role == .lead && klipp?.video == nil
+        guard let tred, p.setup.role != .solo, tred.fil?.treD == nil || !tred.aktuell || tred.status != nil || utanVideo
         else { return nil }
-        return AnyView(AnnanTelefonRad(koppling: tred))
+        let k = klipp
+        return AnyView(AnnanTelefonRad(koppling: tred, efterImport: { url in await k?.importera(url) }))
     }
 
     /// Passet nu, och sedan dess mått: passet och de tidigare passen (samma klubba och vy)
@@ -160,8 +218,13 @@ struct PassShotsView: View {
             visning = Self.visning(r.pass, earlier: r.earlier, ovas: store.focus?.ovas ?? [])
             unmeasured = r.unmeasured
             forraTreD = r.earlier.last { $0.treD != nil }
-            // Slagen kan ha ändrats (analysen, domen, Detection wrong): 3D skickas eller räknas om.
+            // Slagen kan ha ändrats (analysen, domen, Detection wrong): 3D skickas eller räknas om,
+            // och den styrande begär klippen (S6g).
             tred?.uppdatera()
+            par = store.pairs(passID)
+            harAnnan = store.hasOtherPhone(passID)
+            klipp?.uppdatera()
+            laddaAnnan(r.pass)
         }
     }
 
@@ -266,6 +329,16 @@ struct PassScreenContent: View {
     var annanTelefon: AnyView? = nil
     /// Figuren i 3D (S6d, BESLUT B73): raden "3D" i kortet; nil = ingen figur på telefonen.
     var onFigur: (() -> Void)? = nil
+    /// Ett parat pass på den styrande (S6g, BESLUT B82): växlingen DTL, FO och 3D.
+    var parad: ParadLage? = nil
+    /// Den andra vyns mått (ur dess slag), när valet är den vyn.
+    var annanVisning: Passvisning? = nil
+    var onParvy: (Parvy) -> Void = { _ in }
+    var onHela: () -> Void = {}
+    /// Följaren: "Sending video to other phone · 60 %" medan klippen går (S6g, BESLUT B80).
+    var foljarRad: String? = nil
+    /// Följaren: den andra telefonen har samma vy (BESLUT B83).
+    var foljarSammaVy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -274,6 +347,74 @@ struct PassScreenContent: View {
             }, tillbaka: onClose)
                 .disabled(analysis.running)
                 .padding(.horizontal, 20)
+            if let parad {
+                ParadHuvud(lage: parad, onVal: onParvy, onHela: onHela)
+                    .disabled(analysis.running)
+            }
+            if let foljarRad {
+                Text(verbatim: foljarRad)
+                    .typsnitt(13, siffror: true)
+                    .foregroundStyle(Theme.tertiary)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+            if foljarSammaVy {
+                Text(verbatim: Texter.sammaVyIPasset)
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(Theme.text)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+            if let parad, parad.valt == .treD {
+                treDInnehall
+            } else if let parad, parad.annan {
+                annanInnehall(parad)
+            } else {
+                egetInnehall
+            }
+        }
+    }
+
+    /// 3D i ett parat pass: kortet (med S6d:s figur när den finns), och importen.
+    @ViewBuilder private var treDInnehall: some View {
+        if let treD {
+            TreDKortVy(kort: treD, onFigur: onFigur)
+        } else {
+            Under(text: Texter.treDInte)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+        }
+        if let annanTelefon {
+            annanTelefon
+                .disabled(analysis.running)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+        }
+    }
+
+    /// Den andra vyn i ett parat pass: dess kort (bara dess vy, BESLUT B64), och samma svingar,
+    /// som öppnas i granskningen med den vyn vald.
+    @ViewBuilder private func annanInnehall(_ parad: ParadLage) -> some View {
+        if let annanVisning, let vy = parad.valt.vy {
+            PassetVy(visning: annanVisning, vy: vy, navrad: false)
+        } else {
+            Under(text: Texter.annanVantar)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+        }
+        if let annanTelefon {
+            annanTelefon
+                .disabled(analysis.running)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+        }
+        // Inga miniatyrer ur den här vyns video och inget utsnitt att redigera här (B84).
+        AnnanSlagLista(pass: pass, lage: parad, onTryck: onThumb)
+    }
+
+    /// Den här telefonens vy (och passet med en telefon, och följarens).
+    @ViewBuilder private var egetInnehall: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if let visning {
                 // Bara sessionens vy (PLAN S4e, BESLUT B64).
                 PassetVy(visning: visning, vy: pass.setup.view, navrad: false)
@@ -288,10 +429,11 @@ struct PassScreenContent: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }
-                if let treD {
+                // I ett parat pass på den styrande står 3D under sitt eget val (S6g).
+                if let treD, parad == nil {
                     TreDKortVy(kort: treD, onFigur: onFigur)
                 }
-                if let annanTelefon {
+                if let annanTelefon, parad == nil {
                     annanTelefon
                         .disabled(analysis.running)
                         .padding(.horizontal, 20)

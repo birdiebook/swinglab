@@ -29,6 +29,11 @@ enum AppKatalog {
 ///   Pass/<id>/annan_telefon.json  den andra telefonens slag för 3D (SlagBunt, S6c-2)
 ///   Pass/<id>/tre_d.json      3D som telefonen räknade (TreDFil, S6c-2)
 ///   Pass/<id>/tre_d_figur/    figuren i 3D: index.json och en fil per slag (S6d, BESLUT B72)
+///   Pass/<id>/fo/             den andra vyns video hos den styrande (S6g, BESLUT B81): video.json,
+///                             Klipp/<slag>.mov, Video/<serie>.mov och Delar/ under överföringen
+///                                                                        (utanför backupen)
+///   Pass/<id>/begaran.json    följarens kopia av den styrandes begäran om klipp (S6g)
+///   Pass/<id>/Utskick/        följarens skurna klipp tills de kommit fram (S6g) (utanför backupen)
 ///   AttJobbaPa/att_jobba_pa-<pass>.json   vägen tillbaka från PC:n (S2f, BESLUT B28)
 /// Documents/Export/           paketen (S2f), synliga i Filer             (utanför backupen)
 /// ```
@@ -486,6 +491,95 @@ final class Store {
         }
     }
 
+    // MARK: Den andra vyns video (S6g, BESLUT B80, B81)
+
+    /// Den andra telefonens video i den styrandes pass (`<vy>/video.json`), eller nil.
+    func annanVideo(_ passID: String) -> AnnanVideo? {
+        guard PassID.isValid(passID), let p = load(passID) else { return nil }
+        let vy = Vyvakt.annan(p.setup.view)
+        guard let d = try? Data(contentsOf: url(AnnanVideo.jsonFil(vy), in: passID)) else { return nil }
+        return try? AnnanVideo.las(d)
+    }
+
+    /// `video.json` sparad; mappen hålls utanför backupen (videon). false = gick inte, eller passets
+    /// mapp finns inte (raderat): då skrivs inget.
+    func saveAnnanVideo(_ v: AnnanVideo, passID: String) -> Bool {
+        guard writable(passID), FileManager.default.fileExists(atPath: passFolder(passID).path) else { return false }
+        let fil = url(AnnanVideo.jsonFil(v.vy), in: passID)
+        do {
+            Self.createOutsideBackup(fil.deletingLastPathComponent())
+            try v.data().write(to: fil, options: .atomic)
+            return true
+        } catch {
+            problem = String(localized: "video.json could not be saved.")
+            return false
+        }
+    }
+
+    /// Den andra vyns mapp hos den styrande, utanför backupen, innan klippen skrivs dit (BESLUT B81).
+    /// false när passets mapp saknas (raderat): då skrivs inget.
+    func forberedAnnanMapp(_ passID: String, vy: Vy) -> Bool {
+        guard writable(passID), FileManager.default.fileExists(atPath: passFolder(passID).path) else { return false }
+        Self.createOutsideBackup(url(AnnanVideo.mappnamn(vy), in: passID))
+        return true
+    }
+
+    /// Den andra telefonens slag (bunten, S6c-2), eller nil.
+    func otherPhone(_ passID: String) -> SlagBunt? {
+        guard PassID.isValid(passID), let d = Self.otherPhoneData(passFolder(passID)) else { return nil }
+        return try? SlagBunt.las(d)
+    }
+
+    /// Följaren: den styrandes senaste begäran om klipp, eller nil.
+    func begaran(_ passID: String) -> KlippBegaran? {
+        guard PassID.isValid(passID), let d = try? Data(contentsOf: url(KlippBegaran.filnamn, in: passID)) else { return nil }
+        return try? KlippBegaran.las(d)
+    }
+
+    /// Följaren: begäran sparad innan den kvitteras. false = gick inte (då kommer den igen).
+    func saveBegaran(_ data: Data, passID: String) -> Bool {
+        guard writable(passID) else { return false }
+        do {
+            try data.write(to: url(KlippBegaran.filnamn, in: passID), options: .atomic)
+            return true
+        } catch {
+            problem = String(localized: "begaran.json could not be saved.")
+            return false
+        }
+    }
+
+    /// Följarens skurna klipp i väntan på att komma fram (`Utskick/<namn>.mov`, utanför backupen).
+    /// Mappen skapas bara när passets mapp finns.
+    func utskick(_ namn: String, passID: String) -> URL {
+        let u = url(KlippBegaran.utskick(namn), in: passID)
+        if FileManager.default.fileExists(atPath: passFolder(passID).path) {
+            Self.createOutsideBackup(u.deletingLastPathComponent())
+        }
+        return u
+    }
+
+    /// Följaren behåller hela inspelningen tills den styrande kvitterat att alla klipp kommit fram,
+    /// men inte för alltid (BESLUT B80, B84, `Originalen`).
+    func originalenBehovs(_ pass: PassState) -> Bool {
+        Originalen.behovs(roll: pass.setup.role, begaran: begaran(pass.id),
+                          utanVideo: FileManager.default.fileExists(atPath: url(KlippBegaran.utanVideoFil, in: pass.id).path),
+                          skapad: pass.created)
+    }
+
+    /// Följaren: den styrande saknar klippen (en äldre app), så originalen behövs inte för den.
+    func markeraUtanVideo(_ passID: String) {
+        let f = url(KlippBegaran.utanVideoFil, in: passID)
+        guard writable(passID), FileManager.default.fileExists(atPath: passFolder(passID).path),
+              !FileManager.default.fileExists(atPath: f.path) else { return }
+        try? KlippBegaran.utanVideoInnehall.write(to: f, options: .atomic)
+    }
+
+    /// De skurna klippen tas bort när allt kommit fram.
+    func rensaUtskick(_ passID: String) {
+        guard PassID.isValid(passID) else { return }
+        try? FileManager.default.removeItem(at: url(KlippBegaran.utskickMapp, in: passID))
+    }
+
     // MARK: Måtten (S4b)
 
     /// Johannes längd i Jag (skalan, METOD M2, MS14): standarden för nya pass; gamla pass
@@ -681,7 +775,8 @@ final class Store {
     /// är exporterat. Rör aldrig något utanför passets Video-mapp. Svarar antalet filer.
     @discardableResult
     func releaseOriginals(_ pass: PassState) -> Int {
-        guard PassStorage.mayDeleteOriginals(keepOriginals: settings.keepOriginals, status: pass.status) else { return 0 }
+        guard PassStorage.mayDeleteOriginals(keepOriginals: settings.keepOriginals, status: pass.status),
+              !originalenBehovs(pass) else { return 0 }
         let video = passFolder(pass.id).appending(path: "Video", directoryHint: .isDirectory).standardizedFileURL
         var n = 0
         for s in pass.series {

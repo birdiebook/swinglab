@@ -228,6 +228,42 @@ public enum Texter {
     public static let ejAnalyserat = "Not analyzed"
     /// Två telefoner i samma pass (BESLUT B21).
     public static let parad = "paired"
+    /// Den styrandes rad för ett parat pass (S6g, BESLUT B82): passet har båda vyerna.
+    public static let paradRubrik = "Paired"
+    /// Vyerna i ett parat pass, för VoiceOver.
+    public static let badaVyerna = "Down the line and Face on"
+
+    // MARK: två telefoner i passet (S6g, BESLUT B80–B83, METOD MS30, MS31)
+
+    /// "DTL", "FO": vyn kort, som etiketten i uppställningen och växlingen i passet.
+    public static func vyKort(_ vy: Vy) -> String { vy == .dtl ? "DTL" : "FO" }
+    /// "14 swings · 12 from both phones"
+    public static func franBada(svingar n: Int, bada: Int) -> String {
+        svingar(n) + skilje + "\(bada) from both phones"
+    }
+    /// Den styrande hämtar klippen: "Getting video from other phone · 60 %".
+    public static func hamtar(_ procent: Int) -> String { "Getting video from other phone" + skilje + "\(procent) %" }
+    /// Följaren skickar dem.
+    public static func skickar(_ procent: Int) -> String { "Sending video to other phone" + skilje + "\(procent) %" }
+    /// Den andra vyn i passet innan den andra telefonens slag kommit.
+    public static let annanVantar = "Waiting for the other phone's swings"
+    /// Den styrande har inte plats för klippen (B84).
+    public static let diskFull = "Not enough space for the other phone's video"
+    /// Ett slag vars klipp kom utan klick: synken tar parningens tid (MS31).
+    public static let ingetKlick = "No click in this video"
+    /// I den andra vyns lista: kom utan klick (kort).
+    public static let ingetKlickKort = "no click"
+    /// I den andra vyns lista: ingen video från den andra telefonen för slaget.
+    public static let ingenVideo = "—"
+    /// Kopplingen är nere och klippen väntar.
+    public static let videoVantar = "Video waits for the other phone"
+    /// Båda telefonerna har samma vy (B83): "Both phones are DTL".
+    public static func sammaVy(_ vy: Vy) -> String { "Both phones are \(vyKort(vy))" }
+    /// Knappen som byter den här telefonens vy: "Switch to FO".
+    public static func bytVy(_ vy: Vy) -> String { "Switch to \(vyKort(vy))" }
+    /// Raden i passet när den andra telefonens slag har samma vy.
+    public static let sammaVyIPasset = "Both phones filmed the same view: no 3D"
+
     /// Raden i ord för VoiceOver: "Face on, Sat, Jan 9, 18:05, 7i, 8 swings, paired".
     public static func sessionsrad(vy: String, dag: String, klocka: String, klubba: String, svingar: Int?,
                                    parad: Bool) -> String {

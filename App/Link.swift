@@ -398,6 +398,8 @@ final class PhoneLink {
         var pairs: Int? = nil
         var residual: Double? = nil
         var uncertain = false
+        /// Den andra telefonen begär eller skickar klipp ("video1", S6g, BESLUT B80).
+        var video = false
     }
 
     let role: LinkRole
@@ -425,6 +427,19 @@ final class PhoneLink {
     @ObservationIgnored var onPartner: ((String) -> Void)?
     /// Följaren: den styrande saknar bitarna (en äldre app), så slagen kan inte skickas.
     private(set) var partnerUtanDelar = false
+    /// En hel överföring av ett visst slag till en egen mottagare i stället för `onData` (S6g:
+    /// följarens begäran om klipp, `KlippKoppling`), så att 3D:s och klippens kod hålls isär.
+    @ObservationIgnored var dataHandlers: [String: (String, Data) async -> Mottagning] = [:]
+    /// Den styrande: en bit av ett klipp från följaren (enheten och biten). METOD MS30
+    @ObservationIgnored var onStream: ((String, LinkPart) -> Void)?
+    /// Följaren: den styrandes kvittens för ett klipp. METOD MS30
+    @ObservationIgnored var onStreamAck: ((LinkPartAck) -> Void)?
+    /// Den styrande: följarens nej för ett klipp (`saknas`, BESLUT B84).
+    @ObservationIgnored var onStreamRefused: ((String, LinkPartAck) -> Void)?
+    /// Den andra telefonens hello (S6g): vyn och förmågorna, varje gång den säger det.
+    @ObservationIgnored var onHello: ((LinkHello) -> Void)?
+    /// Förbindelsen till den andra telefonen föll (S6g: strömmen stannar).
+    @ObservationIgnored var onDown: (() -> Void)?
 
     private let transport: LinkTransport
     @ObservationIgnored private var leader: LinkLeader?
@@ -549,13 +564,40 @@ final class PhoneLink {
     private func taEmot(kind: String, pass: String, id: String, bytes: Int, delar: [String],
                         svara: @escaping (Mottagning) -> Void) {
         let handler = onData
+        let egen = dataHandlers[kind]
         Task { @MainActor in
             let d = await Task.detached(priority: .userInitiated) {
                 Overforing.foga(id: id, bytes: bytes, delar: delar)
             }.value
             guard let d else { return svara(.felSumma) }
-            svara(await handler?(kind, pass, d) ?? .osparad)
+            if let egen {
+                svara(await egen(pass, d))
+            } else {
+                svara(await handler?(kind, pass, d) ?? .osparad)
+            }
         }
+    }
+
+    /// Följaren: bitar av ett klipp till den styrande (S6g), om den är uppkopplad och tar klipp.
+    /// METOD MS30
+    func sendStream(_ delar: [LinkPart]) {
+        apply(follower?.sendStream(delar) ?? [])
+    }
+
+    /// Följaren: nej för ett klipp till den styrande (`saknas`, BESLUT B84).
+    func refuseStream(_ a: LinkPartAck) {
+        apply(follower?.refuseStream(a) ?? [])
+    }
+
+    /// Den styrande: en kvittens för ett klipp till följaren. METOD MS30
+    func streamAck(device: String, _ a: LinkPartAck) {
+        apply(leader?.streamAck(device: device, a) ?? [])
+    }
+
+    /// Den andra telefonen är uppkopplad och tar klipp ("video1", S6g).
+    var kanVideo: Bool {
+        if let follower { return follower.kanVideo }
+        return leader?.followers.values.contains { $0.peer != nil && $0.live && $0.hello.kanVideo } ?? false
     }
 
     /// Överföringar som inte kvitterats hela (provet).
@@ -613,9 +655,11 @@ final class PhoneLink {
         case let .down(id):
             if role == .lead {
                 leader?.disconnected(peer: id)
+                onDown?()
             } else if followConnection == id {
                 followConnection = nil
                 follower?.disconnected()
+                onDown?()
             }
         case let .message(id, m, t):
             if role == .lead {
@@ -623,12 +667,16 @@ final class PhoneLink {
                 if case let .hello(h) = m, leader?.followers[h.device]?.peer == id {
                     burst(id)
                     onPartner?(h.device)
+                    onHello?(h)
                 }
             } else if id == followConnection {
                 // Pingen har redan besvarats på nätets kö.
                 if case .ping = m { break }
                 apply(follower?.receive(m, at: t, now: LinkClock.now) ?? [])
-                if case let .hello(h) = m, follower?.lead == h { onPartner?(h.device) }
+                if case let .hello(h) = m, follower?.lead == h {
+                    onPartner?(h.device)
+                    onHello?(h)
+                }
             }
         case let .listening(p):
             port = p
@@ -658,6 +706,10 @@ final class PhoneLink {
             case let .paired(e):
                 if let store, let passID { store.savePair(e, passID: passID, model: hello.model, view: hello.view) }
                 onPaired?(e)
+            case let .stream(device, p):
+                onStream?(device, p)
+            case let .streamRefused(device, a):
+                onStreamRefused?(device, a)
             }
         }
         refresh()
@@ -679,6 +731,8 @@ final class PhoneLink {
                 onDelivered?(kind, pass)
             case let .refused(kind, pass, fel):
                 onRefused?(kind, pass, fel)
+            case let .streamAck(a):
+                onStreamAck?(a)
             }
         }
         refresh()
@@ -691,11 +745,12 @@ final class PhoneLink {
                 .map { f in
                     let e = leader.latestPair(device: f.hello.device)
                     return Peer(id: f.hello.device, view: f.hello.view, connected: f.peer != nil, recording: f.recording,
-                                pairs: e?.pairCount, residual: e?.medianAbsResidual, uncertain: e?.uncertain ?? false)
+                                pairs: e?.pairCount, residual: e?.medianAbsResidual, uncertain: e?.uncertain ?? false,
+                                video: f.hello.kanVideo)
                 }
                 .sorted { ($0.view.rawValue, $0.id) < ($1.view.rawValue, $1.id) }
         } else if let follower, let l = follower.lead {
-            ny = [Peer(id: l.device, view: l.view, connected: follower.isConnected, recording: false)]
+            ny = [Peer(id: l.device, view: l.view, connected: follower.isConnected, recording: false, video: l.kanVideo)]
             if partnerUtanDelar != !l.kanDelar { partnerUtanDelar = !l.kanDelar }
         } else {
             ny = []
