@@ -278,13 +278,8 @@ struct ShotReviewView: View {
 
     /// Club-chipets läge (B71): dolt utan två grannpositioner, räknas, inte räknat eller klart.
     private func klubbChip(_ shot: ShotRecord) -> KlubbChip {
-        guard KlubbBana.mojlig(shot.klubba) else { return .dold }
-        if store.klubbaRaknar == klubbNyckel { return .raknar }
-        if let b = shot.klubbaBana, b.aktuell(shot.klubba) {
-            return .klar(interpolerade: b.punkter.filter { $0.kalla == KlubbSpar.kallaInterpolerad }.count,
-                         av: b.punkter.count)
-        }
-        return store.settings.sparVal.contains(.club) ? .ejRaknad : .mojlig
+        KlubbLage.chip(klubba: shot.klubba, bana: shot.klubbaBana, raknar: store.klubbaRaknar == klubbNyckel,
+                       clubPa: store.settings.sparVal.contains(.club))
     }
 
     /// Ett tryck på ett chip. Club räknar banan när den slås på, och när den är på men banan inte
@@ -311,11 +306,9 @@ struct ShotReviewView: View {
 
     /// P1-skaftets linje bakifrån när klubbhuvudets aktuella bana visas (M47, B71).
     private func sparPlan(_ shot: ShotRecord) -> (grepp: Punkt, hosel: Punkt)? {
-        guard pass?.setup.view == .dtl, store.settings.sparVal.contains(.club),
-              let b = shot.klubbaBana, b.aktuell(shot.klubba),
-              let p1 = shot.klubba?.first(where: { $0.position == "P1" && $0.markerad }),
-              let g = p1.grepp, let h = p1.hosel else { return nil }
-        return (Punkt(g.x, g.y), Punkt(h.x, h.y))
+        guard let vy = pass?.setup.view else { return nil }
+        return KlubbLage.plan(vy: vy, clubPa: store.settings.sparVal.contains(.club), klubba: shot.klubba,
+                              bana: shot.klubbaBana)
     }
 
     // MARK: klubban (S7a)
@@ -936,4 +929,27 @@ struct CroppedPlayerSurface: UIViewRepresentable {
 private struct SparNyckel: Equatable {
     var trails: [String]?
     var klubba: [KlubbMarkering]?
+}
+
+/// Club-chipets läge och P1-planet ur slagets markeringar och bana (S7b, BESLUT B71), som
+/// värden så att provet kan pröva dem i båda vyerna.
+enum KlubbLage {
+    /// Dolt utan två grannpositioner, räknas, inte räknat (Club på) eller klart.
+    static func chip(klubba: [KlubbMarkering]?, bana: KlubbBana?, raknar: Bool, clubPa: Bool) -> KlubbChip {
+        guard KlubbBana.mojlig(klubba) else { return .dold }
+        if raknar { return .raknar }
+        if let b = bana, b.aktuell(klubba) {
+            return .klar(interpolerade: b.punkter.filter { $0.kalla == KlubbSpar.kallaInterpolerad }.count,
+                         av: b.punkter.count)
+        }
+        return clubPa ? .ejRaknad : .mojlig
+    }
+
+    /// P1-skaftets linje: bara bakifrån, med Club på och en bana räknad ur dagens markeringar (M47).
+    static func plan(vy: Vy, clubPa: Bool, klubba: [KlubbMarkering]?, bana: KlubbBana?) -> (grepp: Punkt, hosel: Punkt)? {
+        guard vy == .dtl, clubPa, let b = bana, b.aktuell(klubba),
+              let p1 = klubba?.first(where: { $0.position == "P1" && $0.markerad }),
+              let g = p1.grepp, let h = p1.hosel else { return nil }
+        return (Punkt(g.x, g.y), Punkt(h.x, h.y))
+    }
 }

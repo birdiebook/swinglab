@@ -102,6 +102,40 @@ final class SwingLabProvSpar: XCTestCase {
         }
     }
 
+    /// Efter S4e:s vyfilter: Club-chippet, banan och P1-planet i en DTL- och en FO-session, och
+    /// klubbans mått under videon i sin vy (B64, B71).
+    func testClubIBadaVyerna() throws {
+        let f = KlubbFilm.film()
+        let bana = KlubbBana(KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd,
+                                             skala: KlubbFilm.skala, ankare: f.ankare, bildBredd: KlubbFilm.bredd,
+                                             bildHojd: KlubbFilm.hojd), ankare: f.ankare)
+        let k = try XCTUnwrap(AppKatalog.katalog)
+        for vy in [Vy.dtl, .fo] {
+            XCTAssertEqual(KlubbLage.chip(klubba: nil, bana: nil, raknar: false, clubPa: true), .dold, "\(vy)")
+            XCTAssertEqual(KlubbLage.chip(klubba: f.ankare, bana: nil, raknar: false, clubPa: false), .mojlig, "\(vy)")
+            XCTAssertEqual(KlubbLage.chip(klubba: f.ankare, bana: nil, raknar: false, clubPa: true), .ejRaknad, "\(vy)")
+            XCTAssertEqual(KlubbLage.chip(klubba: f.ankare, bana: nil, raknar: true, clubPa: true), .raknar, "\(vy)")
+            guard case let .klar(i, n) = KlubbLage.chip(klubba: f.ankare, bana: bana, raknar: false, clubPa: true) else {
+                return XCTFail("\(vy): banan är klar")
+            }
+            XCTAssertEqual(n, bana.punkter.count)
+            XCTAssertLessThan(i, n)
+            // En flyttad markering: banan är inte längre aktuell.
+            var flyttad = f.ankare
+            flyttad[3].hosel?.x += 5
+            XCTAssertEqual(KlubbLage.chip(klubba: flyttad, bana: bana, raknar: false, clubPa: true), .ejRaknad)
+            let plan = KlubbLage.plan(vy: vy, clubPa: true, klubba: f.ankare, bana: bana)
+            XCTAssertEqual(plan != nil, vy == .dtl, "P1-planet bara bakifrån")
+            XCTAssertNil(KlubbLage.plan(vy: vy, clubPa: true, klubba: flyttad, bana: bana))
+            // Klubbans mått vid P6 står kvar under videon i sin vy efter vyfiltret.
+            let matt = vy == .dtl ? "skaft_plan_p6" : "skaft_arm_p6"
+            let rader = Positionsmatt.rader(k, vy: vy, position: "P6", varden: [matt: 3.0])
+            print("PROV: Club i \(vy.rawValue): chippet klart (\(i) av \(n) interpolerade), planet \(plan != nil), "
+                  + "rader vid P6: \(rader.map(\.matt))")
+            XCTAssertTrue(rader.contains { $0.matt == matt }, "\(vy): \(matt) vid P6")
+        }
+    }
+
     // MARK: Hjälp
 
     private func gra(_ b: [UInt8], _ w: Int, _ h: Int) -> CGImage? {
