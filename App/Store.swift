@@ -39,6 +39,13 @@ final class Store {
     let scratchFolder: URL
     /// Passen vars paket skrivs just nu: Analyze och redigeraren väntar (S2f).
     private(set) var exporting: Set<String> = []
+    /// Passen som spelas in eller importeras just nu (PassFlowView): de går inte att radera (S4e).
+    private(set) var inFlow: Set<String> = []
+    /// Passen som raderats sedan appen startade (S4e, BESLUT B64): inget skriver dem igen, så att
+    /// en serie som sparas efter att vyn stängts, analysen eller 3D-räkningen inte väcker ett
+    /// raderat pass till liv. Ett nytt pass med samma id (newPass, adopt) tar bort spärren.
+    /// Inte observerad: den ändrar inget som syns.
+    @ObservationIgnored private(set) var deleted: Set<String> = []
     private(set) var index = PassIndex()
     /// Passen som lästs, per id: `allPasses` läser disken en gång, och varje sparat pass
     /// uppdaterar sin rad (S4b). Inte observerad: den ändrar inget som syns.
@@ -97,6 +104,7 @@ final class Store {
     /// Ett nytt pass med id ur tiden (yyyyMMdd-HHmmss, lokal tid) och sina mappar.
     func newPass(setup: PassSetup, at date: Date = Date()) -> PassState {
         let id = PassID.unique(PassID.make(date), taken: Set(index.passes.map(\.id)))
+        deleted.remove(id)
         // Längden ur Jag följer med passet och ändras sedan bara där. METOD MS16
         let pass = PassState(id: id, created: date, setup: setup, heightM: settings.heightM)
         let folder = passFolder(id)
@@ -141,6 +149,8 @@ final class Store {
     func save(_ pass: PassState) {
         do {
             try write(pass)
+        } catch StoreError.deleted {
+            // Passet är raderat: inget sparas, och det är inget fel att visa.
         } catch {
             problem = String(localized: "pass.json could not be saved.")
         }
@@ -148,13 +158,24 @@ final class Store {
 
     enum StoreError: LocalizedError {
         case invalidID
+        /// Passet raderades (S4e): det skrivs inte igen.
+        case deleted
         var errorDescription: String? { String(localized: "pass.json could not be saved.") }
+    }
+
+    /// Passet får skrivas: giltigt id och inte raderat (S4e, BESLUT B64).
+    func writable(_ id: String) -> Bool { PassID.isValid(id) && !deleted.contains(id) }
+
+    /// Passet spelas in eller importeras (PassFlowView): raderingen väntar. BESLUT B64
+    func setInFlow(_ id: String, _ pagar: Bool) {
+        if pagar { inFlow.insert(id) } else { inFlow.remove(id) }
     }
 
     /// Som `save`, men felet kastas: analysen stannar hellre än fortsätter på ett pass
     /// som inte står på disken (BESLUT B25).
     func write(_ pass: PassState) throws {
         guard PassID.isValid(pass.id) else { throw StoreError.invalidID }
+        guard !deleted.contains(pass.id) else { throw StoreError.deleted }
         try FileManager.default.createDirectory(at: passFolder(pass.id), withIntermediateDirectories: true)
         try PassCoding.encoder().encode(pass).write(to: passFile(pass.id), options: .atomic)
         index.upsert(pass.entry)
@@ -163,30 +184,45 @@ final class Store {
     }
 
     /// Tar bort passet från telefonen (sessionslistan, PLAN S4e, BESLUT B64): passets mapp med
-    /// allt i den (pass.json med måtten, Video/, Klipp/, Leder/, par, följare och 3D), dess
-    /// `att_jobba_pa`-fil och dess paket i Export. Ett pass vars paket skrivs just nu tas inte
-    /// bort. Den andra telefonens pass rörs inte: inget skickas dit. Svarar true när passet är
-    /// borta. METOD MS20
+    /// allt i den (pass.json med måtten, Video/, Klipp/, Leder/, par, följare och 3D) och dess
+    /// paket i Export. `att_jobba_pa`-filen ligger kvar: den är liten och vägen tillbaka.
+    /// Ett pass som spelas in, importeras eller vars paket skrivs just nu tas inte bort, och
+    /// `problem` säger varför. Den andra telefonens pass rörs inte: inget skickas dit. Svarar
+    /// true när passet är borta ur listan. METOD MS20
     @discardableResult
     func deletePass(_ id: String) -> Bool {
-        guard PassID.isValid(id), !exporting.contains(id) else { return false }
+        guard PassID.isValid(id) else { return false }
+        guard !exporting.contains(id), !inFlow.contains(id) else {
+            problem = String(localized: "The session is in use.")
+            return false
+        }
         let fm = FileManager.default
         let mapp = passFolder(id)
+        deleted.insert(id)
         if fm.fileExists(atPath: mapp.path) {
             do {
                 try fm.removeItem(at: mapp)
             } catch {
                 problem = String(localized: "The session could not be deleted.")
-                return false
+                // Står pass.json kvar finns passet kvar, och det går att skriva igen. Är den borta
+                // går passet inte att öppna: raden tas bort ur listan ändå.
+                guard !fm.fileExists(atPath: passFile(id).path) else {
+                    deleted.remove(id)
+                    return false
+                }
+                removeFromIndex(id)
+                return true
             }
-        }
-        if let fil = FocusInbox.fileName(pass: id) {
-            try? fm.removeItem(at: focusFolder.appending(path: fil))
         }
         for vy in [Vy.dtl, .fo] {
             let p = PassState(id: id, created: Date(), setup: PassSetup(view: vy))
             try? fm.removeItem(at: exportURL(p))
         }
+        removeFromIndex(id)
+        return true
+    }
+
+    private func removeFromIndex(_ id: String) {
         index.passes.removeAll { $0.id == id }
         cache?[id] = nil
         do {
@@ -194,8 +230,6 @@ final class Store {
         } catch {
             problem = String(localized: "pass.json could not be saved.")
         }
-        focus = latestFocus()
-        return true
     }
 
     // MARK: Lederna (S2e)
@@ -203,6 +237,7 @@ final class Store {
     /// Ett slags leder till `Leder/<id>.json`, avrundade som i paketet (METOD MS12).
     /// Svarar sökvägen i passet.
     func writeJoints(_ series: JointSeries, shot id: String, in passID: String) throws -> String {
+        guard !deleted.contains(passID) else { throw StoreError.deleted }
         let rel = ShotRecord.jointsPath(id)
         let fil = url(rel, in: passID)
         try FileManager.default.createDirectory(at: fil.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -250,6 +285,7 @@ final class Store {
     func adopt(_ pass: PassState, id: String) -> PassState? {
         guard pass.id != id else { return pass }
         guard PassID.isValid(id), pass.series.isEmpty else { return nil }
+        deleted.remove(id)          // en ny inspelning med id:t (S4e)
         var ny = load(id) ?? PassState(id: id, created: pass.created, setup: pass.setup)
         ny.setup.role = pass.setup.role
         // Ljusprovet gjordes på följaren före första starten: det följer med.
@@ -293,7 +329,7 @@ final class Store {
     /// En följares serie till `foljare.json`, innan den kvitteras (BESLUT B22). false =
     /// gick inte att spara, och då kvitteras den inte.
     func saveFollower(_ r: FollowerRecord, passID: String) -> Bool {
-        guard PassID.isValid(passID) else { return false }
+        guard writable(passID) else { return false }
         var inbox = read(FollowerInbox.self, at: url("foljare.json", in: passID), aside: "foljare") ?? FollowerInbox()
         inbox.upsert(r)
         do {
@@ -308,7 +344,7 @@ final class Store {
 
     /// En parad serie till `par.json`: raden för samma serie och följare ersätts.
     func savePair(_ e: PairEntry, passID: String, model: String, view: Vy) {
-        guard PassID.isValid(passID) else { return }
+        guard writable(passID) else { return }
         var fil = pairs(passID) ?? PairFile(pass: passID, model: model, view: view)
         fil.upsert(e)
         do {
@@ -333,7 +369,7 @@ final class Store {
     }
 
     func savePartner(_ device: String, passID: String) {
-        guard PassID.isValid(passID), partner(passID) != device,
+        guard writable(passID), partner(passID) != device,
               let d = try? JSONEncoder().encode([Self.partnerNyckel: device]) else { return }
         try? d.write(to: url(Self.partnerFil, in: passID), options: .atomic)
     }
@@ -359,7 +395,7 @@ final class Store {
     /// Den andra telefonens slag till passet (kopplingen eller "Import other phone"). false =
     /// gick inte att spara (då kvitteras den inte).
     func saveOtherPhone(_ data: Data, passID: String) -> Bool {
-        guard PassID.isValid(passID) else { return false }
+        guard writable(passID) else { return false }
         do {
             try FileManager.default.createDirectory(at: passFolder(passID), withIntermediateDirectories: true)
             try data.write(to: url(SlagBunt.filnamn, in: passID), options: .atomic)
@@ -379,7 +415,7 @@ final class Store {
     /// 3D till passet: `tre_d.json`, och medianerna i pass.json (Progress och förra passet).
     /// Passet läses om precis före, så att inget annat skrivs över. false = gick inte.
     func saveTreD(_ fil: TreDFil, passID: String) -> Bool {
-        guard PassID.isValid(passID), var p = load(passID) else { return false }
+        guard writable(passID), var p = load(passID) else { return false }
         do {
             try fil.data().write(to: url(TreDFil.filnamn, in: passID), options: .atomic)
             p.treD = fil.medianer

@@ -1618,6 +1618,17 @@
         }
       }
     },
+    "The session is in use.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session is in use."
+          }
+        }
+      }
+    },
     "The shaft line is drawn. Pinch to zoom, double-tap for the whole picture, and Skip when the club is not visible.": {
       "extractionState": "manual",
       "localizations": {

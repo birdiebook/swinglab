@@ -13,7 +13,7 @@ public struct Sessionsrad: Identifiable, Equatable, Sendable {
     public let tid: String
     /// "7i", eller "7i, PW" när serierna har olika klubbor.
     public let klubba: String
-    /// Svingarna (domen Swing); nil = inget slag har fått sin dom än.
+    /// Svingarna som räknas (som i sessionen); nil = analysen är inte klar.
     public let svingar: Int?
     /// Passet filmades med två telefoner (styr eller följ, BESLUT B21): den andra telefonens
     /// rad står i dess egen lista.
@@ -41,11 +41,13 @@ public struct Sessionsrad: Identifiable, Equatable, Sendable {
         return ut.isEmpty ? [p.setup.club] : ut
     }
 
-    /// Slagen med domen Swing när något slag har en dom; 0 för ett pass utan klick; annars
-    /// nil (inte analyserat). METOD MS20
+    /// Svingarna som räknas i passets mått (`countedSwings`: sving eller osäker, mätt och inte
+    /// "Detection wrong"), samma tal som sessionens rad ("7i · 8"), men först när analysen är klar
+    /// (`ShotPlan.next == nil`, som när Analyze försvinner); 0 för ett pass utan klick; annars nil
+    /// ("Not analyzed"). METOD MS20
     static func svingar(_ p: PassState) -> Int? {
-        if p.shots.contains(where: { $0.verdict != nil }) { return p.shots.filter { $0.verdict == .swing }.count }
-        return p.shots.isEmpty && p.clickCount == 0 ? 0 : nil
+        if p.shots.isEmpty { return p.clickCount == 0 ? 0 : nil }
+        return ShotPlan.next(p) == nil ? p.countedSwings.count : nil
     }
 
     /// Raderna, senaste först (som passens index).

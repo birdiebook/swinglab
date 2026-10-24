@@ -9,12 +9,13 @@
 //   vyn        FO-sessionen visar inga DTL-kort och DTL-sessionen inga FO-kort, tempot står i båda
 //              (katalogens vy, Vyfilter); granskningens rader per position likadant; 3D-kortet
 //              (S6c-2) står i båda;
-//   raderingen frågan ritas; Delete tar bort passets mapp, dess att_jobba_pa och paketet, de
-//              andra passen står kvar, ett pass vars paket skrivs tas inte bort, och den andra
-//              telefonens pass med samma id rörs inte;
+//   raderingen frågan ritas (och med felet när den vägras); Delete tar bort passets mapp och
+//              paketet men inte att_jobba_pa, inget skriver det raderade passet igen, de andra
+//              passen står kvar, ett pass som exporteras eller spelas in tas inte bort, och den
+//              andra telefonens pass med samma id rörs inte;
 //   Me         längden, handen, klubborna och Import focus; en ny längd rör inga gamla pass.
 // Bilderna: sessions (listan ur ett riktigt fönster, med svepets List), sessions-radera,
-// session-fo, session-dtl och me.
+// sessions-radera-vagrad, session-fo (det parade FO-passet), session-dtl och me.
 
 import XCTest
 import SwiftUI
@@ -99,7 +100,11 @@ extension SwingLabProvVyer {
             XCTAssertTrue(r.pass.shots.allSatisfy { $0.measure?.ok == true }, "\(id) mätt")
             return (r.pass, try XCTUnwrap(PassShotsView.visning(r.pass, earlier: r.earlier, ovas: ovas)))
         }
-        let fo = try await session(a), dtl = try await session(b)
+        // FO-sessionen är det parade FO-passet (följaren), DTL-sessionen det parade DTL-passet.
+        let fo = try await session(c), dtl = try await session(b)
+        // Svingarna i listan är samma tal som sessionens rad ("7i · 3").
+        XCTAssertEqual(rader.first { $0.id == c }?.svingar, fo.pass.visningsPass.slag)
+        XCTAssertEqual(rader.first { $0.id == b }?.svingar, dtl.pass.visningsPass.slag)
         let kfo = fo.visning.kort(i: .fo), kdtl = dtl.visning.kort(i: .dtl)
         XCTAssertTrue(kfo.allSatisfy { $0.vy != .dtl }, "FO-sessionen: \(kfo.filter { $0.vy == .dtl }.map(\.id))")
         XCTAssertTrue(kdtl.allSatisfy { $0.vy != .fo }, "DTL-sessionen: \(kdtl.filter { $0.vy == .fo }.map(\.id))")
@@ -121,29 +126,51 @@ extension SwingLabProvVyer {
         try rendera(PassScreenContent(pass: dtl.pass, visning: dtl.visning, images: [:], overlays: [:],
                                       analysis: AnalysisState(), editable: false, treD: kort3D), namn: "session-dtl", skala: 2)
 
-        // 3. Raderingen: frågan, och Delete tar passets filer och inget annat.
+        // 3. Raderingen: frågan (Cancel först och vit, Delete en grå rad), och Delete tar passets
+        // filer utom att_jobba_pa, och inget annat.
         try rendera(RaderaPassVy(rad: rader[2]), namn: "sessions-radera", accent: false)
+        let staleA = try XCTUnwrap(store.load(a))
         let fm = FileManager.default
         XCTAssertTrue(fm.fileExists(atPath: store.passFolder(a).path))
         let fokusfil = store.focusFolder.appending(path: try XCTUnwrap(FocusInbox.fileName(pass: a)))
         XCTAssertTrue(fm.fileExists(atPath: fokusfil.path))
         XCTAssertTrue(store.deletePass(a))
         XCTAssertFalse(fm.fileExists(atPath: store.passFolder(a).path), "passets mapp (video, leder, mått, 3D)")
-        XCTAssertFalse(fm.fileExists(atPath: fokusfil.path), "att_jobba_pa")
+        XCTAssertTrue(fm.fileExists(atPath: fokusfil.path), "att_jobba_pa ligger kvar (vägen tillbaka)")
+        XCTAssertEqual(store.focus?.pass, a, "Focus är kvar")
         XCTAssertFalse(fm.fileExists(atPath: paket.path), "paketet i Export")
         XCTAssertNil(store.load(a))
-        XCTAssertNil(store.focus, "Focus var för passet")
+        // Det raderade passet kommer inte tillbaka: en sparning efteråt (en serie som sparas när
+        // vyn stängts, analysen, den andra telefonens slag, 3D) skriver inget.
+        store.problem = nil
+        store.save(staleA)
+        XCTAssertNil(store.problem, "ingen felrad för ett raderat pass")
+        XCTAssertThrowsError(try store.write(staleA))
+        XCTAssertThrowsError(try store.writeJoints(JointSeries(width: 1, height: 1, frames: []), shot: "s01", in: a))
+        XCTAssertFalse(store.saveOtherPhone(Data("{}".utf8), passID: a))
+        if let f = try? treDFil() { XCTAssertFalse(store.saveTreD(f.0, passID: a)) }
+        XCTAssertFalse(fm.fileExists(atPath: store.passFolder(a).path), "ingen mapp skrevs igen")
+        XCTAssertNil(store.load(a))
         XCTAssertEqual(store.index.passes.map(\.id), [d, c, b])
         XCTAssertEqual(Store(root: rot, exportFolder: rot.appending(path: "Export")).index.passes.map(\.id), [d, c, b],
                        "indexet sparat")
         for id in [b, c, d] { XCTAssertNotNil(store.load(id), "\(id) kvar") }
         let efter = await Sessionslista.load(store)
         XCTAssertEqual(efter.map(\.id), [d, c, b])
-        // Ett pass vars paket skrivs tas inte bort.
+        // Ett pass vars paket skrivs, eller som spelas in eller importeras, tas inte bort; felet säger det.
         store.setExporting(c, true)
+        store.problem = nil
         XCTAssertFalse(store.deletePass(c))
+        XCTAssertEqual(store.problem, "The session is in use.")
         XCTAssertNotNil(store.load(c))
         store.setExporting(c, false)
+        store.setInFlow(c, true)
+        XCTAssertFalse(store.deletePass(c))
+        XCTAssertNotNil(store.load(c))
+        store.setInFlow(c, false)
+        store.problem = nil
+        try rendera(RaderaPassVy(rad: rader[1], problem: String(localized: "The session is in use.")),
+                    namn: "sessions-radera-vagrad", accent: false)
         // Den andra telefonen (en egen Store) har samma pass; raderingen här rör det inte.
         let rot2 = FileManager.default.temporaryDirectory
             .appending(path: "swinglab-sessioner-andra-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -155,7 +182,7 @@ extension SwingLabProvVyer {
         XCTAssertTrue(store.deletePass(b))
         XCTAssertNotNil(andra.load(b), "den andra telefonens pass står kvar")
         XCTAssertEqual(andra.index.passes.map(\.id), [b])
-        print("PROV: raderat \(a) och \(b): mappen, att_jobba_pa och paketet borta; kvar \(store.index.passes.map(\.id))")
+        print("PROV: raderat \(a) och \(b): mappen och paketet borta, att_jobba_pa kvar, inget skrivs igen; kvar \(store.index.passes.map(\.id))")
 
         // 4. Me: en ny längd rör inga gamla pass; ett nytt pass får den.
         let fore = store.load(c)

@@ -1713,26 +1713,6 @@ värden i `CaptureTests`.
   Store mäts med appens egen väg, två påhittade filer, flikarna ritas med talen, accenten
   bara på det som övas, och en ny längd i Jag rör inga gamla pass.
 
-## MS20 — Sessionslistan och vyn i sessionen (S4e)
-
-- **Raden** (`Sessionsrad`, BESLUT B64) byggs ur passets pass.json, läst utanför
-  huvudtråden (`Store.reading`). **Ordningen:** skapad senast först, vid lika tid högst id.
-  **Vyn:** uppställningens (`setup.view`), utskriven. **Tiden:** dagen och klockslaget i svensk
-  tid (`Tal.kalender`, som datumen i M26). **Klubban:** seriernas klubbor i ordning utan
-  dubbletter, uppställningens när passet saknar serier. **Svingarna:** slagen med domen Swing när
-  något slag har en dom (ett slag märkt "Detection wrong" är fortfarande en sving); 0 för ett pass
-  utan klick; annars "Not analyzed". **Paired:** rollen är styr eller följ (B21). **räkning.**
-- **Vyn i sessionen** (`Vyfilter`): ett fel, mått eller spridningsmått visas när katalogens `vy`
-  är sessionens eller "bada". Passets kort (`Passvisning.kort(i:)`) och granskningens rader per
-  position (`Positionsmatt`, M29) går genom samma regel. **räkning.**
-- **Raderingen** (`Store.deletePass`) tar passets mapp, `AttJobbaPa/att_jobba_pa-<pass>.json` och
-  `Export/swinglab-<pass>-<dtl|fo>.zip`, sedan raden i indexet; Focus läses om. Ett pass vars
-  paket skrivs tas inte bort.
-- **Vad som provas var.** Linux (`SessionerTests`): raderna (ordningen, vyn, tiden, klubborna,
-  svingarna, paret och VoiceOver-raden) och filtret per vy för katalogens alla fel och för
-  positionerna P1–P10. Simulatorn (`SwingLabProvSessioner`): fyra påhittade pass i appens Store,
-  listan ur ett riktigt fönster, frågan, en FO- och en DTL-session, raderingens filer och Me.
-
 ## MS17 — Lodlinjen på telefonen (S6b)
 
 - **Proven:** `CMDeviceMotion.gravity` (CoreMotions skattning av gravitationen ur
@@ -1910,6 +1890,32 @@ Konstanterna i PC-länken (`tools/pc/paket.py`, `analys.py`, `historik.py`,
 tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
 (inspelningen), så att grenarna inte krockar. Tolkningen räknar inget själv
 (BESLUT B2): varje tal och varje "klart när" kommer ur analysen.
+
+## MS20 — Sessionslistan och vyn i sessionen (S4e)
+
+- **Raden** (`Sessionsrad`, BESLUT B64) byggs ur passets pass.json, läst och mätt med passets
+  egen längd utanför huvudtråden (`Store.reading`, `Store.measuring`, som flikarna i MS16).
+  **Ordningen:** skapad senast först, vid lika tid högst id. **Vyn:** uppställningens
+  (`setup.view`), utskriven. **Tiden:** dagen och klockslaget i svensk tid (`Tal.kalender`, som
+  datumen i M26). **Klubban:** seriernas klubbor i ordning utan dubbletter, uppställningens när
+  passet saknar serier. **Svingarna:** samma regel som sessionens rad ("7i · 8"):
+  `countedSwings.count`, alltså sving eller osäker, mätt och inte "Detection wrong" (MS14, B35),
+  och bara när analysen är klar (`ShotPlan.next == nil`, då Analyze försvinner); före dess "Not
+  analyzed"; 0 för ett pass utan klick. **Paired:** rollen är styr eller följ (B21). **räkning.**
+- **Vyn i sessionen** (`Vyfilter`): ett fel, mått eller spridningsmått visas när katalogens `vy`
+  är sessionens eller "bada". Passets kort (`Passvisning.kort(i:)`) och granskningens rader per
+  position (`Positionsmatt`, M29) går genom samma regel. **räkning.**
+- **Raderingen** (`Store.deletePass`) tar passets mapp och `Export/swinglab-<pass>-<dtl|fo>.zip`,
+  sedan raden i indexet. `AttJobbaPa/att_jobba_pa-<pass>.json` ligger kvar (B64). Ett pass som
+  spelas in eller importeras (`Store.inFlow`) eller vars paket skrivs tas inte bort. Ett raderat
+  id står i `Store.deleted`, och `write`, `writeJoints`, `saveFollower`, `savePair`,
+  `savePartner`, `saveOtherPhone` och `saveTreD` vägrar det tills ett nytt pass tar id:t.
+- **Vad som provas var.** Linux (`SessionerTests`): raderna (ordningen, vyn, tiden, klubborna,
+  svingarna med "Detection wrong" och ett halvanalyserat pass, paret och VoiceOver-raden) och
+  filtret per vy för katalogens alla fel och för positionerna P1–P10. Simulatorn
+  (`SwingLabProvSessioner`): fyra påhittade pass i appens Store, listan ur ett riktigt fönster,
+  frågan (också med felet), en FO- och en DTL-session med 3D-kortet, raderingens filer, att det
+  raderade passet inte skrivs igen, och Me.
 
 ## MT1 — Paketet till svingar
 

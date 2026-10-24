@@ -586,13 +586,15 @@ bort i stället för borttaget.
 
 - **Valt: en TabView med två flikar, Sessions och Me.** Sessions är förstasidan: alla pass på
   telefonen, senaste först. Raden säger vyn utskriven (Down the line, Face on), dagen och
-  klockslaget, klubban (flera när serierna har olika) och svingarna (domen Swing; "Not analyzed"
-  före analysen), och "paired" med en länksymbol när passet filmades med två telefoner. Ett pass
+  klockslaget, klubban (flera när serierna har olika) och svingarna (samma tal som sessionens rad, alltså
+  de som räknas i måtten utan "Detection wrong"; "Not analyzed" tills analysen är klar), och "paired" med en länksymbol när passet filmades med två telefoner. Ett pass
   med två telefoner är alltså en rad per vy, på var sin telefon. Ett tryck öppnar passet; + uppe
   till höger ger Record och Import from Photos. Ett svep åt vänster visar Delete, och en fråga i
   ett blad visar raden, säger vad som försvinner ("Video, joints and measures are removed from
-  this phone"; för ett parat pass också att den andra telefonen behåller sitt) och har Delete och
-  Cancel. En tom lista visar "No sessions" och +. **Me:** längden, handen, klubborna och
+  this phone"; för ett parat pass också att den andra telefonen behåller sitt). Cancel är
+  huvudknappen (vitt fält) och står först, också för VoiceOver; Delete är en grå rad utan fyllning
+  under den, så att Delete aldrig är förvald. Vägras raderingen eller går den inte, står felet i
+  bladet. En tom lista visar "No sessions" och +. **Me:** längden, handen, klubborna och
   "Import focus" (som låg i Me → Sessions).
 - **Varför flikar och inte en ikon uppe till vänster:** två namngivna flikar säger direkt att
   appen har två sidor och vad de heter; en personikon i hörnet måste man veta om. Fliken kostar
@@ -609,19 +611,26 @@ bort i stället för borttaget.
   Accenten (B31) följer fortfarande Focus i sessionens kort och granskningens rader, och "Ask
   Claude" och "Paste from Claude" stannar i sessionen (B60; raden på Today är dold med Today).
 - **Raderingen** tar passets mapp (pass.json med måtten, Video/, Klipp/, Leder/, par.json,
-  foljare.json och 3D), dess `att_jobba_pa-<pass>.json` och dess paket i Documents/Export, så
-  att inget av passet ligger kvar i Filer. Ett pass vars paket skrivs just nu tas inte bort.
-  Den andra telefonens pass rörs inte: inget skickas dit.
+  foljare.json, den andra telefonens slag och 3D) och dess paket i Documents/Export, så att
+  videon inte ligger kvar i Filer. **`att_jobba_pa-<pass>.json` ligger kvar:** den är liten och
+  är vägen tillbaka till det som övas (Focus och accenten). Det är granskarens val 2026-10-24 i
+  väntan på att Johannes säger något annat. Ett pass som spelas in, importeras eller vars paket
+  skrivs just nu tas inte bort ("The session is in use."). Ett raderat pass skrivs aldrig igen
+  under appens körning (`Store.deleted`): en serie som sparas när kameran stängts, analysen, den
+  andra telefonens slag och 3D-räkningen vägras, så att passet inte kommer tillbaka; ett nytt pass
+  med samma id tar bort spärren. Går mappen inte att ta bort men pass.json är borta, tas raden
+  bort ur listan ändå. Den andra telefonens pass rörs inte: inget skickas dit.
 - **Frågan är ett blad, inte en systemdialog**, så att simulatorprovet kan rita den (som B60).
-  Svepets knapp är grå (B13: ingen signalfärg för en vanlig handling).
+  Svepets knapp och bladets Delete är grå (B13: ingen signalfärg för en vanlig handling). Bladet
+  har höjderna medium och large och rullar, så att det fungerar med stor text.
 - **Bortvalt:** en NavigationStack med Me som ikon (se ovan); passen som en sektion i Me (som
   förut, två tryck bort); en rad för ett parat pass med båda vyerna (telefonerna har var sin
-  lista, och raden ska säga en vy); en röd Delete; att behålla paketet i Export efter raderingen
+  lista, och raden ska säga en vy); en röd Delete; Delete som huvudknapp; att behålla paketet i Export efter raderingen
   (passet skulle ligga kvar i Filer utan att synas i appen).
 - **Kostnad:** Today och Progress syns inte förrän de kommer tillbaka, och Focus syns bara som
   accent i sessionen. En raderad session går inte att få
   tillbaka på telefonen (ett paket som redan skickats till PC:n finns kvar där).
-- **Omprövas:** efter Johannes telefonprov av S4e, och när Ranges (PLAN) byggs.
+- **Omprövas:** efter Johannes telefonprov av S4e, och när Ranges (PLAN S4g) byggs.
 
 ---
 

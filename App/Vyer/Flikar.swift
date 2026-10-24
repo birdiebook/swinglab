@@ -71,6 +71,8 @@ struct Flikar: View {
     @State private var opened: OpenPass?
     /// Passet vars radering frågas om (efter svepet).
     @State private var radera: Sessionsrad?
+    /// Varför raderingen vägrades eller inte gick, i bladet.
+    @State private var raderaFel: String?
     /// Räknas upp när listan ska läsas om (ett flöde stängdes, appen kom tillbaka).
     @State private var omlasning = 0
     /// Filer för `att_jobba_pa.json` (S2_SPEC §8.5).
@@ -108,7 +110,17 @@ struct Flikar: View {
         }
         .tint(Theme.text)
         .task(id: Nyckel(index: store.index, omlasning: omlasning)) {
-            rader = await Sessionslista.load(store)
+            let nya = await Sessionslista.load(store)
+            // En nyare läsning har startat (indexet ändrades): den här skriver inte över den.
+            guard !Task.isCancelled else { return }
+            rader = nya
+        }
+        // "Focus saved" eller felet gäller bara medan Me visas.
+        .onChange(of: flik) { _, ny in
+            if ny != .jag {
+                focusResult = nil
+                focusFailed = false
+            }
         }
         .onChange(of: scenePhase) { _, fas in
             if fas == .active { omlasning += 1 }
@@ -122,12 +134,22 @@ struct Flikar: View {
                 .environment(store)
         }
         // Frågan före raderingen (BESLUT B64): ett blad, så att provet kan rita den.
-        .sheet(item: $radera) { rad in
-            RaderaPassVy(rad: rad, onDelete: {
-                if store.deletePass(rad.id) { rader.removeAll { $0.id == rad.id } }
-                radera = nil
-            }, onCancel: { radera = nil })
-            .presentationDetents([.medium])
+        // Vägras raderingen eller går den inte, står bladet kvar med felet (`Store.problem`).
+        .sheet(item: $radera, onDismiss: { raderaFel = nil }) { rad in
+            ScrollView {
+                RaderaPassVy(rad: rad, problem: raderaFel, onDelete: {
+                    store.problem = nil
+                    if store.deletePass(rad.id) {
+                        rader.removeAll { $0.id == rad.id }
+                        radera = nil
+                    } else {
+                        raderaFel = store.problem ?? String(localized: "The session could not be deleted.")
+                        store.problem = nil
+                    }
+                }, onCancel: { radera = nil })
+            }
+            .background(Theme.ground, ignoresSafeAreaEdges: .all)
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .preferredColorScheme(.dark)
         }

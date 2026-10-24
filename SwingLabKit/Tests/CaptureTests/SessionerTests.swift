@@ -23,29 +23,40 @@ final class SessionerTests: XCTestCase {
     }
 
     func testRadernaSenastForstMedVyTidKlubbaSvingarOchPar() throws {
-        let fo = DemoPass.fo(id: "20261110-180500", created: Tal.dag(2026, 11, 10, timme: 18).addingTimeInterval(300),
-                             sway: [-3, -2, -4, -3, -2, -3, -4, -2]).pass
-        var dtl = DemoPass.dtl(id: "20261113-180000", created: Tal.dag(2026, 11, 13, timme: 18), club: "pw",
-                               thrust: [-2, -1, -3, -2, -1]).pass
-        dtl.setup.role = .lead
-        dtl.shots[1].verdict = .notSwing
-        var foljer = DemoPass.fo(id: "20261114-090000", created: Tal.dag(2026, 11, 14, timme: 9),
-                                 sway: [-3, -2, -4]).pass
-        foljer.setup.role = .follow
+        let fo = Self.matt(DemoPass.fo(id: "20261110-180500",
+                                       created: Tal.dag(2026, 11, 10, timme: 18).addingTimeInterval(300),
+                                       sway: [-3, -2, -4, -3, -2, -3, -4, -2]))
+        var d = DemoPass.dtl(id: "20261113-180000", created: Tal.dag(2026, 11, 13, timme: 18), club: "pw",
+                             thrust: [-2, -1, -3, -2, -1])
+        d.pass.setup.role = .lead
+        d.pass.shots[1].verdict = .notSwing
+        let dtl = Self.matt(d)
+        // Följaren: ett slag märkt "Detection wrong" räknas inte, varken i listan eller i sessionen.
+        var f = DemoPass.fo(id: "20261114-090000", created: Tal.dag(2026, 11, 14, timme: 9), sway: [-3, -2, -4])
+        f.pass.setup.role = .follow
+        f.pass.shots[0].detectionWrong = true
+        let foljer = Self.matt(f)
+        // Halvanalyserat: ett slag saknar klippet, så analysen är inte klar (Analyze står kvar).
+        var halv = Self.matt(DemoPass.fo(id: "20261109-120000", created: Tal.dag(2026, 11, 9), sway: [-3, -2, -4, -3]))
+        halv.shots[3].clip = nil
+        XCTAssertNotNil(ShotPlan.next(halv))
         // Ett pass som inte är analyserat: klicken finns, ingen dom; serie 2 med en annan klubba.
         var ny = DemoPass.dtl(id: "20261115-120000", created: Tal.dag(2026, 11, 15), thrust: [-2, -1, -3, -2, -1, -2]).pass
         for i in ny.shots.indices { ny.shots[i].verdict = nil }
         ny.series[1].club = "pw"
         let tom = PassState(id: "20261101-120000", created: Tal.dag(2026, 11, 1), setup: PassSetup(view: .fo, club: "dr"))
 
-        let rader = Sessionsrad.rader([fo, dtl, tom, ny, foljer])
+        let rader = Sessionsrad.rader([fo, dtl, tom, halv, ny, foljer])
         XCTAssertEqual(rader.map(\.id), ["20261115-120000", "20261114-090000", "20261113-180000", "20261110-180500",
-                                         "20261101-120000"], "senaste först")
-        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Down the line", "Face on", "Face on"])
-        XCTAssertEqual(rader.map(\.vy), [.dtl, .fo, .dtl, .fo, .fo])
-        XCTAssertEqual(rader.map(\.svingar), [nil, 3, 4, 8, 0])
-        XCTAssertEqual(rader.map(\.parad), [false, true, true, false, false])
-        XCTAssertEqual(rader.map(\.klubba), ["7i, PW", "7i", "PW", "7i", "Dr"])
+                                         "20261109-120000", "20261101-120000"], "senaste först")
+        XCTAssertEqual(rader.map(\.vyNamn), ["Down the line", "Face on", "Down the line", "Face on", "Face on", "Face on"])
+        XCTAssertEqual(rader.map(\.vy), [.dtl, .fo, .dtl, .fo, .fo, .fo])
+        XCTAssertEqual(rader.map(\.svingar), [nil, 2, 4, 8, nil, 0])
+        // Samma tal som sessionens rad ("7i · 2").
+        XCTAssertEqual(rader[1].svingar, foljer.visningsPass.slag)
+        XCTAssertEqual(rader[2].svingar, dtl.visningsPass.slag)
+        XCTAssertEqual(rader.map(\.parad), [false, true, true, false, false, false])
+        XCTAssertEqual(rader.map(\.klubba), ["7i, PW", "7i", "PW", "7i", "7i", "Dr"])
         XCTAssertEqual(rader[3].tid, "Tue, Nov 10\u{00A0}· 18:05")
         XCTAssertEqual(rader[2].upplasning, "Down the line, Fri, Nov 13, 18:00, PW, 4 swings, paired")
         XCTAssertEqual(rader[0].upplasning, "Down the line, Sun, Nov 15, 12:00, 7i, PW, Not analyzed")

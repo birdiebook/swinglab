@@ -8,16 +8,23 @@ import Capture
 // Import from Photos). Formspråket B13: svartvitt, inga värdeord, ingen beskrivande text
 // utom i raderingens fråga, som säger vad som försvinner. METOD MS20
 
-/// Raderna ur passen, utanför huvudtråden (`Store.reading`, som flikarna i S4c).
+/// Raderna ur passen, utanför huvudtråden (`Store.reading`, som flikarna i S4c). Passen mäts med
+/// sin egen längd först (`Store.measuring`, ett pass från före S4b får sina mått här), så att
+/// svingarna i raden är samma tal som i sessionen; de som ändrades sparas på huvudtråden.
+/// METOD MS14, MS20
 enum Sessionslista {
     @MainActor
     static func load(_ store: Store) async -> [Sessionsrad] {
         let ids = store.index.passes.map(\.id)
         let root = store.root
         let hojd = store.settings.heightM
-        return await Task.detached(priority: .userInitiated) {
-            Sessionsrad.rader(Store.reading(ids, root: root, height: hojd))
+        let r = await Task.detached(priority: .userInitiated) { () -> ([Sessionsrad], [PassState], [PassState]) in
+            let fore = Store.reading(ids, root: root, height: hojd)
+            let efter = Store.measuring(fore, root: root)
+            return (Sessionsrad.rader(efter), fore, efter)
         }.value
+        for (a, b) in zip(r.1, r.2) where a != b && store.load(a.id) == a { store.save(b) }
+        return r.0
     }
 }
 
@@ -176,10 +183,13 @@ struct SessionsVy: View {
     }
 }
 
-/// Frågan efter svepet: passets rad, vad som försvinner, Delete och Cancel. Ett blad och inte
-/// en systemdialog, så att provet kan rita den (som B60:s fråga). BESLUT B64
+/// Frågan efter svepet: passets rad, vad som försvinner, Cancel som huvudknapp och Delete som en
+/// grå rad utan fyllning, under Cancel (också för VoiceOver), så att Delete aldrig är förvald. Ett blad och inte en
+/// systemdialog, så att provet kan rita den (som B60:s fråga). `problem`: varför raderingen
+/// vägrades eller inte gick. BESLUT B64
 struct RaderaPassVy: View {
     let rad: Sessionsrad
+    var problem: String? = nil
     var onDelete: () -> Void = {}
     var onCancel: () -> Void = {}
 
@@ -188,6 +198,7 @@ struct RaderaPassVy: View {
             Text("Delete session?")
                 .typsnitt(22, .semibold)
                 .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 6)
             SessionRadVy(rad: rad, pil: false)
                 .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
@@ -201,11 +212,21 @@ struct RaderaPassVy: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 12)
             .padding(.bottom, 22)
-            Button("Delete", action: onDelete)
+            if let problem {
+                Text(problem)
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(Theme.flag)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 12)
+            }
+            Button("Cancel", action: onCancel)
                 .buttonStyle(PrimaryButtonStyle())
                 .padding(.bottom, 8)
-            Button("Cancel", action: onCancel)
-                .buttonStyle(RowButtonStyle())
+            Button(action: onDelete) {
+                Text("Delete")
+                    .foregroundStyle(Theme.secondary)
+            }
+            .buttonStyle(RowButtonStyle())
         }
         .padding(.horizontal, 20)
         .padding(.top, 22)

@@ -49,6 +49,7 @@ public enum DemoPass {
             let s = p.shots[i]
             p.shots[i].verdict = .swing
             p.shots[i].joints = ShotRecord.jointsPath(s.id)
+            p.shots[i].clip = ShotRecord.clipPath(s.id)          // analysen klar (ShotPlan.next == nil)
             leder[s.id] = serie(sving(i), klick: s.click.time)
         }
         p.status = .analyzed

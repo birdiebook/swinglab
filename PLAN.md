@@ -280,7 +280,8 @@ djupet ett tryck bort i stället för borttaget.
 - **Raden** visar översikten innan man går in: vyn (Down the line / Face on), datum och tid,
   klubban och antalet svingar. Ett pass med två telefoner är en rad per vy, med "paired" och en
   länksymbol. Ett tryck öppnar passet; ett svep raderar efter en fråga (passets mapp och filer:
-  video, leder, mått, `att_jobba_pa` och 3D; den andra telefonens pass rörs inte). + uppe till
+  video, leder, mått, parning, 3D och exporten; `att_jobba_pa` ligger kvar, B64; den andra
+  telefonens pass rörs inte). + uppe till
   höger ger Record och Import from Photos. En tom lista visar en kort rad och +.
 - **Inne i en session bara dess vy:** måttkorten, felen, granskningens rader per position och
   klubbmarkeringen, genom katalogens `vy` (dtl, fo, bada); "bada" som tempot i båda. 3D-kortet
@@ -292,15 +293,15 @@ djupet ett tryck bort i stället för borttaget.
 och Me), `App/Vyer/SessionerVy.swift` (listan, raden och frågan), `Store.deletePass`,
 `PassetVy(vy:)`, SwingLabKit `Capture/Sessioner.swift` (`Sessionsrad`) och
 `Swing/Visning/Vyfilter.swift`, och `DemoPass.dtl`. Prov: `SessionerTests` (Linux) och
-`Prov/SwingLabProvSessioner.swift` (bilderna `sessions`, `sessions-radera`, `session-fo`,
-`session-dtl` och `me`, båda sessionerna med 3D-kortet); Todays och Progress bilder ritas inte
+`Prov/SwingLabProvSessioner.swift` (bilderna `sessions`, `sessions-radera`, `sessions-radera-vagrad`,
+`session-fo` ur det parade FO-passet, `session-dtl` och `me`, båda sessionerna med 3D-kortet); Todays och Progress bilder ritas inte
 längre, inte heller Progress med 3D (`utveckling-3d`).
 
 **Klart när:** Johannes har öppnat appen i Sessions, sett sina pass med rätt vy, tid, klubba och
 svingar, öppnat en FO- och en DTL-session och bara sett deras mått, raderat en session med svep
 och fråga, och hittat längden och Import focus i Me.
 
-## S4f — Ranges (Johannes 2026-10-24, inte nu)
+## S4g — Ranges (Johannes 2026-10-24, inte nu)
 
 Johannes ord: ranges ska vara tydliga, alltså vad som är bra, bara innanför och utanför range.
 Det ersätter grönt, gult och rött med två lägen när den byggs. Inget är byggt; etappen formas

@@ -26,6 +26,18 @@ struct PassFlowView: View {
     @State private var editQueue: [Int] = []
 
     var body: some View {
+        // Passet i flödet går inte att radera i Sessions (S4e, BESLUT B64); följaren kan byta id (adopt).
+        flode
+            .onChange(of: pass?.id, initial: true) { gammal, ny in
+                if let gammal { store.setInFlow(gammal, false) }
+                if let ny { store.setInFlow(ny, true) }
+            }
+            .onDisappear {
+                if let id = pass?.id { store.setInFlow(id, false) }
+            }
+    }
+
+    @ViewBuilder private var flode: some View {
         if shots, let pass {
             if let nr = editQueue.first {
                 ClipEditorView(passID: pass.id, seriesNr: nr) { editQueue.removeFirst() }
