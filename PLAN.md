@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b nu · S6 · S6c nu · S7 · S7a · S7c nu · S7b · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4f nu · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -326,6 +326,24 @@ finns ger frågan (Cancel och Replace), ett äldre pass behåller Focus, och bil
 utan att någon fil redigerats för hand, och samma text (`session.py --claude-text`) har
 prövats mot skillens fulla väg på PC:n.
 
+## S4f — Spår i granskningen (Johannes 2026-10-24)
+
+Beställningen: "Jag vill kunna lägga en tracker hela vägen på klubban genom svingen.
+Trackern ska också kunna vara andra delar av kroppen: händerna, axlar och höfter, så man ser
+hur det rört sig genom rymden. I förlängningen blir det en 3D-figur som följer hur man slår."
+
+I granskningen slår Johannes på spår för valda punkter: händerna (greppet, handledernas mitt
+med greppregeln M1), axlarna, höfterna och huvudet; klubbhuvudet när S7b ger banan. Ett spår
+är en tunn linje över hela svingen: det som spelats upp ritas fast, resten svagt. Valet är
+chips under videon ("Hands · Shoulders · Hips · Head · Club"), sparat per användare. Svartvitt
+med gråtoner och linjestil per punkt (B13), ingen accent (B31). Banan jämnas lätt med
+mätningens utjämning (M3), och en ruta där leden saknas ger ett avbrott, aldrig en gissning.
+Ritlagret är en egen vy (`SparLager`) som tar namngivna punktserier i bildens pixlar med tider,
+så att S7b och senare S6d återanvänder det. Mätningen rörs inte.
+
+**Klart när:** simulatorprovet ritar spåren vid P4 och P7, och Johannes har slagit på spåren
+på telefonen och förstått direkt vad han ser.
+
 ## S6 — Två kameror: vridningen och X-factor
 
 Sportsbox-måtten som kräver S6 (turn, X-factor, vridfarter, core och shoulder
@@ -467,6 +485,20 @@ skäl (`osaker`, `hoppat`, `utelamnade`) och avrundade fält, och varje mått pe
 som slog om (en jämförelse vid en gräns, t.ex. spärren, skyddet mot de vågräta,
 parabelns topp eller synkens minimum) och med hur mycket, innan toleransen ändras.
 
+### S6d — 3D-banor och 3D-figur ur två telefoner (Johannes 2026-10-24)
+
+S6c triangulerar redan 13 leder per ruta. Visa banorna (S4f:s punkter) i 3D och en figur av
+streck och leder som spelas upp med svingen och kan vridas (SceneKit eller RealityKit), i
+formspråket B13: ett mätinstrument, ingen modellerad kropp. Klubban kommer med när S7b ger
+klubbhuvudet i båda vyerna. **Kräver** att S6c-2 har landat. **Klart när:** ett riktigt pass
+med två telefoner spelas upp i 3D på telefonen, och banorna går att vrida och stega P1–P10.
+
+### S6e — 3D ur en telefon (Johannes 2026-10-24)
+
+En modell som skattar djupet ur 2D-lederna (monokulär lyftning). Ett stort jobb, med licens
+och facit att utreda (S6:s två telefoner är facit). Görs senare, om två telefoner känns
+krångligt i praktiken.
+
 ## S7 — Klubban
 
 Sportsbox-måtten som kräver S7 (club-hand gap, skaftets fart, wrist och release
@@ -602,7 +634,12 @@ koden sparades inte. Ankarna och kroppsmasken ur lederna ska ta bort handpåläg
 **Plats i S7a:s datamodell:** varje punkt bär sin källa (`kalla`, i dag bara `klick`), så
 att en spårad eller interpolerad punkt blir en ny källa i samma format
 (`swinglab-klubba/2`, FORMAT.md) och en ruta mellan ankarna en ruta med en annan `val`;
-klubbmåtten tar i dag bara tryckta punkter. Inget av S7b är byggt.
+klubbmåtten tar i dag bara tryckta punkter.
+
+**Påbörjat (grenen `spar`, 2026-10-24):** spårningen i SwingLabKit med Python som facit (B12),
+en påhittad film med en ritad klubba längs en känd båge (brus, kropp, dold sträcka) som
+facit, banan i granskningen med S4f:s `SparLager`, och datamodellen för att godkänna eller
+rätta en spårad ruta.
 
 **Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
 rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.
@@ -640,7 +677,7 @@ först på Johannes beslut.
 
 | Idé | Kräver | Aktuell när | Första steg |
 |---|---|---|---|
-| **3D-svingen** (2026-10-22): svingen i 3D som går att vrida och stega genom P1–P10, likt Sportsbox | S6:s triangulerade leder (en kamera ger en gissning, 10–16° per sving); formspråket B13: ett mätinstrument med leder, linjer, bäckenets och bröstets plan och X-factor som vinkel, ingen modellerad kropp | S6 ger 3D-leder från två telefoner | En skiss i webbläsaren på S6-simuleringens påhittade 3D-sving (`tools/pc/tre_d/sving.py`), för att bestämma utseendet |
+| (3D-svingen är nu etapperna S6d och S6e, 2026-10-24) | | | |
 
 ## Utanför planen
 
