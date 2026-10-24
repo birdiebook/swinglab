@@ -221,9 +221,35 @@ extension SwingLabProvVyer {
                                  forlopp: val == .dtl ? Texter.hamtar(60) : nil, kanHamtaHela: true,
                                  annanKlipp: Set(fv.klipp.keys), utanKlick: fv.utanKlick)
             try rendera(PassScreenContent(pass: styrP, visning: dtlVisning, images: [:], overlays: [:],
-                                          analysis: AnalysisState(), editable: false, treD: kort3D, parad: lage,
+                                          analysis: AnalysisState(), editable: false, treD: kort3D,
+                                          onFigur: val == .treD ? {} : nil, parad: lage,
                                           annanVisning: foVisning), namn: namn, accent: false, skala: 2)
         }
+
+        // 3D-fliken i Leads parade pass har S6d:s rad "3D" (figuren): fliken med figuren är en rad
+        // högre än utan, och raden öppnar figuren, här ritad ur fixturens pass vid P7 (S6d, B73).
+        let lage3D = ParadLage(egen: .dtl, valt: .treD, franBada: status)
+        func hojd(_ onFigur: (() -> Void)?) throws -> CGFloat {
+            let r = ImageRenderer(content: PassScreenContent(pass: styrP, visning: dtlVisning, images: [:], overlays: [:],
+                                                             analysis: AnalysisState(), editable: false, treD: kort3D,
+                                                             onFigur: onFigur, parad: lage3D, annanVisning: foVisning)
+                .frame(width: Self.bredd).environment(\.colorScheme, .dark))
+            r.proposedSize = ProposedViewSize(width: Self.bredd, height: nil)
+            return try XCTUnwrap(r.uiImage).size.height
+        }
+        let medFigur = try hojd({}), utanFigur = try hojd(nil)
+        print(String(format: "PROV: VIDEO 3D-fliken i det parade passet: %.0f pt med raden 3D, %.0f pt utan", medFigur, utanFigur))
+        XCTAssertGreaterThanOrEqual(medFigur - utanFigur, 40, "raden 3D (figuren) i 3D-fliken")
+        let (_, f) = try treDFigur("utan_brus")
+        let fig = try XCTUnwrap(f.figurer.first)
+        let u = f.index.uppstallningar[fig.uppstallning]
+        let r = try XCTUnwrap(TreDRiktning.ur(fig, uppstallning: u, hand: f.index.hand))
+        let k7 = try XCTUnwrap(fig.positionsRutor().first { $0.name == "P7" }?.index ?? nil)
+        try rendera(TreDFigurInnehall(index: f.index, figur: fig, uppstallning: u, riktning: r,
+                                      betraktare: TreDBetraktare.vinkel(.faceOn, r), rubrik: "Shot 1", nu: fig.t(k7),
+                                      vinkel: .faceOn, spar: TreDSpar.spar(fig, val: [.hands]), sparVal: [.hands],
+                                      forra: false, nasta: true),
+                    namn: "parad-3d-figur", accent: false)
 
         // Granskningen i båda vyerna, samma ruta och position (P7, träffen), videon synkad.
         let s1 = styrP.shots[0]
