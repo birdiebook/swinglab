@@ -63,9 +63,16 @@ final class KlippKoppling {
     /// Filen som strömmas.
     @ObservationIgnored private var kalla: URL?
 
+    /// Passets roll och vy, lästa en gång (bitarna kommer tätt; passet läses inte för varje).
+    @ObservationIgnored private let roll: LinkRole
+    @ObservationIgnored private let egenVy: Vy
+
     init(passID: String, store: Store) {
         self.passID = passID
         self.store = store
+        let p = store.load(passID)
+        roll = p?.setup.role ?? .solo
+        egenVy = p?.setup.view ?? .dtl
         video = store.annanVideo(passID)
     }
 
@@ -74,11 +81,11 @@ final class KlippKoppling {
     /// Kopplingen i passets skärm (3D:s, redan startad), eller provets. Utan koppling (ett pass
     /// med en telefon) finns bara importen och det som redan kommit.
     func start(link l: PhoneLink?) {
-        guard let l, let p = pass, p.setup.role != .solo else { return }
+        guard let l, roll != .solo else { return }
         link = l
         l.onHello = { [weak self] h in self?.hej(h) }
         l.onDown = { [weak self] in self?.nere() }
-        if p.setup.role == .lead {
+        if roll == .lead {
             l.onStream = { [weak self] dev, bit in self?.bit(dev, bit) }
         } else {
             l.onStreamAck = { [weak self] a in self?.kvittens(a) }
@@ -100,16 +107,16 @@ final class KlippKoppling {
     /// Den andra telefonen sa hello: vyn prövas, och den styrande skickar sin begäran igen (den
     /// kan ha startats om och säger var varje klipp står).
     private func hej(_ h: LinkHello) {
-        guard let p = pass else { return }
-        sammaVy = Vyvakt.sammaVy(egen: p.setup.view, andra: [h.view])
-        if p.setup.role == .lead, h.role == .follow, h.kanVideo { skickaBegaran(tvinga: true) }
+        sammaVy = Vyvakt.sammaVy(egen: egenVy, andra: [h.view])
+        if roll == .lead, h.role == .follow, h.kanVideo { skickaBegaran(tvinga: true) }
     }
 
+    /// Kopplingen föll: strömmen stannar. Den styrandes nästa begäran (när följaren säger hello
+    /// igen) säger var den står. Ett klipp som skärs just nu skärs färdigt.
     private func nere() {
-        guard let p = pass else { return }
-        if p.setup.role == .follow {
+        if roll == .follow {
             sandare.avbrott()
-            forbereder = nil
+            kalla = nil
         }
         visaRad()
         slutaBakgrund()
@@ -117,8 +124,7 @@ final class KlippKoppling {
 
     /// Passet ändrades (analysen, domen) eller kopplingen kom upp.
     func uppdatera() {
-        guard let p = pass else { return }
-        if p.setup.role == .lead {
+        if roll == .lead {
             video = store.annanVideo(passID)
             skickaBegaran(tvinga: false)
         }
@@ -127,7 +133,7 @@ final class KlippKoppling {
 
     // MARK: Den styrande
 
-    private var annanVy: Vy? { pass.map { Vyvakt.annan($0.setup.view) } }
+    private var annanVy: Vy? { roll == .lead ? Vyvakt.annan(egenVy) : nil }
 
     private var mottagare: KlippMottagare? {
         annanVy.map { KlippMottagare(mapp: store.passFolder(passID), vy: $0, pass: passID) }
@@ -142,7 +148,7 @@ final class KlippKoppling {
 
     /// Begäran ur passet och det som kommit; skickas när något ändrats, eller alltid (`tvinga`).
     private func skickaBegaran(tvinga: Bool) {
-        guard let p = pass, p.setup.role == .lead, let m = mottagare, !sammaVy else { return }
+        guard roll == .lead, let p = pass, let m = mottagare, !sammaVy else { return }
         let framme = Set(video?.klipp.keys.map { $0 } ?? [])
         let utkast = KlippBegaran.make(pass: p, par: store.pairs(passID), nr: nr + 1, framme: framme, hela: hela).begaran
         guard !utkast.klipp.isEmpty else { return }
@@ -234,19 +240,19 @@ final class KlippKoppling {
     /// Den styrandes begäran: sparas, sedan skärs och skickas nästa klipp.
     private func begaranKom(_ pass: String, _ d: Data) async -> Mottagning {
         guard pass == passID else { return .nej(Overforing.felPass) }
-        guard let p = self.pass, let b = try? KlippBegaran.las(d), b.pass == passID else {
-            return .nej(Overforing.felFormat)
-        }
-        guard b.vy != p.setup.view else {
+        guard let b = try? KlippBegaran.las(d), b.pass == passID else { return .nej(Overforing.felFormat) }
+        guard b.vy != egenVy else {
             sammaVy = true
             return .nej(Overforing.felFormat)
         }
         guard store.saveBegaran(d, passID: passID) else { return .osparad }
         fran = b
         if b.alltFramme { store.rensaUtskick(passID) }
-        // Varje begäran säger var den styrande står: strömmen börjar om där (dubbletter kvitteras).
-        sandare.avbrott()
-        forbereder = nil
+        // Klippet som strömmas fortsätter om den styrande fortfarande vill ha det; annars nästa.
+        if let s = sandare.strom, b.klipp.first(where: { $0.namn == s.namn })?.klar != false {
+            sandare.avbrott()
+            kalla = nil
+        }
         fortsatt()
         return .sparad
     }
@@ -273,27 +279,35 @@ final class KlippKoppling {
         let namn = post.namn, pid = passID
         let mal = KlippPost.arVideo(namn) ? original : store.utskick(namn, passID: passID)
         Task {
+            // Klippet skärs till en egen fil och flyttas på plats när det är helt, så att ett
+            // avbrutet skär aldrig ger en halv fil med klippets namn.
             if !KlippPost.arVideo(namn), !FileManager.default.fileExists(atPath: mal.path),
                let w = post.fonster(langd: serie.duration) {
+                let tmp = mal.deletingLastPathComponent().appending(path: UUID().uuidString).appendingPathExtension("mov")
                 do {
-                    try await Clips.export(original, range: w, to: mal)
-                } catch {
-                    try? FileManager.default.removeItem(at: mal)
-                }
+                    try await Clips.export(original, range: w, to: tmp)
+                    if !FileManager.default.fileExists(atPath: mal.path) { try FileManager.default.moveItem(at: tmp, to: mal) }
+                } catch {}
+                try? FileManager.default.removeItem(at: tmp)
             }
             let r = await Task.detached(priority: .userInitiated) { () -> (String, Int)? in
                 guard let n = Klippfil.storlek(mal), n > 0, let id = try? Klippfil.summa(mal) else { return nil }
                 return (id, n)
             }.value
-            guard self.forbereder == namn else { return }
             self.forbereder = nil
             guard let r else {
                 self.levererade.insert(namn)
                 self.fortsatt()
                 return
             }
+            // Begäran kan ha kommit under tiden: var den styrande står nu, och om den vill ha klippet.
+            guard let nu = self.fran?.klipp.first(where: { $0.namn == namn }), !nu.klar, !self.levererade.contains(namn),
+                  self.link?.kanVideo == true, self.sandare.strom == nil else {
+                self.fortsatt()
+                return
+            }
             self.kalla = mal
-            let start = post.harId == r.0 ? (post.har ?? 0) : 0
+            let start = nu.harId == r.0 ? (nu.har ?? 0) : 0
             self.las(self.sandare.borja(namn: namn, id: r.0, bytes: r.1, fran: start), pass: pid)
         }
     }
@@ -337,8 +351,7 @@ final class KlippKoppling {
     // MARK: Raden och bakgrunden
 
     private func visaRad() {
-        guard let p = pass else { return }
-        if p.setup.role == .lead {
+        if roll == .lead {
             guard let b = begaran, !b.alltFramme, link?.kanVideo == true || !har.isEmpty else {
                 rad = nil
                 return
@@ -378,7 +391,7 @@ final class KlippKoppling {
     /// klippet ur paketet. Ett paket utan klipp ger inga. METOD MS31
     func importera(_ url: URL) async {
         problem = nil
-        guard let p = pass, p.setup.role != .follow else { return }
+        guard roll != .follow, let p = pass else { return }
         let vy = Vyvakt.annan(p.setup.view)
         let skyddad = url.startAccessingSecurityScopedResource()
         defer { if skyddad { url.stopAccessingSecurityScopedResource() } }
