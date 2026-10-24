@@ -1216,3 +1216,48 @@ B47 och s6c börjar på B48.
 - **Kostnad:** raden står inte i svingens ordning, och videon hoppar tillbaka i svingen för
   P2, P6 och P8.
 - **Omprövas:** när Johannes märkt svingar på telefonen.
+
+## B59 — Märkningsläget är ett verktyg: en instruktionsrad, en guide och inzoomat, undantag från B13 bara där
+*2026-10-24 · prövas · PLAN.md S7c · METOD M45 · Johannes ja, efter att ha provat S7a på telefonen*
+
+- **Varför:** Johannes förstod inte vad han skulle göra i S7a:s märkning: "Grip" ensamt,
+  "Stick", ringen och en Next som såg spärrad ut, och klubban var liten i bild. Han, och i
+  förlängningen andra, ska förstå direkt.
+- **Valt:**
+  - **Instruktionsraden** överst, i klartext: "1 · Tap the grip", sedan "2 · Tap the
+    clubhead", bredvid en liten svartvit skiss av en klubba (Canvas, inga bilder) där punkten
+    som nästa tryck sätter lyser: mitt på greppet (mellan händerna), respektive där skaftet
+    går in i huvudet. Ordet "hosel" finns inte längre i appen, inte heller i katalogens
+    infoblad; i data, formatet och METOD betyder klubbhuvudets punkt fortfarande hoseln (B44).
+  - **Zoom:** varje position öppnas inzoomad, högst 2,5 ×, kring händerna och den förväntade
+    klubban (M45); nyp zoomar (högst 8 ×), dra panorerar och dubbeltryck växlar mot hela
+    bilden. Trycken blir hela bildens pixlar som förut (provat i `KlubbYtaFixturer`, samma i
+    Python). Förstoringsglaset finns kvar och förstorar 3 × ovanpå zoomen.
+  - **Punkterna heter 1 och 2** i bilden, och skaftlinjen dras mellan dem när båda är satta.
+  - **Gissningen:** ringen ersätts av en ihålig punkt märkt "1?" vid handledernas mitt. Ett
+    tryck på den godtar den (källan `handlederna_bekraftad`, B47); ett tryck någon annanstans
+    sätter greppet där.
+  - **Positionen i klartext** i märkningens ordning (B58): "P4 · Top of backswing · 3 of 10"
+    (`Texter.positionsnamn`: kroppens positioner som M28, skaftets som Sportsbox BCH, DCH och
+    FCH, research 5a). Next är borttagen, eftersom appen går vidare själv; "Not visible" heter
+    "Skip"; Undo finns kvar.
+  - **Riktpinnen** är ett eget valfritt steg bakifrån, en gång per serie före P1: "Optional:
+    tap both ends of an alignment stick on the ground", med en skiss och Skip och Done. Skip
+    sparas i serien (`riktpinneHoppad`), så att steget inte kommer igen. Knappen Stick är
+    borta ur raden.
+  - **Guiden** första gången märkningen öppnas, tre bilder: greppet, klubbhuvudet och klart
+    (skaftlinjen och att appen går vidare själv); "?" öppnar den igen. Att den visats sparas i
+    användarens inställningar (`clubGuideSeen`).
+- **Formen:** märkningsläget är ett verktyg, och ett verktyg som ska användas utan förkunskap
+  får en instruktionsrad och en guide. Det är ett undantag från B13 (design/README regel 5 och
+  9), och det gäller **bara** märkningsläget: resten av appen har fortfarande ingen
+  beskrivande text. Svartvitt, accenten bara som förut (B31, inte här), engelska och String
+  Catalog (B30, B33). VoiceOver läser instruktionen som rubrik och positionen i klartext.
+- **Bortvalt:** att behålla ordet "hosel" (golfens fackord, men inte ett ord man förstår
+  direkt), en film eller animation i guiden (B13 regel 1), riktpinnen som en knapp i raden
+  (den förstods inte), och att zooma så att hela klubban alltid syns (då blev klubban liten
+  igen; nyp och dubbeltryck ger hela bilden när den behövs).
+- **Kostnad:** fler texter i märkningen, ett steg till bakifrån första gången per serie, och
+  en gest till att lära sig (dubbeltrycket ångrar ett första tryck som satte en punkt).
+- **Omprövas:** när Johannes märkt svingar med S7c på telefonen: om instruktionen och guiden
+  räcker, om 2,5 × är rätt start och om dubbeltrycket krockar med trycken.

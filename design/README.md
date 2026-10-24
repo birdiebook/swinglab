@@ -32,7 +32,9 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    och grå bredvid.
 8. **Primärknappen** är ett vitt fält med svart text, överallt.
 9. **Intuitivt utan text.** Kräver en skärm en förklaring är designen fel. Gör om
-   den i stället för att lägga till text.
+   den i stället för att lägga till text. **Undantag (BESLUT B59):** klubbans
+   märkningsläge är ett verktyg och har en instruktionsrad ("1 · Tap the grip") och en
+   guide; undantaget gäller bara där.
 10. **Accenten (BESLUT B31).** En enda accent, isblå `#6FD3F7`, och den betyder
     bara "det du övar på": måttet eller måtten i Att jobba på. De bär den i sitt
     kort i Passet, sin rad på Idag, sin linje i Utveckling, sin uppmätta linje i

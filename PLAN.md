@@ -2,6 +2,8 @@
 
 `BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b nu · S6 · S6c · S7 · S7a · S7b · S8
 
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S6 · S6c · S7 · S7a · S7c nu · S7b · S8
+
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
 visar. PC:n tar emot samma session och fortsätter där, med tyngre mätning och
@@ -513,7 +515,8 @@ en stillbild, P1–P10 med VoiceOver, riktpinnen), uppställningens rad för DTL
 i granskningen, P2/P6/P8 i positionsraden när de är markerade, och passets rad "N with club
 marked" och korten med median och n. Prov: `tools/tests/test_klubba.py`, `KlubbaTests`,
 `KlubbaMarkeringTests`, `Prov/SwingLabProvKlubba.swift` (bilderna `klubba-granskning`,
-`klubba-markera`, `klubba-markera-utan-finger`, `klubba-markera-ringen`, `klubba-passet`),
+`klubba-markera`, `klubba-markera-utan-finger`, `klubba-markera-ringen`, `klubba-passet`; de tre
+märkbilderna är ersatta i S7c),
 och paketprovet bär markeringar som PC:n läser (`test_appens_paket.py`). Mätversionen är
 oförändrad (B47). Efter granskningen 2026-10-23: P2 mot planet borttaget (M47).
 
@@ -544,6 +547,29 @@ riktpinnen bakifrån, förslaget ur skaftet framifrån), och vägen för FO-tele
 markeringar till DTL-telefonen (ett meddelande på länken eller paketet in i appen, B57):
 utan den används `ClubPairTime` inte i appen. Rullningen rättas med lodlinjen (MS17) när
 den kommer in i måtten.
+
+### S7c — En tydligare markering (Johannes ja 2026-10-24)
+
+Johannes provade S7a på telefonen och förstod inte vad han skulle göra: "Grip" ensamt,
+"Stick", ringen och en Next som såg spärrad ut, och klubban var liten. Han, och i förlängningen
+andra, ska förstå direkt (BESLUT B59, METOD M45).
+
+**Byggt (grenen `s7afo`).** Instruktionsraden överst ("1 · Tap the grip", "2 · Tap the
+clubhead") med en skiss av en klubba där punkten lyser; ordet "hosel" är borta ur appen och
+katalogens infoblad (data och METOD oförändrade). Varje position öppnas inzoomad högst 2,5 ×
+kring händerna och den förväntade klubban; nyp, dra och dubbeltryck; trycken blir hela bildens
+pixlar (`KlubbYtaFixturer`, samma i Python). Punkterna heter 1 och 2, skaftlinjen dras mellan
+dem, och gissningen av greppet är en ihålig "1?". Positionen i klartext i den nya ordningen
+(B58): "P4 · Top of backswing · 3 of 10". Next borta, "Not visible" heter "Skip", Undo kvar.
+Riktpinnen är ett eget valfritt steg bakifrån före P1, en gång per serie (Skip sparas i serien).
+Guiden med tre bilder första gången och under "?" (inställningen `clubGuideSeen`). Undantaget
+från B13 gäller bara märkningsläget (B59, design/README regel 9). Prov: `KlubbaMarkeringTests`
+(zoomen, trycken inzoomat, positionen i klartext, riktpinnens steg, guidens inställning),
+`test_klubba` (zoomen i Python), simulatorprovet (bilderna `klubba-guide-1` … `3`,
+`klubba-riktpinne`, `klubba-greppet`, `klubba-klubbhuvudet`, `klubba-klar`, `klubba-fo-markera`).
+
+**Klart när:** Johannes har markerat 2–3 svingar på telefonen med S7c utan att fråga vad han
+ska göra, i båda vyerna.
 
 ### S7b — Klubbhuvudets bana mellan ankarna (Johannes ja 2026-10-23)
 

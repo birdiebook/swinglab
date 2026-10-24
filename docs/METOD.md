@@ -1026,10 +1026,28 @@ egen baslinje (M27) och utan fel: med få svingar är det en trend, inte en sak 
   fingrets förflyttning (avståndet mellan finger och punkt behålls), och ett kortare drag är
   ett tryck. Riktpinnen sätts med två tryck, bara bakifrån (M48). **antagande** (gränserna,
   valda för ett finger på en telefon; oprövade på telefonen).
+- **Zoomen** (S7c, BESLUT B59): ytan visar en del av märkningens yta (`ClubMarking.zoom`,
+  samma proportioner), och trycken räknas om genom den till hela bildens pixlar
+  (`klubba.zoom_start` och `yta_till_bild` på PC:n ger samma pixel, `KlubbYtaFixturer`). En
+  position öppnas **inzoomad högst 2,5 ×** kring mitten: positionens egen markering (skaftets
+  mitt) när den finns, annars handledernas mitt, annars de markerade greppens mitt. Zoomen
+  sänks så att en cirkel med skaftets längd L gånger **1,15** kring mitten får plats, aldrig
+  under 1 ×; L är positionens egen markering, annars medianen av de markerade skaften, annars
+  **0,80 m** genom skalan (M2, M49); mitten flyttas in i ytan. Nyp zoomar med bildens punkt
+  under fingrarna kvar, mellan hela ytan och **8 ×**; ett drag som inte börjar på en punkt och
+  är längre än 4 pt panorerar; ett dubbeltryck (två tryck inom **0,3 s** och **20 pt**)
+  växlar mellan hela ytan och startzoomen och ångrar en punkt som det första trycket satte.
+  Gränserna för ett tryck (kanten 3 %, ringen och en punkt 5 %, drag 4 pt) gäller ytan som
+  syns, alltså fingret på skärmen. **antagande** (2,5 ×, 1,15, 8 ×, 0,3 s och 20 pt, valda
+  för ett finger på en telefon; oprövade på telefonen).
+- **Gissningen av greppet** är handledernas mitt (som ringen i S7a), ritad som en ihålig punkt
+  "1?"; ett tryck inom 5 % av ytans bredd från den godtar den. Punkterna heter 1 (greppet) och
+  2 (klubbhuvudet, alltså hoseln, B44) i bilden.
 - **Förstoringsglaset** är 124 pt brett och visar en del av ytan som är 124/3 pt bred, ur
   rutan som stillbild med toleransen 0 (`AVAssetImageGenerator`), så att förstoringen i
   punkter på skärmen är **3,000 ×** (mätt i simulatorprovet: `loupeMagnification` på ytans
-  bredd, 258,8 pt). Det visar hårkorset och de satta punkterna, och står bredvid fingret där
+  bredd, 258,8 pt; ovanpå zoomen räknas glaset ur det som syns, så att det förstorar 3 ×
+  också inzoomat). Det visar hårkorset och de satta punkterna, och står bredvid fingret där
   det inte täcker fingret eller en satt punkt, inskjutet från ytans kant.
 - **Tryck per sving:** greppet och hoseln per position, alltså **20** för P1–P10 (Next
   behövs inte längre: 10 tryck färre), plus stegen till P2, P6 och P8 från förslaget,
