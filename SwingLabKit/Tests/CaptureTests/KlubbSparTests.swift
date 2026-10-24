@@ -165,7 +165,9 @@ final class KlubbBanaTests: XCTestCase {
         m[0].hosel = KlubbPunkt(x: 21, y: 0)
         XCTAssertFalse(b.aktuell(m), "en flyttad markering ger en ny bana")
         XCTAssertFalse(KlubbBana.mojlig([Self.marks[0]]))
-        XCTAssertTrue(KlubbBana.mojlig(Self.marks))
+        XCTAssertFalse(KlubbBana.mojlig(Self.marks), "P1 och P4 är inga grannar")
+        let p3 = KlubbMarkering(position: "P3", t: -0.5, grepp: KlubbPunkt(x: 10, y: 30), hosel: KlubbPunkt(x: 30, y: 10))
+        XCTAssertTrue(KlubbBana.mojlig(Self.marks + [p3]))
         XCTAssertEqual(b.andelInterpolerade, 0.25)
     }
 
@@ -238,6 +240,38 @@ final class KlubbRutorTests: XCTestCase {
                 }
             }
         }
+    }
+
+    /// De speglade orienteringarna (EXIF 2, 4, 5, 7): hörnen hamnar rätt.
+    func testSpegladeOrienteringar() {
+        let W = 3, H = 2
+        // Den lagrade bildens hörn: uppe till vänster 1, uppe till höger 2, nere till vänster 3.
+        var plan = [UInt8](repeating: 0, count: W * H)
+        plan[0] = 1
+        plan[W - 1] = 2
+        plan[(H - 1) * W] = 3
+        func upp(_ e: UInt32) -> (bild: [UInt8], bredd: Int, hojd: Int) {
+            plan.withUnsafeBufferPointer { KlubbRutor.upratt($0, radBytes: W, width: W, height: H, exif: e, skala: 1) }
+        }
+        let e2 = upp(2)                                         // spegling vågrätt
+        XCTAssertEqual([e2.bredd, e2.hojd], [3, 2])
+        XCTAssertEqual(e2.bild[0], 2)
+        XCTAssertEqual(e2.bild[2], 1)
+        let e4 = upp(4)                                         // spegling lodrätt
+        XCTAssertEqual(e4.bild[0], 3)
+        XCTAssertEqual(e4.bild[3], 1)
+        let e5 = upp(5)                                         // transponerad: rad blir kolumn
+        XCTAssertEqual([e5.bredd, e5.hojd], [2, 3])
+        XCTAssertEqual(e5.bild[0], 1)
+        XCTAssertEqual(e5.bild[1], 3)
+        XCTAssertEqual(e5.bild[4], 2)
+        let e7 = upp(7)                                         // transponerad åt andra hållet
+        XCTAssertEqual([e7.bredd, e7.hojd], [2, 3])
+        XCTAssertEqual(e7.bild[5], 1)
+        XCTAssertEqual(e7.bild[1], 2)
+        // De ospeglade som förut.
+        XCTAssertEqual(upp(6).bild[0], 3)
+        XCTAssertEqual(upp(8).bild[0], 2)
     }
 
     func testSkalanOchSpannet() {

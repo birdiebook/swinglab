@@ -525,8 +525,10 @@ public struct KlubbBana: Codable, Equatable, Sendable {
         }.sorted { $0.t < $1.t }
     }
 
-    /// Minst två markerade positioner behövs för en bana.
-    public static func mojlig(_ marks: [KlubbMarkering]?) -> Bool { ankare(marks).count >= 2 }
+    /// En bana kräver två markerade positioner som är grannar i svingens ordning (M61).
+    public static func mojlig(_ marks: [KlubbMarkering]?) -> Bool {
+        !KlubbSpar.segment(ankare(marks).map(\.position)).isEmpty
+    }
 
     /// Banan ur spårningen (KlubbSpar.spara) och ankarna.
     public init(_ bana: [KlubbSpar.BanPunkt?], ankare marks: [KlubbMarkering]?) {

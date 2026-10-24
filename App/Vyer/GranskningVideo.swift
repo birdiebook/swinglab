@@ -53,8 +53,6 @@ struct ShotReviewView: View {
     @State private var saveCount = 0
     /// Spåren som visas (S4f, BESLUT B70), räknade när valet eller slaget ändras.
     @State private var spar: SparBild?
-    /// Klubbhuvudets bana räknas (S7b, BESLUT B71).
-    @State private var klubbaRaknas = false
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -111,14 +109,21 @@ struct ShotReviewView: View {
                                                         ovas: ovas),
                                   detectionWrong: shot.detectionWrong == true, impact: shot.impact - shot.click.time,
                                   shaft: review.shaft(frame, marks: shot.klubba),
-                                  spar: spar, sparVal: store.settings.sparVal, onSpar: { store.toggleTrail($0) },
-                                  klubbaMojlig: KlubbBana.mojlig(shot.klubba), klubbaRaknas: klubbaRaknas,
+                                  spar: spar, sparVal: store.settings.sparVal, onSpar: sparTryck,
+                                  klubba: klubbChip(shot), klubbaFel: store.klubbaFel[klubbNyckel],
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
                                   onMarkClub: startMarking)
                         .padding(.vertical, 8)
                 }
                 .task(id: SparNyckel(trails: store.settings.trails, klubba: shot.klubba)) { uppdateraSpar() }
+                .onChange(of: store.klubbaRaknar) { fore, nu in
+                    // Banan är räknad och sparad i passet: läs om det och rita.
+                    if fore == klubbNyckel, nu == nil, let p = store.load(passID) {
+                        pass = p
+                        uppdateraSpar()
+                    }
+                }
             } else {
                 VStack(alignment: .leading) {
                     Navrad(titel: "", hoger: { EmptyView() }, tillbaka: close)
@@ -131,6 +136,7 @@ struct ShotReviewView: View {
         .preferredColorScheme(.dark)
         .task { load() }
         .onDisappear {
+            if store.klubbaRaknar == klubbNyckel { store.avbrytKlubbBana() }
             player.pause()
             if let observer { player.removeTimeObserver(observer) }
             observer = nil
@@ -258,41 +264,55 @@ struct ShotReviewView: View {
     // MARK: spåren (S4f) och klubbhuvudets bana (S7b)
 
     /// Spåren för valet: kroppens ur lederna, och klubbhuvudets när banan är räknad ur dagens
-    /// markeringar; annars räknas den (BESLUT B70, B71).
+    /// markeringar (BESLUT B70, B71). Banan räknas bara när Club slås på eller trycks.
     private func uppdateraSpar() {
         guard let review, let shot else { return }
         let val = store.settings.sparVal
         var s = review.spar(Array(val))
-        if val.contains(.club) {
-            if let b = shot.klubbaBana, b.aktuell(shot.klubba) {
-                s.append(SparSerie(bana: b))
-            } else if KlubbBana.mojlig(shot.klubba), !klubbaRaknas {
-                raknaBana()
-            }
-        }
+        if val.contains(.club), let b = shot.klubbaBana, b.aktuell(shot.klubba) { s.append(SparSerie(bana: b)) }
         spar = s.isEmpty ? nil : SparBild(serier: s, bredd: review.width, hojd: review.height, crop: review.crop,
                                           plan: sparPlan(shot))
     }
 
-    /// Banan räknas utanför huvudtråden och sparas i passet (METOD M61).
-    private func raknaBana() {
-        guard let pass, let shot, let series else { return }
-        klubbaRaknas = true
-        let id = shotID
-        Task {
-            let b = try? await KlubbSparLasare.bana(pass: pass, shot: shot, series: series, store: store)
-            klubbaRaknas = false
-            guard let b, var cur = self.pass, let i = cur.shots.firstIndex(where: { $0.id == id }) else { return }
-            cur.shots[i].klubbaBana = b
-            store.save(cur)
-            self.pass = cur
-            uppdateraSpar()
+    private var klubbNyckel: String { "\(passID)/\(shotID)" }
+
+    /// Club-chipets läge (B71): dolt utan två grannpositioner, räknas, inte räknat eller klart.
+    private func klubbChip(_ shot: ShotRecord) -> KlubbChip {
+        guard KlubbBana.mojlig(shot.klubba) else { return .dold }
+        if store.klubbaRaknar == klubbNyckel { return .raknar }
+        if let b = shot.klubbaBana, b.aktuell(shot.klubba) {
+            return .klar(interpolerade: b.punkter.filter { $0.kalla == KlubbSpar.kallaInterpolerad }.count,
+                         av: b.punkter.count)
+        }
+        return store.settings.sparVal.contains(.club) ? .ejRaknad : .mojlig
+    }
+
+    /// Ett tryck på ett chip. Club räknar banan när den slås på, och när den är på men banan inte
+    /// är räknad för slaget; av under räkningen avbryter den (METOD M61).
+    private func sparTryck(_ p: SparPunkt) {
+        guard let shot else { return }
+        let pa = store.settings.sparVal.contains(p)
+        if p == .club {
+            switch klubbChip(shot) {
+            case .ejRaknad:
+                store.raknaKlubbBana(passID: passID, shotID: shotID)
+                return
+            case .raknar:
+                store.avbrytKlubbBana()
+            default:
+                break
+            }
+        }
+        store.toggleTrail(p)
+        if p == .club, !pa, case .mojlig = klubbChip(shot) {
+            store.raknaKlubbBana(passID: passID, shotID: shotID)
         }
     }
 
-    /// P1-skaftets linje bakifrån när klubbhuvudets spår visas (M47, B71).
+    /// P1-skaftets linje bakifrån när klubbhuvudets aktuella bana visas (M47, B71).
     private func sparPlan(_ shot: ShotRecord) -> (grepp: Punkt, hosel: Punkt)? {
-        guard pass?.setup.view == .dtl, store.settings.sparVal.contains(.club), shot.klubbaBana != nil,
+        guard pass?.setup.view == .dtl, store.settings.sparVal.contains(.club),
+              let b = shot.klubbaBana, b.aktuell(shot.klubba),
               let p1 = shot.klubba?.first(where: { $0.position == "P1" && $0.markerad }),
               let g = p1.grepp, let h = p1.hosel else { return nil }
         return (Punkt(g.x, g.y), Punkt(h.x, h.y))
@@ -550,8 +570,9 @@ struct ReviewContent<Surface: View>: View {
     var sparVal: Set<SparPunkt> = []
     var onSpar: ((SparPunkt) -> Void)? = nil
     /// Klubbhuvudets spår (S7b): går att välja, räknas, och P1-linjen bakifrån.
-    var klubbaMojlig = false
-    var klubbaRaknas = false
+    var klubba: KlubbChip = .dold
+    /// Varför klubbhuvudets bana saknas (grå rad under chipsen); nil = inget att säga.
+    var klubbaFel: String? = nil
     /// Menyn är en UIKit-del som provets ImageRenderer inte ritar; utan den bara symbolen.
     var editable = true
     var onClose: () -> Void = {}
@@ -642,8 +663,14 @@ struct ReviewContent<Surface: View>: View {
             .padding(.top, 8)
 
             if let onSpar {
-                SparVal(valda: sparVal, visaKlubba: klubbaMojlig, klubbaRaknas: klubbaRaknas, onToggle: onSpar)
+                SparVal(valda: sparVal, klubba: klubba, onToggle: onSpar)
                     .padding(.top, 6)
+                if let klubbaFel, sparVal.contains(.club) {
+                    Text(verbatim: klubbaFel)
+                        .typsnitt(11)
+                        .foregroundStyle(Theme.tertiary)
+                        .padding(.top, 4)
+                }
             }
 
             // Positionerna på en rad; de som saknas (armen aldrig vågrät) är grå och går inte att välja.

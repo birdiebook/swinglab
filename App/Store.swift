@@ -53,6 +53,12 @@ final class Store {
     private(set) var settings = AppSettings()
     /// Visas när en fil inte gick att läsa eller skriva.
     var problem: String?
+    /// Klubbhuvudets bana räknas för "pass/slag" (S7b, BESLUT B71); nil = ingen räkning pågår.
+    /// En i taget.
+    private(set) var klubbaRaknar: String?
+    /// Varför banan inte räknades, per "pass/slag": en grå rad under chipsen (B71).
+    private(set) var klubbaFel: [String: String] = [:]
+    @ObservationIgnored private var klubbaJobb: Task<Void, Never>?
     /// Den senaste `att_jobba_pa.json` från PC:n, för Idag och Att jobba på (vyerna
     /// kopplas in i S4c). nil = ingen hämtad, eller den gick inte att läsa.
     private(set) var focus: AttJobbaPa?
@@ -447,6 +453,52 @@ final class Store {
         guard settings.clubGuideSeen != true else { return }
         settings.clubGuideSeen = true
         saveSettings()
+    }
+
+    /// Klubbhuvudets bana för slaget räknas (S7b, BESLUT B71, METOD M61), en i taget: passet
+    /// läses om ur disken när den är klar, och banan sparas bara om markeringarna inte ändrats
+    /// under tiden. Saknas filen, eller för många rutor i den, sparas ingen bana och skälet står i
+    /// `klubbaFel`.
+    func raknaKlubbBana(passID: String, shotID: String) {
+        let nyckel = "\(passID)/\(shotID)"
+        guard klubbaRaknar == nil, let p = load(passID), let s = p.shots.first(where: { $0.id == shotID }),
+              let rel = s.joints, let series = joints(rel, in: passID),
+              let serie = p.series.first(where: { $0.nr == s.series }) else { return }
+        // Seriens fil, eller klippet när originalet är borttaget (som granskningen, METOD MS12).
+        var url = self.url(serie.file, in: passID)
+        var offset = 0.0
+        if !FileManager.default.fileExists(atPath: url.path), let clip = s.clip, let o = ShotImages.clipOffset(s) {
+            url = self.url(clip, in: passID)
+            offset = o
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            klubbaFel[nyckel] = String(localized: "The video is not on this phone")
+            return
+        }
+        klubbaRaknar = nyckel
+        klubbaFel[nyckel] = nil
+        klubbaJobb = Task { @MainActor [weak self] in
+            let svar = await KlubbSparLasare.rakna(pass: p, shot: s, series: series, url: url, offset: offset)
+            guard let self else { return }
+            self.klubbaRaknar = nil
+            self.klubbaJobb = nil
+            switch svar {
+            case .klar(let bana):
+                guard var cur = self.load(passID), let i = cur.shots.firstIndex(where: { $0.id == shotID }),
+                      bana.aktuell(cur.shots[i].klubba) else { return }
+                cur.shots[i].klubbaBana = bana
+                self.save(cur)
+            case .fel(let text):
+                self.klubbaFel[nyckel] = text
+            case .avbruten:
+                break
+            }
+        }
+    }
+
+    /// Räkningen av klubbhuvudets bana avbryts (Club av, granskningen stängd).
+    func avbrytKlubbBana() {
+        klubbaJobb?.cancel()
     }
 
     /// Ett spår på eller av i granskningen, sparat per användare (S4f, BESLUT B70).

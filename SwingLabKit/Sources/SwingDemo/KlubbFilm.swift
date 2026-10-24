@@ -24,6 +24,8 @@ public enum KlubbFilm {
                                              ("P5", -0.12), ("P6", -0.06), ("P7", 0.0), ("P8", 0.06),
                                              ("P9", 0.15), ("P10", 0.40)]
     static let ledBrus = 1.5, tryckBrus = 1.5
+    /// Bakifrån: skaftets vågräta del i bild (som `klubbfilm.DTL_KORT`).
+    static let dtlKort = 0.25
 
     /// Heltalshash (lowbias32) av pixel och ruta, som `klubbfilm.hash32`.
     public static func hash32(_ x: UInt32, _ y: UInt32, _ k: UInt32) -> UInt32 {
@@ -57,12 +59,12 @@ public enum KlubbFilm {
     }
 
     /// Svingen vid tiden t i hela bildens pixlar: greppet, hoseln och de 13 lederna.
-    public static func scen(_ t: Double) -> (grepp: Punkt, hosel: Punkt, leder: [Punkt]) {
+    public static func scen(_ t: Double, dtl: Bool = false) -> (grepp: Punkt, hosel: Punkt, leder: [Punkt]) {
         let (psi, h) = vinklar(t)
         let cx = 300.0 + 8.0 * sin(0.5 * psi), cy = 260.0
         let hx = 300.0 + 5.0 * sin(0.4 * psi), hy = 375.0
         let g = Punkt(cx + arm * sin(psi), cy + arm * cos(psi))
-        let d = Punkt(sin(psi + h), cos(psi + h))
+        let d = Punkt(sin(psi + h) * (dtl ? dtlKort : 1.0), cos(psi + h))
         let hosel = Punkt(g.x + skaft * d.x, g.y + skaft * d.y)
         let ws = 50.0 * cos(0.6 * psi)
         let wh = 35.0 * cos(0.35 * psi)
@@ -117,9 +119,9 @@ public enum KlubbFilm {
     }
 
     /// Rutan i gråskala, rad för rad.
-    public static func ruta(_ i: Int, _ t: Double) -> [UInt8] {
+    public static func ruta(_ i: Int, _ t: Double, dtl: Bool = false) -> [UInt8] {
         let w = rutBredd, h = rutHojd
-        let s = scen(t)
+        let s = scen(t, dtl: dtl)
         let skaftet = Streck(a: s.grepp, b: s.hosel, r: skaftR)
         let huvudet = Streck(a: s.hosel, b: s.hosel, r: huvudR)
         let kroppen = kropp(s.leder)
@@ -149,14 +151,14 @@ public enum KlubbFilm {
 
     /// Hela filmen: rutorna (lederna med brus, i hela bildens pixlar), ankarna (trycken med
     /// brus) och sanningen (hoseln per ruta).
-    public static func film() -> (rutor: [KlubbSpar.Ruta], ankare: [KlubbMarkering], sanning: [Punkt]) {
+    public static func film(dtl: Bool = false) -> (rutor: [KlubbSpar.Ruta], ankare: [KlubbMarkering], sanning: [Punkt]) {
         var rutor: [KlubbSpar.Ruta] = [], sanning: [Punkt] = []
         for (i, t) in tider() {
-            let s = scen(t)
+            let s = scen(t, dtl: dtl)
             let leder = s.leder.enumerated().map { n, p -> Punkt? in
                 Punkt(p.x + brus(i, 2 * n, 2 * ledBrus), p.y + brus(i, 2 * n + 1, 2 * ledBrus))
             }
-            rutor.append(KlubbSpar.Ruta(t: t, bild: ruta(i, t), leder: leder))
+            rutor.append(KlubbSpar.Ruta(t: t, bild: ruta(i, t, dtl: dtl), leder: leder))
             sanning.append(s.hosel)
         }
         let tr = rutor.map(\.t)
@@ -164,7 +166,7 @@ public enum KlubbFilm {
         for (nr, (pos, ta)) in ankare.enumerated() {
             var k = 0
             for j in 1..<tr.count where abs(tr[j] - ta) < abs(tr[k] - ta) { k = j }
-            let s = scen(tr[k])
+            let s = scen(tr[k], dtl: dtl)
             ank.append(KlubbMarkering(
                 position: pos, t: tr[k],
                 grepp: KlubbPunkt(x: s.grepp.x + brus(nr, 101, 2 * tryckBrus), y: s.grepp.y + brus(nr, 102, 2 * tryckBrus)),

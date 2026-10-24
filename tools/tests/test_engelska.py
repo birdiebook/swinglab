@@ -108,6 +108,8 @@ INTE_TEXT = {
 
     # Spåren i granskningen (S4f, BESLUT B70): symbolen före valet.
     "point.topleft.down.curvedto.point.bottomright.up",
+    # Klubbhuvudets bana (S7b, BESLUT B71): nyckeln "pass/slag" för räkningen.
+    "\\(…)/\\(…)",
 }
 
 

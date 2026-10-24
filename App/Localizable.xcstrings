@@ -100,6 +100,17 @@
         }
       }
     },
+    "%lld of %lld frames interpolated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of %lld frames interpolated"
+          }
+        }
+      }
+    },
     "1 · Tap the grip": {
       "extractionState": "manual",
       "localizations": {
@@ -305,6 +316,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clubs"
+          }
+        }
+      }
+    },
+    "Computing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Computing"
           }
         }
       }
@@ -837,6 +859,17 @@
         }
       }
     },
+    "Mark two neighboring positions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark two neighboring positions"
+          }
+        }
+      }
+    },
     "Me": {
       "extractionState": "manual",
       "localizations": {
@@ -969,6 +1002,17 @@
         }
       }
     },
+    "Not computed, double-tap to compute": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not computed, double-tap to compute"
+          }
+        }
+      }
+    },
     "On the hands' line, at hand height, aimed along the target line": {
       "extractionState": "manual",
       "localizations": {
@@ -1064,6 +1108,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Other phone's package is from another session"
+          }
+        }
+      }
+    },
+    "P1 plane": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P1 plane"
           }
         }
       }
@@ -1640,6 +1695,28 @@
         }
       }
     },
+    "The video could not be read": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The video could not be read"
+          }
+        }
+      }
+    },
+    "The video is not on this phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The video is not on this phone"
+          }
+        }
+      }
+    },
     "Today": {
       "extractionState": "manual",
       "localizations": {
@@ -1658,6 +1735,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Too large. Send without clips."
+          }
+        }
+      }
+    },
+    "Too many frames are missing in the video": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many frames are missing in the video"
           }
         }
       }

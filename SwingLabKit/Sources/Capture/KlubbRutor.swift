@@ -16,21 +16,31 @@ public enum KlubbRutor {
     }
 
     /// Den lagrade pixeln för den upprätta pixeln (u, v), för en lagrad bild W × H med
-    /// EXIF-orienteringen (MS7): 6 = vriden medurs till upprätt, 8 moturs, 3 ett halvt varv.
+    /// EXIF-orienteringen (MS7): 6 = vriden medurs till upprätt, 8 moturs, 3 ett halvt varv,
+    /// och de speglade: 2 vågrätt, 4 lodrätt, 5 transponerad, 7 transponerad åt andra hållet.
     public static func lagrad(u: Int, v: Int, width W: Int, height H: Int, exif: UInt32) -> (x: Int, y: Int) {
         switch exif {
         case 6: return (v, H - 1 - u)
         case 8: return (W - 1 - v, u)
         case 3: return (W - 1 - u, H - 1 - v)
+        case 2: return (W - 1 - u, v)
+        case 4: return (u, H - 1 - v)
+        case 5: return (v, u)
+        case 7: return (W - 1 - v, H - 1 - u)
         default: return (u, v)
         }
+    }
+
+    /// Den upprätta storleken: bredd och höjd byter plats för 5–8.
+    public static func upprattStorlek(width W: Int, height H: Int, exif: UInt32) -> (width: Int, height: Int) {
+        (5...8).contains(exif) ? (H, W) : (W, H)
     }
 
     /// Upprätt gråskala ur ett lagrat Y-plan (`radBytes` per rad), i `skala` av den upprätta
     /// storleken; varje pixel är den lagrade pixeln under pixelns mitt.
     public static func upratt(_ plan: UnsafeBufferPointer<UInt8>, radBytes: Int, width W: Int, height H: Int,
                               exif: UInt32, skala: Double) -> (bild: [UInt8], bredd: Int, hojd: Int) {
-        let upp = Orientation.uprightSize(width: W, height: H, exif: exif)
+        let upp = upprattStorlek(width: W, height: H, exif: exif)
         let w = max(1, Int(Double(upp.width) * skala)), h = max(1, Int(Double(upp.height) * skala))
         var ut = [UInt8](repeating: 0, count: w * h)
         for j in 0..<h {

@@ -36,8 +36,8 @@ final class SwingLabProvSpar: XCTestCase {
         let skala = KlubbRutor.skala(uprightWidth: 270, uprightHeight: 480)
         XCTAssertEqual(skala, 1)
         // Ruta 120 finns (var tredje saknas: 122 saknas).
-        let bilder = try await KlubbSparLasare.lasRutor(url: film, pts: [120.0 / 240, 122.0 / 240, 123.0 / 240],
-                                                        exif: geo.exif, skala: skala)
+        let bilder = try await RutStrom.lasAlla(url: film, pts: [120.0 / 240, 122.0 / 240, 123.0 / 240],
+                                                exif: geo.exif, skala: skala, bredd: 270, hojd: 480)
         XCTAssertNotNil(bilder[0])
         XCTAssertNil(bilder[1], "rutan finns inte i filen")
         XCTAssertNotNil(bilder[2])
@@ -62,33 +62,43 @@ final class SwingLabProvSpar: XCTestCase {
         XCTAssertLessThan(ute, 160)
     }
 
-    /// Klubbhuvudets bana på den påhittade filmen, ritad i granskningen med händernas spår.
+    /// Klubbhuvudets bana på den påhittade filmen, ritad i granskningen med händernas spår:
+    /// framifrån vid P6 och P10, och bakifrån (skaftet förkortat) med P1-planet.
     func testKlubbhuvudetsBanaIGranskningen() throws {
-        let f = KlubbFilm.film()
-        let bana = KlubbBana(KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd,
-                                             skala: KlubbFilm.skala, ankare: f.ankare), ankare: f.ankare)
-        print("PROV: klubbhuvudets bana: \(bana.punkter.count) rutor, \(Int(bana.andelInterpolerade * 100)) % interpolerade")
-        XCTAssertGreaterThan(bana.punkter.count, 250)
-        XCTAssertLessThanOrEqual(bana.andelInterpolerade, 0.5)
-        let frames = f.rutor.map { r in
-            PoseFrame(t: r.t, pts: r.t + 1, joints: r.leder.map { $0.map { PoseJoint(x: $0.x, y: $0.y, c: 0.9) } },
-                      confidence: 0.9)
-        }
-        let review = ShotReview(series: JointSeries(width: KlubbFilm.bredd, height: KlubbFilm.hojd, frames: frames), crop: nil)
-        let pos: [(name: String, index: Int?)] = Klubba.positioner.map { p in
-            (p, f.ankare.first { $0.position == p }.flatMap { review.index(nearestT: $0.t) })
-        }
-        let val: [SparPunkt] = [.hands, .club]
-        let spar = SparBild(serier: review.spar([.hands]) + [SparSerie(bana: bana)], bredd: review.width,
-                            hojd: review.height, crop: review.crop)
-        for (namn, p) in [("klubba-bana-p6", "P6"), ("klubba-bana-p10", "P10")] {
-            let k = try XCTUnwrap(pos.first { $0.name == p }?.index ?? nil)
-            let i = KlubbFilm.tider()[k].i
-            let still = try XCTUnwrap(gra(KlubbFilm.ruta(i, f.rutor[k].t), KlubbFilm.rutBredd, KlubbFilm.rutHojd))
-            try rita(ReviewContent(surface: Image(decorative: still, scale: 1).resizable(), review: review, number: 1,
-                                   frame: k, overlayOn: false, position: p, positions: pos, rows: [], impact: 0,
-                                   spar: spar, sparVal: Set(val), onSpar: { _ in }, klubbaMojlig: true, editable: false),
-                     namn)
+        for dtl in [false, true] {
+            let f = KlubbFilm.film(dtl: dtl)
+            let bana = KlubbBana(KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd,
+                                                 skala: KlubbFilm.skala, ankare: f.ankare, bildBredd: KlubbFilm.bredd,
+                                                 bildHojd: KlubbFilm.hojd), ankare: f.ankare)
+            let interp = bana.punkter.filter { $0.kalla == KlubbSpar.kallaInterpolerad }.count
+            print("PROV: klubbhuvudets bana \(dtl ? "bakifrån" : "framifrån"): \(bana.punkter.count) rutor, "
+                  + "\(interp) interpolerade")
+            XCTAssertGreaterThan(bana.punkter.count, 250)
+            if !dtl { XCTAssertLessThanOrEqual(bana.andelInterpolerade, 0.5) }
+            let frames = f.rutor.map { r in
+                PoseFrame(t: r.t, pts: r.t + 1, joints: r.leder.map { $0.map { PoseJoint(x: $0.x, y: $0.y, c: 0.9) } },
+                          confidence: 0.9)
+            }
+            let review = ShotReview(series: JointSeries(width: KlubbFilm.bredd, height: KlubbFilm.hojd, frames: frames),
+                                    crop: nil)
+            let pos: [(name: String, index: Int?)] = Klubba.positioner.map { p in
+                (p, f.ankare.first { $0.position == p }.flatMap { review.index(nearestT: $0.t) })
+            }
+            let p1 = try XCTUnwrap(f.ankare.first { $0.position == "P1" })
+            let plan = dtl ? (grepp: Punkt(p1.grepp!.x, p1.grepp!.y), hosel: Punkt(p1.hosel!.x, p1.hosel!.y)) : nil
+            let spar = SparBild(serier: review.spar([.hands]) + [SparSerie(bana: bana)], bredd: review.width,
+                                hojd: review.height, crop: review.crop, plan: plan)
+            let bilder: [(String, String)] = dtl ? [("klubba-bana-dtl", "P6")] : [("klubba-bana-p6", "P6"), ("klubba-bana-p10", "P10")]
+            for (namn, p) in bilder {
+                let k = try XCTUnwrap(pos.first { $0.name == p }?.index ?? nil)
+                let i = KlubbFilm.tider()[k].i
+                let still = try XCTUnwrap(gra(KlubbFilm.ruta(i, f.rutor[k].t, dtl: dtl), KlubbFilm.rutBredd, KlubbFilm.rutHojd))
+                try rita(ReviewContent(surface: Image(decorative: still, scale: 1).resizable(), review: review, number: 1,
+                                       frame: k, overlayOn: false, position: p, positions: pos, rows: [], impact: 0,
+                                       spar: spar, sparVal: [.hands, .club], onSpar: { _ in },
+                                       klubba: .klar(interpolerade: interp, av: bana.punkter.count), editable: false),
+                         namn)
+            }
         }
     }
 
