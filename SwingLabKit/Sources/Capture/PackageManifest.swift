@@ -349,10 +349,14 @@ public enum PassPackage {
     /// oförändrad när den finns (S2_SPEC §8.3).
     public static let pairingFile = "par.json"
 
+    /// 3D som telefonen räknade (S6c-2, `TreDFil`): följer med oförändrad när den finns, och
+    /// PC:n jämför med sin egen (BESLUT B63).
+    public static let treDFile = "tre_d.json"
+
     /// Filerna i paketet i ordning: manifestet, enheten, ljusprovet, parningen, lederna per
     /// slag och klippen.
     public static func parts(pass: PassState, manifest: PackageManifest, device: DeviceInfo?,
-                             hasPairing: Bool = false) throws -> [(String, Source)] {
+                             hasPairing: Bool = false, hasTreD: Bool = false) throws -> [(String, Source)] {
         let e = encoder()
         let m = try e.encode(manifest)
         var ut: [(String, Source)] = [("manifest.json", .data(m))]
@@ -365,6 +369,7 @@ public enum PassPackage {
             ut.append(("ljusprov.json", .data(d)))
         }
         if hasPairing { ut.append((pairingFile, .file(pairingFile))) }
+        if hasTreD { ut.append((treDFile, .file(treDFile))) }
         if let klubba = clubFile(pass: pass, manifest: manifest) {
             ut.append((KlubbFil.filnamn, .data(try e.encode(klubba))))
         }
@@ -418,7 +423,7 @@ public enum PassPackage {
     /// `scratch` (appens Caches, aldrig i Filer), som byter plats med `url` när zippen är hel,
     /// så att en avbruten export aldrig lämnar en halv fil i Export. Slag vars ledfil saknas
     /// på disken kommer inte med, och klipp som saknas utelämnas; `par.json` följer med när
-    /// den finns. Kastar `noShots` utan slag och `tooLarge` från 4 GB.
+    /// den finns, liksom `tre_d.json` (S6c-2). Kastar `noShots` utan slag och `tooLarge` från 4 GB.
     @discardableResult
     public static func write(pass: PassState, folder: URL, to url: URL, scratch: URL, app: PackageManifest.AppInfo,
                              phone: PackageManifest.PhoneInfo, device: DeviceInfo?, created: Date,
@@ -433,7 +438,8 @@ public enum PassPackage {
                                             includeClips: includeClips, clipDurations: clipDurations,
                                             hasJoints: { finns($0.joints) }, hasClip: { finns($0.clip) })
         guard !manifest.shots.isEmpty else { throw Error.noShots }
-        let delar = try parts(pass: pass, manifest: manifest, device: device, hasPairing: finns(pairingFile))
+        let delar = try parts(pass: pass, manifest: manifest, device: device, hasPairing: finns(pairingFile),
+                              hasTreD: finns(treDFile))
         try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fm.createDirectory(at: scratch, withIntermediateDirectories: true)
         let del = scratch.appendingPathComponent(url.lastPathComponent).appendingPathExtension(partExtension)

@@ -1,6 +1,7 @@
 import SwiftUI
 import Swing
 import Capture
+import TreD
 
 /// Slagen i ett pass (S2_SPEC §9, §12 S2e): analysen med förloppet, och listan med
 /// domen och en miniatyr vid träffen med de uppmätta linjerna. Formspråket är BESLUT
@@ -27,6 +28,10 @@ struct PassShotsView: View {
     @State private var visning: Passvisning?
     /// Tidigare pass med samma klubba och vy som inte kom med i baslinjen (inga mått).
     @State private var unmeasured = 0
+    /// 3D (S6c-2, BESLUT B61): kopplingen till den andra telefonen, räkningen och filen.
+    @State private var tred: TreDKoppling?
+    /// Förra passet med 3D (samma klubba, vy och längd), för kortets skillnad (METOD MK7).
+    @State private var forraTreD: PassState?
 
     struct SeriesID: Identifiable {
         let id: Int
@@ -43,7 +48,8 @@ struct PassShotsView: View {
                                   analysis: AnalysisState(analysis), unmeasured: unmeasured, onClose: onClose, onAnalyze: analyze,
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
                                   onHeight: setHeight, sendToPC: true,
-                                  claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)))
+                                  claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)),
+                                  treD: treDKort, annanTelefon: annanTelefon(pass))
                     // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
                     // och granskningen, så att pass.json inte ändras under.
                     .disabled(store.exporting.contains(passID))
@@ -51,8 +57,15 @@ struct PassShotsView: View {
         }
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
-        .task { reload() }
-        .onDisappear { job?.cancel() }
+        .task {
+            reload()
+            startTreD()
+        }
+        .onDisappear {
+            job?.cancel()
+            tred?.stop()
+            tred = nil
+        }
         // Listan fylls under analysen: passet efter varje sparat steg.
         .onChange(of: analysis.pass) { _, p in
             guard let p else { return }
@@ -91,6 +104,29 @@ struct PassShotsView: View {
         show(p)
     }
 
+    /// 3D i passet (S6c-2): kopplingen för ett pass med två telefoner, och räkningen när den
+    /// andra telefonens slag finns. BESLUT B61
+    private func startTreD() {
+        guard tred == nil else { return }
+        let t = TreDKoppling(passID: passID, store: store)
+        t.onAndrat = { reload() }
+        tred = t
+        t.start()
+    }
+
+    /// Passets kort "3D" när passet har 3D (BESLUT B62).
+    private var treDKort: TreDKort? {
+        guard let f = tred?.fil else { return nil }
+        let forra = forraTreD.flatMap { p in p.treD.map { (datum: p.created, median: $0) } }
+        return TreDKort(f, forra: forra, katalog: AppKatalog.katalog)
+    }
+
+    /// "Import other phone" för ett mätt pass med två telefoner utan 3D (BESLUT B61).
+    private func annanTelefon(_ p: PassState) -> AnyView? {
+        guard let tred, tred.fil == nil, p.setup.role != .solo else { return nil }
+        return AnyView(AnnanTelefonRad(koppling: tred))
+    }
+
     /// Passet nu, och sedan dess mått: passet och de tidigare passen (samma klubba och vy)
     /// mäts med längden som gäller utanför huvudtråden, och baslinjen och "vs" tas ur dem
     /// (METOD MS14).
@@ -103,6 +139,9 @@ struct PassShotsView: View {
             pass = r.pass
             visning = Self.visning(r.pass, earlier: r.earlier, ovas: store.focus?.ovas ?? [])
             unmeasured = r.unmeasured
+            forraTreD = r.earlier.last { $0.treD != nil }
+            // Slagen kan ha ändrats (analysen, domen, Detection wrong): 3D skickas eller räknas om.
+            tred?.uppdatera()
         }
     }
 
@@ -201,6 +240,10 @@ struct PassScreenContent: View {
     /// "Ask Claude" och "Paste from Claude" (S5b-2, `ClaudeKnappar`) under passets mått, när något
     /// slag är mätt; nil i provets bilder utan Store. BESLUT B60
     var claude: AnyView? = nil
+    /// Passets kort "3D" (S6c-2, BESLUT B62), när passet har 3D.
+    var treD: TreDKort? = nil
+    /// "Import other phone" (BESLUT B61), för ett pass med två telefoner utan 3D.
+    var annanTelefon: AnyView? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -220,6 +263,15 @@ struct PassScreenContent: View {
                 }
                 if unmeasured > 0 {
                     Under(text: String(localized: "\(unmeasured) earlier not measured"))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
+                }
+                if let treD {
+                    TreDKortVy(kort: treD)
+                }
+                if let annanTelefon {
+                    annanTelefon
+                        .disabled(analysis.running)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }

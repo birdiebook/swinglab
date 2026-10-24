@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import Swing
 import Capture
+import TreD
 
 /// Katalogen (`katalog.json`, BESLUT B6) ur appens bunt; nil om den saknas eller inte går
 /// att läsa (då visas inga mått, och simulatorprovet fäller bygget).
@@ -25,6 +26,8 @@ enum AppKatalog {
 ///   Pass/<id>/Video/01.mov    inspelningar och importerade original   (utanför backupen)
 ///   Pass/<id>/Klipp/          klippen kring slagen (S2e)                (utanför backupen)
 ///   Pass/<id>/Leder/s01.json  ett slags leder (JointSeries, S2e)
+///   Pass/<id>/annan_telefon.json  den andra telefonens slag för 3D (SlagBunt, S6c-2)
+///   Pass/<id>/tre_d.json      3D som telefonen räknade (TreDFil, S6c-2)
 ///   AttJobbaPa/att_jobba_pa-<pass>.json   vägen tillbaka från PC:n (S2f, BESLUT B28)
 /// Documents/Export/           paketen (S2f), synliga i Filer             (utanför backupen)
 /// ```
@@ -276,6 +279,53 @@ final class Store {
             try PassCoding.encoder().encode(fil).write(to: url("par.json", in: passID), options: .atomic)
         } catch {
             problem = String(localized: "par.json could not be saved.")
+        }
+    }
+
+    // MARK: 3D (S6c-2, BESLUT B61)
+
+    /// Den andra telefonens slag finns i passet.
+    func hasOtherPhone(_ passID: String) -> Bool {
+        PassID.isValid(passID) && FileManager.default.fileExists(atPath: url(SlagBunt.filnamn, in: passID).path)
+    }
+
+    /// Den andra telefonens bunt som den sparades, utanför huvudtråden.
+    static func otherPhoneData(_ folder: URL) -> Data? {
+        try? Data(contentsOf: folder.appending(path: SlagBunt.filnamn))
+    }
+
+    /// Den andra telefonens slag till passet (kopplingen eller "Import other phone"). false =
+    /// gick inte att spara (då kvitteras den inte).
+    func saveOtherPhone(_ data: Data, passID: String) -> Bool {
+        guard PassID.isValid(passID) else { return false }
+        do {
+            try FileManager.default.createDirectory(at: passFolder(passID), withIntermediateDirectories: true)
+            try data.write(to: url(SlagBunt.filnamn, in: passID), options: .atomic)
+            return true
+        } catch {
+            problem = String(localized: "annan_telefon.json could not be saved.")
+            return false
+        }
+    }
+
+    /// Passets 3D, eller nil (ingen, eller en fil som inte går att läsa).
+    func treD(_ passID: String) -> TreDFil? {
+        guard PassID.isValid(passID), let d = try? Data(contentsOf: url(TreDFil.filnamn, in: passID)) else { return nil }
+        return try? TreDFil.las(d)
+    }
+
+    /// 3D till passet: `tre_d.json`, och medianerna i pass.json (Progress och förra passet).
+    /// Passet läses om precis före, så att inget annat skrivs över. false = gick inte.
+    func saveTreD(_ fil: TreDFil, passID: String) -> Bool {
+        guard PassID.isValid(passID), var p = load(passID) else { return false }
+        do {
+            try fil.data().write(to: url(TreDFil.filnamn, in: passID), options: .atomic)
+            p.treD = fil.medianer
+            try write(p)
+            return true
+        } catch {
+            problem = String(localized: "tre_d.json could not be saved.")
+            return false
         }
     }
 

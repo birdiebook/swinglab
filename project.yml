@@ -26,6 +26,9 @@ targets:
         product: Swing
       - package: SwingLabKit
         product: Capture
+      # 3D ur två telefoner på telefonen (S6c-2, BESLUT B61).
+      - package: SwingLabKit
+        product: TreD
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab

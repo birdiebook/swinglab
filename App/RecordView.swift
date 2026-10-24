@@ -30,6 +30,8 @@ struct RecordView: View {
             Theme.ground.ignoresSafeArea()
             CameraPreview(session: camera.session).ignoresSafeArea()
             GuideLines().allowsHitTesting(false).accessibilityHidden(true)
+            // Två telefoner (S6c-2, BESLUT B62): telefonens lutning åt sidan, för 3D.
+            if pass.setup.role != .solo { LevandeLutning().ignoresSafeArea() }
 
             VStack(spacing: 10) {
                 topBar

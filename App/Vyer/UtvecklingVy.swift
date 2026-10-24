@@ -106,7 +106,8 @@ struct UtvecklingKort: View {
     }
 }
 
-/// Diagrammet: rutnätet med talen, bandet (gränsen fylld, baslinjen streckad),
+/// Diagrammet: rutnätet med talen, bandet (gränsen fylld, baslinjen streckad, 3D:s fel som
+/// ett tunt spann vid varje punkt),
 /// blocken, månaderna, serie 1 som ihåliga prickar under passen, och passen som
 /// en tunn linje med det senaste som en stor vit prick.
 struct Diagram: View {
@@ -137,6 +138,15 @@ struct Diagram: View {
                 let y0 = y(hi), y1 = y(lo)
                 c.stroke(Path(CGRect(x: l, y: y0, width: s.width - r - l, height: max(1, y1 - y0))),
                          with: .color(Theme.secondary.opacity(0.7)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            case let .fel(sd)?:
+                // 3D utan markörer (S6c-2, BESLUT B62): passmedianens ungefärliga fel som ett tunt
+                // spann vid varje punkt, ingen gräns (METOD MS19).
+                for (i, p) in u.punkter.enumerated() {
+                    c.linje(CGPoint(x: x(i), y: y(p.pass + sd)), CGPoint(x: x(i), y: y(p.pass - sd)), Theme.tertiary, 1)
+                    for v in [p.pass + sd, p.pass - sd] {
+                        c.linje(CGPoint(x: x(i) - 3, y: y(v)), CGPoint(x: x(i) + 3, y: y(v)), Theme.tertiary, 1)
+                    }
+                }
             case nil:
                 break
             }

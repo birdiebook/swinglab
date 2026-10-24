@@ -403,6 +403,11 @@ final class PhoneLink {
     @ObservationIgnored var onStop: ((Int) -> Void)?
     /// Den styrande: en serie är parad.
     @ObservationIgnored var onPaired: ((PairEntry) -> Void)?
+    /// En hel överföring kom (S6c-2): slagen hos den styrande, 3D hos följaren. Svarar om den
+    /// sparades; annars kvitteras den inte och kommer igen. BESLUT B61, METOD MS19
+    @ObservationIgnored var onData: ((String, String, Data) -> Bool)?
+    /// Följaren: en egen överföring är kvitterad hel.
+    @ObservationIgnored var onDelivered: ((String, String) -> Void)?
 
     private let transport: LinkTransport
     @ObservationIgnored private var leader: LinkLeader?
@@ -477,6 +482,26 @@ final class PhoneLink {
     func ownFinished(_ s: LinkSeries) {
         apply(leader?.ownFinished(s) ?? [])
     }
+
+    /// Den styrande i passets skärm (S6c-2): tar bara emot följarnas slag för passet.
+    func forPass(_ id: String) {
+        guard leader != nil else { return }
+        passID = id
+        leader = LinkLeader(hello: hello, passID: id)
+    }
+
+    /// En stor överföring (S6c-2, BESLUT B61): följaren till den styrande, den styrande till
+    /// varje följare, nu och igen när kopplingen kommer tillbaka. METOD MS19
+    func send(kind: String, pass: String, data: Data) {
+        if leader != nil {
+            apply(leader?.sendToFollowers(kind: kind, pass: pass, data: data) ?? [])
+        } else {
+            apply(follower?.send(kind: kind, pass: pass, data: data) ?? [])
+        }
+    }
+
+    /// Överföringar som inte kvitterats hela (provet).
+    var pendingTransfers: Int { leader?.unsentParts ?? follower?.parts.count ?? 0 }
 
     /// Klockan mot den första följaren just nu (provet).
     var clock: ClockOffset? {
@@ -554,11 +579,19 @@ final class PhoneLink {
     private func apply(_ a: [LinkLeader.Action]) {
         // En serie som inte gick att spara kvitteras inte: följaren skickar den igen.
         var osparade: Set<Int> = []
+        // Detsamma för en överföring (S6c-2): helhetens kvittens skickas inte.
+        var osparadeDelar: Set<String> = []
         for x in a {
             switch x {
             case let .send(peer, m):
                 if case let .ack(.recorded, n) = m, osparade.contains(n) { continue }
+                if case let .partAck(k) = m, k.index == nil, osparadeDelar.contains(k.kind) { continue }
                 transport.send(m, to: peer)
+            case let .received(device, kind, pass, data):
+                if onData?(kind, pass, data) != true {
+                    osparadeDelar.insert(kind)
+                    leader?.forget(device: device, kind: kind)
+                }
             case let .close(peer):
                 transport.close(peer)
             case let .store(r):
@@ -572,11 +605,21 @@ final class PhoneLink {
     }
 
     private func apply(_ a: [LinkFollower.Action]) {
+        var osparadeDelar: Set<String> = []
         for x in a {
             switch x {
-            case let .send(m): if let c = followConnection { transport.send(m, to: c) }
+            case let .send(m):
+                if case let .partAck(k) = m, k.index == nil, osparadeDelar.contains(k.kind) { continue }
+                if let c = followConnection { transport.send(m, to: c) }
             case let .startRecording(p, n): onStart?(p, n)
             case let .stopRecording(n): onStop?(n)
+            case let .received(kind, pass, data):
+                if onData?(kind, pass, data) != true {
+                    osparadeDelar.insert(kind)
+                    follower?.forget(kind: kind)
+                }
+            case let .delivered(kind, pass, _):
+                onDelivered?(kind, pass)
             }
         }
         refresh()

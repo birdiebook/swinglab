@@ -617,6 +617,17 @@
         }
       }
     },
+    "Import other phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import other phone"
+          }
+        }
+      }
+    },
     "Interrupted.": {
       "extractionState": "manual",
       "localizations": {
@@ -811,6 +822,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No 1080p format with at least 120 fps."
+          }
+        }
+      }
+    },
+    "Not a SwingLab package": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not a SwingLab package"
           }
         }
       }
@@ -1031,6 +1053,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Right"
+          }
+        }
+      }
+    },
+    "Same view as this phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same view as this phone"
           }
         }
       }
@@ -1497,6 +1530,17 @@
         }
       }
     },
+    "annan_telefon.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "annan_telefon.json could not be saved."
+          }
+        }
+      }
+    },
     "assumed": {
       "extractionState": "manual",
       "localizations": {
@@ -1614,6 +1658,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "skipped"
+          }
+        }
+      }
+    },
+    "tre_d.json could not be saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tre_d.json could not be saved."
           }
         }
       }
