@@ -7,7 +7,8 @@
 //              väg (Sessionslista.load, utanför huvudtråden) ger raderna senaste först med vyn,
 //              tiden, klubban, svingarna och "paired";
 //   vyn        FO-sessionen visar inga DTL-kort och DTL-sessionen inga FO-kort, tempot står i båda
-//              (katalogens vy, Vyfilter); granskningens rader per position likadant;
+//              (katalogens vy, Vyfilter); granskningens rader per position likadant; 3D-kortet
+//              (S6c-2) står i båda;
 //   raderingen frågan ritas; Delete tar bort passets mapp, dess att_jobba_pa och paketet, de
 //              andra passen står kvar, ett pass vars paket skrivs tas inte bort, och den andra
 //              telefonens pass med samma id rörs inte;
@@ -21,6 +22,7 @@ import UIKit
 import Swing
 import Capture
 import SwingDemo
+import TreD
 @testable import SwingLab
 
 extension SwingLabProvVyer {
@@ -111,10 +113,13 @@ extension SwingLabProvVyer {
         XCTAssertTrue(rfo.contains { $0.matt == "sway_gap_traff" } && !rfo.contains { $0.matt == "backen_thrust_traff" })
         XCTAssertTrue(rdtl.contains { $0.matt == "backen_thrust_traff" } && !rdtl.contains { $0.matt == "sway_gap_traff" })
         print("PROV: FO-sessionen \(kfo.count) kort, DTL-sessionen \(kdtl.count) kort; P7 FO \(rfo.map(\.matt)), DTL \(rdtl.map(\.matt))")
+        // 3D-kortet (S6c-2) står i båda sessionerna, utanför filtret per vy.
+        let kort3D = (try? treDFil()).map { TreDKort($0.0, katalog: k) }
+        XCTAssertNotNil(kort3D, "3D-fixturen")
         try rendera(PassScreenContent(pass: fo.pass, visning: fo.visning, images: [:], overlays: [:], analysis: AnalysisState(),
-                                      editable: false), namn: "session-fo", skala: 2)
+                                      editable: false, treD: kort3D), namn: "session-fo", skala: 2)
         try rendera(PassScreenContent(pass: dtl.pass, visning: dtl.visning, images: [:], overlays: [:],
-                                      analysis: AnalysisState(), editable: false), namn: "session-dtl", skala: 2)
+                                      analysis: AnalysisState(), editable: false, treD: kort3D), namn: "session-dtl", skala: 2)
 
         // 3. Raderingen: frågan, och Delete tar passets filer och inget annat.
         try rendera(RaderaPassVy(rad: rader[2]), namn: "sessions-radera", accent: false)

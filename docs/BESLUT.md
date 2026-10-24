@@ -604,7 +604,7 @@ bort i stället för borttaget.
   Klubbmarkeringen var redan per vy (B57). 3D-kortet (S6c-2) visas i båda. Inget djup går
   förlorat: korten för den andra vyn var alltid "—" i en session med en telefon.
 - **Dolt men kvar (VISION.md: ett tryck bort, inte borttaget):** Today, Focus (Att jobba på) och
-  Progress syns inte i navigeringen; vyerna (`IdagVy`, `AttJobbaPaVy`, `UtvecklingVy`), deras
+  Progress (också dess 3D-val, B62) syns inte i navigeringen; vyerna (`IdagVy`, `AttJobbaPaVy`, `UtvecklingVy`), deras
   data (`Flikdata`, `Idagvisning`, `Utvecklingsvisning`) och filerna i `AttJobbaPa/` är kvar.
   Accenten (B31) följer fortfarande Focus i sessionens kort och granskningens rader, och "Ask
   Claude" och "Paste from Claude" stannar i sessionen (B60; raden på Today är dold med Today).

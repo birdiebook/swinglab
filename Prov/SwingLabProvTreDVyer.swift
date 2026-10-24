@@ -1,5 +1,6 @@
 // 3D I VYERNA RITADE TILL PNG (S6c-2, BESLUT B62, METOD MS19): passets kort med tal, med skäl
-// och hoppat, Progress med ett 3D-mått och uppställningens lutning. Talen kommer ur ett
+// och hoppat, Progress med ett 3D-mått (modellen; vyn är dold sedan S4e, BESLUT B64) och
+// uppställningens lutning. Talen kommer ur ett
 // PÅHITTAT pass (tools/tests/fixturer/tre_d/) och Demo-passen (CLAUDE.md, Dataregeln). Samma
 // prov av formspråket som de andra vyerna: gråskala, ingen accent (3D övas aldrig, B14, B37).
 
@@ -75,7 +76,7 @@ extension SwingLabProvVyer {
         let u = try XCTUnwrap(v.matt.first { $0.id == "xfaktor_stretch_3d" })
         XCTAssertEqual(u.rubrik, "3D · no markers")
         XCTAssertEqual(u.punkter.count, 6)
-        try rendera(UtvecklingVy(visning: v, valt: "xfaktor_stretch_3d"), namn: "utveckling-3d", accent: false)
+        // Progress (med 3D-valen) är dold sedan S4e (BESLUT B64): modellen prövas, bilden ritas inte.
         // Utan 3D i passen syns inga 3D-mått.
         let utan = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block)
         XCTAssertFalse(utan.matt.contains { $0.id.hasSuffix("_3d") })

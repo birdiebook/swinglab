@@ -293,7 +293,8 @@ och Me), `App/Vyer/SessionerVy.swift` (listan, raden och frågan), `Store.delete
 `PassetVy(vy:)`, SwingLabKit `Capture/Sessioner.swift` (`Sessionsrad`) och
 `Swing/Visning/Vyfilter.swift`, och `DemoPass.dtl`. Prov: `SessionerTests` (Linux) och
 `Prov/SwingLabProvSessioner.swift` (bilderna `sessions`, `sessions-radera`, `session-fo`,
-`session-dtl` och `me`); Todays och Progress bilder ritas inte längre.
+`session-dtl` och `me`, båda sessionerna med 3D-kortet); Todays och Progress bilder ritas inte
+längre, inte heller Progress med 3D (`utveckling-3d`).
 
 **Klart när:** Johannes har öppnat appen i Sessions, sett sina pass med rätt vy, tid, klubba och
 svingar, öppnat en FO- och en DTL-session och bara sett deras mått, raderat en session med svep
