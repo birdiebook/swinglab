@@ -2,23 +2,26 @@ import SwiftUI
 import Swing
 import Capture
 
-/// Jag (skissens skärm 8, fliken Me i S4c): längden, spelhanden och klubborna, som är
-/// standarden för nya pass (ett pass behåller sin längd, METOD MS16), och passen på
-/// telefonen. Datan kommer som värden, så att provet kan rita skärmen; `editable: false`
-/// ritar längden utan menyn (ImageRenderer ritar inte UIKit).
+/// Jag (skissens skärm 8, fliken Me): längden, spelhanden och klubborna, som är standarden
+/// för nya pass (ett pass behåller sin längd, METOD MS16), och "Import focus" (S2f, BESLUT
+/// B28), som låg i Me → Sessions före S4e (BESLUT B64). Datan kommer som värden, så att
+/// provet kan rita skärmen; `editable: false` ritar längden utan menyn (ImageRenderer ritar
+/// inte UIKit).
 struct JagVy: View {
     /// Längden, m; nil = inte angiven (passen mäts då med 1,80 m, märkt antagen).
     let heightM: Double?
     let hand: Hand
     /// Klubborna i Jag (manifestets id).
     let clubs: [String]
-    /// Passen på telefonen.
-    let sessions: Int
     var editable = true
     var onHeight: (Double) -> Void = { _ in }
     var onHand: (Hand) -> Void = { _ in }
     var onClub: (String) -> Void = { _ in }
-    var onSessions: () -> Void = {}
+    /// Filer för `att_jobba_pa.json` (S2f).
+    var onImportFocus: () -> Void = {}
+    /// Svaret efter hämtningen ("Focus saved", eller fältet som är fel), och om det är ett fel.
+    var importResult: String? = nil
+    var importFailed = false
 
     private var rubrik: some View {
         Text("Me")
@@ -82,21 +85,16 @@ struct JagVy: View {
             }
             .padding(.bottom, 14)
 
-            Button(action: onSessions) {
-                rad("Sessions") {
-                    HStack(spacing: 8) {
-                        Text(verbatim: "\(sessions)")
-                            .typsnitt(17, siffror: true)
-                            .foregroundStyle(Theme.secondary)
-                        Image(systemName: "chevron.right")
-                            .typsnitt(13, .semibold)
-                            .foregroundStyle(Theme.tertiary)
-                    }
-                }
-                .contentShape(.rect)
+            Button("Import focus", action: onImportFocus)
+                .buttonStyle(RowButtonStyle())
+                .padding(.top, 26)
+            if let importResult {
+                Text(verbatim: importResult)
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(importFailed ? Theme.flag : Theme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 26)
         }
         .padding(.horizontal, 20)
         .background(Theme.ground)

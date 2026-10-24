@@ -97,7 +97,9 @@ INTE_TEXT = {
     "par", "par.json", "foljare", "foljare.json", "\\(…) · \\(…) ms",
     "\\(…) cm", "katalog", "json", "P1", "P4", "P7", "P10", " s", " ",
     "eye", "eye.slash", "ellipsis", "\\(…) / \\(…)", "—",
-    "smallcircle.filled.circle", "chart.xyaxis.line", "person", "chevron.right", "info.circle",
+    "person", "chevron.right", "info.circle",
+    # Sessions (S4e, BESLUT B64): flikens, parets, plustecknets och svepets symboler.
+    "list.bullet", "link", "plus", "trash",
     "claude://", "ej_i_analysen", "swinglab.telefon",
 
     # Klubbans märkning (S7c, BESLUT B59): punkternas nummer på ytan, gissningen "1?", och

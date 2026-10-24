@@ -41,29 +41,7 @@ final class SwingLabProvVyer: XCTestCase {
         try rendera(PassetVy(visning: v, filter: .dtl), namn: "passet-dtl-stor", textstorlek: .accessibility5)
     }
 
-    func testIdag() throws {
-        let v = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: try katalog(), pass: Demo.pass,
-                            attJobbaPa: Demo.attJobbaPa)
-        try rendera(IdagVy(visning: v), namn: "idag")
-        try rendera(IdagVy(visning: v), namn: "idag-stor", textstorlek: .accessibility5)
-    }
-
-    func testAttJobbaPa() throws {
-        let v = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
-        try rendera(AttJobbaPaVy(visning: v), namn: "jobba")
-        try rendera(AttJobbaPaVy(visning: v), namn: "jobba-stor", textstorlek: .accessibility5)
-    }
-
-    func testUtveckling() throws {
-        let v = Utvecklingsvisning(katalog: try katalog(), pass: Demo.pass, block: Demo.block, ovas: Demo.attJobbaPa.ovas)
-        try rendera(UtvecklingVy(visning: v), namn: "utveckling")
-        try rendera(UtvecklingVy(visning: v, valt: "backens_resa_framat"), namn: "utveckling-resa", accent: false)
-        try rendera(UtvecklingVy(visning: v, valt: "tempo"), namn: "utveckling-tempo", accent: false)
-        // Spridningen mellan slagen (METOD M44, BESLUT B46): ett tal per pass, utan kvartiler.
-        try rendera(UtvecklingVy(visning: v, valt: "brost_bojning_traff_spridning"), namn: "utveckling-spridning",
-                    accent: false)
-        try rendera(UtvecklingVy(visning: v), namn: "utveckling-stor", textstorlek: .accessibility5)
-    }
+    // Today, Focus och Progress ritas inte sedan S4e (BESLUT B64): de är dolda, koden är kvar.
 
     func testGranskning() throws {
         func visning(_ vy: Vy) throws -> Granskningsvisning {

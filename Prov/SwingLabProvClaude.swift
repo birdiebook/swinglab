@@ -6,8 +6,8 @@
 //                      läggs i urklippet; urklippet är tecken för tecken ClaudeUnderlag för samma
 //                      pass, räknat här ur de sparade passen;
 //   Paste from Claude  ett påhittat giltigt svar (byggt ur mallen, som skillen gör) läses ur
-//                      urklippet, visas i bladet och blir Focus efter "Use": Store.focus, Today och
-//                      accenten följer med, och urklippet töms;
+//                      urklippet, visas i bladet och blir Focus efter "Use": Store.focus och
+//                      accenten i passet följer med, och urklippet töms;
 //   ogiltigt           ett svar med en siffra i tanken ger raden med fältet och koden, utan värdet,
 //                      ett svar för ett annat pass ger "pass: is not this session" först, och Focus
 //                      är orört;
@@ -15,8 +15,8 @@
 //                      "Replace" skriver över;
 //   ett äldre pass     ett svar för det förra passet sparas, men Focus är kvar på det senaste, och
 //                      bladet säger det.
-// Bilderna: claude-passet (knapparna i passet, med Copied och Open Claude), claude-idag och
-// claude-idag-stor (Today), claude-blad (bladet med svaret), claude-blad-ersatt (frågan),
+// Bilderna: claude-passet (knapparna i passet, med Copied och Open Claude; Today är dold sedan
+// S4e, BESLUT B64), claude-blad (bladet med svaret), claude-blad-ersatt (frågan),
 // claude-blad-aldre (ett äldre pass) och claude-fel (felraden).
 // iOS fråga om tillåtelse att klistra in syns inte här: provet läser det appen själv lagt i
 // urklippet. FRÅGAN OCH CLAUDE-APPEN PROVAS BARA PÅ TELEFONEN.
@@ -114,24 +114,18 @@ extension SwingLabProvVyer {
         XCTAssertEqual(store.focus?.pass, nuID)
         XCTAssertEqual(store.focus?.ovas, ["sway_topp"])
         XCTAssertFalse(UIPasteboard.general.hasStrings, "svaret lämnar urklippet efter Use (Dataregeln)")
-        // Today och accenten följer med (BESLUT B31, B36).
-        let (data, alla) = await Flikdata.load(store, katalog: k, idag: Tal.dag(2026, 11, 14))
-        XCTAssertEqual(data.senaste, nuID)
-        XCTAssertEqual(data.idag.fokus.map(\.namn), ["Hip sway"])
-        XCTAssertEqual(data.idag.rader.filter(\.ovas).map(\.id), ["sway_topp"])
-        print("PROV: Paste from Claude: Focus \(data.idag.fokus.map(\.namn)), accent \(data.idag.rader.filter(\.ovas).map(\.id))")
-
-        // Bilderna: knapparna i passet (efter Ask: Copied och Open Claude) och på Today.
+        // Accenten i passet följer med (BESLUT B31). Today är dold sedan S4e (BESLUT B64).
+        let alla = store.allPasses()
         let nu = try XCTUnwrap(store.load(nuID))
         let pv = PassShotsView.visning(nu, earlier: PassHistory.earlier(nu, among: alla), ovas: store.focus?.ovas ?? [])
         XCTAssertNotNil(pv, "passet är mätt: raden visas")
+        XCTAssertEqual(pv?.kort(i: .fo).filter(\.ovas).map(\.id), ["sway_topp"])
+        print("PROV: Paste from Claude: Focus \(store.focus?.saker.map(\.fel) ?? []), accent \(pv?.kort(i: .fo).filter(\.ovas).map(\.id) ?? [])")
+
+        // Bilderna: knapparna i passet (efter Ask: Copied och Open Claude).
         try rendera(PassScreenContent(pass: nu, visning: pv, images: [:], overlays: [:], analysis: AnalysisState(),
                                       editable: false, claude: AnyView(ClaudeRad(lage: .kopierat, oppna: true))),
                     namn: "claude-passet", skala: 2)
-        try rendera(IdagVy(visning: data.idag, importera: {}, claude: AnyView(ClaudeRad())), namn: "claude-idag")
-        // Största textstorleken: knapparna under varandra, inget klipps.
-        try rendera(IdagVy(visning: data.idag, importera: {}, claude: AnyView(ClaudeRad(lage: .kopierat, oppna: true))),
-                    namn: "claude-idag-stor", textstorlek: .accessibility5)
 
         // 3. Ogiltiga svar: raden nämner fältet och koden, aldrig värdet, och Focus är orört.
         let fore = try Data(contentsOf: store.focusFolder.appending(path: m.fileName))

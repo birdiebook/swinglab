@@ -30,7 +30,8 @@ public struct Positionsrad: Identifiable, Equatable, Sendable {
 }
 
 /// Måtten vid en position (BESLUT B32): katalogens fel och mått vars `positioner` har den,
-/// i den vy som spelas, i katalogens ordning (felen först). METOD M29
+/// i den vy som spelas (och de som mäts i båda, `Vyfilter`, BESLUT B64), i katalogens ordning
+/// (felen först). METOD M29
 public enum Positionsmatt {
     /// `varden` = slagets mått, `baslinje` = måttens värden i tidigare pass (den egna
     /// baslinjen, METOD M27), `ovas` = felen i Att jobba på.
@@ -40,14 +41,14 @@ public enum Positionsmatt {
                              baslinje: [String: [Double]] = [:], ovas: Set<String> = [],
                              flyktpunktAntagen: Bool = false) -> [Positionsrad] {
         var ut: [Positionsrad] = []
-        for f in k.fel where f.vy == vy.rawValue && f.positioner.contains(position) {
+        for f in k.fel where Vyfilter.visas(f.vy, i: vy) && f.positioner.contains(position) {
             var r = rad(f.matt, varden: varden, gront: f.gront, aktiv: f.aktiv, markning: Markning.fran(f),
                         baslinje: baslinje[f.matt] ?? [], under: f.fas == "efter_traff" ? Texter.afterImpact : nil)
             r.ovas = ovas.contains(f.id)
             r.info = Infoblad(f, namn: r.namn)
             ut.append(r)
         }
-        for m in k.matt where m.vy == vy.rawValue && m.positioner.contains(position) {
+        for m in k.matt where Vyfilter.visas(m.vy, i: vy) && m.positioner.contains(position) {
             // Ett mått per position (skaftets vinkel, METOD M46) har positionens värde. Klubbans
             // mått visas bara på ett slag där klubban är markerad (S7a): inget "—" på alla andra.
             let nyckel = Klubba.nyckel(m.matt, position)

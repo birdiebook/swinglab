@@ -15,9 +15,25 @@ public enum DemoPass {
     /// lederna per slag, att skriva till `Leder/<slag>.json`.
     public static func fo(id: String, created: Date, club: String = "j7", heightM: Double? = nil,
                           sway: [Double]) -> (pass: PassState, leder: [String: JointSeries]) {
-        var p = PassState(id: id, created: created, setup: PassSetup(view: .fo, club: club, distance: 3, hand: .hoger),
+        bygg(.fo, id: id, created: created, club: club, heightM: heightM, antal: sway.count) { i in
+            DemoSving.fo(sway: (topp: sway[i], traff: 2, finish: 4))
+        }
+    }
+
+    /// Ett DTL-pass som `fo`: bäckenets thrust vid toppen per slag i cm (PLAN S4e, sessionerna
+    /// med båda vyerna).
+    public static func dtl(id: String, created: Date, club: String = "j7", heightM: Double? = nil,
+                           thrust: [Double]) -> (pass: PassState, leder: [String: JointSeries]) {
+        bygg(.dtl, id: id, created: created, club: club, heightM: heightM, antal: thrust.count) { i in
+            DemoSving.dtl(thrust: (topp: thrust[i], traff: 3, finish: 8))
+        }
+    }
+
+    static func bygg(_ vy: Vy, id: String, created: Date, club: String, heightM: Double?, antal: Int,
+                     sving: (Int) -> Sving) -> (pass: PassState, leder: [String: JointSeries]) {
+        var p = PassState(id: id, created: created, setup: PassSetup(view: vy, club: club, distance: 3, hand: .hoger),
                           heightM: heightM)
-        var kvar = sway.count
+        var kvar = antal
         for (k, tider) in klick.enumerated() where kvar > 0 {
             let t = Array(tider.prefix(kvar))
             kvar -= t.count
@@ -33,7 +49,7 @@ public enum DemoPass {
             let s = p.shots[i]
             p.shots[i].verdict = .swing
             p.shots[i].joints = ShotRecord.jointsPath(s.id)
-            leder[s.id] = serie(DemoSving.fo(sway: (topp: sway[i], traff: 2, finish: 4)), klick: s.click.time)
+            leder[s.id] = serie(sving(i), klick: s.click.time)
         }
         p.status = .analyzed
         return (p, leder)

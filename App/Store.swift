@@ -162,6 +162,42 @@ final class Store {
         try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
     }
 
+    /// Tar bort passet från telefonen (sessionslistan, PLAN S4e, BESLUT B64): passets mapp med
+    /// allt i den (pass.json med måtten, Video/, Klipp/, Leder/, par, följare och 3D), dess
+    /// `att_jobba_pa`-fil och dess paket i Export. Ett pass vars paket skrivs just nu tas inte
+    /// bort. Den andra telefonens pass rörs inte: inget skickas dit. Svarar true när passet är
+    /// borta. METOD MS20
+    @discardableResult
+    func deletePass(_ id: String) -> Bool {
+        guard PassID.isValid(id), !exporting.contains(id) else { return false }
+        let fm = FileManager.default
+        let mapp = passFolder(id)
+        if fm.fileExists(atPath: mapp.path) {
+            do {
+                try fm.removeItem(at: mapp)
+            } catch {
+                problem = String(localized: "The session could not be deleted.")
+                return false
+            }
+        }
+        if let fil = FocusInbox.fileName(pass: id) {
+            try? fm.removeItem(at: focusFolder.appending(path: fil))
+        }
+        for vy in [Vy.dtl, .fo] {
+            let p = PassState(id: id, created: Date(), setup: PassSetup(view: vy))
+            try? fm.removeItem(at: exportURL(p))
+        }
+        index.passes.removeAll { $0.id == id }
+        cache?[id] = nil
+        do {
+            try PassCoding.encoder().encode(index).write(to: indexFile, options: .atomic)
+        } catch {
+            problem = String(localized: "pass.json could not be saved.")
+        }
+        focus = latestFocus()
+        return true
+    }
+
     // MARK: Lederna (S2e)
 
     /// Ett slags leder till `Leder/<id>.json`, avrundade som i paketet (METOD MS12).

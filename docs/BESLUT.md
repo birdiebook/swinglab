@@ -551,7 +551,7 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Omprövas:** efter telefonprovet av S4b.
 
 ## B36 — Flikarna med riktig data: Today, Progress och Me
-*2026-10-22 · prövas · PLAN.md S4 (S4c)*
+*2026-10-22 · flikarna ersatta av B64 (2026-10-24); passets längd, paketets längd och fokus gäller · PLAN.md S4 (S4c)*
 
 - **Valt:** appen öppnar i tre flikar som skissen (design/README.md, öppet val 1: tre
   flikar, passet som eget flöde). **Today:** dagen, Start session, Import from Photos,
@@ -576,6 +576,52 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Kostnad:** Sessions är startvyn i ett blad: "New session" står där och på Today.
   Utveckling visar bara den senaste klubban.
 - **Omprövas:** efter telefonprovet av S4c.
+
+## B64 — Två flikar: Sessions och Me; sessionen visar bara sin vy
+*2026-10-24 · prövas · Johannes beställning · PLAN.md S4e · METOD MS20 · VISION.md*
+
+Ersätter B36:s flikar. Johannes 2026-10-24: "navigeringen är för svår och ska förenklas".
+VISION.md (samma dag): enkelhet för användaren utan att offra djupet, och djupet ett tryck
+bort i stället för borttaget.
+
+- **Valt: en TabView med två flikar, Sessions och Me.** Sessions är förstasidan: alla pass på
+  telefonen, senaste först. Raden säger vyn utskriven (Down the line, Face on), dagen och
+  klockslaget, klubban (flera när serierna har olika) och svingarna (domen Swing; "Not analyzed"
+  före analysen), och "paired" med en länksymbol när passet filmades med två telefoner. Ett pass
+  med två telefoner är alltså en rad per vy, på var sin telefon. Ett tryck öppnar passet; + uppe
+  till höger ger Record och Import from Photos. Ett svep åt vänster visar Delete, och en fråga i
+  ett blad visar raden, säger vad som försvinner ("Video, joints and measures are removed from
+  this phone"; för ett parat pass också att den andra telefonen behåller sitt) och har Delete och
+  Cancel. En tom lista visar "No sessions" och +. **Me:** längden, handen, klubborna och
+  "Import focus" (som låg i Me → Sessions).
+- **Varför flikar och inte en ikon uppe till vänster:** två namngivna flikar säger direkt att
+  appen har två sidor och vad de heter; en personikon i hörnet måste man veta om. Fliken kostar
+  en rad längst ned, och passet öppnas ändå över den (helskärm), så den syns aldrig under
+  analysen.
+- **Inne i sessionen bara sessionens vy**, genom katalogens `vy` (`Vyfilter`): en FO-session
+  visar bara FO-kort och FO:s rader under granskningens video, en DTL-session bara DTL; "bada"
+  (tempot) i båda. Filtret All/FO/DTL försvinner ur sessionen, och vyns namn står där.
+  Klubbmarkeringen var redan per vy (B57). 3D-kortet (S6c-2) visas i båda. Inget djup går
+  förlorat: korten för den andra vyn var alltid "—" i en session med en telefon.
+- **Dolt men kvar (VISION.md: ett tryck bort, inte borttaget):** Today, Focus (Att jobba på) och
+  Progress syns inte i navigeringen; vyerna (`IdagVy`, `AttJobbaPaVy`, `UtvecklingVy`), deras
+  data (`Flikdata`, `Idagvisning`, `Utvecklingsvisning`) och filerna i `AttJobbaPa/` är kvar.
+  Accenten (B31) följer fortfarande Focus i sessionens kort och granskningens rader, och "Ask
+  Claude" och "Paste from Claude" stannar i sessionen (B60; raden på Today är dold med Today).
+- **Raderingen** tar passets mapp (pass.json med måtten, Video/, Klipp/, Leder/, par.json,
+  foljare.json och 3D), dess `att_jobba_pa-<pass>.json` och dess paket i Documents/Export, så
+  att inget av passet ligger kvar i Filer. Ett pass vars paket skrivs just nu tas inte bort.
+  Den andra telefonens pass rörs inte: inget skickas dit.
+- **Frågan är ett blad, inte en systemdialog**, så att simulatorprovet kan rita den (som B60).
+  Svepets knapp är grå (B13: ingen signalfärg för en vanlig handling).
+- **Bortvalt:** en NavigationStack med Me som ikon (se ovan); passen som en sektion i Me (som
+  förut, två tryck bort); en rad för ett parat pass med båda vyerna (telefonerna har var sin
+  lista, och raden ska säga en vy); en röd Delete; att behålla paketet i Export efter raderingen
+  (passet skulle ligga kvar i Filer utan att synas i appen).
+- **Kostnad:** Today och Progress syns inte förrän de kommer tillbaka, och Focus syns bara som
+  accent i sessionen. En raderad session går inte att få
+  tillbaka på telefonen (ett paket som redan skickats till PC:n finns kvar där).
+- **Omprövas:** efter Johannes telefonprov av S4e, och när Ranges (PLAN) byggs.
 
 ---
 

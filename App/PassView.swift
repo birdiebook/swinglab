@@ -255,8 +255,8 @@ struct PassScreenContent: View {
                 .disabled(analysis.running)
                 .padding(.horizontal, 20)
             if let visning {
-                PassetVy(visning: visning, filter: Passvisning.Filter(rawValue: pass.setup.view.rawValue) ?? .alla,
-                         navrad: false)
+                // Bara sessionens vy (PLAN S4e, BESLUT B64).
+                PassetVy(visning: visning, vy: pass.setup.view, navrad: false)
                 if let h = pass.measuredHeight {
                     HeightRow(heightM: h.heightM, assumed: h.assumed, editable: editable && !analysis.running,
                               onSet: onHeight)
@@ -637,38 +637,5 @@ struct ImpactLarge: View {
                 image = try? await ShotImages.impactFrame(pass: pass, shot: shot, store: store,
                                                           maxSize: CGSize(width: 1080, height: 1920))
             }
-    }
-}
-
-/// Passen på telefonen i startvyn: dagen, klockslaget och antalet klick. Ett tryck
-/// öppnar slagen.
-struct PassListSection: View {
-    let entries: [PassIndex.Entry]
-    var onOpen: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Etikett(text: String(localized: "Sessions"))
-                .padding(.bottom, 6)
-            ForEach(entries, id: \.id) { e in
-                Button { onOpen(e.id) } label: {
-                    HStack {
-                        Text(verbatim: "\(Tal.dag(e.created)) · \(Self.clock(e.id))")
-                        Spacer(minLength: 8)
-                        Text(verbatim: "\(e.clicks)")
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.secondary)
-                    }
-                }
-                .buttonStyle(RowButtonStyle())
-            }
-        }
-    }
-
-    /// "15:30" ur id:t (yyyyMMdd-HHmmss).
-    static func clock(_ id: String) -> String {
-        let c = Array(id)
-        guard c.count >= 13 else { return id }
-        return "\(String(c[9...10])):\(String(c[11...12]))"
     }
 }

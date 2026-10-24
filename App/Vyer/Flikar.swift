@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import Swing
 import Capture
 
@@ -7,6 +8,10 @@ import Capture
 /// längd), Utveckling (passen med samma klubba och längd som det senaste) och Att jobba på.
 /// Fokus och accenten kommer ur samma källa, `Store.focus` (S2f); alla filerna bara för
 /// blocken (BESLUT B31, B36). METOD MS16
+///
+/// **Dold sedan S4e (BESLUT B64):** Today, Progress och Focus visas inte i navigeringen, men
+/// koden och datan är kvar (`IdagVy`, `UtvecklingVy`, `AttJobbaPaVy`), så att de kan komma
+/// tillbaka ett tryck bort (VISION.md).
 struct Flikdata: Sendable {
     var idag: Idagvisning
     var utveckling: Utvecklingsvisning
@@ -53,60 +58,57 @@ struct Flikdata: Sendable {
     }
 }
 
-/// Appens tre flikar (skissen, BESLUT B13): Today, Progress och Me. Ett pass är ett eget
-/// flöde över flikarna (uppställningen, kameran, slagen), liksom Att jobba på. Passen och
-/// "Import focus" (S2f) nås från Me → Sessions. Flikarna läses om när passens index
-/// ändras, när ett flöde stängs och när appen kommer tillbaka. BESLUT B36
+/// Appens två flikar (PLAN S4e, BESLUT B64, som ersätter B36:s tre): Sessions, förstasidan
+/// med passen, och Me med längden, handen, klubborna och "Import focus". Ett pass är ett eget
+/// flöde över flikarna (uppställningen, kameran, slagen). Listan läses om när passens index
+/// ändras, när ett flöde stängs och när appen kommer tillbaka.
 struct Flikar: View {
     @Environment(Store.self) private var store
     @Environment(\.scenePhase) private var scenePhase
-    @State private var data: Flikdata? = AppKatalog.katalog.map { Flikdata.bygg(passes: [], fokus: nil, filer: [], katalog: $0) }
-    @State private var flik = Flik.idag
+    @State private var flik = Flik.sessions
+    @State private var rader: [Sessionsrad] = []
     @State private var flow: PassFlowView.Mode?
-    @State private var opened: StartView.OpenPass?
-    @State private var focusOpen = false
-    @State private var sessionsOpen = false
-    /// Räknas upp när flikarna ska läsas om (ett flöde stängdes, appen kom tillbaka).
+    @State private var opened: OpenPass?
+    /// Passet vars radering frågas om (efter svepet).
+    @State private var radera: Sessionsrad?
+    /// Räknas upp när listan ska läsas om (ett flöde stängdes, appen kom tillbaka).
     @State private var omlasning = 0
+    /// Filer för `att_jobba_pa.json` (S2_SPEC §8.5).
+    @State private var importingFocus = false
+    /// Svaret efter hämtningen: sparad, eller felet (fältet, aldrig värdet).
+    @State private var focusResult: String?
+    @State private var focusFailed = false
 
-    enum Flik: Hashable { case idag, utveckling, jag }
+    enum Flik: Hashable { case sessions, jag }
+
+    struct OpenPass: Identifiable {
+        let id: String
+    }
 
     struct Nyckel: Equatable {
         let index: PassIndex
-        /// Den hämtade filen (`Store.focus`): en ny fil läser om flikarna.
-        let fokus: String?
         let omlasning: Int
     }
 
     var body: some View {
         TabView(selection: $flik) {
-            Tab("Today", systemImage: "smallcircle.filled.circle", value: Flik.idag) {
-                ScrollView { idag }
-                    .background(Theme.ground, ignoresSafeAreaEdges: .all)
-            }
-            Tab("Progress", systemImage: "chart.xyaxis.line", value: Flik.utveckling) {
-                ScrollView {
-                    if let u = data?.utveckling {
-                        UtvecklingVy(visning: u)
-                            .id(u.matt.map(\.id).joined() + u.period)
-                    }
-                }
-                .background(Theme.ground, ignoresSafeAreaEdges: .all)
+            Tab("Sessions", systemImage: "list.bullet", value: Flik.sessions) {
+                SessionsVy(rader: rader, tom: store.index.passes.isEmpty, problem: store.problem,
+                           nytt: { flow = $0 }, oppna: { opened = OpenPass(id: $0) }, radera: { radera = $0 })
             }
             Tab("Me", systemImage: "person", value: Flik.jag) {
                 ScrollView {
                     JagVy(heightM: store.settings.heightM, hand: store.settings.hand ?? .hoger, clubs: store.settings.bag,
-                          sessions: store.index.passes.count, onHeight: { store.setHeight($0) },
-                          onHand: { store.setHand($0) }, onClub: { store.toggleClub($0) },
-                          onSessions: { sessionsOpen = true })
+                          onHeight: { store.setHeight($0) }, onHand: { store.setHand($0) },
+                          onClub: { store.toggleClub($0) }, onImportFocus: { importingFocus = true },
+                          importResult: focusResult, importFailed: focusFailed)
                 }
                 .background(Theme.ground, ignoresSafeAreaEdges: .all)
             }
         }
         .tint(Theme.text)
-        .task(id: Nyckel(index: store.index, fokus: store.focus.map { $0.pass + $0.skapad }, omlasning: omlasning)) {
-            guard let k = AppKatalog.katalog else { return }
-            data = await Flikdata.load(store, katalog: k).data
+        .task(id: Nyckel(index: store.index, omlasning: omlasning)) {
+            rader = await Sessionslista.load(store)
         }
         .onChange(of: scenePhase) { _, fas in
             if fas == .active { omlasning += 1 }
@@ -119,35 +121,31 @@ struct Flikar: View {
             PassShotsView(passID: p.id) { opened = nil }
                 .environment(store)
         }
-        .fullScreenCover(isPresented: $focusOpen) {
-            ScrollView {
-                if let j = data?.jobba {
-                    AttJobbaPaVy(visning: j) { focusOpen = false }
-                }
-            }
-            .background(Theme.ground, ignoresSafeAreaEdges: .all)
+        // Frågan före raderingen (BESLUT B64): ett blad, så att provet kan rita den.
+        .sheet(item: $radera) { rad in
+            RaderaPassVy(rad: rad, onDelete: {
+                if store.deletePass(rad.id) { rader.removeAll { $0.id == rad.id } }
+                radera = nil
+            }, onCancel: { radera = nil })
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
             .preferredColorScheme(.dark)
         }
-        // Passen, "Import from Photos" och "Import focus" (S2f) i startvyns form.
-        .sheet(isPresented: $sessionsOpen, onDismiss: { omlasning += 1 }) {
-            StartView()
-                .environment(store)
-                .presentationDragIndicator(.visible)
+        .fileImporter(isPresented: $importingFocus, allowedContentTypes: [.json], allowsMultipleSelection: false) { r in
+            importFocus(r)
         }
     }
 
-    @ViewBuilder private var idag: some View {
-        if let v = data?.idag {
-            IdagVy(visning: v, startaPass: { flow = .record }, importera: { flow = .photos },
-                   oppnaPasset: { if let id = data?.senaste { opened = StartView.OpenPass(id: id) } },
-                   oppnaJobba: { if data?.jobba != nil { focusOpen = true } },
-                   claude: data?.senaste.map { AnyView(ClaudeKnappar(passID: $0).environment(store)) })
-        } else {
-            VStack(alignment: .leading) {
-                Button("Start session") { flow = .record }
-                    .buttonStyle(PrimaryButtonStyle())
-            }
-            .padding(20)
+    /// Den valda filen kontrolleras och sparas (`Store.importFocus`). BESLUT B28
+    private func importFocus(_ r: Result<[URL], Error>) {
+        guard case .success(let urls) = r, let url = urls.first else { return }
+        do {
+            try store.importFocus(from: url)
+            focusResult = String(localized: "Focus saved")
+            focusFailed = false
+        } catch {
+            focusResult = (error as? FormatFel)?.description ?? String(localized: "The file could not be read.")
+            focusFailed = true
         }
     }
 }

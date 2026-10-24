@@ -75,6 +75,12 @@ public enum Tal {
         return Texter.dag(veckodag: veckodagar[(v - 1) % 7], datum: datum(d))
     }
 
+    /// "18:05": klockslaget i svensk tid (sessionslistan, METOD MS20).
+    public static func klocka(_ d: Date) -> String {
+        let c = kalender.dateComponents([.hour, .minute], from: d)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+    }
+
     /// "Jan"
     public static func manad(_ d: Date) -> String {
         manader[(kalender.component(.month, from: d) - 1) % 12]

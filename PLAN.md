@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4f nu · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -269,6 +269,44 @@ tecken (B40). Efter granskningen: huvudets mått i granskningen (M8, M9), `varfo
 orsakssamband som METOD inte stöder, källan "Assumption from manufacturer" för sway_topp,
 genomsvingens tid märkt oprövad, Today med bladet som VoiceOver-åtgärd och ⓘ 44×44 pt,
 passets kort utan dubbel position, och fixturen `dtl_lucka` vid spärren på 15 cm (M39).
+
+## S4e — Enklare navigering: Sessions och Me (Johannes 2026-10-24)
+
+Beställningen: "navigeringen är för svår och ska förenklas". Två sidor: **Sessions**
+(förstasidan) med alla pass, senaste först, och **Me** med profilen (längd, hand och klubbor).
+Today och Progress försvinner ur navigeringen. Styrs av VISION.md: enkelt för användaren, och
+djupet ett tryck bort i stället för borttaget.
+
+- **Raden** visar översikten innan man går in: vyn (Down the line / Face on), datum och tid,
+  klubban och antalet svingar. Ett pass med två telefoner är en rad per vy, med "paired" och en
+  länksymbol. Ett tryck öppnar passet; ett svep raderar efter en fråga (passets mapp och filer:
+  video, leder, mått, `att_jobba_pa` och 3D; den andra telefonens pass rörs inte). + uppe till
+  höger ger Record och Import from Photos. En tom lista visar en kort rad och +.
+- **Inne i en session bara dess vy:** måttkorten, felen, granskningens rader per position och
+  klubbmarkeringen, genom katalogens `vy` (dtl, fo, bada); "bada" som tempot i båda. 3D-kortet
+  (S6c-2) i båda.
+- **Dolt men kvar:** Focus (Att jobba på) och Progress (och Today) syns inte, men koden och datan
+  finns kvar. Import focus ligger i Me. "Ask Claude" och "Paste from Claude" stannar i sessionen.
+
+**Byggt (grenen `s4e`, BESLUT B64, METOD MS20):** `App/Vyer/Flikar.swift` (TabView med Sessions
+och Me), `App/Vyer/SessionerVy.swift` (listan, raden och frågan), `Store.deletePass`,
+`PassetVy(vy:)`, SwingLabKit `Capture/Sessioner.swift` (`Sessionsrad`) och
+`Swing/Visning/Vyfilter.swift`, och `DemoPass.dtl`. Prov: `SessionerTests` (Linux) och
+`Prov/SwingLabProvSessioner.swift` (bilderna `sessions`, `sessions-radera`, `session-fo`,
+`session-dtl` och `me`); Todays och Progress bilder ritas inte längre.
+
+**Klart när:** Johannes har öppnat appen i Sessions, sett sina pass med rätt vy, tid, klubba och
+svingar, öppnat en FO- och en DTL-session och bara sett deras mått, raderat en session med svep
+och fråga, och hittat längden och Import focus i Me.
+
+## S4f — Ranges (Johannes 2026-10-24, inte nu)
+
+Johannes ord: ranges ska vara tydliga, alltså vad som är bra, bara innanför och utanför range.
+Det ersätter grönt, gult och rött med två lägen när den byggs. Inget är byggt; etappen formas
+med Johannes innan den startas (spannet, `Spann`, gränserna i katalogen och den egna baslinjen,
+METOD M27).
+
+**Klart när:** bestäms med Johannes.
 
 ## S5 — PC-länken och Claude
 

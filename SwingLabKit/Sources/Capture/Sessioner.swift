@@ -1,0 +1,55 @@
+import Foundation
+import Swing
+
+/// En rad i sessionslistan (PLAN S4e, BESLUT B64): vyn, dagen och klockslaget, klubban och
+/// svingarna, och om passet hör ihop med en andra telefon. Byggs ur passet, så att listan kan
+/// läsas utanför huvudtråden och provas på Linux. METOD MS20
+public struct Sessionsrad: Identifiable, Equatable, Sendable {
+    public let id: String
+    public let vy: Vy
+    /// "Down the line", "Face on"
+    public let vyNamn: String
+    /// "Sat, Jan 9 · 18:05"
+    public let tid: String
+    /// "7i", eller "7i, PW" när serierna har olika klubbor.
+    public let klubba: String
+    /// Svingarna (domen Swing); nil = inget slag har fått sin dom än.
+    public let svingar: Int?
+    /// Passet filmades med två telefoner (styr eller följ, BESLUT B21): den andra telefonens
+    /// rad står i dess egen lista.
+    public let parad: Bool
+    /// Raden i ord för VoiceOver.
+    public let upplasning: String
+
+    public init(_ p: PassState) {
+        id = p.id
+        vy = p.setup.view
+        vyNamn = Texter.vyNamn(p.setup.view)
+        let dag = Tal.dag(p.created), klocka = Tal.klocka(p.created)
+        tid = dag + Texter.skilje + klocka
+        klubba = Self.klubbor(p).map(PassSetup.clubLabel).joined(separator: ", ")
+        svingar = Self.svingar(p)
+        parad = p.setup.role != .solo
+        upplasning = Texter.sessionsrad(vy: vyNamn, dag: dag, klocka: klocka, klubba: klubba, svingar: svingar,
+                                        parad: parad)
+    }
+
+    /// Seriernas klubbor i ordning, utan dubbletter; uppställningens när passet saknar serier.
+    static func klubbor(_ p: PassState) -> [String] {
+        var ut: [String] = []
+        for s in p.series where !ut.contains(s.club) { ut.append(s.club) }
+        return ut.isEmpty ? [p.setup.club] : ut
+    }
+
+    /// Slagen med domen Swing när något slag har en dom; 0 för ett pass utan klick; annars
+    /// nil (inte analyserat). METOD MS20
+    static func svingar(_ p: PassState) -> Int? {
+        if p.shots.contains(where: { $0.verdict != nil }) { return p.shots.filter { $0.verdict == .swing }.count }
+        return p.shots.isEmpty && p.clickCount == 0 ? 0 : nil
+    }
+
+    /// Raderna, senaste först (som passens index).
+    public static func rader(_ passes: [PassState]) -> [Sessionsrad] {
+        passes.sorted { ($0.created, $0.id) > ($1.created, $1.id) }.map(Sessionsrad.init)
+    }
+}

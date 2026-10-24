@@ -16,7 +16,7 @@ final class SwingLabProv: XCTestCase {
 
     static let ut = "/tmp/swinglab_prov"
 
-    /// Appen har startat: ett fönster med startvyn, ritat till en bild.
+    /// Appen har startat: ett fönster med startvyn (Sessions, PLAN S4e), ritat till en bild.
     func testAppenStartarMedStartvyn() throws {
         let fönster = try XCTUnwrap(väntaPåFönster(sekunder: 20), "inget fönster med en vy efter 20 s")
         let vy = try XCTUnwrap(fönster.rootViewController?.view)
@@ -30,11 +30,11 @@ final class SwingLabProv: XCTestCase {
         try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
         try XCTUnwrap(bild.pngData()).write(to: URL(fileURLWithPath: Self.ut + "/startvy.png"))
 
-        // Botten är svart (B13), och primärknappen är ljus mot den.
+        // Botten är svart (B13), och rubriken "Sessions" uppe till vänster är vit mot den.
         let hörn = try ljushet(bild, x: 0.02, y: 0.5)
         XCTAssertLessThan(hörn, 0.05, "botten är inte svart")
-        let ljusast = try (0..<40).map { try ljushet(bild, x: 0.5, y: 0.08 + Double($0) * 0.005) }.max() ?? 0
-        XCTAssertGreaterThan(ljusast, 0.2, "ingen ljus primärknapp under rubriken")
+        let rubrik = try ljusast(bild, x: 0.02...0.45, y: 0.075...0.17)
+        XCTAssertGreaterThan(rubrik, 0.6, "ingen vit rubrik överst")
     }
 
     /// Appen är den TestFlight laddar upp: bundle-id, namnet, ikonen och texterna
@@ -106,6 +106,29 @@ final class SwingLabProv: XCTestCase {
             RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         }
         return nil
+    }
+
+    /// Den största ljusheten 0…1 i ett område (andelar av bredden och höjden), varje punkt.
+    private func ljusast(_ bild: UIImage, x: ClosedRange<Double>, y: ClosedRange<Double>) throws -> Double {
+        let cg = try XCTUnwrap(bild.cgImage)
+        let w = cg.width, h = cg.height
+        var px = [UInt8](repeating: 0, count: w * h * 4)
+        let ritat = px.withUnsafeMutableBytes { buf -> Bool in
+            guard let ctx = CGContext(data: buf.baseAddress, width: w, height: h, bitsPerComponent: 8,
+                                      bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        XCTAssertTrue(ritat)
+        var bast = 0.0
+        for py in Int(Double(h) * y.lowerBound)..<Int(Double(h) * y.upperBound) {
+            for pxx in Int(Double(w) * x.lowerBound)..<Int(Double(w) * x.upperBound) {
+                let i = (py * w + pxx) * 4
+                bast = max(bast, (Double(px[i]) + Double(px[i + 1]) + Double(px[i + 2])) / (3 * 255))
+            }
+        }
+        return bast
     }
 
     /// Ljusheten 0…1 i en punkt, angiven som andel av bildens bredd och höjd.

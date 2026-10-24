@@ -196,6 +196,24 @@ public enum Texter {
     /// "2 at another height": pass med samma klubba mätta med en annan längd (METOD MS16).
     public static func annanLangd(_ n: Int) -> String { "\(n) at another height" }
 
+    // MARK: sessionslistan (PLAN S4e, BESLUT B64, METOD MS20)
+
+    /// Vyn i listan och i sessionen, utskriven.
+    public static func vyNamn(_ vy: Vy) -> String { vy == .dtl ? "Down the line" : "Face on" }
+    /// Under antalet svingar i raden.
+    public static func svingar(_ n: Int) -> String { n == 1 ? "swing" : "swings" }
+    /// I stället för antalet när inget slag har fått sin dom.
+    public static let ejAnalyserat = "Not analyzed"
+    /// Två telefoner i samma pass (BESLUT B21).
+    public static let parad = "paired"
+    /// Raden i ord för VoiceOver: "Face on, Sat, Jan 9, 18:05, 7i, 8 swings, paired".
+    public static func sessionsrad(vy: String, dag: String, klocka: String, klubba: String, svingar: Int?,
+                                   parad: Bool) -> String {
+        var d = [vy, dag, klocka, klubba, svingar.map { "\($0) \(Texter.svingar($0))" } ?? ejAnalyserat]
+        if parad { d.append(Texter.parad) }
+        return d.joined(separator: ", ")
+    }
+
     // MARK: Att jobba på
 
     /// "week 5"

@@ -364,6 +364,28 @@
         }
       }
     },
+    "Delete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "Delete session?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete session?"
+          }
+        }
+      }
+    },
     "Detection wrong": {
       "extractionState": "manual",
       "localizations": {
@@ -899,6 +921,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No 1080p format with at least 120 fps."
+          }
+        }
+      }
+    },
+    "No sessions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sessions"
           }
         }
       }
@@ -1541,6 +1574,17 @@
         }
       }
     },
+    "The other phone keeps its session.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The other phone keeps its session."
+          }
+        }
+      }
+    },
     "The package could not be written.": {
       "extractionState": "manual",
       "localizations": {
@@ -1559,6 +1603,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The recording was interrupted."
+          }
+        }
+      }
+    },
+    "The session could not be deleted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session could not be deleted."
           }
         }
       }
@@ -1647,6 +1702,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use"
+          }
+        }
+      }
+    },
+    "Video, joints and measures are removed from this phone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video, joints and measures are removed from this phone."
           }
         }
       }
