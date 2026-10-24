@@ -479,7 +479,8 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   rött. Utan `gult` är allt utanför grönt gult (tempot). Gränserna är slutna.
 - **Utan gräns (egen baslinje):** z = (passets median − baslinjens median) /
   baslinjens robusta sd (M26), där baslinjen är måttets värden ur tidigare pass
-  i samma vy. Med `samre` = "+" räknas bara z uppåt som sämre, "−" bara nedåt,
+  i samma vy, med samma klubba och längd; ett pass med flera klubbor bedöms per klubba
+  (BESLUT B56). Med `samre` = "+" räknas bara z uppåt som sämre, "−" bara nedåt,
   annars |z|. Upp till **1** = grönt, upp till **2** = gult, längre = rött.
   Baslinjen kräver minst **8** svingar (Severin 2021, M25). **antagande.**
 - `kontrollerad: false` = källan i `kalla` är inte läst i original (BESLUT B10).
@@ -1726,7 +1727,9 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   förslag igen.
 - Talen avrundas till **0,1** (cm, grader, handens fart i m/s), **0,01**
   (tempo, stansen, sekunder) och **1** (vinkelfarten i °/s och tiden i ms,
-  M35–M37), samma tal som appen visar. **antagande.**
+  M35–M37), samma tal som appen visar. **antagande.** Avrundningen är Pythons `round()`:
+  det exakta binära talet, en exakt halva till jämnt (0,35 → 0,3, 0,25 → 0,2); Swift gör
+  samma sak med printf (`Avrundning.pyRound`). **räkning.**
 - Gränserna är slutna.
 
 ## MT4 — Rörelsen
@@ -1754,8 +1757,11 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
   och ett grönt fel övas aldrig. Saken lämnar då listan och rapporteras som klar, inte
   tyst borttagen. **antagande.**
 - **Fysiken:** **42** dagar (sex veckor) från första gången felet valdes, utan
-  någon tydlig rörelse sedan dess över alla övningar för felet, och treregeln
-  inte prövad än → pröva treregeln (research 3 §4 förslag 6). **antagande.**
+  någon tydlig rörelse sedan dess över alla övningar för felet, treregeln
+  inte prövad än, och ett test för felet i kedjorna → pröva treregeln (research 3 §4
+  förslag 6). Ett fel utan test kommer aldrig i läget. **antagande.**
+- **Spåret** (BESLUT B56): en sak följs upp, räknas och avslutas bara av pass och val med
+  samma klubba, längd och vy som när den valdes (tempot: vyn som tempot togs ur, MT9).
 - **Ny** när inget pass har kommit efter valet.
 - **Byt övning** efter **4** pass i rad utan tydlig rörelse sedan övningen
   valdes (MT4). **antagande:** med cirka två pass i veckan är det två veckor,
@@ -1847,28 +1853,33 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
   datan som kompakt JSON i ett kodblock (BESLUT B55), räknad med samma regler som PC:n:
   analysen (M25–M27, MT2, MT3, MT6, MT9), minnet före passets val (MT4, MT5, MT10) och en
   mall per fel som går att välja.
-- **Datan:** `kandidater` som analysen; `bedomning` för de aktiva felen med ett tal (`z`
-  med **1** decimal, `baslinje` = baslinjens median, robusta sd och svingar för ett fel
-  utan gräns); `spridning` (M44) med minst ett slag; `historik` = `[visat, status]` för de
-  senaste **6** passen; `ovningar` = minnet med uppföljningens senaste **4** rader;
+- **Datan:** `klubba` (huvudklubban, BESLUT B56); `kandidater` som analysen; `bedomning`
+  för de aktiva felen med ett tal som inte är gröna (`grund`, `z` med **1** decimal,
+  `baslinje` = baslinjens median, robusta sd och svingar för ett fel utan gräns);
+  `spridning` (M44) med minst ett slag; `historik` = `[visat, status]` för de senaste **6**
+  passen, för fel som inte är gröna i alla; `ovningar` = minnet med uppföljningens senaste **4** rader;
   `pagaende` = den senaste filen före passet; `fil` = filens huvud med `skapad`.
   **antagande** (6 pass räcker för trenden i ett block på 4–6 veckor med två pass i
   veckan; 4 rader är `byt_ovning`-gränsen i MT5).
-- **Mallen** för ett fel: grundorsakerna bland kandidaterna, eller de okända felen med
-  förslag när inget är flaggat (MT6). Ett fel vars övning är klar får ingen mall. Övningen
+- **Mallen** för ett fel: de **3** första grundorsakerna bland kandidaterna som är nya, och
+  varje övning som fortsätter; eller de okända felen med ett tal och förslag när inget är
+  flaggat (MT6). **antagande** (MT6: helst en sak, högst tre). Ett fel vars övning är klar får ingen mall. Övningen
   som fortsätter (`ny`, `fortsatt`, `fysik`) ger minnets "klart när" och märkning, samma
   övning och stegen `[nu, nästa]`; annars analysens förslag, övningarna (katalogens och
   kedjornas) som inte provats för felet, och första steget. Blocket från minnets
   `fel_start` eller passets dag. **räkning** (kontrollens regler, MT3, MT5, MT10).
-- **Storleken:** datan för ett typiskt pass (två vyer, sex pass, en övning som
-  fortsätter) högst **8 KiB**, hela texten högst **16 KiB** (`test_underlag.py`,
-  `ClaudeTests`). **antagande** (några kB, Johannes 2026-10-23).
+- **Storleken:** instruktionen högst **8 KiB**, datan för ett typiskt pass (två vyer, sex
+  pass, en övning som fortsätter) högst **7,5 KiB**, och varje text i facit, även det värsta
+  fallet, högst **24 KiB** (`test_underlag.py`, `ClaudeTests`). **antagande** (några kB,
+  Johannes 2026-10-23).
 - **Talen** skrivs som heltal utan decimaler, annars i kortaste form (Python `repr`,
   Swift `description`). De påhittade måtten har sex decimaler, så att ingen median hamnar
   på en avrundnings halva, där Pythons och Swifts avrundning skiljer sig (MT3).
 
 ## MT12 — Svaret från Claude-appen
 
+- **Taket:** urklippet läses bara upp till **64 KiB** (UTF-8), och JSON bara **32** nivåer
+  listor och objekt i varandra (filen har sex). **antagande** (ett svar är några kB).
 - **Kodblocken:** från ``` med valfri märkning till radslutet, och till nästa ```.
   Det sista blocket som är ett JSON-objekt med `format` eller `saker` gäller; utan block
   hela texten, och det mellan första `{` och sista `}`. **räkning.**
@@ -1876,8 +1887,9 @@ Läget räknas i den här ordningen; det första som stämmer gäller.
   mellanslag (U+00A0, U+202F, U+2007) → mellanslag, BOM och nollbrett mellanslag bort.
   **antagande** (det telefonens skiljetecken och anteckningar byter).
 - **Kontrollen** är MT3, MT5, MT6, MT8 och MT10 som på PC:n, mot passet som underlaget
-  gällde. Felen är fält och kod (BESLUT B54): `inget_block`, `inte_json`,
-  `inte_att_jobba_pa`, och kontrollens koder.
+  gällde. Felen är fält och kod (BESLUT B54): `for_stort`, `inget_block`, `inte_json`,
+  `inte_att_jobba_pa`, och kontrollens koder. true och false är inte tal, och siffror,
+  ord och blanktecken i fritexten är ASCII.
 - **`skapad`:** `yyyy-MM-dd`, valfritt `THH:mm[:ss[.f]]` (högst sex decimaler) och `Z`
   eller `±HH:mm`, med giltig dag och tid. **räkning.**
 

@@ -309,6 +309,8 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | Fält | Innehåll |
 |---|---|
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
+| `huvudklubba` | huvudklubbans id (flest mätta slag): fälten nedan från `tempo_vy` till `kandidater` gäller den, och "Att jobba på" gäller den (BESLUT B56) |
+| `delar[]` | de andra klubborna i passet, var och en med `klubba` och samma fält från `tempo_vy` till `kandidater`, bedömd mot sin egen baslinje |
 | `matversion` | måttens version (`matt.MATVERSION`; 2 = METOD M40, 3 = M41–M43, spridningen); saknas = 1, kör session.py igen |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
 | `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
@@ -318,8 +320,8 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `spridning[]` | ett per mått i katalogens `spridning` och klubba i passet: `matt`, `vy`, `klubba`, `n` (slagen med måttet i vyn och klubban), `varde` (den robusta sd:n, `null` under 8 slag) och `visat` (avrundat), METOD M44 |
 | `klubba` | klubbans mått ur markeringarna (S7a, METOD M46–M49): `markerade` (slag med klubban markerad, per vy), `matt[]` (per vy och mått med minst ett slag: `matt`, `vy`, `n`, `median`, `visat`) och `fel` (per vy: `klubba.json` som inte gick att läsa). Slagen bär måtten i `matt`, P2/P6/P8 i `positioner` och `klubba_markerad` (bool) |
 | `skifte_ej_tillbaka` | `fo`: FO-slag där bäckenet står bakom adressläget vid träffen, så att skiftet saknas (censurerat, METOD M42), och `fo_matta`: mätta FO-slag |
-| `baslinje` | `pass` (de tidigare passen) och antal `svingar` per vy |
-| `forra` | `null`, eller `pass` och `jamforelse` (METOD M26) per grupp |
+| `baslinje` | `pass` (de tidigare passen med samma klubba och längd, BESLUT B56) och antal `svingar` per vy |
+| `forra` | `null`, eller `pass` (det senaste tidigare passet med samma klubba, längd och en gemensam vy) och `jamforelse` (METOD M26) per grupp |
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `baslinje` (för ett fel utan gräns: baslinjens `median`, robusta `sd` och `n` svingar, avrundade; `null` med gräns eller under 8 svingar, S5b), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
@@ -521,18 +523,18 @@ med fälten i den här ordningen:
 
 | Fält | Innehåll |
 |---|---|
-| `pass`, `datum`, `klubbor` | passet |
+| `pass`, `datum`, `klubba` | passet och huvudklubban |
 | `slag` | mätta slag per vy (`dtl`, `fo`) |
 | `tempo_vy`, `forra` | analysens; `forra` är förra passets id eller `null` |
 | `baslinje` | antal tidigare `pass` och `svingar` per vy |
 | `kandidater` | analysens |
-| `bedomning` | de aktiva felen med ett tal: `id`, `vy`, `enhet`, `status`, `z` (1 decimal), `n`, `visat`, `forsta_serien`, `spann`, `gult`, `baslinje`, `mot_forra` (de valfria står inte med när de är `null`) |
-| `spridning` | analysens, för mått med minst ett slag |
-| `historik` | `pass` (de senaste sex) och `fel`: per aktivt fel `[visat, status]` eller `null` per pass |
+| `bedomning` | de aktiva felen med ett tal som inte är gröna: `id`, `vy`, `enhet`, `status`, `grund`, `z` (1 decimal), `n`, `visat`, `forsta_serien`, `spann`, `gult`, `baslinje`, `mot_forra` (de valfria står inte med när de är `null`) |
+| `spridning` | analysens `matt`, `vy`, `n` och `visat`, för mått med minst ett slag |
+| `historik` | `pass` (de senaste sex med samma klubba och längd) och `fel`: per aktivt fel som inte är grönt i alla `[visat, status]` eller `null` per pass |
 | `ovningar` | minnet före passets val (`historik.py minne`), uppföljningen med de senaste fyra raderna; en avslutad övning bara `fel`, `aktuell`, `lage`, `ovning_id` |
 | `pagaende` | den senaste filen före passet: `pass` och per sak `fel`, `ovning_id`, `steg`, `tanke`, `typ`, `block`; eller `null` |
 | `fil` | `format`, `pass` och `skapad` för svaret |
-| `mallar` | per fel som går att välja: sakens fält utom `ordning`, `ovning`, `typ` och `fysik`, och valen `ovning_val` (`id`, `text`, `kalla`, och `tanke` för katalogens eller den som fortsätter), `steg_val` och `fysik_test` |
+| `mallar` | per fel som går att välja (högst tre nya, och övningarna som fortsätter): sakens fält utom `ordning`, `ovning`, `typ` och `fysik`, analysens `grund`, och valen `ovning_val` (`id`, `text`, `kalla`, och `tanke` för katalogens eller den som fortsätter), `steg_val` och `fysik_test` |
 
 Svaret är rapporten och sist ett kodblock med `fil` och `saker`, i formen ovan ("Att
 jobba på"). Telefonen och `att_jobba_pa.py --ur-text` läser det likadant (METOD MT12).
@@ -548,7 +550,8 @@ pass/<pass>/kontaktark-<vy>.png
 att_jobba_pa/<pass>.json      sparad och kontrollerad med historik.py spara-att-jobba-pa
 ```
 
-`historik.py minne` skriver `"format": "swinglab-minne/1"`: passen, varje fels
+`historik.py minne` skriver `"format": "swinglab-minne/1"` för det senaste passets
+huvudklubba och längd (BESLUT B56): passen (med `klubba`), varje fels
 väg genom vintern (`varde`, `forsta_serien`, `status` per pass), 3D-trenden (`tre_d`:
 per mått en rad per pass med median, `pass`, `median`, `kvartiler`, `n`, `lage`; S6a,
 METOD MK7), klubbans mått (`klubba`: per mått en rad per pass med `pass`, `vy`, `median` och

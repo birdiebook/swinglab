@@ -304,7 +304,7 @@ public enum Texter {
         "typ": "unknown type", "kravs": "needed for the type", "treregeln": "does not follow the three rules",
         "test": "not a test for this fault", "null": "must be null for technique",
         "inget_block": "no code block from Claude", "inte_json": "the code block is not valid JSON",
-        "inte_att_jobba_pa": "no Focus file in the reply",
+        "inte_att_jobba_pa": "no Focus file in the reply", "for_stort": "the reply is too long",
     ]
 
     /// Kodens text, eller "invalid" för en kod utan text.

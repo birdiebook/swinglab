@@ -173,18 +173,14 @@ def main(argv=None) -> int:
     if a.langd and not a.ut:
         H.spara_spelare(rot, a.langd)
 
-    tidigare, bas_pass, forra = [], [], None
-    if not a.ut:
-        tidigare, bas_pass = H.baslinje(rot, pass_id)
-        forra = H.forra(rot, pass_id)
+    # De tidigare passens enheter; analysen tar de med samma klubba, vy och längd (BESLUT B56).
+    tidigare = [] if a.ut else H.enheter(rot, fore=pass_id)
     if forra_paket:
         f_pass = forra_paket[0].pass_id
-        forra = A.analysera(forra_paket, langd, [], skapad="")
-        if f_pass not in bas_pass:
-            tidigare = tidigare + A.svingar(forra)
-            bas_pass = sorted(bas_pass + [f_pass])
+        if f_pass not in {u["pass"] for u in tidigare}:
+            tidigare = tidigare + A.enheter(A.analysera(forra_paket, langd, [], skapad=""))
     try:
-        analys = A.analysera(paket, langd, tidigare, forra=forra, baslinje_pass=bas_pass)
+        analys = A.analysera(paket, langd, tidigare)
     except ValueError as e:
         print(f"Analysen stoppade: {e}")
         return 1
@@ -215,7 +211,7 @@ def main(argv=None) -> int:
     matta = [r for r in analys["slag"] if "matt" in r]
     print(f"Pass {pass_id}: {len(matta)} slag mätta av {len(analys['slag'])}"
           + (f", förra passet {analys['forra']['pass']}" if analys["forra"] else ", inget förra pass")
-          + f", baslinje ur {len(bas_pass)} pass")
+          + f", baslinje ur {len(analys['baslinje']['pass'])} pass")
     for r in analys["slag"]:
         if "fel" in r:
             print(f"  ej mätt: {r['fel']}")

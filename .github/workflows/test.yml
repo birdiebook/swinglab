@@ -4,7 +4,8 @@ name: tester
 
 on:
   push:
-    paths: ["SwingLabKit/**", "App/**", "tools/**", "docs/**", "project.yml", ".github/workflows/test.yml"]
+    paths: ["SwingLabKit/**", "App/**", "tools/**", "docs/**", "project.yml", ".github/workflows/test.yml",
+            ".claude/skills/svinganalys/**", "katalog.json"]
   pull_request:
   workflow_dispatch:
 

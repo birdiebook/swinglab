@@ -63,11 +63,11 @@ STAMMAR = ("good", "better", "best", "worse", "worst", "bad", "poor", "great", "
 # flit: ett starkt eller svagt grepp är golfens ord för greppet, inget omdöme.
 UNDANTAG = ("badge", "badminton", "bestow", "supinat", "coolin")
 # Fraser som är värdeord fast orden var för sig inte är det.
-FRASER = re.compile(r"\bwell\s+done\b", re.I)
+FRASER = re.compile(r"\bwell\s+done\b", re.I | re.A)
 # Fritexten är engelska (BESLUT B30): svenska tecken fälls.
 SVENSKA = re.compile(r"[åäöÅÄÖ]")
-PASS_ID = re.compile(r"^\d{8}-\d{6}$")
-_ORD = re.compile(r"[a-zåäöéü]+", re.I)
+PASS_ID = re.compile(r"\d{8}-\d{6}", re.A)          # med fullmatch
+_ORD = re.compile(r"[a-zA-ZåäöéüÅÄÖÉÜ]+")
 
 TOPP = ("format", "pass", "skapad", "saker")
 SAK = ("ordning", "fel", "namn", "vy", "matt", "enhet", "nu", "spann", "markning", "ovning", "klart_nar",
@@ -126,7 +126,7 @@ def _fritext(v, falt: str, maxlen: int, fel: list) -> None:
         return
     if len(v) > maxlen:
         fel.append(_F(falt, f"högst {maxlen} tecken", "for_lang"))
-    if re.search(r"\d", v):
+    if re.search(r"\d", v, re.A):
         fel.append(_F(falt, "inga siffror i fritext; tal hör hemma i klart_nar", "siffror"))
     if vardeord(v):
         # Ordet står inte i felet: felet nämner fältet, aldrig värdet (Dataregeln).
@@ -150,6 +150,31 @@ def _nycklar(d, tillatna: tuple, falt: str, fel: list) -> bool:
     return True
 
 
+def _lika(a, b) -> bool:
+    """Pythons == utan att true och false räknas som 1 och 0 (BESLUT B54): samma regel som
+    `JSONVarde.lika` i Swift."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_lika(x, y) for x, y in zip(a, b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_lika(a[k], b[k]) for k in a)
+    if isinstance(a, (list, dict)) or isinstance(b, (list, dict)):
+        return False
+    return a == b
+
+
+def pass_form(v) -> bool:
+    """Ett pass-id: yyyyMMdd-HHmmss med en dag som finns."""
+    if not isinstance(v, str) or not PASS_ID.fullmatch(v):
+        return False
+    try:
+        _datum(v)
+    except ValueError:
+        return False
+    return True
+
+
 def _tal(v) -> bool:
     return not isinstance(v, bool) and isinstance(v, (int, float))
 
@@ -170,9 +195,9 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
     fel: list[Kontrollfel] = []
     if not _nycklar(d, TOPP, "filen", fel):
         return fel
-    if d.get("format") != FORMAT:
+    if not _lika(d.get("format"), FORMAT):
         fel.append(_F("format", f"ska vara {FORMAT}", "format"))
-    pass_ok = isinstance(d.get("pass"), str) and bool(PASS_ID.match(d["pass"]))
+    pass_ok = pass_form(d.get("pass"))
     if not pass_ok:
         fel.append(_F("pass", "ska vara yyyyMMdd-HHmmss", "pass_form"))
     elif d["pass"] != analys.get("pass"):
@@ -193,7 +218,7 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
         p = f"saker[{i}]"
         if not _nycklar(s, SAK, p, fel):
             continue
-        if s.get("ordning") != i + 1:
+        if not _lika(s.get("ordning"), i + 1):
             fel.append(_F(f"{p}.ordning", f"ska vara {i + 1}", "ordning"))
         fid = s.get("fel")
         k = K.get(fid) if isinstance(fid, str) else None
@@ -203,11 +228,11 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
         if not k["aktiv"]:
             fel.append(_F(f"{p}.fel", "är avstängt i katalogen", "avstangt"))
         for f in ("namn", "vy", "matt"):
-            if s.get(f) != k[f]:
+            if not _lika(s.get(f), k[f]):
                 fel.append(_F(f"{p}.{f}", "ska vara katalogens", "katalogens"))
-        if s.get("enhet") != A.enhet(k["matt"]):
+        if not _lika(s.get("enhet"), A.enhet(k["matt"])):
             fel.append(_F(f"{p}.enhet", "ska vara måttets", "mattets"))
-        if s.get("spann") != k["gront"]:
+        if not _lika(s.get("spann"), k["gront"]):
             fel.append(_F(f"{p}.spann", "ska vara katalogens gröna spann", "katalogens"))
         # Tidigt i svingen före sent (research 3 (a) 2).
         f_i = fas.get(k["fas"], len(fas))
@@ -230,7 +255,7 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
                 fel.append(_F(f"{p}.fel", "okänt fel får väljas bara när inget är flaggat", "okant_med_flaggade"))
         else:
             fel.append(_F(f"{p}.fel", "är inte flaggat i analysen", "inte_flaggat"))
-        if s.get("nu") != b.get("visat"):
+        if not _lika(s.get("nu"), b.get("visat")):
             fel.append(_F(f"{p}.nu", "ska vara analysens tal (visat)", "analysens_tal"))
 
         # Minnet: fortsätter samma övning, eller är den ny? Jämförs på övningens id,
@@ -239,7 +264,7 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
         ov = s.get("ovning")
         text = ov.get("text") if isinstance(ov, dict) else None
         ov_id = ov.get("id") if isinstance(ov, dict) else None
-        fortsatter = o is not None and o.get("ovning_id", o["ovning"]) == ov_id
+        fortsatter = o is not None and _lika(o.get("ovning_id", o["ovning"]), ov_id)
         if fortsatter and o["lage"] == "klart":
             fel.append(_F(p, "övningen är klar enligt minnet; släpp saken", "klar"))
         if fortsatter and o["lage"] == "byt_ovning":
@@ -250,15 +275,15 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
         # Övningen: ur katalogen eller kedjor.json, aldrig fritext; id och text hör ihop.
         if _nycklar(ov, OVNING, f"{p}.ovning", fel):
             if ov.get("kalla") == "katalog":
-                if ov_id != k.get("ovning_id"):
+                if not _lika(ov_id, k.get("ovning_id")):
                     fel.append(_F(f"{p}.ovning.id", "ska vara katalogens när kalla är katalog", "katalogens"))
-                if text != k["ovning"]:
+                if not _lika(text, k["ovning"]):
                     fel.append(_F(f"{p}.ovning.text", "ska vara katalogens när kalla är katalog", "katalogens"))
             elif ov.get("kalla") == "research3":
                 x = next((x for x in kedjor["ovningar"] if x["fel"] == fid and x.get("id") == ov_id), None)
                 if x is None:
                     fel.append(_F(f"{p}.ovning.id", "ska vara en av felets övningar i kedjor.json", "ej_i_kedjorna"))
-                elif text != x["text"]:
+                elif not _lika(text, x["text"]):
                     fel.append(_F(f"{p}.ovning.text", "ska vara övningens text i kedjor.json", "kedjornas"))
             else:
                 fel.append(_F(f"{p}.ovning.kalla", "ska vara katalog eller research3", "kalla"))
@@ -283,33 +308,33 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
                     fel.append(_F(f"{p}.klart_nar.grans", "ska vara [min, max]", "grans_spann"))
             elif not _tal(kn.get("grans")):
                 fel.append(_F(f"{p}.klart_nar.grans", "ska vara ett tal", "grans_tal"))
-            if kn.get("pa") != "forsta_serien":
+            if not _lika(kn.get("pa"), "forsta_serien"):
                 fel.append(_F(f"{p}.klart_nar.pa", "ska vara forsta_serien", "pa"))
             if kn.get("pass_i_rad") != PASS_I_RAD or isinstance(kn.get("pass_i_rad"), bool):
                 fel.append(_F(f"{p}.klart_nar.pass_i_rad", f"ska vara {PASS_I_RAD}", "pass_i_rad"))
             if fortsatter:
                 ok = o["klart_nar"]
-                if (kn.get("villkor"), kn.get("grans")) != (ok["villkor"], ok["grans"]):
+                if not (_lika(kn.get("villkor"), ok["villkor"]) and _lika(kn.get("grans"), ok["grans"])):
                     fel.append(_F(f"{p}.klart_nar", "ska vara samma som när övningen valdes", "last"))
-                if s.get("markning") != o.get("markning"):
+                if not _lika(s.get("markning"), o.get("markning")):
                     fel.append(_F(f"{p}.markning", "ska vara samma som när övningen valdes", "last"))
             else:
                 bkn = b.get("klart_nar")
                 if bkn is None:
                     fel.append(_F(f"{p}.klart_nar", "analysen har inget förslag för felet", "inget_forslag"))
                 else:
-                    if (kn.get("villkor"), kn.get("grans")) != (bkn.get("villkor"), bkn.get("grans")):
+                    if not (_lika(kn.get("villkor"), bkn.get("villkor")) and _lika(kn.get("grans"), bkn.get("grans"))):
                         fel.append(_F(f"{p}.klart_nar", "ska vara analysens förslag", "analysens"))
-                    if s.get("markning") != bkn.get("markning"):
+                    if not _lika(s.get("markning"), bkn.get("markning")):
                         fel.append(_F(f"{p}.markning", "ska vara analysens", "analysens"))
 
         # Blocket: från första gången felet valdes, i veckor.
         blk = s.get("block")
         if _nycklar(blk, BLOCK, f"{p}.block", fel) and pass_ok:
             start = _datum(o["fel_start"]) if o is not None else _datum(d["pass"])
-            if blk.get("start") != start.isoformat():
+            if not _lika(blk.get("start"), start.isoformat()):
                 fel.append(_F(f"{p}.block.start", "ska vara dagen då felet först valdes", "block_start"))
-            if blk.get("vecka") != (_datum(d["pass"]) - start).days // 7 + 1:
+            if not _lika(blk.get("vecka"), (_datum(d["pass"]) - start).days // 7 + 1):
                 fel.append(_F(f"{p}.block.vecka", "ska vara veckan sedan blockets start", "block_vecka"))
 
         # Följdfelen: mäts, övas inte, och bara enligt kedjorna (flera led går).
@@ -328,15 +353,15 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
                 vag = A.orsaker(kedjor, ffid).get(fid)
                 if vag is None:
                     fel.append(_F(f"{q}.fel", "ingen kedja i kedjor.json från saken", "ingen_kedja"))
-                elif f.get("vag") != vag:
+                elif not _lika(f.get("vag"), vag):
                     fel.append(_F(f"{q}.vag", "ska vara kedjans väg från saken", "vag"))
                 if ffid in valda:
                     fel.append(_F(f"{q}.fel", "är också en vald sak", "vald"))
-                if f.get("namn") != K[ffid]["namn"]:
+                if not _lika(f.get("namn"), K[ffid]["namn"]):
                     fel.append(_F(f"{q}.namn", "ska vara katalogens", "katalogens"))
-                if f.get("enhet") != A.enhet(K[ffid]["matt"]):
+                if not _lika(f.get("enhet"), A.enhet(K[ffid]["matt"])):
                     fel.append(_F(f"{q}.enhet", "ska vara måttets", "mattets"))
-                if f.get("nu") != bed.get(ffid, {}).get("visat"):
+                if not _lika(f.get("nu"), bed.get(ffid, {}).get("visat")):
                     fel.append(_F(f"{q}.nu", "ska vara analysens tal (visat)", "analysens_tal"))
 
         # Fysik före teknik bara enligt treregeln.
@@ -367,13 +392,15 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
 def _nyckel(v):
     """Ett värde som går att slå upp i en mängd eller en lista av texter: en lista eller ett
     objekt ur filen (som Claude skrivit fel) blir None i stället för att kasta."""
-    return v if isinstance(v, (str, int, float, bool)) or v is None else None
+    if isinstance(v, bool):
+        return ("bool", v)                     # true är inte 1 (BESLUT B54)
+    return v if isinstance(v, (str, int, float)) or v is None else None
 
 
 # Tiden i `skapad`: ISO 8601 som datetime.fromisoformat läser den, i den form telefonen
 # prövar likadant (BESLUT B54): dagen, och valfritt tiden med sekunder, bråkdel och zon.
-SKAPAD = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,6})?)?"
-                    r"(?:Z|[+-](\d{2}):(\d{2}))?)?$")
+SKAPAD = re.compile(r"(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,6})?)?"
+                    r"(?:Z|[+-](\d{2}):(\d{2}))?)?", re.A)
 
 
 def skapad_ok(v) -> bool:
@@ -381,7 +408,7 @@ def skapad_ok(v) -> bool:
     Z eller ±HH:mm. Samma regel i Swift (`AttJobbaPaKontroll`)."""
     if not isinstance(v, str):
         return False
-    m = SKAPAD.match(v)
+    m = SKAPAD.fullmatch(v)
     if not m:
         return False
     ar, man, dag, h, mi, s, zh, zm = (int(x) if x is not None else None for x in m.groups())
@@ -426,10 +453,41 @@ def _normalisera(s: str) -> str:
     return "".join(UTBYTEN.get(c, c) for c in s)
 
 
+MAX_SVAR = 64 * 1024     # METOD MT12: byte i urklippet som läses
+MAX_DJUP = 32            # METOD MT12: listor och objekt i varandra
+
+
+def djup(s: str) -> int:
+    """Hur djupt listor och objekt ligger i varandra, utanför texter."""
+    d = mx = 0
+    i, n, i_text = 0, len(s), False
+    while i < n:
+        c = s[i]
+        if i_text:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                i_text = False
+        elif c == '"':
+            i_text = True
+        elif c in "[{":
+            d += 1
+            mx = max(mx, d)
+        elif c in "]}":
+            d -= 1
+        i += 1
+    return mx
+
+
 def _json(s: str):
     def nej(x):
         raise ValueError(x)
-    return json.loads(s, parse_constant=nej)
+    if djup(s) > MAX_DJUP:
+        raise ValueError("för djupt")
+    try:
+        return json.loads(s, parse_constant=nej)
+    except RecursionError as e:
+        raise ValueError("för djupt") from e
 
 
 def ur_text(text: str) -> tuple[dict | None, list[Kontrollfel]]:
@@ -437,6 +495,8 @@ def ur_text(text: str) -> tuple[dict | None, list[Kontrollfel]]:
     läsa som en `att_jobba_pa.json` (ett objekt med `format` eller `saker`), annars hela texten
     eller det mellan första { och sista }. Felet säger vad som saknas, aldrig vad som stod.
     METOD MT12"""
+    if len(text.encode("utf-8", "surrogatepass")) > MAX_SVAR:
+        return None, [Kontrollfel("svaret: för långt", "svaret", "for_stort")]
     block = kodblock(text)
     kandidater = block or [text] + ([text[text.index("{"):text.rindex("}") + 1]]
                                     if "{" in text and "}" in text[text.index("{"):] else [])
@@ -487,6 +547,9 @@ def main(argv=None) -> int:
             text = Path(a.ur_text).read_text(encoding="utf-8")
         else:
             d = json.loads(Path(a.fil).read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        print("går inte att läsa som UTF-8")
+        return 1
     except (OSError, json.JSONDecodeError) as e:
         print(f"går inte att läsa som JSON ({type(e).__name__})")
         return 1

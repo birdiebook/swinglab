@@ -154,12 +154,21 @@ class SpridningenOchSkiftet(unittest.TestCase):
         self.assertEqual(a["skifte_ej_tillbaka"]["fo_matta"], 8)
 
     def test_olika_klubbor_blandas_inte(self) -> None:
+        """BESLUT B56: varje klubba analyseras för sig, huvudklubban överst och de andra i delar."""
         a = self.analys({"fo": "j7", "dtl": "dr"})
-        klubbor = {e["klubba"] for e in a["spridning"]}
-        self.assertEqual(len(klubbor), 2)
-        for e in a["spridning"]:
-            # DTL-måtten finns bara med DTL-paketets klubba.
-            self.assertEqual(e["n"] > 0, e["klubba"] == next(r["klubba"] for r in a["slag"] if r["vy"] == "dtl"))
+        delar = [a] + a["delar"]
+        self.assertEqual(sorted(d.get("huvudklubba", d.get("klubba")) for d in delar), ["dr", "j7"])
+        for d in delar:
+            k = d.get("huvudklubba", d.get("klubba"))
+            dtl = k == next(r["klubba"] for r in a["slag"] if r["vy"] == "dtl")
+            for e in d["spridning"]:
+                self.assertEqual(e["klubba"], k)
+                # DTL-måtten finns bara med DTL-paketets klubba.
+                self.assertEqual(e["n"] > 0, dtl)
+            self.assertEqual(bool(d["session"]["dtl"]), dtl)
+            self.assertEqual(bool(d["session"]["fo"]), not dtl)
+        self.assertEqual({u["klubba_id"]: u["huvud"] for u in A.enheter(a)},
+                         {a["huvudklubba"]: True, a["delar"][0]["klubba"]: False})
 
 
 class Renheten(unittest.TestCase):

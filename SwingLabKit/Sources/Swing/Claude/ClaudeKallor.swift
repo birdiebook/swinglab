@@ -9,24 +9,30 @@ public enum ClaudeKallor {
     public static let instruktion = #"""
 **Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude") och klistrat in
 den här. Datan längst ned är räknad på telefonen med samma regler och fältnamn som på
-PC:n: `kandidater` och `bedomning` ur analysen (`visat` är talet som visas,
-`forsta_serien` första seriens median, `spann: null` egen baslinje, `baslinje` dess median,
-sd och svingar, `mot_forra` mot förra passet), `ovningar` ur minnet, `historik` felens
-`[visat, status]` pass för pass, `pagaende` den senaste "Att jobba på", och `mallar` med
-analysens eller minnets "klart när" och märkning. Följ stegen A–I.
-Mät inget och räkna inte om något: varje tal står i datan. Fråga inget: saknas missen
-(steg C) eller svaren till treregeln (steg G) gäller stegets regel utan svar. Johannes kan
-ha skrivit missen efter texten.
+PC:n, för passets `klubba` och de tidigare passen med samma klubba, vy och längd:
+`kandidater` och `bedomning` ur analysen (felen som inte är gröna; `visat` är talet som
+visas, `forsta_serien` första seriens median, `grund` gräns eller egen baslinje, `baslinje`
+dess median, sd och svingar, `mot_forra` mot förra passet), `ovningar` ur minnet,
+`historik` felens `[visat, status]` pass för pass, `pagaende` den senaste "Att jobba på",
+och `mallar` med analysens eller minnets "klart när" och märkning. Kedjorna är
+kandidaternas `orsaker` och mallarnas `foljdfel`, övningarna `ovning_val` och testen
+`fysik_test`. Följ stegen A–I.
+
+**Frågorna.** Fråga inte efter missen (steg C); Johannes kan ha skrivit den efter texten.
+Säger minnet `fysik` för ett fel: ställ treregelns frågor 2 och 3 (steg G) och skriv inget
+kodblock förrän han svarat.
 
 **Svaret.** Först rapporten på svenska, högst 9 rader: varje sak med talet, gränsen och
 gränsens sort (steg H), kedjan, övningen och tanken; förra valets läge; missen eller att
-den saknades. Sist **ett** kodblock ```json med filen: objektet `fil` med `saker` (1–3).
-Bygg varje sak ur sin mall i `mallar`: `ordning` (1, 2, 3 i svingens ordning), mallens
-fält ordagrant, `ovning` = ett av `ovning_val` med `steg` ur `steg_val` och en `tanke`
-(steg I), och `typ` och `fysik` efter steg G (`fysik_test` är felets test). Ta inte med
-`ovning_val`, `steg_val` eller `fysik_test`. Ett fel utan mall går inte att välja. All
-text i filen är engelska. Telefonen kontrollerar filen som PC:n och tar emot den bara när
-allt stämmer.
+den saknades. Sist **ett** kodblock ```json med filen: `fil`s fält med `saker` tillagd,
+inget yttre objekt och inga egna nycklar. Varje sak byggs ur sin mall i `mallar`, med
+fälten i den här ordningen: `ordning` (1, 2, 3 i svingens ordning); mallens `fel`, `namn`,
+`vy`, `matt`, `enhet`, `nu`, `spann` och `markning` ordagrant; `ovning` = ett av
+`ovning_val` (`id`, `text`, `kalla`) med en `tanke` (steg I) och ett `steg` ur `steg_val`;
+mallens `klart_nar`, `foljdfel` och `block` ordagrant; `typ` och `fysik` efter steg G
+(`"teknik"` och `null` utan treregelns svar). Ta inte med `grund`, `ovning_val`,
+`steg_val` eller `fysik_test`. Ett fel utan mall går inte att välja. All text i filen är
+engelska. Telefonen kontrollerar filen som PC:n och tar emot den bara när allt stämmer.
 
 **A. Läget för förra valet först.** Läs bara övningar i minnet (`ovningar`)
 med `aktuell: true`. En övning med `lage: "avslutad"` (klar och släppt, eller
@@ -40,32 +46,34 @@ det väljs igen. För de aktuella:
   märkningen från valet står kvar i minnet men gäller inte längre.
 - `fortsatt` eller `ny`: behåll samma sak och samma övning, med **samma "klart
   när" och märkning som när övningen valdes** (minnets `klart_nar` och
-  `markning`), och samma `block.start`. Steget står kvar eller tar nästa
-  (`steg`, METOD MT10). Byt inte en övning som rör sig, och byt inte efter ett
-  enda pass.
+  `markning`), och samma `block.start`. Steget står kvar, eller tar nästa när
+  den senaste uppföljningen är `tydlig` (`steg`, METOD MT10). Byt inte en övning
+  som rör sig, och byt inte efter ett enda pass.
 - `byt_ovning` (4 pass i rad utan tydlig rörelse, METOD MT5): behåll felet och
-  blocket men välj en annan övning för det ur `tools/pc/kedjor.json`
-  (`kalla: "research3"`), aldrig en vars `id` står i `forra_ovningar`. Den nya
-  övningen börjar på första steget och får analysens "klart när".
+  blocket men välj en annan övning för det ur kedjorna (`kalla: "research3"`),
+  aldrig en vars `id` står i `forra_ovningar`. Den nya övningen börjar på första
+  steget och får analysens "klart när". Är alla provade: välj inte felet, och säg
+  att treregeln (steg G) är nästa steg.
 - `fysik` (sex veckor från första gången felet valdes, utan tydlig rörelse över
-  alla dess övningar): gå till steg G innan något annat.
+  alla dess övningar, och felet har ett test): gå till steg G innan något annat.
 
 **B. Kandidaterna.** Utgå från `kandidater` i analysen (gula och röda fel,
 redan i läsordning, METOD MT6). Ett grönt fel övas aldrig. Ett `okand` fel
 (ingen gräns och ingen baslinje än) får väljas bara när `kandidater` är tom
 och analysen har ett `klart_nar` för det.
 
-**C. Missen avgör (bollflykten är domaren).** Fråga Johannes passets
-vanligaste miss (tunn, fet, push, pull, slice, hook) om han inte sagt den. Ett
-fel som inte kan förklara missen flyttas ned; ett avvikande mått med bra träff
-och flykt är inte ett fel. Utan svar: fortsätt, och skriv att missen saknades.
+**C. Missen avgör (bollflykten är domaren).** Passets vanligaste miss (tunn,
+fet, push, pull, slice, hook) kommer från Johannes; på PC:n frågar du om han inte
+sagt den. Ett fel som inte kan förklara missen flyttas ned; ett avvikande mått med
+bra träff och flykt är inte ett fel. Utan svar: fortsätt, och skriv att missen
+saknades.
 
 **D. Grundorsaken först, en kedja per sak.** Ett fel med `foljdfel: true` i
-kandidaterna har en flaggad orsak i `kedjor.json`. Det blir **aldrig** en egen
+kandidaterna har en flaggad orsak i kedjorna. Det blir **aldrig** en egen
 sak, inte heller ensamt: det står under orsakens `foljdfel` och mäts, men övas
 inte. Skriv varje följdfel med kedjans hela väg (`vag`, saken först), även när
 det ligger flera led bort, och analysens tal. Två saker får inte ligga i samma
-kedja. Kedjor som inte står i `kedjor.json` finns inte för skillen.
+kedja. Kedjor som inte står i kedjorna finns inte för skillen.
 
 **E. Tidigt i svingen före sent.** Adress → topp → nedsving → träff → efter
 träffen. Sakerna står i den ordningen. Tempot har låg prioritet och väljs bara
@@ -74,14 +82,14 @@ när inget annat är flaggat; det tas ur en vy (`tempo_vy`, METOD MT9).
 **F. Välj 1–3.** Helst **en** sak att öva; högst två till. Fler än tre fäller
 kontrollen. Hellre en sak med en tydlig kedja än tre lösa.
 
-**G. "Troligen rörlighet" bara enligt treregeln** (METOD MT5). Fråga Johannes:
+**G. "Troligen rörlighet" bara enligt treregeln** (METOD MT5). Frågorna:
 (1) syns felet i full sving (analysen svarar), (2) fallerar ett kopplat test
-(`fysik` i kandidaten, ur `kedjor.json`), (3) går rörelsen inte heller långsamt
-utan klubba. Alla tre ja → `typ: "troligen_rorlighet"` med en rörlighetsövning.
+(`fysik` i kandidaten), (3) går rörelsen inte heller långsamt utan klubba
+(Johannes svarar på 2 och 3). Alla tre ja → `typ: "troligen_rorlighet"` med en rörlighetsövning.
 1 och 2 men inte 3 → `"teknik_kroppen_gor_det_svart"`. Annars `"teknik"`, med
 svaren i `fysik.treregeln` och `fysik.ovning: null`. Utan Johannes svar:
-`fysik: null` och teknik, utom när minnet säger `fysik` (då fäller kontrollen
-`null`). Säg "troligen", aldrig "är".
+`fysik: null` och teknik, utom när minnet säger `fysik`: då krävs svaren (kontrollen
+fäller `null`). Säg "troligen", aldrig "är".
 
 **H. Gränsens vikt.** Står `markning: "B10"` är gränsen inte läst i original; står
 `"egen"` är det Johannes egen baslinje (eller passet självt, `grund: "nu"`); `null` är
@@ -91,24 +99,25 @@ därefter: ett rött mot en kontrollerad gräns väger mer än ett gult mot en
 egen baslinje på 8 svingar. Säg i rapporten vilken sort varje gräns är.
 
 **I. Övningen, stegen och tanken.** Övningen är aldrig fritext: katalogens
-ordagrant (`kalla: "katalog"`) eller en av felets övningar i `kedjor.json`
+ordagrant (`kalla: "katalog"`) eller en av felets övningar i kedjorna
 (`kalla: "research3"`), med dess id i `ovning.id` (katalogens `ovning_id` eller
 övningens `id` i kedjorna). Samma id = samma övning, även om texten skrivits om.
 En ny övning börjar på `langsamt_med_foremal`; sedan
-halv fart, full fart, varierat, ett steg i taget när Johannes klarar steget.
+halv fart, full fart, varierat, ett steg i taget när Johannes klarar steget (den
+senaste uppföljningen är `tydlig`).
 Tanken skrivs på engelska och har **extern fokus**: vad klubban, bollen eller ett
 föremål (stol, käpp, vägg, headcover) gör, aldrig vad en led gör ("Leave the stick
 standing", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 
 ## Det Claude inte får göra
 
-- **Mäta själv.** Inget tal skattas ur kontaktarket, videon eller lederna.
-  Varje tal i filen och rapporten kommer ur `analys.json` eller minnet
-  (BESLUT B2); `att_jobba_pa.py --analys` fäller ett eget.
+- **Mäta själv.** Inget tal skattas ur bilderna, videon eller lederna.
+  Varje tal i filen och rapporten kommer ur analysen eller minnet
+  (BESLUT B2); kontrollen fäller ett eget.
 - **Hitta på gränser, kedjor, övningar eller test.** Gränserna kommer ur
   katalogen, analysens förslag eller minnet; kedjorna, övningarna och testen ur
-  `kedjor.json`. Saknas något: säg det, och föreslå en rad med källa i
-  rapporten i stället.
+  kedjorna. Saknas något: säg det, och föreslå en rad med källa i rapporten i
+  stället.
 - **Flytta "klart när"** för en övning som fortsätter.
 
 - **Värdeord eller siffror i appens fritext** (BESLUT B13): inget "good",

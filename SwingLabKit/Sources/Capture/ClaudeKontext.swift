@@ -7,15 +7,15 @@ import Swing
 // Knapparna "Ask Claude" och "Paste from Claude" kommer i S5b-2.
 
 extension PassState {
-    /// Passets slag som analysen läser: de som räknas, i passets ordning, med passets vy och
-    /// klubba, och de första i serie 1 som första serien (METOD MT2, som `visningsPass`).
+    /// Passets slag som analysen läser: de som räknas, i passets ordning, med passets vy, klubbans
+    /// id ("j7", som i paketet till PC:n) och längden, och de första i serie 1 som första serien
+    /// (METOD MT2, som `visningsPass`).
     public var claudeRader: Passrader {
         let v = visningsPass
-        let klubba = PassSetup.clubLabel(setup.club)
         let slag = v.svingar.enumerated().map { i, s in
-            Slagrad(vy: s.vy, klubba: klubba, matt: s.matt, forstaSerien: i < v.serie1)
+            Slagrad(vy: s.vy, klubba: setup.club, matt: s.matt, forstaSerien: i < v.serie1)
         }
-        return Passrader(pass: id, slag: slag)
+        return Passrader(pass: id, langd: measuredHeight?.heightM, slag: slag)
     }
 }
 
@@ -28,13 +28,17 @@ public enum ClaudeKontext {
         return f.string(from: d)
     }
 
-    /// Underlaget för `nu`: passet och de tidigare passen som kan jämföras (`PassHistory.earlier`),
-    /// och alla hämtade filer (`FocusInbox.readAll`). nil när passet inte har några slag som räknas.
+    /// Underlaget för `nu`: passet och de tidigare passen som kan jämföras (`PassHistory.earlier`:
+    /// samma klubba, vy och längd), och de hämtade filerna (`FocusInbox.readAll`) för just de
+    /// passen, så att ett val för en annan klubba eller vy inte rör minnet (BESLUT B56). nil när
+    /// passet inte har några slag som räknas.
     public static func underlag(nu: PassState, alla: [PassState], filer: [AttJobbaPa], katalog: Katalog,
                                 skapad: Date = Date(), zon: TimeZone = .current) -> ClaudeUnderlag? {
         guard !nu.countedSwings.isEmpty else { return nil }
         let passen = PassHistory.earlier(nu, among: alla).map(\.claudeRader) + [nu.claudeRader]
-        return ClaudeUnderlag(passen: passen, filer: filer, skapad: Self.skapad(skapad, zon: zon), katalog: katalog)
+        let ids = Set(passen.map(\.pass))
+        return ClaudeUnderlag(passen: passen, nu: nu.id, filer: filer.filter { ids.contains($0.pass) },
+                              skapad: Self.skapad(skapad, zon: zon), katalog: katalog)
     }
 }
 

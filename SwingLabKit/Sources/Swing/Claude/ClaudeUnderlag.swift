@@ -12,30 +12,37 @@ public struct ClaudeUnderlag: Sendable {
     public static let uppfoljningRader = 4
     /// z mot baslinjen med en decimal. METOD MT11
     public static let zDecimaler = 1
+    /// Mallar för nya fel; övningar som fortsätter kommer till. METOD MT11
+    public static let maxNyaMallar = 3
     public static let rubrik = "# SwingLab: Att jobba på efter passet "
     public static let dataRubrik = "## Datan"
 
-    /// Passet som texten gäller, och alla pass till och med det, äldst först.
+    /// Passets enhet (huvudklubban), och enheterna med samma klubba och längd till och med det.
     public let analys: Passanalys
     public let analyser: [Passanalys]
     /// Minnet före passets val (`Ovningslage.minne(…, fore: passet)`).
     public let ovningar: [Ovningslage]
+    /// Valen för passen i sammanhanget.
     public let filer: [AttJobbaPa]
     public let skapad: String
     public let katalog: Katalog
     public let kedjor: Kedjor
 
-    /// Underlaget för det senaste passet i `passen` (äldst först eller i valfri ordning), med
-    /// alla hämtade `att_jobba_pa.json` (`FocusInbox.readAll`). `skapad` = tiden i ISO 8601.
-    /// nil utan pass.
-    public init?(passen: [Passrader], filer: [AttJobbaPa], skapad: String, katalog: Katalog,
+    /// Underlaget för passet `nu` ur passen (i valfri ordning) och alla hämtade
+    /// `att_jobba_pa.json` (`FocusInbox.readAll`), som `underlag` i underlag.py: enheterna med
+    /// samma klubba och längd som passets huvudklubba, valen för deras pass och minnet före
+    /// passets val (BESLUT B56). `skapad` = tiden i ISO 8601. nil när passet saknas.
+    public init?(passen: [Passrader], nu: String, filer: [AttJobbaPa], skapad: String, katalog: Katalog,
                  kedjor: Kedjor = .appens) {
-        let analyser = Passanalys.historik(passen, katalog: katalog, kedjor: kedjor)
-        guard let sist = analyser.last else { return nil }
-        analys = sist
-        self.analyser = analyser
-        ovningar = Ovningslage.minne(analyser, filer, till: sist.pass, fore: sist.pass)
-        self.filer = filer
+        let enh = Passanalys.historik(passen, katalog: katalog, kedjor: kedjor)
+        let ctx = Passanalys.sammanhang(enh, nu: nu)
+        guard let n = ctx.first(where: { $0.huvud && $0.pass == nu }) else { return nil }
+        let huvudpass = Set(ctx.filter(\.huvud).map(\.pass))
+        let docs = filer.filter { huvudpass.contains($0.pass) }
+        analys = n
+        analyser = ctx
+        ovningar = Ovningslage.minne(ctx, docs, till: nu, fore: nu, kedjor: kedjor)
+        self.filer = docs
         self.skapad = skapad
         self.katalog = katalog
         self.kedjor = kedjor
@@ -57,8 +64,7 @@ public struct ClaudeUnderlag: Sendable {
 
     static func z(_ v: Double?) -> JSONVarde {
         guard let v else { return .null }
-        let k = pow(10, Double(zDecimaler))
-        return .tal((v * k).rounded() / k)
+        return .tal(Avrundning.pyRound(v, zDecimaler))
     }
 
     static func klartNarFil(villkor: String, grans: JSONVarde, pa: String = "forsta_serien",
@@ -68,9 +74,10 @@ public struct ClaudeUnderlag: Sendable {
 
     func bedomning() -> JSONVarde {
         .lista(analys.bedomning.compactMap { b -> JSONVarde? in
-            guard b.status != .av, let visat = b.visat else { return nil }
+            guard b.status != .av, b.status != .gron, let visat = b.visat else { return nil }
             var p: [(String, JSONVarde)] = [("id", .text(b.id)), ("vy", .text(b.vy)), ("enhet", .text(b.enhet)),
                                             ("status", .text(b.status.rawValue))]
+            if let g = b.grund { p.append(("grund", .text(g))) }
             if b.z != nil { p.append(("z", Self.z(b.z))) }
             p += [("n", .i(b.n)), ("visat", .tal(visat)), ("forsta_serien", .d(b.forstaSerien)),
                   ("spann", .spann(b.spann))]
@@ -92,18 +99,21 @@ public struct ClaudeUnderlag: Sendable {
     }
 
     func historik() -> JSONVarde {
-        let passen = Array(analyser.map(\.pass).filter { $0 <= analys.pass }.sorted().suffix(Self.historikPass))
-        var per: [String: Passanalys] = [:]
-        for a in analyser { per[a.pass] = a }
+        let passen = Array(analyser.filter { $0.pass <= analys.pass }.sorted(by: Passanalys.fore)
+            .suffix(Self.historikPass))
         var fel: [(String, JSONVarde)] = []
         for f in katalog.fel where f.aktiv {
-            let rader = passen.map { p -> JSONVarde in
-                guard let b = per[p]?.rad(f.id), let v = b.visat else { return .null }
+            let rader = passen.map { u -> JSONVarde in
+                guard let b = u.rad(f.id), let v = b.visat else { return .null }
                 return .lista([.tal(v), .text(b.status.rawValue)])
             }
-            if rader.contains(where: { $0 != .null }) { fel.append((f.id, JSONVarde.lista(rader))) }
+            let flaggat = passen.contains { u in
+                guard let b = u.rad(f.id), b.visat != nil else { return false }
+                return b.status != .gron
+            }
+            if flaggat { fel.append((f.id, JSONVarde.lista(rader))) }
         }
-        return .o([("pass", .texter(passen)), ("fel", .o(fel))])
+        return .o([("pass", .texter(passen.map(\.pass))), ("fel", .o(fel))])
     }
 
     static func uppfoljning(_ u: Ovningslage.Uppfoljning) -> JSONVarde {
@@ -163,8 +173,9 @@ public struct ClaudeUnderlag: Sendable {
         var minne: [String: Ovningslage] = [:]
         for o in ovningar where o.lage != "avslutad" { minne[o.fel] = o }
         let fel: [String] = kand.isEmpty
-            ? analys.bedomning.filter { $0.status == .okand && $0.klartNar != nil }.map(\.id)
+            ? analys.bedomning.filter { $0.status == .okand && $0.klartNar != nil && $0.visat != nil }.map(\.id)
             : kand.filter { !$0.foljdfel }.map(\.fel)
+        var nya = 0
         guard let dag = Dag.fran(analys.pass) else { return .lista([]) }
         let stegen = AttJobbaPa.Ovning.stegen
         var ut: [JSONVarde] = []
@@ -184,7 +195,8 @@ public struct ClaudeUnderlag: Sendable {
                 val = [nuvarande]
                 steg = Array(stegen[i..<min(i + 2, stegen.count)])
             } else {
-                guard let bkn = b.klartNar else { continue }
+                guard let bkn = b.klartNar, nya < Self.maxNyaMallar else { continue }
+                nya += 1
                 kn = Self.klartNarFil(villkor: bkn.villkor, grans: bkn.grans)
                 markning = bkn.markning
                 let provade = o.map { [$0.ovningId] + $0.forraOvningar } ?? []
@@ -206,7 +218,8 @@ public struct ClaudeUnderlag: Sendable {
             }
             ut.append(.o([
                 ("fel", .text(fid)), ("namn", .text(k.namn)), ("vy", .text(k.vy)), ("matt", .text(k.matt)),
-                ("enhet", .text(Avrundning.enhet(k.matt))), ("nu", .d(b.visat)), ("spann", .spann(k.gront)),
+                ("enhet", .text(Avrundning.enhet(k.matt))), ("nu", .d(b.visat)), ("grund", .t(b.grund)),
+                ("spann", .spann(k.gront)),
                 ("markning", .t(markning)), ("klart_nar", kn), ("foljdfel", .lista(foljd)),
                 ("block", .o([("start", .text(Dag.iso(start))), ("vecka", .i(Dag.vecka(fran: start, till: dag)))])),
                 ("ovning_val", .lista(val)), ("steg_val", .texter(steg)), ("fysik_test", .texter(kedjor.test(fid))),
@@ -222,7 +235,7 @@ public struct ClaudeUnderlag: Sendable {
         return .o([
             ("pass", .text(a.pass)),
             ("datum", .text(Self.dag(a.pass))),
-            ("klubbor", .texter(a.klubbor)),
+            ("klubba", .t(a.klubba)),
             ("slag", .o([("dtl", .i(dtl)), ("fo", .i(fo))])),
             ("tempo_vy", .text(a.tempoVy)),
             ("forra", .t(a.forra)),
@@ -232,8 +245,7 @@ public struct ClaudeUnderlag: Sendable {
             ("kandidater", kandidater()),
             ("bedomning", bedomning()),
             ("spridning", .lista(a.spridning.filter { $0.n > 0 }.map { s -> JSONVarde in
-                .o([("matt", .text(s.matt)), ("vy", .text(s.vy)), ("klubba", .t(s.klubba)), ("n", .i(s.n)),
-                    ("visat", .d(s.visat))])
+                .o([("matt", .text(s.matt)), ("vy", .text(s.vy)), ("n", .i(s.n)), ("visat", .d(s.visat))])
             })),
             ("historik", historik()),
             ("ovningar", .lista(ovningar.map(Self.ovningMinne))),

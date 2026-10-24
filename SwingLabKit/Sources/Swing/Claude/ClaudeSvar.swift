@@ -67,7 +67,11 @@ public enum ClaudeSvar {
 
     /// Filen ur svaret, eller felet: inget kodblock, ett block som inte är JSON, eller inget
     /// block med en `att_jobba_pa.json` (ett objekt med `format` eller `saker`). METOD MT12
+    /// Byte i urklippet som läses; längre är inte ett svar. METOD MT12
+    public static let maxSvar = 64 * 1024
+
     public static func urText(_ text: String) -> (fil: JSONVarde?, fel: [Kontrollfel]) {
+        guard text.utf8.count <= maxSvar else { return (nil, [Kontrollfel("svaret", "for_stort")]) }
         let block = kodblock(text)
         var kandidater = block
         if block.isEmpty {

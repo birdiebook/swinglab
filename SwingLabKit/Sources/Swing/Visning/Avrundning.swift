@@ -31,11 +31,18 @@ public enum Avrundning {
         decimaler(enhet: enhet(matt))
     }
 
-    /// Talet som visas, avrundat som PC:n gör (halvor bort från noll på decimaltalet;
-    /// PC:ns tal i filen är redan avrundade, så de visas oförändrade).
+    /// Talet som visas, avrundat som PC:n gör (PC:ns tal i filen är redan avrundade, så de
+    /// visas oförändrade).
     public static func avrunda(_ matt: String, _ v: Double?) -> Double? {
         guard let v, v.isFinite else { return nil }
-        let k = pow(10, Double(decimaler(matt)))
-        return (v * k).rounded() / k
+        return pyRound(v, decimaler(matt))
+    }
+
+    /// Pythons `round(v, n)`: det exakta binära talet avrundat till n decimaler, en exakt halva
+    /// till jämnt (0,35 är 0,3499… och blir 0,3; 0,25 blir 0,2). printf gör samma sak, och
+    /// talet läses tillbaka till det närmaste. METOD MT3
+    public static func pyRound(_ v: Double, _ n: Int) -> Double {
+        guard v.isFinite else { return v }
+        return Double(String(format: "%.\(max(0, n))f", v)) ?? v
     }
 }

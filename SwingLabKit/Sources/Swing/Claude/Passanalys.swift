@@ -16,13 +16,16 @@ public struct Slagrad: Sendable {
     }
 }
 
-/// Ett pass som analysen läser: id:t (`yyyyMMdd-HHmmss`) och de mätta slagen i passets ordning.
+/// Ett pass som analysen läser: id:t (`yyyyMMdd-HHmmss`), längden som gav skalan och de mätta
+/// slagen i passets ordning.
 public struct Passrader: Sendable {
     public let pass: String
+    public let langd: Double?
     public let slag: [Slagrad]
 
-    public init(pass: String, slag: [Slagrad]) {
+    public init(pass: String, langd: Double?, slag: [Slagrad]) {
         self.pass = pass
+        self.langd = langd
         self.slag = slag
     }
 }
@@ -86,8 +89,18 @@ public struct Passanalys: Sendable {
     }
 
     public let pass: String
+    /// Klubbans id ("j7"); varje klubba i ett pass är en egen enhet (BESLUT B56).
+    public let klubba: String?
+    /// Längden som gav skalan; bara enheter med samma längd jämförs.
+    public let langd: Double?
+    /// Passets huvudklubba (flest mätta slag): den som passets "Att jobba på" gäller.
+    public let huvud: Bool
+    /// Alla klubbor i passet.
     public let klubbor: [String]
+    /// Enhetens slag: passets slag med klubban.
     public let slag: [Slagrad]
+    /// Vyerna med mätta slag, sorterade.
+    public let vyer: [String]
     /// "dtl" eller "fo": vyn som gruppen alla tas ur (METOD MT9).
     public let tempoVy: String
     public let session: [String: [String: Sammanfattning]]
@@ -104,6 +117,14 @@ public struct Passanalys: Sendable {
 
     public func rad(_ id: String) -> Rad? { bedomning.first { $0.id == id } }
 
+    /// Samma klubba och längd: enheten går att jämföra med (`samma` i analys.py, BESLUT B56).
+    public func samma(klubba k: String?, langd l: Double?) -> Bool { klubba == k && langd == l }
+
+    /// Ordningen i historiken: passet, huvudklubban först.
+    static func fore(_ a: Passanalys, _ b: Passanalys) -> Bool {
+        a.pass != b.pass ? a.pass < b.pass : (a.huvud && !b.huvud)
+    }
+
     /// Vyn med flest slag med tempo, FO vid lika. METOD MT9
     static func tempoVy(_ slag: [Slagrad]) -> String {
         let dtl = slag.filter { $0.vy == .dtl && $0.matt["tempo"] != nil }.count
@@ -119,33 +140,54 @@ public struct Passanalys: Sendable {
 
     static func grupp(_ vy: String) -> String { vy == "bada" ? "alla" : vy }
 
-    /// Passets analys. `tidigare` = svingarna ur de tidigare passen (baslinjen, M27),
-    /// `forra` = förra passets analys. Som `analysera_rader` i Python.
-    public init(_ p: Passrader, tidigare: [SvingMatt], forra: Passanalys?, baslinjePass: [String],
-                katalog: Katalog, kedjor: Kedjor = .appens) {
-        pass = p.pass
-        slag = p.slag
-        klubbor = Set(p.slag.compactMap { $0.klubba }.filter { !$0.isEmpty }).sorted()
-        let vyAlla = Self.tempoVy(p.slag)
+    /// Klubban med flest mätta slag, vid lika den som sorterar först och utan klubba först
+    /// (`huvudklubba` i analys.py, BESLUT B56).
+    static func huvudklubba(_ slag: [Slagrad]) -> String? {
+        var ordning: [String?] = []
+        var n: [String: Int] = [:]
+        for s in slag {
+            let k = s.klubba ?? "\u{0}"
+            if n[k] == nil { ordning.append(s.klubba) }
+            n[k, default: 0] += 1
+        }
+        let sorterad = ordning.enumerated().sorted { a, b in
+            let na = n[a.element ?? "\u{0}"]!, nb = n[b.element ?? "\u{0}"]!
+            if na != nb { return na > nb }
+            let ka = a.element ?? "", kb = b.element ?? ""
+            if ka != kb { return ka < kb }
+            return a.offset < b.offset
+        }
+        return sorterad.first?.element ?? nil
+    }
+
+    /// En klubbas del av passet, bedömd mot de tidigare enheterna med samma klubba och längd:
+    /// baslinjen ur alla dem, förra passet den senaste med en gemensam vy (`_del` i analys.py,
+    /// BESLUT B56).
+    init(pass: String, langd: Double?, klubba: String?, huvud: Bool, klubbor: [String], slag: [Slagrad],
+         tidigare: [Passanalys], katalog: Katalog, kedjor: Kedjor) {
+        self.pass = pass
+        self.langd = langd
+        self.klubba = klubba
+        self.huvud = huvud
+        self.klubbor = klubbor
+        self.slag = slag
+        vyer = Set(slag.map(\.vy.rawValue)).sorted()
+        let jamf = tidigare.filter { $0.pass < pass && $0.samma(klubba: klubba, langd: langd) }.sorted(by: Self.fore)
+        let bas = jamf.flatMap(\.svingar)
+        let minaVyer = Set(slag.map(\.vy.rawValue))
+        let forra = jamf.last { !minaVyer.isDisjoint(with: $0.vyer) }
+        let vyAlla = Self.tempoVy(slag)
         tempoVy = vyAlla
-        let sammanf = Self.sammanfatta(p.slag, vyAlla)
-        let forsta = Self.sammanfatta(p.slag.filter(\.forstaSerien), vyAlla)
+        let sammanf = Self.sammanfatta(slag, vyAlla)
+        let forsta = Self.sammanfatta(slag.filter(\.forstaSerien), vyAlla)
         session = sammanf
         forstaSerien = forsta
-        // Spridningen mellan slagen per klubba (METOD M44, BESLUT B46).
-        var spr: [Spridningsrad] = []
-        let klubborna = Set(p.slag.map { $0.klubba ?? "\u{0}" }).sorted { ($0 == "\u{0}" ? "" : $0) < ($1 == "\u{0}" ? "" : $1) }
-        for k0 in klubborna {
-            let k: String? = k0 == "\u{0}" ? nil : k0
-            let sv = p.slag.filter { $0.klubba == k }.map { SvingMatt(vy: $0.vy, matt: $0.matt) }
-            for s in Spridning.pass(katalog, sv) {
-                spr.append(Spridningsrad(matt: s.matt, vy: s.vy, klubba: k, n: s.n,
-                                         visat: Avrundning.avrunda(s.matt, s.varde)))
-            }
+        // Spridningen mellan slagen för klubban (METOD M44, BESLUT B46).
+        spridning = Spridning.pass(katalog, slag.map { SvingMatt(vy: $0.vy, matt: $0.matt) }).map { s in
+            Spridningsrad(matt: s.matt, vy: s.vy, klubba: klubba, n: s.n, visat: Avrundning.avrunda(s.matt, s.varde))
         }
-        spridning = spr
-        self.baslinjePass = baslinjePass
-        baslinjeSvingar = ["dtl": tidigare.filter { $0.vy == .dtl }.count, "fo": tidigare.filter { $0.vy == .fo }.count]
+        baslinjePass = Set(jamf.map(\.pass)).sorted()
+        baslinjeSvingar = ["dtl": bas.filter { $0.vy == .dtl }.count, "fo": bas.filter { $0.vy == .fo }.count]
         self.forra = forra?.pass
         var jamforelse: [String: [String: Jamforelse]] = [:]
         if let f = forra {
@@ -155,10 +197,10 @@ public struct Passanalys: Sendable {
         for fel in katalog.fel {
             let g = Self.grupp(fel.vy), m = fel.matt
             let vy = fel.vy == "bada" ? vyAlla : fel.vy
-            let bas = tidigare.compactMap { s -> Double? in s.vy.rawValue == vy ? s.matt[m] : nil }
+            let b_ = bas.compactMap { s -> Double? in s.vy.rawValue == vy ? s.matt[m] : nil }
             let sn = sammanf[g]?[m]
             let fs = forsta[g]?[m]
-            let b = Bedomare.bedom(fel, varde: sn?.median, baslinje: bas)
+            let b = Bedomare.bedom(fel, varde: sn?.median, baslinje: b_)
             var mot: (skillnad: Double?, tydlig: Bool)? = nil
             if forra != nil, let j = jamforelse[g]?[m] {
                 mot = (Avrundning.avrunda(m, j.skillnad), j.tydlig)
@@ -166,10 +208,25 @@ public struct Passanalys: Sendable {
             bed.append(Rad(id: fel.id, vy: fel.vy, matt: m, fas: fel.fas, enhet: Avrundning.enhet(m), status: b.status,
                            grund: b.grund, z: b.z, n: sn?.n ?? 0, visat: Avrundning.avrunda(m, b.varde),
                            forstaSerien: Avrundning.avrunda(m, fs?.median), spann: fel.gront, gult: fel.gult,
-                           klartNar: Self.klartNar(fel, b, sn, bas), baslinje: Self.baslinjen(fel, bas), motForra: mot))
+                           klartNar: Self.klartNar(fel, b, sn, b_), baslinje: Self.baslinjen(fel, b_), motForra: mot))
         }
         bedomning = bed
         kandidater = Self.kandidater(bed, kedjor)
+    }
+
+    /// Passets enheter: huvudklubban och varje annan klubba för sig (`analysera_rader` och
+    /// `enheter` i Python). `tidigare` = de tidigare passens enheter.
+    public static func enheter(_ p: Passrader, tidigare: [Passanalys], katalog: Katalog,
+                               kedjor: Kedjor = .appens) -> [Passanalys] {
+        let huvud = huvudklubba(p.slag)
+        let klubbor = Set(p.slag.compactMap(\.klubba).filter { !$0.isEmpty }).sorted()
+        var andra: [String?] = []
+        for s in p.slag where s.klubba != huvud && !andra.contains(where: { $0 == s.klubba }) { andra.append(s.klubba) }
+        andra.sort { ($0 ?? "") < ($1 ?? "") }
+        return ([huvud] + andra).enumerated().map { i, k in
+            Passanalys(pass: p.pass, langd: p.langd, klubba: k, huvud: i == 0, klubbor: klubbor,
+                       slag: p.slag.filter { $0.klubba == k }, tidigare: tidigare, katalog: katalog, kedjor: kedjor)
+        }
     }
 
     /// Förslaget till "klart när" ur katalogens gräns, den egna baslinjen eller passet självt.
@@ -251,16 +308,21 @@ public struct Passanalys: Sendable {
     }
 
     /// Passen i en historik analyserade i tur och ordning, som `analysera_historik` i
-    /// underlag.py: baslinjen ur alla tidigare pass och förra passet. Äldst först.
+    /// underlag.py: varje klubba för sig mot de tidigare enheterna med samma klubba och längd.
+    /// Svarar enheterna, äldst först och huvudklubban först i varje pass.
     public static func historik(_ passen: [Passrader], katalog: Katalog, kedjor: Kedjor = .appens) -> [Passanalys] {
         var ut: [Passanalys] = []
-        var tidigare: [SvingMatt] = []
-        for p in passen.sorted(by: { $0.pass < $1.pass }) {
-            let a = Passanalys(p, tidigare: tidigare, forra: ut.last, baslinjePass: ut.map(\.pass).sorted(),
-                               katalog: katalog, kedjor: kedjor)
-            ut.append(a)
-            tidigare += a.svingar
+        for p in passen.enumerated().sorted(by: { ($0.element.pass, $0.offset) < ($1.element.pass, $1.offset) }) {
+            ut += enheter(p.element, tidigare: ut, katalog: katalog, kedjor: kedjor)
         }
         return ut
+    }
+
+    /// Enheterna som går att jämföra med passets huvudklubba: samma klubba och längd, till och
+    /// med passet (`sammanhang` i historik.py, BESLUT B56).
+    public static func sammanhang(_ enh: [Passanalys], nu: String) -> [Passanalys] {
+        let huvud = enh.filter { $0.huvud && $0.pass <= nu }
+        guard let n = huvud.first(where: { $0.pass == nu }) ?? huvud.last else { return [] }
+        return enh.filter { $0.pass <= n.pass && $0.samma(klubba: n.klubba, langd: n.langd) }
     }
 }

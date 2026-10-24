@@ -5,6 +5,20 @@ import Foundation
 /// så att telefonen och PC:n ger samma text och samma fel (BESLUT B53, BESLUT B54):
 /// `tools/pc/underlag.py` (`skriv`, `tal`) och `tools/pc/att_jobba_pa.py` (`json.loads`).
 public indirect enum JSONVarde: Equatable, Sendable {
+    /// Texter jämförs tecken för tecken (Unicode-skalärer), som Python, inte som Swifts
+    /// kanoniska likhet (BESLUT B54).
+    public static func == (a: JSONVarde, b: JSONVarde) -> Bool {
+        switch (a, b) {
+        case (.null, .null): return true
+        case let (.bool(x), .bool(y)): return x == y
+        case let (.tal(x), .tal(y)): return x == y
+        case let (.text(x), .text(y)): return x.unicodeScalars.elementsEqual(y.unicodeScalars)
+        case let (.lista(x), .lista(y)): return x == y
+        case let (.objekt(x), .objekt(y)): return x == y
+        default: return false
+        }
+    }
+
     case null
     case bool(Bool)
     case tal(Double)
@@ -65,21 +79,14 @@ public indirect enum JSONVarde: Equatable, Sendable {
     /// Ett tal men inte true/false (Pythons `_tal`).
     public var somTal: Double? { if case let .tal(v) = self { return v } else { return nil } }
 
-    /// Talet som Python ser det: true och false är 1 och 0.
-    var pyTal: Double? {
-        switch self {
-        case let .tal(v): return v
-        case let .bool(b): return b ? 1 : 0
-        default: return nil
-        }
-    }
-
-    /// Pythons `==`: 1 == 1.0 == true, listor element för element, objekt utan ordning.
+    /// Likheten i kontrollen (`_lika` i Python): 1 == 1.0, men true är inte 1 (BESLUT B54);
+    /// listor element för element, objekt utan ordning, texter tecken för tecken.
     public func lika(_ b: JSONVarde) -> Bool {
-        if let x = pyTal, let y = b.pyTal { return x == y }
         switch (self, b) {
         case (.null, .null): return true
-        case let (.text(x), .text(y)): return x == y
+        case let (.bool(x), .bool(y)): return x == y
+        case let (.tal(x), .tal(y)): return x == y
+        case let (.text(x), .text(y)): return x.unicodeScalars.elementsEqual(y.unicodeScalars)
         case let (.lista(x), .lista(y)):
             return x.count == y.count && zip(x, y).allSatisfy { $0.lika($1) }
         case let (.objekt(x), .objekt(y)):
@@ -89,11 +96,14 @@ public indirect enum JSONVarde: Equatable, Sendable {
     }
 
     /// Nyckeln i en Python-mängd (`set(map(_nyckel, …))` i att_jobba_pa.py): listor och objekt
-    /// blir None, och 1, 1.0 och true är samma.
+    /// blir None, 1 och 1.0 är samma, true är sig själv.
     var pyNyckel: String {
-        if let v = pyTal { return "t:\(v)" }
-        if case let .text(s) = self { return "s:" + s }
-        return "n"
+        switch self {
+        case let .tal(v): return "t:\(v)"
+        case let .bool(b): return "b:\(b)"
+        case let .text(s): return "s:" + s.unicodeScalars.map { String($0.value) }.joined(separator: ",")
+        default: return "n"
+        }
     }
 
     // MARK: läsningen (json.loads)
@@ -111,9 +121,13 @@ public indirect enum JSONVarde: Equatable, Sendable {
         return v
     }
 
+    /// Listor och objekt i varandra som läses; djupare är inte ett svar (METOD MT12).
+    public static let maxDjup = 32
+
     struct Lasare {
         let s: [Unicode.Scalar]
         var i = 0
+        var djup = 0
 
         init(_ s: [Unicode.Scalar]) { self.s = s }
 
@@ -147,6 +161,9 @@ public indirect enum JSONVarde: Equatable, Sendable {
 
         mutating func objektet() throws -> JSONVarde {
             i += 1
+            djup += 1
+            defer { djup -= 1 }
+            guard djup <= JSONVarde.maxDjup else { throw LasFel() }
             var o = Objekt()
             blanka()
             if tecken == "}" {
@@ -175,6 +192,9 @@ public indirect enum JSONVarde: Equatable, Sendable {
 
         mutating func listan() throws -> JSONVarde {
             i += 1
+            djup += 1
+            defer { djup -= 1 }
+            guard djup <= JSONVarde.maxDjup else { throw LasFel() }
             var l: [JSONVarde] = []
             blanka()
             if tecken == "]" {

@@ -288,89 +288,150 @@ def _grupp(vy: str) -> str:
     return "alla" if vy == "bada" else vy
 
 
-def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict], forra: dict | None = None,
-              katalog: dict | None = None, kedjor: dict | None = None, baslinje_pass: list[str] = (),
-              skapad: str | None = None, katalog_3d: dict | None = None) -> dict:
-    """Passets analys. `tidigare` = svingarna ur tidigare pass (baslinjen, M27),
-    `forra` = förra passets analys (eller None)."""
+def analysera(paket: list[Paket], langd_m: float, tidigare: list[dict] = (), katalog: dict | None = None,
+              kedjor: dict | None = None, skapad: str | None = None, katalog_3d: dict | None = None) -> dict:
+    """Passets analys. `tidigare` = de tidigare passens enheter (`enheter`, ur historiken):
+    varje klubba i passet bedöms mot de tidigare enheterna med samma klubba och längd
+    (BESLUT B56, METOD M27)."""
     pass_id = paket[0].pass_id
     if any(p.pass_id != pass_id for p in paket):
         raise ValueError("paketen är från olika pass")
     if len({p.vy for p in paket}) != len(paket):
         raise ValueError("två paket med samma vy")
     slag = [r for p in sorted(paket, key=lambda p: p.vy) for r in mat_paket(p, langd_m)]
-    a = analysera_rader(pass_id, slag, langd_m, tidigare, forra=forra, katalog=katalog, kedjor=kedjor,
-                        baslinje_pass=baslinje_pass, skapad=skapad, spelhand=paket[0].spelhand,
+    a = analysera_rader(pass_id, slag, langd_m, tidigare, katalog=katalog, kedjor=kedjor, skapad=skapad,
+                        spelhand=paket[0].spelhand,
                         paket=[{"fil": p.fil, "vy": p.vy, "slag": len(p.slag),
                                 "klipp": sum(1 for s in p.slag if s.klipp)} for p in paket])
+    forra = next((u for u in reversed(sorted(tidigare, key=_ordning)) if u["pass"] == (a["forra"] or {}).get("pass")
+                  and u["klubba_id"] == a["huvudklubba"]), None)
+    a["klubba"] = klubba(slag, paket)
     a["tre_d"] = tre_d(paket, slag, forra, katalog_3d)
     a["kontaktark"] = {}
     return a
 
 
-def analysera_rader(pass_id: str, slag: list[dict], langd_m: float | None, tidigare: list[dict],
-                    forra: dict | None = None, katalog: dict | None = None, kedjor: dict | None = None,
-                    baslinje_pass: list[str] = (), skapad: str | None = None, spelhand: str | None = None,
-                    paket: list[dict] = ()) -> dict:
-    """Analysen ur passets slag (rader som `mat_paket` ger: `vy`, `serie`, `klubba`, och `matt`
-    med `forsta_serien` för de mätta), utan paketen och 3D. Telefonen räknar samma sak ur sina
-    slag (SwingLabKit `Passanalys`, BESLUT B12, BESLUT B53), och underlaget till Claude-appen
-    byggs ur den (`underlag.py`)."""
-    katalog = katalog or KAT.las()
-    kedjor = kedjor or las_kedjor()
-    a = {"format": FORMAT, "pass": pass_id, "matversion": M.MATVERSION,
-         "skapad": skapad or dt.datetime.now().astimezone().isoformat(timespec="seconds"),
-         "paket": list(paket), "spelhand": spelhand, "spelarens_langd_m": langd_m,
-         "klubbor": sorted({r["klubba"] for r in slag if r.get("klubba")}),
-         "slag": slag}
+def _ordning(u: dict):
+    return (u["pass"], not u.get("huvud", True))
+
+
+def huvudklubba(slag: list[dict]):
+    """Klubban med flest mätta slag (vid lika den som sorterar först, utan klubba först): den
+    som passets "Att jobba på" gäller (BESLUT B56)."""
+    rader = [r for r in slag if "matt" in r] or slag
+    if not rader:
+        return None
+    n: dict = {}
+    for r in rader:
+        n[r.get("klubba")] = n.get(r.get("klubba"), 0) + 1
+    return sorted(n, key=lambda k: (-n[k], k or ""))[0]
+
+
+def svingar_for(analys: dict, kl) -> list[dict]:
+    """De mätta slagen med klubban; en analys från före B56 (utan `huvudklubba`) ger alla."""
+    if "huvudklubba" not in analys:
+        return svingar(analys)
+    return [{"vy": r["vy"], "matt": r["matt"]} for r in analys["slag"] if "matt" in r and r.get("klubba") == kl]
+
+
+def enheter(analys: dict) -> list[dict]:
+    """Analysens enheter: passets huvudklubba (analysen själv) och varje annan klubba (`delar`),
+    var och en med `pass`, `klubba_id`, `langd`, `vyer`, `huvud` och `svingar` (BESLUT B56). En
+    analys från före B56 får klubban ur `klubbor` när den är en. (`klubba` i analysen är S7a:s
+    klubbmått.)"""
+    kl = analys.get("klubbor") or []
+    k0 = analys["huvudklubba"] if "huvudklubba" in analys else (kl[0] if len(kl) == 1 else None)
+    langd = analys.get("spelarens_langd_m")
+    ut = []
+    for d, k, huvud in [(analys, k0, True)] + [(x, x["klubba"], False) for x in analys.get("delar", [])]:
+        sv = svingar_for(analys, k)
+        u = dict(d)
+        u.update({"pass": analys["pass"], "klubba_id": k, "langd": langd, "huvud": huvud,
+                  "vyer": sorted({s["vy"] for s in sv}), "svingar": sv, "tempo_vy": d.get("tempo_vy", "fo")})
+        ut.append(u)
+    return ut
+
+
+def samma(u: dict, kl, langd) -> bool:
+    """Samma klubba och längd: enheten går att jämföra med (BESLUT B56, METOD MS14)."""
+    return u["klubba_id"] == kl and u["langd"] == langd
+
+
+def _del(pass_id: str, slag: list[dict], kl, langd_m, tidigare: list[dict], katalog: dict, kedjor: dict) -> dict:
+    """En klubbas del av passet, bedömd mot de tidigare enheterna med samma klubba och längd:
+    baslinjen ur alla dem, förra passet den senaste med en gemensam vy (BESLUT B56)."""
+    jamf = sorted((u for u in tidigare if u["pass"] < pass_id and samma(u, kl, langd_m)), key=_ordning)
+    bas = [s for u in jamf for s in u["svingar"]]
+    vyer = {r["vy"] for r in slag if "matt" in r}
+    forra = next((u for u in reversed(jamf) if vyer & set(u["vyer"])), None)
+    a: dict = {}
     vy_alla = tempo_vy(slag)
     sammanf = sammanfatta_pass(slag, vy_alla)
     forsta = sammanfatta_pass([r for r in slag if r.get("forsta_serien")], vy_alla)
     a["tempo_vy"] = vy_alla
     a["session"] = sammanf
     a["forsta_serien"] = forsta
-    # Spridningen mellan slagen, ett tal per pass, mått och klubba (METOD M44, BESLUT B46):
-    # klubban ändrar svingen, så serier med olika klubbor blandas inte.
-    a["spridning"] = [dict(e, klubba=k, visat=avrunda(e["matt"], e["varde"]))
-                      for k in sorted({r.get("klubba") for r in slag if "matt" in r}, key=lambda x: x or "")
-                      for e in KAT.spridning(katalog, [{"vy": r["vy"], "matt": r["matt"]} for r in slag
-                                                       if "matt" in r and r.get("klubba") == k])]
+    # Spridningen mellan slagen, ett tal per pass och mått, för klubban (METOD M44, BESLUT B46).
+    a["spridning"] = [dict(e, klubba=kl, visat=avrunda(e["matt"], e["varde"]))
+                      for e in KAT.spridning(katalog, [{"vy": r["vy"], "matt": r["matt"]} for r in slag if "matt" in r])]
     # Skiftet (M42) saknas när bäckenet inte är tillbaka i adressläget vid träffen: antalet
     # sådana slag (censurerade), så att passets median inte tyst bara gäller de andra.
     a["skifte_ej_tillbaka"] = {"fo": sum(1 for r in slag if r["vy"] == "fo" and "matt" in r
                                          and "backen_skifte_ms" not in r["matt"]
                                          and r["matt"].get("backen_sway_traff", 0.0) < 0),
                                "fo_matta": sum(1 for r in slag if r["vy"] == "fo" and "matt" in r)}
-    a["klubba"] = klubba(slag, paket)
-    a["baslinje"] = {"pass": list(baslinje_pass),
-                     "svingar": {vy: sum(1 for s in tidigare if s["vy"] == vy) for vy in ("dtl", "fo")}}
+    a["baslinje"] = {"pass": sorted({u["pass"] for u in jamf}),
+                     "svingar": {vy: sum(1 for s in bas if s["vy"] == vy) for vy in ("dtl", "fo")}}
     if forra is not None:
         a["forra"] = {"pass": forra["pass"],
                       "jamforelse": {g: S.jamfor(sammanf[g], forra["session"][g]) for g in sammanf}}
     else:
         a["forra"] = None
-
     bed = []
     for fel in katalog["fel"]:
         g, m = _grupp(fel["vy"]), fel["matt"]
         vy = vy_alla if fel["vy"] == "bada" else fel["vy"]
-        bas = [s["matt"][m] for s in tidigare if s["vy"] == vy and m in s["matt"]]
+        b_ = [s["matt"][m] for s in bas if s["vy"] == vy and m in s["matt"]]
         sn = sammanf[g].get(m)
         fs = forsta[g].get(m)
-        b = KAT.bedom_varde(fel, sn["median"] if sn else None, bas)
+        b = KAT.bedom_varde(fel, sn["median"] if sn else None, b_)
         rad = dict(b)
         rad.update(namn=fel["namn"], vy=fel["vy"], matt=m, fas=fel["fas"], enhet=enhet(m),
                    visat=avrunda(m, b["varde"]), n=sn["n"] if sn else 0,
                    spann=fel["gront"], gult=fel["gult"], kontrollerad=fel["kontrollerad"],
                    kalla_status=fel["status"], samre=fel["samre"],
                    forsta_serien=avrunda(m, fs["median"]) if fs else None,
-                   klart_nar=klart_nar(fel, b, sn, bas), baslinje=baslinjen(fel, bas))
+                   klart_nar=klart_nar(fel, b, sn, b_), baslinje=baslinjen(fel, b_))
         if a["forra"] is not None:
             j = a["forra"]["jamforelse"][g].get(m)
             rad["mot_forra"] = None if j is None else {"skillnad": avrunda(m, j["skillnad"]), "tydlig": j["tydlig"]}
         bed.append(rad)
     a["bedomning"] = bed
     a["kandidater"] = kandidater(bed, kedjor)
+    return a
+
+
+def analysera_rader(pass_id: str, slag: list[dict], langd_m: float | None, tidigare: list[dict] = (),
+                    katalog: dict | None = None, kedjor: dict | None = None, skapad: str | None = None,
+                    spelhand: str | None = None, paket: list[dict] = ()) -> dict:
+    """Analysen ur passets slag (rader som `mat_paket` ger: `vy`, `serie`, `klubba`, och `matt`
+    med `forsta_serien` för de mätta), utan paketen och 3D. `tidigare` = de tidigare passens
+    enheter (`enheter`). Varje klubba analyseras för sig (BESLUT B56): huvudklubban överst,
+    de andra i `delar`. Telefonen räknar samma sak ur sina slag (SwingLabKit `Passanalys`,
+    BESLUT B12, BESLUT B53), och underlaget till Claude-appen byggs ur den (`underlag.py`)."""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or las_kedjor()
+    huvud = huvudklubba(slag)
+    a = {"format": FORMAT, "pass": pass_id, "matversion": M.MATVERSION,
+         "skapad": skapad or dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+         "paket": list(paket), "spelhand": spelhand, "spelarens_langd_m": langd_m,
+         "klubbor": sorted({r["klubba"] for r in slag if r.get("klubba")}), "huvudklubba": huvud,
+         "slag": slag}
+    a.update(_del(pass_id, [r for r in slag if r.get("klubba") == huvud], huvud, langd_m, tidigare, katalog, kedjor))
+    andra = sorted({r.get("klubba") for r in slag if "matt" in r and r.get("klubba") != huvud}, key=lambda k: k or "")
+    a["delar"] = [dict(klubba=k, **_del(pass_id, [r for r in slag if r.get("klubba") == k], k, langd_m, tidigare,
+                                       katalog, kedjor)) for k in andra]
+    a["klubba"] = klubba(slag, [])
     return a
 
 

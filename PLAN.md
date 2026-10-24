@@ -305,9 +305,16 @@ och `kedjor.json`), `Capture/ClaudeKontext.swift` (passen → raderna, underlage
 `tools/tests/fixturer/claude_facit.json` (påhittade passhistoriker, Pythons text och
 svarstexter med felkoder), prövat i `test_underlag.py` och `ClaudeTests`. METOD MT11–MT12.
 
+**Efter granskningen (Johannes beslut B56):** en sak följs i sin klubba och vy, ett pass med
+flera klubbor analyseras per klubba, och PC:n väljer tidigare pass som telefonen. Svaret får
+tak för storlek och djup, true är inte 1, och facit har en ändring per felkod i åtta
+historiker.
+
 **S5b-2 — knapparna (efter att `s7a` landat, samma vyer):** "Ask Claude" och "Paste from
 Claude" i passet och på Today, felet som en rad i formspråket (B13), och simulatorprovet:
 texten kopieras, ett påhittat svar klistras in och blir Focus, och ett ogiltigt visar fältet.
+`FocusInbox.acceptClaude` skriver inget själv: finns redan en fil för passet frågar appen
+innan den skrivs över.
 
 **Klart när:** Johannes har tolkat ett pass i Claude-appen på rangen och svaret blivit Focus
 utan att någon fil redigerats för hand, och samma text (`session.py --claude-text`) har

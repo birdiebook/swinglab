@@ -45,6 +45,7 @@ SLUT = "<!-- /claude-appen -->"
 HISTORIK_PASS = 6          # METOD MT11: felens väg i texten, de senaste passen
 UPPFOLJNING_RADER = 4      # METOD MT11: uppföljningens senaste rader per övning
 Z_DECIMALER = 1            # METOD MT11: z mot baslinjen i texten
+MAX_NYA_MALLAR = 3         # METOD MT11: mallar för nya fel (övningar som fortsätter kommer till)
 RUBRIK = "# SwingLab: Att jobba på efter passet "
 DATA_RUBRIK = "## Datan"
 
@@ -138,35 +139,36 @@ def _klart_nar_fil(kn: dict) -> dict:
 
 
 def _bedomning(analys: dict) -> list[dict]:
-    """Analysens bedömning av de aktiva felen med ett tal. "Klart när" och märkningen står i
-    mallarna, och `grund` syns på `spann` (null = egen baslinje). METOD MT11"""
+    """Analysens bedömning av de aktiva felen med ett tal som inte är gröna (ett grönt fel övas
+    aldrig, steg B). "Klart när" och märkningen står i mallarna. METOD MT11"""
     ut = []
     for b in analys["bedomning"]:
-        if b["status"] == "av" or b["visat"] is None:
+        if b["status"] in ("av", "gron") or b["visat"] is None:
             continue
         ut.append(_utan_null({
-            "id": b["id"], "vy": b["vy"], "enhet": b["enhet"], "status": b["status"],
+            "id": b["id"], "vy": b["vy"], "enhet": b["enhet"], "status": b["status"], "grund": b["grund"],
             "z": _z(b["z"]), "n": b["n"], "visat": b["visat"], "forsta_serien": b["forsta_serien"],
             "spann": b["spann"], "gult": b["gult"], "baslinje": b.get("baslinje"),
-            "mot_forra": b.get("mot_forra")}, ("z", "gult", "baslinje", "mot_forra")))
+            "mot_forra": b.get("mot_forra")}, ("grund", "z", "gult", "baslinje", "mot_forra")))
     return ut
 
 
-def _historik(analyser: dict[str, dict], pass_id: str, katalog: dict) -> dict:
+def _historik(enh: list[dict], pass_id: str, katalog: dict) -> dict:
     """Felens väg genom de senaste passen (minnets `fel`): [visat, status] per pass, för aktiva
-    fel med minst ett tal. Första serien för det som övas står i `ovningar`. METOD MT11"""
-    passen = sorted(p for p in analyser if p <= pass_id)[-HISTORIK_PASS:]
+    fel med minst ett tal som inte är grönt i alla pass. Första serien för det som övas står i
+    `ovningar`. METOD MT11"""
+    passen = sorted((u for u in enh if u["pass"] <= pass_id), key=A._ordning)[-HISTORIK_PASS:]
     fel = {}
     for f in katalog["fel"]:
         if not f["aktiv"]:
             continue
         rader = []
-        for p in passen:
-            b = next((x for x in analyser[p]["bedomning"] if x["id"] == f["id"]), None)
+        for u in passen:
+            b = next((x for x in u["bedomning"] if x["id"] == f["id"]), None)
             rader.append(None if b is None or b["visat"] is None else [b["visat"], b["status"]])
-        if any(r is not None for r in rader):
+        if any(r is not None and r[1] != "gron" for r in rader):
             fel[f["id"]] = rader
-    return {"pass": passen, "fel": fel}
+    return {"pass": [u["pass"] for u in passen], "fel": fel}
 
 
 def _ovning_minne(o: dict) -> dict:
@@ -208,11 +210,12 @@ def _alternativ(fid: str, ov_id: str, katalog: dict, kedjor: dict, tanke: str | 
 
 
 def mallar(analys: dict, ovningar: list[dict], katalog: dict, kedjor: dict) -> list[dict]:
-    """En mall per fel som går att välja (steg A, B, D): grundorsakerna bland kandidaterna,
-    eller de okända felen med förslag när inget är flaggat. Mallen bär det kontrollen låser:
-    katalogens fält, analysens tal, "klart när" och märkningen (analysens för en ny övning,
-    minnets när övningen fortsätter), blocket och följdfelen med kedjans väg, och de övningar
-    och steg som går att välja. Ett fel vars övning är klar får ingen mall. METOD MT11"""
+    """En mall per fel som går att välja (steg A, B, D): de tre första grundorsakerna bland
+    kandidaterna och varje övning som fortsätter, eller de okända felen med förslag när inget
+    är flaggat. Mallen bär det kontrollen låser: katalogens fält, analysens tal och `grund`,
+    "klart när" och märkningen (analysens för en ny övning, minnets när övningen fortsätter),
+    blocket och följdfelen med kedjans väg, och de övningar och steg som går att välja. Ett fel
+    vars övning är klar får ingen mall. METOD MT11"""
     K = {f["id"]: f for f in katalog["fel"]}
     bed = {b["id"]: b for b in analys["bedomning"]}
     kand = analys["kandidater"]
@@ -220,9 +223,10 @@ def mallar(analys: dict, ovningar: list[dict], katalog: dict, kedjor: dict) -> l
     if kand:
         fel = [k["fel"] for k in kand if not k["foljdfel"]]
     else:
-        fel = [b["id"] for b in analys["bedomning"] if b["status"] == "okand" and b["klart_nar"] is not None]
+        fel = [b["id"] for b in analys["bedomning"]
+               if b["status"] == "okand" and b["klart_nar"] is not None and b["visat"] is not None]
     dag = _datum(analys["pass"])
-    ut = []
+    ut, nya = [], 0
     for fid in fel:
         k, b, o = K[fid], bed[fid], minne.get(fid)
         if o is not None and o["lage"] == "klart":
@@ -235,8 +239,9 @@ def mallar(analys: dict, ovningar: list[dict], katalog: dict, kedjor: dict) -> l
             i = AJP.STEG.index(o["steg"]) if o["steg"] in AJP.STEG else 0
             val, steg = [nuvarande], list(AJP.STEG[i:i + 2])
         else:
-            if b["klart_nar"] is None:
+            if b["klart_nar"] is None or nya >= MAX_NYA_MALLAR:
                 continue
+            nya += 1
             kn, markning = _klart_nar_fil(b["klart_nar"]), b["klart_nar"]["markning"]
             provade = ([o["ovning_id"]] + o["forra_ovningar"]) if o is not None else []
             val, sedda = [], set()
@@ -250,41 +255,55 @@ def mallar(analys: dict, ovningar: list[dict], katalog: dict, kedjor: dict) -> l
         foljd = [{"fel": x["fel"], "namn": K[x["fel"]]["namn"], "vag": x["orsaker"][fid], "nu": bed[x["fel"]]["visat"],
                   "enhet": A.enhet(K[x["fel"]]["matt"])} for x in kand if x["foljdfel"] and fid in x["orsaker"]]
         ut.append({"fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"], "enhet": A.enhet(k["matt"]),
-                   "nu": b["visat"], "spann": k["gront"], "markning": markning, "klart_nar": kn,
+                   "nu": b["visat"], "grund": b["grund"], "spann": k["gront"], "markning": markning, "klart_nar": kn,
                    "foljdfel": foljd, "block": {"start": start.isoformat(), "vecka": (dag - start).days // 7 + 1},
                    "ovning_val": val, "steg_val": steg,
                    "fysik_test": [x["test"] for x in kedjor["fysik"] if x["fel"] == fid]})
     return ut
 
 
-def data(analys: dict, analyser: dict[str, dict], ovningar: list[dict], docs: list[dict], skapad: str,
+def data(analys: dict, enh: list[dict], ovningar: list[dict], docs: list[dict], skapad: str,
          katalog: dict | None = None, kedjor: dict | None = None) -> dict:
-    """Passets data till Claude: analysen (`analys`), de tidigare passens analyser
-    ({pass: analys}, för felens väg), minnet före passet (`historik.ovningar(…, fore=passet)`)
-    och valen (`att_jobba_pa.json`). METOD MT11"""
+    """Passets data till Claude: passets enhet (huvudklubban, `analys`), enheterna i samma
+    sammanhang (`historik.sammanhang`, för felens väg), minnet före passet
+    (`historik.ovningar_ur(…, fore=passet)`) och valen (`att_jobba_pa.json`). METOD MT11"""
     katalog = katalog or KAT.las()
     kedjor = kedjor or A.las_kedjor()
     pass_id = analys["pass"]
-    alla = dict(analyser)
-    alla[pass_id] = analys
+    sv = analys.get("svingar") or A.svingar_for(analys, analys.get("huvudklubba"))
     return {
         "pass": pass_id,
         "datum": _datum(pass_id).isoformat(),
-        "klubbor": analys["klubbor"],
-        "slag": {vy: sum(1 for r in analys["slag"] if r["vy"] == vy and "matt" in r) for vy in ("dtl", "fo")},
+        "klubba": analys.get("klubba_id", analys.get("huvudklubba")),
+        "slag": {vy: sum(1 for s in sv if s["vy"] == vy) for vy in ("dtl", "fo")},
         "tempo_vy": analys["tempo_vy"],
         "forra": analys["forra"]["pass"] if analys["forra"] else None,
         "baslinje": {"pass": len(analys["baslinje"]["pass"]), "svingar": analys["baslinje"]["svingar"]},
         "kandidater": analys["kandidater"],
         "bedomning": _bedomning(analys),
-        "spridning": [{"matt": s["matt"], "vy": s["vy"], "klubba": s["klubba"], "n": s["n"], "visat": s["visat"]}
+        "spridning": [{"matt": s["matt"], "vy": s["vy"], "n": s["n"], "visat": s["visat"]}
                       for s in analys["spridning"] if s["n"] > 0],
-        "historik": _historik(alla, pass_id, katalog),
+        "historik": _historik(enh + ([] if any(u is analys for u in enh) else [analys]), pass_id, katalog),
         "ovningar": [_ovning_minne(o) for o in ovningar],
         "pagaende": _pagaende(docs, pass_id),
         "fil": {"format": AJP.FORMAT, "pass": pass_id, "skapad": skapad},
         "mallar": mallar(analys, ovningar, katalog, kedjor),
     }
+
+
+def underlag(enh: list[dict], nu: str, docs: list[dict], skapad: str, katalog: dict | None = None,
+             kedjor: dict | None = None) -> dict:
+    """Datan för passet `nu` ur alla enheter (`analys.enheter`) och valen: enheterna med samma
+    klubba och längd som passets huvudklubba, valen för deras pass och minnet före passets val
+    (BESLUT B56). Samma väg som telefonens `ClaudeUnderlag`."""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or A.las_kedjor()
+    ctx = H.sammanhang(enh, nu)
+    nu_u = next(u for u in ctx if u["huvud"] and u["pass"] == nu)
+    huvudpass = {u["pass"] for u in ctx if u["huvud"]}
+    docs = [d for d in docs if d["pass"] in huvudpass]
+    ov = H.ovningar_ur(ctx, docs, till=nu, fore=nu, kedjor=kedjor)
+    return data(nu_u, ctx, ov, docs, skapad, katalog, kedjor)
 
 
 def text(d: dict, instr: str | None = None) -> str:
@@ -296,47 +315,42 @@ def text(d: dict, instr: str | None = None) -> str:
 
 def ur_historik(rot: Path, pass_id: str, skapad: str) -> str:
     """Texten för ett pass i historiken på PC:n (`session.py --claude-text`): minnet före
-    passets val, som kontrollen läser det."""
-    analyser = {p: H.las_analys(rot, p) for p in H.lista(rot) if p <= pass_id}
-    docs = [d for d in H.att_jobba_pa(rot) if d["pass"] <= pass_id]
-    ov = H.ovningar_ur(analyser, docs, till=pass_id, fore=pass_id)
-    return text(data(analyser[pass_id], analyser, ov, docs, skapad))
+    passets val, som kontrollen läser det, för passets huvudklubba och längd (BESLUT B56)."""
+    return text(underlag(H.enheter(rot, till=pass_id), pass_id, H.att_jobba_pa(rot), skapad))
 
 
 # --- påhittade passhistoriker (facit för Swift) ------------------------------------------
 
-def analysera_historik(historik: dict, katalog: dict | None = None, kedjor: dict | None = None) -> dict[str, dict]:
-    """Varje pass i en påhittad historik analyserat som på telefonen: baslinjen ur alla
-    tidigare pass och förra passet. `historik["pass"]` = [{pass, slag: [{vy, klubba, matt,
-    forsta_serien}]}], äldst först."""
+def analysera_historik(historik: dict, katalog: dict | None = None, kedjor: dict | None = None) -> list[dict]:
+    """Varje pass i en påhittad historik analyserat i tur och ordning, varje klubba för sig mot
+    de tidigare enheterna med samma klubba och längd (BESLUT B56). `historik["pass"]` = [{pass,
+    langd, slag: [{vy, klubba, matt, forsta_serien}]}]. Svarar enheterna (`analys.enheter`)."""
     katalog = katalog or KAT.las()
     kedjor = kedjor or A.las_kedjor()
-    analyser: dict[str, dict] = {}
-    tidigare: list[dict] = []
-    forra = None
+    enh: list[dict] = []
     for p in sorted(historik["pass"], key=lambda x: x["pass"]):
         slag = [{"vy": s["vy"], "serie": 1, "klubba": s.get("klubba"), "matt": s["matt"],
                  "forsta_serien": s["forsta_serien"]} for s in p["slag"]]
-        a = A.analysera_rader(p["pass"], slag, None, tidigare, forra=forra, katalog=katalog, kedjor=kedjor,
-                              baslinje_pass=sorted(analyser), skapad="")
-        analyser[p["pass"]] = a
-        tidigare = tidigare + A.svingar(a)
-        forra = a
-    return analyser
+        a = A.analysera_rader(p["pass"], slag, p.get("langd"), enh, katalog=katalog, kedjor=kedjor, skapad="")
+        enh = enh + A.enheter(a)
+    return enh
+
+
+def _nu(historik: dict) -> str:
+    return historik.get("nu") or max(p["pass"] for p in historik["pass"])
+
+
+def facit_data(historik: dict) -> dict:
+    return underlag(analysera_historik(historik), _nu(historik), historik["att_jobba_pa"], historik["skapad"])
 
 
 def facit_text(historik: dict, instr: str | None = None) -> str:
-    """Texten för det senaste passet i en påhittad historik."""
-    analyser = analysera_historik(historik)
-    sist = max(analyser)
-    docs = historik["att_jobba_pa"]
-    ov = H.ovningar_ur(analyser, docs, till=sist, fore=sist)
-    return text(data(analyser[sist], analyser, ov, docs, historik["skapad"]), instr)
+    """Texten för passet `nu` (annars det senaste) i en påhittad historik."""
+    return text(facit_data(historik), instr)
 
 
 def _vardera(rng: random.Random, medel: float, spr: float) -> float:
-    """Ett påhittat värde med sex decimaler: inga medianer på en avrundnings halva, så att
-    Pythons round och Swifts avrundning ger samma tal (METOD MT3)."""
+    """Ett påhittat värde med sex decimaler (METOD MT11)."""
     return round(medel + rng.gauss(0, spr), 6)
 
 
@@ -349,35 +363,68 @@ MATT_DTL = {"backen_thrust_traff": (3.0, 1.5), "brost_bojning_tapp": (4.0, 1.5),
             "tempo": (2.9, 0.15)}
 
 
-def _pass(rng: random.Random, pass_id: str, vyer: dict[str, int], flytt: dict[str, float], klubba: str = "7i") -> dict:
-    slag = []
+def _pass(rng: random.Random, pass_id: str, vyer: dict[str, int], flytt: dict[str, float], klubba="j7",
+          langd: float | None = 1.80, slag: list | None = None) -> dict:
+    """Ett påhittat pass: `vyer` = slag per vy, `flytt` = medlens förskjutning per mått.
+    `slag` lägger till slagen till ett pass som redan finns (en andra klubba)."""
+    ut = slag if slag is not None else []
     for vy, n in vyer.items():
         matt = MATT_FO if vy == "fo" else MATT_DTL
         for i in range(n):
             m = {k: _vardera(rng, medel + flytt.get(k, 0.0), spr) for k, (medel, spr) in matt.items()}
-            slag.append({"vy": vy, "klubba": klubba, "matt": m, "forsta_serien": i < A.FORSTA_SERIEN_SLAG})
-    return {"pass": pass_id, "slag": slag}
+            ut.append({"vy": vy, "klubba": klubba, "matt": m, "forsta_serien": i < A.FORSTA_SERIEN_SLAG})
+    return {"pass": pass_id, "langd": langd, "slag": ut}
 
 
-def _sak(katalog: dict, kedjor: dict, analys: dict, fid: str, ordning: int, ov_id: str, steg: str,
-         klart_nar: dict, markning, block_start: str, tanke: str, foljdfel: list[dict]) -> dict:
+def _huvud(enh: list[dict], pass_id: str) -> dict:
+    return next(u for u in enh if u["huvud"] and u["pass"] == pass_id)
+
+
+def _sak(katalog: dict, kedjor: dict, u: dict, fid: str, ordning: int, ov_id: str, steg: str,
+         klart_nar: dict, markning, block_start: str, tanke: str, foljdfel: list[dict] = (), typ: str = "teknik",
+         fysik=None) -> dict:
     k = next(f for f in katalog["fel"] if f["id"] == fid)
     ov = _alternativ(fid, ov_id, katalog, kedjor)
-    b = next(x for x in analys["bedomning"] if x["id"] == fid)
-    dag = _datum(analys["pass"])
+    b = next(x for x in u["bedomning"] if x["id"] == fid)
+    dag = _datum(u["pass"])
     return {"ordning": ordning, "fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"],
             "enhet": A.enhet(k["matt"]), "nu": b["visat"], "spann": k["gront"], "markning": markning,
             "ovning": {"id": ov_id, "text": ov["text"], "tanke": tanke, "kalla": ov["kalla"], "steg": steg},
-            "klart_nar": klart_nar, "foljdfel": foljdfel, "typ": "teknik", "fysik": None,
+            "klart_nar": klart_nar, "foljdfel": list(foljdfel), "typ": typ, "fysik": fysik,
             "block": {"start": block_start, "vecka": (dag - dt.date.fromisoformat(block_start)).days // 7 + 1}}
 
 
+def _forslag(u: dict, fid: str) -> tuple[dict, object]:
+    """Analysens "klart när" i filens form och märkningen, för ett fel i enheten."""
+    kn = next(x for x in u["bedomning"] if x["id"] == fid)["klart_nar"]
+    return {"villkor": kn["villkor"], "grans": kn["grans"], "pa": "forsta_serien", "pass_i_rad": 2}, kn["markning"]
+
+
+def _doc(pass_id: str, saker: list[dict], skapad: str) -> dict:
+    return {"format": AJP.FORMAT, "pass": pass_id, "skapad": skapad, "saker": saker}
+
+
+def _dagar(start: str, steg: int, n: int, tid: str = "180000") -> list[str]:
+    d0 = dt.date.fromisoformat(start)
+    return [(d0 + dt.timedelta(days=steg * i)).strftime("%Y%m%d") + "-" + tid for i in range(n)]
+
+
 def facit_historiker() -> dict[str, dict]:
-    """De påhittade passhistorikerna (CLAUDE.md, Dataregeln: inga riktiga tal):
-    `typiskt` (sex pass i båda vyerna, en övning som fortsätter och följdfel), `forsta` (ett
-    pass, en vy, inget minne) och `byt` (en övning utan rörelse i fyra pass: byt övning)."""
+    """De påhittade passhistorikerna (CLAUDE.md, Dataregeln: inga riktiga tal), var och en med
+    passet `nu` sist:
+
+    - `typiskt`: sex pass i båda vyerna, swayen väljs och fortsätter, följdfel;
+    - `forsta`: ett pass, bara FO, inget minne, okända fel;
+    - `byt`: early extension utan rörelse i fyra pass (byt övning);
+    - `klart`: swayen klar på "klart när" och böjda armen klar för att den inte längre flaggas;
+    - `fysik`: early extension utan rörelse i sex veckor över två övningar (treregeln);
+    - `vyer`: ett FO-fel som väntar medan passen är DTL (ny), ett DTL-fel som släpps
+      (avslutad), och spridning på färre än 8 slag;
+    - `klubbor`: två klubbor i ett pass, ett pass utan klubba och ett med en annan längd;
+    - `varsta`: många grundorsaker på en gång (storleken)."""
     katalog, kedjor = KAT.las(), A.las_kedjor()
     ut = {}
+    S = "langsamt_med_foremal"
 
     # typiskt: swayen väljs i pass 2 och fortsätter; resan framåt och sway gap följer den.
     rng = random.Random(52)
@@ -391,19 +438,14 @@ def facit_historiker() -> dict[str, dict]:
                 "sway_gap_traff": -4.0, "brost_bojning_tapp": 3.0, "framre_armbage_efter_traff": 9.0}]
     hist = {"pass": [_pass(rng, p, {"fo": 16, "dtl": 16}, f) for p, f in zip(ids, flyttar)], "att_jobba_pa": [],
             "skapad": "2026-11-20T21:15:00+01:00"}
-    analyser = analysera_historik(hist, katalog, kedjor)
-    a2 = analyser[ids[1]]
-    kn = a2["bedomning"][0]["klart_nar"]
-    s = _sak(katalog, kedjor, a2, "sway_topp", 1, "kapp_och_fotterna_ihop", "langsamt_med_foremal",
-             {"villkor": kn["villkor"], "grans": kn["grans"], "pa": "forsta_serien", "pass_i_rad": 2},
-             kn["markning"], "2026-11-06", "Leave the stick standing.", [])
-    hist["att_jobba_pa"].append({"format": AJP.FORMAT, "pass": ids[1], "skapad": "2026-11-06T21:00:00+01:00",
-                                 "saker": [s]})
-    a4 = analyser[ids[3]]
-    s4 = _sak(katalog, kedjor, a4, "sway_topp", 1, "kapp_och_fotterna_ihop", "halv_fart", s["klart_nar"],
-              s["markning"], "2026-11-06", "Leave the stick standing.", [])
-    hist["att_jobba_pa"].append({"format": AJP.FORMAT, "pass": ids[3], "skapad": "2026-11-13T21:00:00+01:00",
-                                 "saker": [s4]})
+    enh = analysera_historik(hist, katalog, kedjor)
+    kn, mk = _forslag(_huvud(enh, ids[1]), "sway_topp")
+    s = _sak(katalog, kedjor, _huvud(enh, ids[1]), "sway_topp", 1, "kapp_och_fotterna_ihop", S, kn, mk, "2026-11-06",
+             "Leave the stick standing.")
+    hist["att_jobba_pa"].append(_doc(ids[1], [s], "2026-11-06T21:00:00+01:00"))
+    s4 = _sak(katalog, kedjor, _huvud(enh, ids[3]), "sway_topp", 1, "kapp_och_fotterna_ihop", "halv_fart", kn, mk,
+              "2026-11-06", "Leave the stick standing.")
+    hist["att_jobba_pa"].append(_doc(ids[3], [s4], "2026-11-13T21:00:00+01:00"))
     ut["typiskt"] = hist
 
     # forsta: ett pass, bara FO (en telefon), inget minne.
@@ -417,101 +459,307 @@ def facit_historiker() -> dict[str, dict]:
            "20261212-180000"]
     hist = {"pass": [_pass(rng, p, {"dtl": 14}, {"backen_thrust_traff": 7.0}) for p in ids], "att_jobba_pa": [],
             "skapad": "2026-12-12T20:00:00+01:00"}
-    analyser = analysera_historik(hist, katalog, kedjor)
-    a1 = analyser[ids[1]]
-    b = next(x for x in a1["bedomning"] if x["id"] == "early_extension")
-    kn = b["klart_nar"]
-    s = _sak(katalog, kedjor, a1, "early_extension", 1, "stol_bakom", "langsamt_med_foremal",
-             {"villkor": kn["villkor"], "grans": kn["grans"], "pa": "forsta_serien", "pass_i_rad": 2},
-             kn["markning"], "2026-12-03", "Keep the chair touching.", [])
-    hist["att_jobba_pa"].append({"format": AJP.FORMAT, "pass": ids[1], "skapad": "2026-12-03T21:00:00+01:00",
-                                 "saker": [s]})
+    enh = analysera_historik(hist, katalog, kedjor)
+    kn, mk = _forslag(_huvud(enh, ids[1]), "early_extension")
+    hist["att_jobba_pa"].append(_doc(ids[1], [_sak(katalog, kedjor, _huvud(enh, ids[1]), "early_extension", 1,
+                                                   "stol_bakom", S, kn, mk, "2026-12-03", "Keep the chair touching.")],
+                                     "2026-12-03T21:00:00+01:00"))
     ut["byt"] = hist
+
+    # klart: swayen hålls två pass i rad på första serien; böjda armen blir grön.
+    rng = random.Random(23)
+    ids = ["20260105-170000", "20260108-170000", "20260112-170000", "20260115-170000"]
+    flyttar = [{}, {"framre_armbage_topp": 9.0}, {"backen_sway_topp": 3.8}, {"backen_sway_topp": 3.8}]
+    hist = {"pass": [_pass(rng, p, {"fo": 14}, f) for p, f in zip(ids, flyttar)], "att_jobba_pa": [],
+            "skapad": "2026-01-15T19:30:00+01:00"}
+    enh = analysera_historik(hist, katalog, kedjor)
+    u1 = _huvud(enh, ids[1])
+    kn, mk = _forslag(u1, "sway_topp")
+    hist["att_jobba_pa"].append(_doc(ids[1], [
+        _sak(katalog, kedjor, u1, "sway_topp", 1, "kapp_och_fotterna_ihop", S, kn, mk, "2026-01-08",
+             "Leave the stick standing."),
+        _sak(katalog, kedjor, u1, "bojd_framre_arm", 2, "vaggen_bakom", S,
+             {"villkor": "<=", "grans": -50.0, "pa": "forsta_serien", "pass_i_rad": 2}, "egen", "2026-01-08",
+             "The wall stays behind the club.")], "2026-01-08T20:00:00+01:00"))
+    ut["klart"] = hist
+
+    # fysik: early extension i sex veckor utan rörelse, över två övningar.
+    rng = random.Random(31)
+    ids = _dagar("2026-01-05", 4, 12)
+    hist = {"pass": [_pass(rng, p, {"dtl": 12}, {"backen_thrust_traff": 7.0 + 0.3 * i}) for i, p in enumerate(ids)],
+            "att_jobba_pa": [], "skapad": "2026-02-18T20:00:00+01:00"}
+    enh = analysera_historik(hist, katalog, kedjor)
+    u0, u5 = _huvud(enh, ids[0]), _huvud(enh, ids[5])
+    kn, mk = _forslag(u0, "early_extension")
+    k5, m5 = _forslag(u5, "early_extension")
+    hist["att_jobba_pa"] += [
+        _doc(ids[0], [_sak(katalog, kedjor, u0, "early_extension", 1, "stol_bakom", S, kn, mk, "2026-01-05",
+                           "Keep the chair touching.")], "2026-01-05T21:00:00+01:00"),
+        _doc(ids[5], [_sak(katalog, kedjor, u5, "early_extension", 1, "vagg_eller_stol_bakom", S, k5, m5,
+                           "2026-01-05", "Keep the wall touching.")], "2026-01-25T21:00:00+01:00")]
+    ut["fysik"] = hist
+
+    # vyer: pass 1 i båda vyerna, sedan bara DTL. Swayen (FO) väntar, over the top släpps.
+    rng = random.Random(41)
+    ids = ["20260201-160000", "20260204-160000", "20260207-160000"]
+    hist = {"pass": [_pass(rng, ids[0], {"fo": 12, "dtl": 12}, {"backen_sway_topp": -1.0, "handbana": 4.0}),
+                     _pass(rng, ids[1], {"dtl": 12}, {"backen_thrust_traff": 6.0}),
+                     _pass(rng, ids[2], {"dtl": 6}, {"backen_thrust_traff": 6.0})],
+            "att_jobba_pa": [], "skapad": "2026-02-07T18:00:00+01:00"}
+    enh = analysera_historik(hist, katalog, kedjor)
+    u0, u1 = _huvud(enh, ids[0]), _huvud(enh, ids[1])
+    ks, ms = _forslag(u0, "sway_topp")
+    ko, mo = {"villkor": "<=", "grans": 1.0, "pa": "forsta_serien", "pass_i_rad": 2}, "egen"
+    ke, me = _forslag(u1, "early_extension")
+    hist["att_jobba_pa"] += [
+        _doc(ids[0], [_sak(katalog, kedjor, u0, "sway_topp", 1, "kapp_och_fotterna_ihop", S, ks, ms, "2026-02-01",
+                           "Leave the stick standing."),
+                      _sak(katalog, kedjor, u0, "over_the_top", 2, "headcover", S, ko, mo, "2026-02-01",
+                           "Miss the headcover.")], "2026-02-01T20:00:00+01:00"),
+        _doc(ids[1], [_sak(katalog, kedjor, u1, "early_extension", 1, "stol_bakom", S, ke, me, "2026-02-04",
+                           "Keep the chair touching.")], "2026-02-04T20:00:00+01:00")]
+    ut["vyer"] = hist
+
+    # klubbor: j7 och driver i samma pass, ett pass utan klubba, och ett med en annan längd.
+    rng = random.Random(61)
+    ids = ["20260301-150000", "20260303-150000", "20260305-150000", "20260307-150000", "20260309-150000"]
+    p0 = _pass(rng, ids[0], {"fo": 12}, {"backen_sway_topp": -1.0})
+    _pass(rng, ids[0], {"fo": 10}, {"backen_sway_topp": -2.0}, klubba="dr", slag=p0["slag"])
+    p2 = _pass(rng, ids[2], {"fo": 10}, {}, klubba=None)
+    _pass(rng, ids[2], {"fo": 6}, {"backen_sway_topp": -0.5}, slag=p2["slag"])
+    hist = {"pass": [p0, _pass(rng, ids[1], {"fo": 14}, {"backen_sway_topp": -2.0}, klubba="dr"), p2,
+                     _pass(rng, ids[3], {"fo": 12}, {}, langd=1.90),
+                     _pass(rng, ids[4], {"fo": 12}, {"backen_sway_topp": 0.5})],
+            "att_jobba_pa": [], "skapad": "2026-03-09T17:00:00+01:00"}
+    enh = analysera_historik(hist, katalog, kedjor)
+    u0, u1 = _huvud(enh, ids[0]), _huvud(enh, ids[1])
+    k0, m0 = _forslag(u0, "sway_topp")
+    k1, m1 = _forslag(u1, "sway_topp")
+    hist["att_jobba_pa"] += [
+        _doc(ids[0], [_sak(katalog, kedjor, u0, "sway_topp", 1, "kapp_och_fotterna_ihop", S, k0, m0, "2026-03-01",
+                           "Leave the stick standing.")], "2026-03-01T19:00:00+01:00"),
+        _doc(ids[1], [_sak(katalog, kedjor, u1, "sway_topp", 1, "fotterna_ihop_balans", S, k1, m1, "2026-03-03",
+                           "Keep the feet quiet.")], "2026-03-03T19:00:00+01:00")]
+    ut["klubbor"] = hist
+
+    # varsta: många grundorsaker på en gång.
+    rng = random.Random(3)
+    ids = ["20261103-180000", "20261106-180000", "20261110-180000", "20261113-180000", "20261117-180000",
+           "20261120-180000"]
+    big = {"framre_armbage_efter_traff": 15, "bakre_armbage_topp": 25, "handbana": 8, "framre_armbage_topp": 12,
+           "backen_sway_topp": -2, "backen_thrust_traff": 6, "brost_bojning_tapp": 6, "sidbojning_topp": 6,
+           "tempo": 0.8}
+    ut["varsta"] = {"pass": [_pass(rng, p, {"fo": 16, "dtl": 16}, f) for p, f in zip(ids, [{}] * 5 + [big])],
+                    "att_jobba_pa": [], "skapad": "2026-11-20T21:15:00+01:00"}
     return ut
 
 
-def _svar_text(fil: dict, fore: str = "", efter: str = "", markning: str = "json") -> str:
-    return fore + "```" + markning + "\n" + json.dumps(fil, ensure_ascii=False, indent=1) + "\n```" + efter
+def _svar_text(fil: dict, fore: str = "", efter: str = "", markning: str = "json", indrag: int | None = None) -> str:
+    return fore + "```" + markning + "\n" + json.dumps(fil, ensure_ascii=False, indent=indrag) + "\n```" + efter
 
 
-def facit_svar(historik: dict) -> list[tuple[str, str]]:
-    """Svarstexter för den typiska historiken: giltiga och ogiltiga, som Claude-appen kan ge
-    dem. Det giltiga svaret är byggt ur mallen som skillen säger."""
-    katalog, kedjor = KAT.las(), A.las_kedjor()
-    analyser = analysera_historik(historik, katalog, kedjor)
-    sist = max(analyser)
-    ov = H.ovningar_ur(analyser, historik["att_jobba_pa"], till=sist, fore=sist)
-    d = data(analyser[sist], analyser, ov, historik["att_jobba_pa"], historik["skapad"], katalog, kedjor)
+def giltigt(d: dict, antal: int = 2) -> dict:
+    """Ett svar byggt ur mallarna som skillen säger: de första mallarna, mallens fält, den
+    första övningen och det sista steget. En övning i läget fysik får treregelns svar."""
+    lage = {o["fel"]: o["lage"] for o in d["ovningar"]}
     saker = []
-    for i, m in enumerate(d["mallar"][:2]):
+    for i, m in enumerate(d["mallar"][:antal]):
         ov0 = m["ovning_val"][0]
-        saker.append({"ordning": i + 1, "fel": m["fel"], "namn": m["namn"], "vy": m["vy"], "matt": m["matt"],
-                      "enhet": m["enhet"], "nu": m["nu"], "spann": m["spann"], "markning": m["markning"],
+        fysik, typ = None, "teknik"
+        if lage.get(m["fel"]) == "fysik":
+            fysik = {"test": m["fysik_test"][0], "treregeln": [True, True, False],
+                     "ovning": "Lie on the back and lower one leg slowly."}
+            typ = "teknik_kroppen_gor_det_svart"
+        saker.append({"ordning": i + 1, **{k: m[k] for k in ("fel", "namn", "vy", "matt", "enhet", "nu", "spann",
+                                                             "markning")},
                       "ovning": {"id": ov0["id"], "text": ov0["text"],
                                  "tanke": ov0.get("tanke") or "The chair stays in contact.", "kalla": ov0["kalla"],
                                  "steg": m["steg_val"][-1]},
-                      "klart_nar": m["klart_nar"], "foljdfel": m["foljdfel"], "typ": "teknik", "fysik": None,
+                      "klart_nar": m["klart_nar"], "foljdfel": m["foljdfel"], "typ": typ, "fysik": fysik,
                       "block": m["block"]})
-    fil = dict(d["fil"], saker=saker)
-    rapport = "Pass 20 nov, 32 slag (16 FO, 16 DTL), 7i. Missen saknades.\n1. Sway …\n\n"
-    ut = [("giltigt", _svar_text(fil, rapport, "\n\nSäg till om något är oklart.")),
-          ("utan_markning", _svar_text(fil, rapport, markning="")),
-          ("bara_json", json.dumps(fil, ensure_ascii=False)),
-          ("typografiska", _svar_text(fil, rapport).replace('"', "“", 1).replace('"', "”", 1)),
-          ("inget_block", "Jag behöver veta missen först."),
-          ("trasig_json", rapport + "```json\n{\"format\": \"swinglab-att-jobba-pa/1\", \"saker\": [\n```\n")]
-    fel = json.loads(json.dumps(fil))
-    fel["saker"][0]["fel"] = "slice"
-    ut.append(("fel_id", _svar_text(fel, rapport)))
-    fel = json.loads(json.dumps(fil))
-    fel["saker"] = [dict(fel["saker"][0], ordning=i + 1) for i in range(4)]
-    ut.append(("for_manga", _svar_text(fel, rapport)))
-    fel = json.loads(json.dumps(fil))
-    fel["saker"][0]["ovning"]["tanke"] = "Great swing: 3 good reps!"
-    fel["saker"][0]["nu"] = -1.0
-    fel["saker"][0]["kommentar"] = "x"
-    ut.append(("fritext_och_tal", _svar_text(fel, rapport)))
-    fel = json.loads(json.dumps(fil))
-    fel["saker"][0]["klart_nar"]["grans"] = 0
-    fel["saker"][0]["block"]["vecka"] = 9
-    ut.append(("last_och_block", _svar_text(fel, rapport)))
-    fel = json.loads(json.dumps(fil))
-    fel["extra"] = 1
-    fel["skapad"] = "2026-13-01"
-    fel["saker"][0]["ordning"] = True
-    fel["saker"][0]["ovning"]["steg"] = "varierat"
-    fel["saker"][0]["ovning"]["text"] = "Feet together."
-    fel["saker"][0]["foljdfel"][0]["vag"] = list(reversed(fel["saker"][0]["foljdfel"][0]["vag"]))
-    fel["saker"][0]["typ"] = "troligen_rorlighet"
-    fel["saker"][1]["fel"] = ["chicken_wing"]
-    ut.append(("blandat", _svar_text(fel, rapport)))
-    utkast = json.loads(json.dumps(fil))
-    utkast["saker"][0]["fel"] = "tempo"
-    ut.append(("flera_block", _svar_text(utkast, "Utkast:\n", "\n\nRättat:\n") + _svar_text(fil)))
-    ut.append(("annat_block_sist", _svar_text(fil, rapport) + "\n```json\n{\"pass\": 1}\n```\n"))
+    return dict(d["fil"], saker=saker)
+
+
+def _sak_ur_katalogen(katalog: dict, kedjor: dict, u: dict, fid: str, ordning: int = 1, ov_id: str | None = None,
+                      **kw) -> dict:
+    """En sak för ett fel med katalogens fält och analysens tal, för mutationerna."""
+    k = next(f for f in katalog["fel"] if f["id"] == fid)
+    b = next(x for x in u["bedomning"] if x["id"] == fid)
+    kn = b["klart_nar"] or {"villkor": "<=", "grans": 0, "markning": "egen"}
+    s = _sak(katalog, kedjor, u, fid, ordning, ov_id or k["ovning_id"], "langsamt_med_foremal",
+             {"villkor": kn["villkor"], "grans": kn["grans"], "pa": "forsta_serien", "pass_i_rad": 2},
+             kn["markning"], _datum(u["pass"]).isoformat(), "The club swings past the chair.")
+    s.update(kw)
+    return s
+
+
+def mutationer(fil: dict, u: dict) -> list[tuple[str, object]]:
+    """En ändring per felkod i ett giltigt svar med två saker (en som fortsätter, en ny), som
+    Claude-appen kan ge dem. Svarar (namn, filen eller texten)."""
+    katalog, kedjor = KAT.las(), A.las_kedjor()
+    ut: list[tuple[str, object]] = []
+
+    def m(namn, f):
+        x = json.loads(json.dumps(fil))
+        f(x)
+        ut.append((namn, x))
+
+    def satt(*vag_och_varde):
+        *vag, v = vag_och_varde
+
+        def f(x):
+            t = x
+            for k in vag[:-1]:
+                t = t[k]
+            t[vag[-1]] = v
+        return f
+
+    s0 = fil["saker"][0]
+    ff = s0["foljdfel"][0]
+    tempo = {"fel": "tempo", "namn": next(f for f in katalog["fel"] if f["id"] == "tempo")["namn"], "vag": ["tempo"],
+             "nu": 2.9, "enhet": ""}
+    ny_ov = next(x for x in kedjor["ovningar"] if x["fel"] == fil["saker"][1]["fel"])
+    m("objekt", satt("saker", 0, "x"))
+    m("okand_nyckel", satt("extra", 1))
+    m("saknas", lambda x: x["saker"][0].pop("block"))
+    m("format", satt("format", "x"))
+    m("pass_form", satt("pass", "20261399-180000"))
+    m("inte_analysens", satt("pass", "20261117-180000"))
+    m("iso", satt("skapad", "igår"))
+    m("antal", satt("saker", []))
+    m("dubblett", lambda x: x["saker"].__setitem__(1, dict(x["saker"][0], ordning=2)))
+    m("ordning", satt("saker", 0, "ordning", 3))
+    m("ordning_bool", satt("saker", 0, "ordning", True))
+    m("ej_i_katalogen", satt("saker", 1, "fel", "slice"))
+    m("avstangt", lambda x: x["saker"].__setitem__(1, _sak_ur_katalogen(katalog, kedjor, u, "axellutning", 2)))
+    m("katalogens", satt("saker", 0, "namn", "x"))
+    m("mattets", satt("saker", 0, "enhet", "kg"))
+    m("svingens_ordning", lambda x: x.__setitem__("saker", [dict(x["saker"][1], ordning=1),
+                                                             dict(x["saker"][0], ordning=2)]))
+    m("foljdfel_av_vald", lambda x: x["saker"].insert(1, _sak_ur_katalogen(katalog, kedjor, u, "backens_resa_framat",
+                                                                            2)) or x["saker"].pop())
+    m("inte_flaggat", lambda x: x["saker"].__setitem__(1, _sak_ur_katalogen(katalog, kedjor, u, "tempo", 2)))
+    m("analysens_tal", satt("saker", 0, "nu", -1.0))
+    m("nu_bool", satt("saker", 1, "nu", True))
+    m("ej_i_kedjorna", satt("saker", 1, "ovning", "kalla", "research3"))
+    m("kedjornas", lambda x: x["saker"][1]["ovning"].update(id=ny_ov["id"], text="x", kalla="research3"))
+    m("kalla", satt("saker", 1, "ovning", "kalla", "x"))
+    m("text", satt("saker", 0, "ovning", "tanke", " "))
+    m("for_lang", satt("saker", 0, "ovning", "tanke", "The club swings past the chair " * 3))
+    m("siffror", satt("saker", 0, "ovning", "tanke", "Swing past the chair 3 times."))
+    m("vardeord", satt("saker", 0, "ovning", "tanke", "A great turn past the chair."))
+    m("well_done", satt("saker", 0, "ovning", "tanke", "Well   done, chair."))
+    m("utropstecken", satt("saker", 0, "ovning", "tanke", "Turn past the chair!"))
+    m("svenska", satt("saker", 0, "ovning", "tanke", "Vänd förbi stolen."))
+    m("steg", satt("saker", 0, "ovning", "steg", "x"))
+    m("steg_hopp", satt("saker", 0, "ovning", "steg", "varierat"))
+    m("steg_forsta", satt("saker", 1, "ovning", "steg", "halv_fart"))
+    m("villkor", satt("saker", 0, "klart_nar", "villkor", "x"))
+    m("grans_spann", lambda x: x["saker"][1]["klart_nar"].update(villkor="mellan", grans=1))
+    m("grans_tal", satt("saker", 0, "klart_nar", "grans", "x"))
+    m("pa", satt("saker", 0, "klart_nar", "pa", "x"))
+    m("pass_i_rad", satt("saker", 0, "klart_nar", "pass_i_rad", 3))
+    m("last", satt("saker", 0, "klart_nar", "grans", 0))
+    m("analysens", satt("saker", 1, "klart_nar", "grans", 99))
+    m("block_start", satt("saker", 0, "block", "start", "2026-11-07"))
+    m("block_vecka", satt("saker", 0, "block", "vecka", 9))
+    m("vecka_bool", satt("saker", 1, "block", "vecka", True))
+    m("lista", satt("saker", 0, "foljdfel", "x"))
+    m("ingen_kedja", lambda x: x["saker"][0]["foljdfel"].append(tempo))
+    m("vag", satt("saker", 0, "foljdfel", 0, "vag", list(reversed(ff["vag"]))))
+    m("vald", lambda x: x["saker"][0]["foljdfel"].append(dict(ff, fel=x["saker"][1]["fel"])))
+    m("typ", satt("saker", 0, "typ", "x"))
+    m("kravs", satt("saker", 0, "typ", "troligen_rorlighet"))
+    m("treregeln", satt("saker", 0, "fysik", {"test": "Trail hip internal rotation", "treregeln": [True], "ovning": None}))
+    m("treregeln_typ", satt("saker", 0, "fysik", {"test": "Trail hip internal rotation",
+                                                  "treregeln": [True, True, True], "ovning": None}))
+    m("test", satt("saker", 0, "fysik", {"test": "x", "treregeln": [False, False, False], "ovning": None}))
+    m("null", satt("saker", 0, "fysik", {"test": "Trail hip internal rotation", "treregeln": [False, False, False],
+                                        "ovning": "Lie on the back."}))
+    m("fysik_objekt", satt("saker", 0, "fysik", 1))
+    djup = {"x": 1}
+    for _ in range(30):
+        djup = [djup]
+    m("djup_32", satt("extra", djup))
+    return ut
+
+
+def facit_svar(namn: str, historik: dict) -> list[tuple[str, str]]:
+    """Svarstexterna för en historik: det giltiga svaret (när en mall finns) och ändringarna
+    som ger varje felkod (BESLUT B54). Bara det typiska passet får alla ändringar; de andra
+    historikerna ger koderna som kräver sitt minne."""
+    katalog, kedjor = KAT.las(), A.las_kedjor()
+    enh = analysera_historik(historik, katalog, kedjor)
+    nu = _nu(historik)
+    u = _huvud(enh, nu)
+    d = underlag(enh, nu, historik["att_jobba_pa"], historik["skapad"], katalog, kedjor)
+    rapport = "Pass, slag och missen.\n1. …\n\n"
+    ut = []
+    fil = giltigt(d) if d["mallar"] else None
+    if fil:
+        ut.append(("giltigt", _svar_text(fil, rapport, "\n\nSäg till om något är oklart.", indrag=1)))
+    if namn == "typiskt":
+        ut += [("utan_markning", _svar_text(fil, rapport, markning="")),
+               ("bara_json", json.dumps(fil, ensure_ascii=False)),
+               ("typografiska", _svar_text(fil, rapport).replace('"', "“", 1).replace('"', "”", 1)),
+               ("inget_block", "Jag behöver veta missen först."),
+               ("trasig_json", rapport + "```json\n{\"format\": \"swinglab-att-jobba-pa/1\", \"saker\": [\n```\n"),
+               ("inte_att_jobba_pa", rapport + "```json\n[1]\n```\n"),
+               ("for_stort", rapport + "x" * (AJP.MAX_SVAR + 1) + _svar_text(fil)),
+               ("djup", rapport + "```json\n" + "[" * 40 + "]" * 40 + "\n```\n"),
+               ("djup_33", "```json\n{\"extra\": " + "[" * 32 + "]" * 32 + "}\n```"),
+               ("flera_block", _svar_text(dict(fil, saker=[dict(fil["saker"][0], fel="tempo")]), "Utkast:\n",
+                                          "\n\nRättat:\n") + _svar_text(fil)),
+               ("annat_block_sist", _svar_text(fil, rapport) + "\n```json\n{\"pass\": 1}\n```\n")]
+        ut += [(n, x if isinstance(x, str) else _svar_text(x, rapport)) for n, x in mutationer(fil, u)]
+    elif namn == "forsta":
+        s = _sak_ur_katalogen(katalog, kedjor, u, "reverse_spine")
+        ut.append(("okant_med_flaggade", _svar_text(dict(d["fil"], saker=[s]))))
+    elif namn == "byt":
+        s = _sak_ur_katalogen(katalog, kedjor, u, "early_extension", ov_id="stol_bakom")
+        ut.append(("byt_ovning", _svar_text(dict(d["fil"], saker=[s]))))
+    elif namn == "fysik":
+        s = _sak_ur_katalogen(katalog, kedjor, u, "early_extension", ov_id="stol_bakom")
+        ut.append(("redan_provad", _svar_text(dict(d["fil"], saker=[s]))))
+        g = json.loads(json.dumps(fil))
+        g["saker"][0].update(fysik=None, typ="teknik")
+        ut.append(("fysik_forst", _svar_text(g)))
+    elif namn == "klart":
+        s = _sak_ur_katalogen(katalog, kedjor, u, "sway_topp", ov_id="kapp_och_fotterna_ihop")
+        ut.append(("klar", _svar_text(dict(d["fil"], saker=[s]))))
     return ut
 
 
 # Texter att leta kodblock i: samma block i Python och Swift (METOD MT12).
 KODBLOCK = ["a\n```json\n{1}\n```\nb ```\n2\n``` ```x", "````\nx\n```", "```json {\n```", "```\nöppet",
             "``` \r\n{}\r\n```", "x``\n```\n``` y ```\nz```", "```js`x\n1\n```\n```\n2```", ""]
+# Avrundningen som Pythons round(): halvor på det exakta binära talet (METOD MT3).
+AVRUNDNING = [["backen_sway_topp", 0.35], ["backen_sway_topp", 0.25], ["backen_sway_topp", -0.25],
+              ["tempo", 2.675], ["tempo", 1.005], ["backen_sway_topp", 2.5], ["handens_vinkelfart", 2.5],
+              ["handens_vinkelfart", 3.5], ["backen_sway_topp", -0.04]]
+
+
+def facit_kontext(h: dict) -> tuple[dict, list[dict]]:
+    """Passet `nu` och minnet före dess val, som kontrollen av ett svar läser dem."""
+    enh = analysera_historik(h)
+    nu = _nu(h)
+    ctx = H.sammanhang(enh, nu)
+    docs = [d for d in h["att_jobba_pa"] if d["pass"] in {u["pass"] for u in ctx if u["huvud"]}]
+    return _huvud(enh, nu), H.ovningar_ur(ctx, docs, till=nu, fore=nu)
 
 
 def facit() -> dict:
-    """Facit för Swift: instruktionen, och per påhittad historik indata, Pythons text och
-    svaren med Pythons felkoder."""
+    """Facit för Swift: instruktionen, kodblocken, avrundningen, och per påhittad historik
+    indata, Pythons text och svaren med Pythons felkoder."""
     katalog, kedjor = KAT.las(), A.las_kedjor()
-    hist = facit_historiker()
-    ut = {"instruktion": instruktion(), "kodblock": [[k, AJP.kodblock(k)] for k in KODBLOCK], "historiker": []}
-    for namn, h in hist.items():
-        analyser = analysera_historik(h, katalog, kedjor)
-        sist = max(analyser)
-        ov = H.ovningar_ur(analyser, h["att_jobba_pa"], till=sist, fore=sist)
-        rad = {"namn": namn, "historik": h, "text": facit_text(h), "svar": []}
-        if namn == "typiskt":
-            for snamn, s in facit_svar(h):
-                d, fel = AJP.las_svar(s, analyser[sist], ov, katalog, kedjor)
-                rad["svar"].append({"namn": snamn, "text": s, "godkand": d is not None, "fel": AJP.koder(fel)})
+    ut = {"instruktion": instruktion(), "kodblock": [[k, AJP.kodblock(k)] for k in KODBLOCK],
+          "avrundning": [[m, v, A.avrunda(m, v)] for m, v in AVRUNDNING], "historiker": []}
+    for namn, h in facit_historiker().items():
+        u, ov = facit_kontext(h)
+        rad = {"namn": namn, "historik": dict(h, nu=_nu(h)), "text": facit_text(h), "svar": []}
+        for snamn, s in facit_svar(namn, h):
+            d, fel = AJP.las_svar(s, u, ov, katalog, kedjor)
+            rad["svar"].append({"namn": snamn, "text": s, "godkand": d is not None, "fel": AJP.koder(fel)})
         ut["historiker"].append(rad)
     return ut
 

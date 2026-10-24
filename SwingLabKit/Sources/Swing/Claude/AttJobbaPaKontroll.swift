@@ -55,8 +55,13 @@ public enum AttJobbaPaKontroll {
         ("a"..."z").contains(c) || ("A"..."Z").contains(c) || "åäöéüÅÄÖÉÜ".unicodeScalars.contains(c)
     }
 
+    /// \w och \s med re.ASCII, som Python (BESLUT B54).
     static func ordkaraktar(_ c: Unicode.Scalar) -> Bool {
-        c == "_" || c.properties.isAlphabetic || c.properties.numericType != nil
+        c == "_" || ("a"..."z").contains(c) || ("A"..."Z").contains(c) || ("0"..."9").contains(c)
+    }
+
+    static func blanktecken(_ c: Unicode.Scalar) -> Bool {
+        [" ", "\t", "\n", "\r", "\u{0B}", "\u{0C}"].contains(c)
     }
 
     /// Frasen "well done" (`\bwell\s+done\b`, utan hänsyn till skiftläge).
@@ -74,7 +79,7 @@ public enum AttJobbaPaKontroll {
             if lika(i, well), i == 0 || !ordkaraktar(s[i - 1]) {
                 var j = i + 4
                 var mellan = 0
-                while j < s.count, s[j].properties.isWhitespace {
+                while j < s.count, blanktecken(s[j]) {
                     j += 1
                     mellan += 1
                 }
@@ -113,7 +118,7 @@ public enum AttJobbaPaKontroll {
             return
         }
         if s.unicodeScalars.count > maxlen { fel.append(Kontrollfel(falt, "for_lang")) }
-        if s.unicodeScalars.contains(where: { $0.properties.numericType == .decimal }) {
+        if s.unicodeScalars.contains(where: { ("0"..."9").contains($0) }) {
             fel.append(Kontrollfel(falt, "siffror"))
         }
         if harVardeord(s) { fel.append(Kontrollfel(falt, "vardeord")) }
@@ -139,8 +144,7 @@ public enum AttJobbaPaKontroll {
     /// `skapad` som tid i ISO 8601: yyyy-MM-dd och valfritt THH:mm[:ss[.f]] med Z eller ±HH:mm
     /// (`skapad_ok` i Python).
     public static func skapadOK(_ v: JSONVarde?) -> Bool {
-        guard var s = v?.somText.map({ Array($0.unicodeScalars) }) else { return false }
-        if s.last == "\n" { s.removeLast() }          // Pythons $ tar ett radslut sist
+        guard let s = v?.somText.map({ Array($0.unicodeScalars) }) else { return false }
         var i = 0
         func tal(_ n: Int) -> Int? {
             guard i + n <= s.count else { return nil }
@@ -185,10 +189,12 @@ public enum AttJobbaPaKontroll {
         return h <= 23 && mi <= 59 && (sek ?? 0) <= 59 && (zh ?? 0) <= 23 && (zm ?? 0) <= 59
     }
 
+    /// yyyyMMdd-HHmmss med en dag som finns (`pass_form` i Python).
     static func passForm(_ s: String) -> Bool {
-        var c = Array(s.unicodeScalars)
-        if c.last == "\n" { c.removeLast() }          // Pythons $ tar ett radslut sist
-        return c.count == 15 && c[8] == "-" && c.enumerated().allSatisfy { $0.offset == 8 || ("0"..."9").contains($0.element) }
+        let c = Array(s.unicodeScalars)
+        guard c.count == 15, c[8] == "-",
+              c.enumerated().allSatisfy({ $0.offset == 8 || ("0"..."9").contains($0.element) }) else { return false }
+        return Dag.fran(s) != nil && !s.hasPrefix("0000")
     }
 
     /// Alla fel i filen mot passets analys och minnet före passet (`Ovningslage.minne(…, fore:

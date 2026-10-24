@@ -59,6 +59,20 @@ final class ClaudeKontextTests: XCTestCase {
         XCTAssertEqual(focus.saker.first?.ovning.id, ov["id"]?.somText)
         XCTAssertEqual(try FocusInbox.accept(bytes).fileName, namn)
 
+        // Ett val för ett pass med en annan klubba rör inte minnet (BESLUT B56).
+        let dr = DemoPass.fo(id: "20261111-120000", created: Self.dag0.addingTimeInterval(86_400), club: "dr",
+                             heightM: 1.80, sway: [-6, -5, -7, -6, -5, -6, -7, -6])
+        var drPass = dr.pass
+        XCTAssertTrue(drPass.measureShots { dr.leder[$0.id] })
+        var drFil = fil
+        drFil["pass"] = .text(drPass.id)
+        let drFocus = try AttJobbaPa.las(Data(JSONVarde.objekt(drFil).skriv().utf8))
+        let u2 = try XCTUnwrap(ClaudeKontext.underlag(nu: nu, alla: [forra, drPass, nu], filer: [drFocus], katalog: k))
+        XCTAssertEqual(u2.analyser.map(\.pass), ["20261110-120000", "20261113-120000"])
+        XCTAssertTrue(u2.ovningar.isEmpty)
+        XCTAssertTrue(u2.filer.isEmpty)
+        XCTAssertEqual(nu.claudeRader.slag.first?.klubba, "j7")
+
         // Ett annat pass än underlagets, och ett svar utan block: inget tas emot.
         fil["pass"] = .text("20261110-120000")
         guard case let .rejected(f) = FocusInbox.acceptClaude("```json\n" + JSONVarde.objekt(fil).skriv() + "\n```",

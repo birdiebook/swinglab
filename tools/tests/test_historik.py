@@ -81,17 +81,36 @@ class Historiken(unittest.TestCase):
 
     def test_tom_historik(self) -> None:
         self.assertEqual(H.lista(self.rot), [])
-        self.assertEqual(H.baslinje(self.rot, "20261103-180000"), ([], []))
-        self.assertIsNone(H.forra(self.rot, "20261103-180000"))
+        self.assertEqual(H.enheter(self.rot, fore="20261103-180000"), [])
         self.assertEqual(H.minne(self.rot)["ovningar"], [])
 
-    def test_lista_forra_och_baslinje(self) -> None:
+    def test_lista_och_enheterna(self) -> None:
         for p in ("20261110-180000", "20261103-180000", "20261106-180000"):
             self.pass_(p, -5.0)
         self.assertEqual(H.lista(self.rot), ["20261103-180000", "20261106-180000", "20261110-180000"])
-        self.assertEqual(H.forra(self.rot, "20261110-180000")["pass"], "20261106-180000")
-        svingar, pass_ids = H.baslinje(self.rot, "20261110-180000")
-        self.assertEqual((len(svingar), pass_ids), (16, ["20261103-180000", "20261106-180000"]))
+        enh = H.enheter(self.rot, fore="20261110-180000")
+        self.assertEqual([(u["pass"], u["klubba_id"], u["huvud"]) for u in enh],
+                         [("20261103-180000", "j7", True), ("20261106-180000", "j7", True)])
+        self.assertEqual(sum(len(u["svingar"]) for u in enh), 16)
+
+    def test_andra_klubbor_och_vyer_ror_inte_saken(self) -> None:
+        """BESLUT B56: en sak följs upp och avslutas bara av pass med samma klubba och vy."""
+        self.pass_("20261103-180000", -6.0)
+        self.ajp("20261103-180000")
+        dr = _analys("20261106-180000", 0.5)
+        dr["klubbor"] = ["dr"]
+        H.spara_analys(self.rot, dr)
+        d = _doc("20261106-180000")
+        d["saker"][0]["fel"] = "flying_elbow"
+        H._skriv(self.rot / "att_jobba_pa" / "20261106-180000.json", d)
+        dtl = _analys("20261108-180000", 0.5)
+        for r in dtl["slag"]:
+            r["vy"] = "dtl"
+        H.spara_analys(self.rot, dtl)
+        self.pass_("20261110-180000", -6.0)
+        o = self.lage()
+        self.assertEqual((o["lage"], o["pass_sedan"], o["aktuell"]), ("fortsatt", 1, True))
+        self.assertEqual([u["pass"] for u in o["uppfoljning"]], ["20261110-180000"])
 
     def test_spelaren_minns(self) -> None:
         self.assertEqual(H.spelare(self.rot), {})

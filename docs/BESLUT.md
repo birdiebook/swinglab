@@ -853,8 +853,8 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   klubba räcker, och katalogen får inga gränser per klubba.
   - Valt: en gräns tas in bara när den inte beror på klubban (swayen vid toppen, där
     båda klubbornas tour-tal är gröna) eller när källan inte anger någon (thrusten).
-    Annars jämförs passet med de egna passen med samma klubba (METOD M27), och PC:n
-    blandar inte klubbor i samma tal (spridningen per klubba, METOD M44).
+    Annars jämförs passet med de egna passen med samma klubba, vy och längd (METOD M27),
+    och ett pass med flera klubbor analyseras per klubba på båda sidor (BESLUT B56).
   - Bortvalt: tour-gränser per driver och järn (`klubbor` per gräns, passets klubba i
     bedömningen i Python och Swift, en tabell från uppställningens id till driver/järn).
   - Omprövas när en källa med en klubbas gräns kräver det.
@@ -1032,12 +1032,12 @@ B47 och s6c börjar på B48.
 - **Kedjorna följer med till appen** (ändrar förslaget F-S5-1 i skillen): kandidaterna,
   mallarna och kontrollen behöver dem. De bärs som genererad källa, inte resurs (B12), så
   en ändrad kedja kräver bara att skriptet körs igen.
-- **Telefonens baslinje** är passen som kan jämföras (`PassHistory.earlier`: samma
-  klubba, vy och längd, METOD MS14), som passets vy redan visar; PC:n tar alla tidigare
-  pass i historiken. Samma regel räknar på samma pass; urvalet är anroparens.
+- **De tidigare passen** är de som kan jämföras: samma klubba, vy och längd, på telefonen
+  och på PC:n (BESLUT B56).
 - **Bortvalt:** en egen kortversion av reglerna i appen (glider isär från skillen); att
   låta Claude räkna ur rådata (B2).
-- **Kostnad:** analysen och minnet finns i två språk till; facit-filen är ≈ 170 kB.
+- **Kostnad:** analysen och minnet finns i två språk till; facit-filen är ≈ 0,55 MB (åtta
+  historiker och en ändring per felkod).
 
 ## B54 — Svaret: det sista kodblocket, samma kontroll och samma felkoder som PC:n
 *2026-10-23 · gäller · PLAN.md S5b*
@@ -1052,6 +1052,13 @@ B47 och s6c börjar på B48.
   minnet före passets val. Varje fel är ett fält och en kod (`Kontrollfel`); PC:n skriver
   koden på svenska och telefonen på engelska (B30, `Texter.kontrollfelTexter`). Ingen kod
   och ingen text bär ett värde ur svaret: värdeordet står inte längre i PC:ns fel.
+- **Samma tolkning i båda språken** (efter granskningen): true och false är inte tal
+  (`_lika`, `JSONVarde.lika`), texter jämförs tecken för tecken, siffror, ord och blanktecken
+  är ASCII (`re.ASCII`), ett pass-id måste vara en dag som finns, `skapad` läses utan
+  avslutande radslut, och avrundningen är Pythons `round()` även i Swift (METOD MT3).
+  Urklippet läses bara upp till 64 KiB (`for_stort`) och JSON bara 32 nivåer djupt (annars
+  `inte_json`). 60 koder; `ej_i_analysen` går inte att nå, eftersom analysen bedömer hela
+  katalogen.
 - **Varför:** samma svarstexter prövas i båda språken (facit), och telefonen tar emot en
   fil bara när PC:n hade tagit emot den.
 - **Bortvalt:** en mildare kontroll på telefonen (då kan en fil med fel tal bli Focus);
@@ -1072,12 +1079,43 @@ B47 och s6c börjar på B48.
 - **Varför:** Claude läser JSON säkrast när talen ska skrivas av exakt, och kontrollen
   jämför tal för tal; mallen gör att Claude bara väljer och skriver tanken. Svenska ger ett
   par procent längre text (å, ä, ö är två byte) men ingen översättning som kan glida.
-- **Storleken (METOD MT11):** ett typiskt pass med två vyer, sex pass och en övning som
-  fortsätter: ≈ 8,1 kB data och 7,5 kB instruktion, ≈ 15,6 kB totalt; ett pass i en vy utan
-  minne ≈ 2,7 kB data. Provet håller datan under 8 KiB och hela texten under 16 KiB.
+- **Storleken (METOD MT11):** gröna fel står inte i `bedomning`, fel som är gröna i alla pass
+  inte i `historik`, och mallarna är högst tre nya fel plus övningarna som fortsätter. Ett
+  typiskt pass med två vyer, sex pass och en övning som fortsätter: ≈ 7,1 kB data och
+  8,0 kB instruktion, ≈ 15,3 kB totalt; ett pass i en vy utan minne ≈ 2,6 kB data; det
+  värsta fallet i facit (många grundorsaker) ≈ 15,4 kB. Provet håller instruktionen under
+  8 KiB, det typiska passets data under 7,5 KiB och varje historik under 24 KiB.
 - **Bortvalt:** engelska (en översatt kopia av skillen, eller engelsk rapport till
   Johannes); en tabell i Markdown (kortare, men talen och listorna, som `vag` och
   `spann`, skrivs av sämre); indenterad JSON (≈ 40 % längre); kontaktarken (Claude i appen
   får bara text).
 - **Omprövas:** om Claude-appens svar ofta faller i kontrollen (B54) eller rapporten blir
   sämre än på PC:n.
+
+## B56 — En sak följs i sin klubba och vy, och varje klubba analyseras för sig
+*2026-10-23 · gäller · Johannes beslut · PLAN.md S5b*
+
+- **A. Uppföljningen:** en sak att jobba på följs bara upp på pass med samma vy och samma
+  klubba (och längd) som när den valdes. Ett pass med en annan vy eller klubba påverkar inte
+  dess läge, avslutar den inte och räknas inte som "utan rörelse". Ett val gäller passets
+  huvudklubba, och avslutar bara saker i samma klubba vars vy passet har (för tempot: vyn som
+  tempot togs ur). Ett val för ett pass som inte finns i sammanhanget läses inte, och
+  telefonen ger underlaget bara valen för passen den jämför med.
+- **B. Flera klubbor i ett pass (PC:n):** varje klubba analyseras för sig och bedöms mot sin
+  egen baslinje. `analys.json` har huvudklubban överst (`huvudklubba`, flest mätta slag, vid lika
+  den som sorterar först) och de andra i `delar`; "Att jobba på" gäller huvudklubban. Varje
+  klubba blir en enhet i historiken (`analys.enheter`), så att en annan klubbas del av ett
+  pass bär baslinjen för den klubban.
+- **C. PC:n väljer som telefonen:** baslinjen och förra passet (`analysera`), minnet
+  (`historik.ovningar`, `minne`) och underlaget (`underlag.ur_historik`) tar bara tidigare
+  enheter med samma klubba och längd; vyn skiljer baslinjen per mått (METOD M27) och
+  uppföljningen per sak (A). Förra passet är det senaste med en gemensam vy.
+- **Klubbans id:** "j7", som i paketet och `PassSetup.club`, inte etiketten "7i".
+- **Varför:** ett 7-järn och en driver är inte samma sving (B45), och ett DTL-pass säger inget
+  om ett FO-mått. Förut avslutade ett val på en annan klubba en sak, och ett pass utan
+  måttet räknades som ett pass utan rörelse.
+- **Bortvalt:** att para klubbor över delar av ett pass; ett `att_jobba_pa.json` per klubba
+  (formen är kontraktet med appen och bär ingen klubba).
+- **Kostnad:** analyser från före B56 saknar `klubba` och tar klubban ur `klubbor` när den är
+  en; kör session.py igen för pass med flera klubbor.
+- **Omprövas:** om Johannes vill välja saker för en andra klubba i samma pass.

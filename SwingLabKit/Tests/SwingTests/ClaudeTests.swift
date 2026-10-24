@@ -20,7 +20,7 @@ final class ClaudeTests: XCTestCase {
     }
 
     /// En påhittad historik ur facit: passen som rader och valen som filer.
-    func historik(_ h: JSONVarde) throws -> (passen: [Passrader], filer: [AttJobbaPa], skapad: String) {
+    func historik(_ h: JSONVarde) throws -> (passen: [Passrader], filer: [AttJobbaPa], skapad: String, nu: String) {
         let passen = try XCTUnwrap(h["pass"]?.somLista).map { p -> Passrader in
             let slag = (p["slag"]?.somLista ?? []).map { s -> Slagrad in
                 var matt: [String: Double] = [:]
@@ -28,10 +28,10 @@ final class ClaudeTests: XCTestCase {
                 return Slagrad(vy: s["vy"]?.somText == "dtl" ? .dtl : .fo, klubba: s["klubba"]?.somText, matt: matt,
                                forstaSerien: s["forsta_serien"] == .bool(true))
             }
-            return Passrader(pass: p["pass"]?.somText ?? "", slag: slag)
+            return Passrader(pass: p["pass"]?.somText ?? "", langd: p["langd"]?.somTal, slag: slag)
         }
         let filer = try (h["att_jobba_pa"]?.somLista ?? []).map { try AttJobbaPa.las(Data($0.skriv().utf8)) }
-        return (passen, filer, h["skapad"]?.somText ?? "")
+        return (passen, filer, h["skapad"]?.somText ?? "", h["nu"]?.somText ?? "")
     }
 
     /// Den första raden där texterna skiljer sig, för ett läsbart fel i Actions.
@@ -46,7 +46,13 @@ final class ClaudeTests: XCTestCase {
 
     func testFacitFinns() {
         XCTAssertNotEqual(Self.facit, .null, "tools/tests/fixturer/claude_facit.json saknas eller går inte att läsa")
-        XCTAssertEqual(Self.facit["historiker"]?.somLista?.count, 3)
+        XCTAssertEqual(Self.facit["historiker"]?.somLista?.count, 8)
+    }
+
+    /// Underlaget för en historik ur facit.
+    func underlag(_ h: JSONVarde) throws -> ClaudeUnderlag {
+        let (passen, filer, skapad, nu) = try historik(try XCTUnwrap(h["historik"]))
+        return try XCTUnwrap(ClaudeUnderlag(passen: passen, nu: nu, filer: filer, skapad: skapad, katalog: try katalog()))
     }
 
     /// BESLUT B53: appen bär skillens avsnitt och kedjorna ordagrant.
@@ -72,62 +78,75 @@ final class ClaudeTests: XCTestCase {
         let k = try katalog()
         for h in try XCTUnwrap(Self.facit["historiker"]?.somLista) {
             let namn = h["namn"]?.somText ?? ""
-            let (passen, filer, skapad) = try historik(try XCTUnwrap(h["historik"]))
-            let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, filer: filer, skapad: skapad, katalog: k))
+            let (passen, filer, skapad, nu) = try historik(try XCTUnwrap(h["historik"]))
+            let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, nu: nu, filer: filer, skapad: skapad, katalog: k))
             let python = h["text"]?.somText ?? ""
             XCTAssertEqual(u.text, python, "\(namn): \(skillnad(u.text, python))")
         }
     }
 
-    /// Svarstexterna: samma godkända och samma felkoder som Python.
+    /// Svarstexterna: samma godkända och samma felkoder som Python, i varje historik.
     func testSvarenSomPython() throws {
-        let k = try katalog()
-        let h = try XCTUnwrap(Self.facit["historiker"]?.somLista?.first)
-        let (passen, filer, skapad) = try historik(try XCTUnwrap(h["historik"]))
-        let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, filer: filer, skapad: skapad, katalog: k))
-        let svar = try XCTUnwrap(h["svar"]?.somLista)
-        XCTAssertGreaterThanOrEqual(svar.count, 10)
-        for s in svar {
-            let namn = s["namn"]?.somText ?? ""
-            let r = u.svar(s["text"]?.somText ?? "")
-            let python = (s["fel"]?.somLista ?? []).map { f in
-                Kontrollfel(f.somLista?[0].somText ?? "", f.somLista?[1].somText ?? "")
-            }
-            XCTAssertEqual(r.felen, python, namn)
-            if case let .godkand(data, focus) = r {
-                XCTAssertEqual(s["godkand"], .bool(true), namn)
-                XCTAssertEqual(focus.pass, "20261120-180000")
-                XCTAssertEqual(try AttJobbaPa.las(data).saker.count, focus.saker.count)
-            } else {
-                XCTAssertEqual(s["godkand"], .bool(false), namn)
+        var antal = 0
+        for h in try XCTUnwrap(Self.facit["historiker"]?.somLista) {
+            let u = try underlag(h)
+            for s in h["svar"]?.somLista ?? [] {
+                antal += 1
+                let namn = (h["namn"]?.somText ?? "") + "/" + (s["namn"]?.somText ?? "")
+                let r = u.svar(s["text"]?.somText ?? "")
+                let python = (s["fel"]?.somLista ?? []).map { f in
+                    Kontrollfel(f.somLista?[0].somText ?? "", f.somLista?[1].somText ?? "")
+                }
+                XCTAssertEqual(r.felen, python, namn)
+                if case let .godkand(data, focus) = r {
+                    XCTAssertEqual(s["godkand"], .bool(true), namn)
+                    XCTAssertEqual(focus.pass, u.analys.pass, namn)
+                    XCTAssertEqual(try AttJobbaPa.las(data).saker.count, focus.saker.count)
+                } else {
+                    XCTAssertEqual(s["godkand"], .bool(false), namn)
+                }
             }
         }
+        XCTAssertGreaterThanOrEqual(antal, 70)
     }
 
     /// Dataregeln: felen nämner fältet, aldrig det som stod i svaret.
     func testFelenNamnerFaltAldrigVarden() throws {
-        let k = try katalog()
-        let h = try XCTUnwrap(Self.facit["historiker"]?.somLista?.first)
-        let (passen, filer, skapad) = try historik(try XCTUnwrap(h["historik"]))
-        let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, filer: filer, skapad: skapad, katalog: k))
-        for s in try XCTUnwrap(h["svar"]?.somLista) {
-            for f in u.svar(s["text"]?.somText ?? "").felen {
-                XCTAssertNotEqual(Texter.kontrollfel(f.kod), "invalid", f.kod)
-                for v in ["slice", "Great", "good", "Feet together", "2026-13-01", "-1"] {
-                    XCTAssertFalse(f.text.contains(v), "\(f.text) bär \(v)")
+        for h in try XCTUnwrap(Self.facit["historiker"]?.somLista) {
+            let u = try underlag(h)
+            for s in h["svar"]?.somLista ?? [] {
+                for f in u.svar(s["text"]?.somText ?? "").felen {
+                    XCTAssertNotEqual(Texter.kontrollfel(f.kod), "invalid", f.kod)
+                    for v in ["slice", "great", "Great", "Well", "igår", "-1", "20261399", "kg"] {
+                        XCTAssertFalse(f.text.contains(v), "\(f.text) bär \(v)")
+                    }
                 }
             }
         }
     }
 
-    /// Ett typiskt pass (två vyer, sex pass) ryms i cirka 8 kB data. METOD MT11
+    /// Instruktionen under 8 KiB, ett typiskt pass under 8 KiB data med marginal, varje
+    /// historik under 24 KiB. METOD MT11
     func testStorleken() throws {
-        let k = try katalog()
-        let h = try XCTUnwrap(Self.facit["historiker"]?.somLista?.first)
-        let (passen, filer, skapad) = try historik(try XCTUnwrap(h["historik"]))
-        let u = try XCTUnwrap(ClaudeUnderlag(passen: passen, filer: filer, skapad: skapad, katalog: k))
-        XCTAssertLessThanOrEqual(u.text.utf8.count - ClaudeKallor.instruktion.utf8.count, 8 * 1024)
-        XCTAssertLessThanOrEqual(u.text.utf8.count, 16 * 1024)
+        let instr = ClaudeKallor.instruktion.utf8.count
+        XCTAssertLessThanOrEqual(instr, 8 * 1024)
+        for h in try XCTUnwrap(Self.facit["historiker"]?.somLista) {
+            let text = try underlag(h).text
+            XCTAssertLessThanOrEqual(text.utf8.count, 24 * 1024)
+            if h["namn"] == .text("typiskt") { XCTAssertLessThanOrEqual(text.utf8.count - instr, 7680) }
+        }
+    }
+
+    /// Avrundningen som Pythons round(): 0,35 blir 0,3 och 0,25 blir 0,2. METOD MT3
+    func testAvrundningenSomPython() throws {
+        XCTAssertEqual(Avrundning.pyRound(0.35, 1), 0.3)
+        XCTAssertEqual(Avrundning.pyRound(0.25, 1), 0.2)
+        XCTAssertEqual(Avrundning.pyRound(2.5, 0), 2)
+        for f in try XCTUnwrap(Self.facit["avrundning"]?.somLista) {
+            let l = try XCTUnwrap(f.somLista)
+            let m = l[0].somText ?? "", v = l[1].somTal ?? .nan
+            XCTAssertEqual(Avrundning.avrunda(m, v), l[2].somTal, "\(m) \(v)")
+        }
     }
 
     func testJSONLasningOchSkrivning() throws {
@@ -142,7 +161,11 @@ final class ClaudeTests: XCTestCase {
         XCTAssertEqual(JSONVarde.talText(-0.0), "0")
         XCTAssertEqual(JSONVarde.talText(1e-05), "1e-05")
         XCTAssertEqual(JSONVarde.textText("a\"\\\u{01}"), "\"a\\\"\\\\\\u0001\"")
-        XCTAssertTrue(JSONVarde.bool(true).lika(.tal(1)))
+        XCTAssertFalse(JSONVarde.bool(true).lika(.tal(1)))
+        XCTAssertTrue(JSONVarde.tal(1).lika(.tal(1.0)))
+        XCTAssertNoThrow(try JSONVarde.las(String(repeating: "[", count: 32) + String(repeating: "]", count: 32)))
+        XCTAssertThrowsError(try JSONVarde.las(String(repeating: "[", count: 33) + String(repeating: "]", count: 33)))
+        XCTAssertNotEqual(JSONVarde.text("e\u{301}"), JSONVarde.text("\u{e9}"))
         XCTAssertTrue(JSONVarde.spann([0, nil]).lika(try JSONVarde.las("[0.0, null]")))
     }
 

@@ -18,6 +18,11 @@ public struct Ovningslage: Sendable {
     public let fel: String
     public let vy: String
     public let matt: String
+    /// Spåret: klubban och längden i passet då felet valdes, och vyn (för tempot vyn som tempot
+    /// togs ur). Bara enheter och val i samma spår följer upp och avslutar saken (BESLUT B56).
+    public let klubba: String?
+    public let langd: Double?
+    public let sparVy: String
     /// Passet då felet först valdes i det här blocket.
     public internal(set) var felStart: String
     public internal(set) var valtIPass: String
@@ -54,9 +59,9 @@ public struct Ovningslage: Sendable {
     }
 
     static func uppfyllt(_ villkor: String, _ grans: JSONVarde, _ v: Double) -> Bool {
-        if villkor == ">=" { return v >= (grans.pyTal ?? .nan) }
-        if villkor == "<=" { return v <= (grans.pyTal ?? .nan) }
-        guard let g = grans.somLista, g.count == 2, let lo = g[0].pyTal, let hi = g[1].pyTal else { return false }
+        if villkor == ">=" { return v >= (grans.somTal ?? .nan) }
+        if villkor == "<=" { return v <= (grans.somTal ?? .nan) }
+        guard let g = grans.somLista, g.count == 2, let lo = g[0].somTal, let hi = g[1].somTal else { return false }
         return lo <= v && v <= hi
     }
 
@@ -65,7 +70,7 @@ public struct Ovningslage: Sendable {
         if villkor == ">=" { return nu - start }
         if villkor == "<=" { return start - nu }
         let g = grans.somLista ?? []
-        let c = ((g.first?.pyTal ?? 0) + (g.last?.pyTal ?? 0)) / 2
+        let c = ((g.first?.somTal ?? 0) + (g.last?.somTal ?? 0)) / 2
         return abs(start - c) - abs(nu - c)
     }
 
@@ -74,32 +79,32 @@ public struct Ovningslage: Sendable {
         return (forsta ? a.forstaSerien : a.session)[g]?[matt]?.median
     }
 
-    /// Startvärdet, startpassets spridning och en rad per senare pass. METOD MT4
-    static func foljning(_ analyser: [String: Passanalys], _ passIds: [String], _ vy: String, _ matt: String,
-                         _ villkor: String, _ grans: JSONVarde, start startPass: String)
-        -> (start: Double?, spr: Double?, rader: [Uppfoljning]) {
-        var start: Double? = nil, spr: Double? = nil
-        if let a = analyser[startPass] {
-            start = varde(a, vy, matt, forsta: true) ?? varde(a, vy, matt, forsta: false)
+    /// Startvärdet (första serien i startenheten), dess spridning och en rad per senare enhet i
+    /// spåret. METOD MT4
+    static func foljning(_ enh: [Passanalys], _ vy: String, _ matt: String, _ villkor: String, _ grans: JSONVarde,
+                         start: Passanalys?, startPass: String) -> (start: Double?, spr: Double?, rader: [Uppfoljning]) {
+        var startv: Double? = nil, spr: Double? = nil
+        if let a = start {
+            startv = varde(a, vy, matt, forsta: true) ?? varde(a, vy, matt, forsta: false)
             spr = a.session[vy == "bada" ? "alla" : vy]?[matt].map(Session.robustSD)
         }
         var rader: [Uppfoljning] = []
-        for p in passIds where p > startPass {
-            guard let v = varde(analyser[p]!, vy, matt, forsta: true) else {
-                rader.append(Uppfoljning(pass: p, forstaSerien: nil, uppfyllt: nil, rorelse: nil, tydlig: nil))
+        for u in enh where u.pass > startPass {
+            guard let v = varde(u, vy, matt, forsta: true) else {
+                rader.append(Uppfoljning(pass: u.pass, forstaSerien: nil, uppfyllt: nil, rorelse: nil, tydlig: nil))
                 continue
             }
             let visat = Avrundning.avrunda(matt, v)
             let upp = uppfyllt(villkor, grans, visat ?? v)
-            if let s = start, let sp = spr {
+            if let s = startv, let sp = spr {
                 let r = rorelse(villkor, grans, start: s, nu: v)
-                rader.append(Uppfoljning(pass: p, forstaSerien: visat, uppfyllt: upp, rorelse: Avrundning.avrunda(matt, r),
-                                         tydlig: r > sp))
+                rader.append(Uppfoljning(pass: u.pass, forstaSerien: visat, uppfyllt: upp,
+                                         rorelse: Avrundning.avrunda(matt, r), tydlig: r > sp))
             } else {
-                rader.append(Uppfoljning(pass: p, forstaSerien: visat, uppfyllt: upp, rorelse: nil, tydlig: nil))
+                rader.append(Uppfoljning(pass: u.pass, forstaSerien: visat, uppfyllt: upp, rorelse: nil, tydlig: nil))
             }
         }
-        return (start, spr, rader)
+        return (startv, spr, rader)
     }
 
     /// Övningens stabila id; en fil från före id:t känns igen på texten.
@@ -108,31 +113,47 @@ public struct Ovningslage: Sendable {
         return o.text
     }
 
-    /// Minnet ur passens analyser och valen: `till` tar med passen och valen till och med det
-    /// passet, `fore` bara valen före det (kontrollen av ett nytt val). Som `ovningar_ur`.
-    public static func minne(_ analyserna: [Passanalys], _ alla: [AttJobbaPa], till: String? = nil,
-                             fore: String? = nil) -> [Ovningslage] {
-        var analyser: [String: Passanalys] = [:]
-        for a in analyserna where till == nil || a.pass <= till! { analyser[a.pass] = a }
-        let passIds = analyser.keys.sorted()
-        let docs = alla.filter { (till == nil || $0.pass <= till!) && (fore == nil || $0.pass < fore!) }
+    /// Enheten följer upp spåret: samma klubba, längd och vy som när saken valdes (BESLUT B56).
+    func relevant(_ u: Passanalys) -> Bool {
+        guard u.samma(klubba: klubba, langd: langd) else { return false }
+        return vy == "bada" ? u.tempoVy == sparVy : u.vyer.contains(vy)
+    }
+
+    /// Minnet ur enheterna (`Passanalys.historik`, i ett sammanhang) och valen: `till` tar med
+    /// enheterna och valen till och med det passet, `fore` bara valen före det. Ett val gäller
+    /// passets huvudklubba, och ett val för ett pass utan enhet läses inte. Som `ovningar_ur`.
+    public static func minne(_ enheterna: [Passanalys], _ alla: [AttJobbaPa], till: String? = nil,
+                             fore: String? = nil, kedjor: Kedjor = .appens) -> [Ovningslage] {
+        let medTest = Set(kedjor.fysik.map(\.fel))
+        let U = enheterna.filter { till == nil || $0.pass <= till! }.enumerated()
+            .sorted { Passanalys.fore($0.element, $1.element) || (!Passanalys.fore($1.element, $0.element)
+                                                                   && $0.offset < $1.offset) }
+            .map(\.element)
+        var huvud: [String: Passanalys] = [:]
+        for u in U where u.huvud && huvud[u.pass] == nil { huvud[u.pass] = u }
+        let docs = alla.filter { huvud[$0.pass] != nil && (fore == nil || $0.pass < fore!) }
             .enumerated().sorted { ($0.element.pass, $0.offset) < ($1.element.pass, $1.offset) }.map(\.element)
         var ordning: [String] = []
-        var senast: [String: Ovningslage] = [:]
-        var forraFel = Set<String>()
+        var spar: [String: Ovningslage] = [:]
+        var aktiv: [String: Bool] = [:]
+        func nyckel(_ fel: String, _ k: String?) -> String { fel + "|" + (k.map { "k:" + $0 } ?? "-") }
         for d in docs {
+            let u = huvud[d.pass]!
+            let aktivaFore = aktiv
             for s in d.saker {
                 let fid = s.fel, ovId = id(s.ovning)
-                if senast[fid] == nil || !forraFel.contains(fid) {
-                    let g = senast[fid]
+                let k = nyckel(fid, u.klubba)
+                if spar[k] == nil || aktivaFore[k] != true {
+                    let g = spar[k]
                     let tidigare = g.map { [$0.ovningId] + $0.forraOvningar } ?? []
-                    if g == nil { ordning.append(fid) }
-                    senast[fid] = Ovningslage(fel: fid, vy: s.vy, matt: s.matt, felStart: d.pass, valtIPass: d.pass,
-                                              ovningId: ovId, forraOvningar: tidigare, villkor: s.klartNar.villkor.rawValue,
-                                              grans: grans(s.klartNar), pa: s.klartNar.pa, passIRad: s.klartNar.passIRad,
-                                              markning: s.markning)
-                } else if senast[fid]!.ovningId != ovId {
-                    var g = senast[fid]!
+                    if g == nil { ordning.append(k) }
+                    spar[k] = Ovningslage(fel: fid, vy: s.vy, matt: s.matt, klubba: u.klubba, langd: u.langd,
+                                          sparVy: s.vy == "bada" ? u.tempoVy : s.vy, felStart: d.pass,
+                                          valtIPass: d.pass, ovningId: ovId, forraOvningar: tidigare,
+                                          villkor: s.klartNar.villkor.rawValue, grans: grans(s.klartNar),
+                                          pa: s.klartNar.pa, passIRad: s.klartNar.passIRad, markning: s.markning)
+                } else if spar[k]!.ovningId != ovId {
+                    var g = spar[k]!
                     g.valtIPass = d.pass
                     g.forraOvningar = [g.ovningId] + g.forraOvningar
                     g.ovningId = ovId
@@ -141,44 +162,50 @@ public struct Ovningslage: Sendable {
                     g.pa = s.klartNar.pa
                     g.passIRad = s.klartNar.passIRad
                     g.markning = s.markning
-                    senast[fid] = g
+                    spar[k] = g
                 }
-                var g = senast[fid]!
+                var g = spar[k]!
                 g.ovning = s.ovning.text
                 g.tanke = s.ovning.tanke
                 g.steg = s.ovning.steg
                 g.typ = s.typ
                 g.harFysik = s.fysik != nil
                 g.senastIPass = d.pass
-                senast[fid] = g
+                spar[k] = g
+                aktiv[k] = true
             }
-            forraFel = Set(d.saker.map(\.fel))
+            let valda = Set(d.saker.map(\.fel))
+            for k in ordning where spar[k]!.relevant(u) { aktiv[k] = valda.contains(spar[k]!.fel) }
         }
         var ut: [Ovningslage] = []
-        for fid in ordning {
-            var o = senast[fid]!
-            let (start, spr, upp) = foljning(analyser, passIds, o.vy, o.matt, o.villkor, o.grans, start: o.valtIPass)
-            let uppFel = foljning(analyser, passIds, o.vy, o.matt, o.villkor, o.grans, start: o.felStart).rader
+        for k in ordning {
+            var o = spar[k]!
+            let rel = U.filter { o.relevant($0) }
+            let start = U.first { $0.pass == o.valtIPass && $0.klubba == o.klubba }
+            let fstart = U.first { $0.pass == o.felStart && $0.klubba == o.klubba }
+            let (startv, spr, upp) = foljning(rel, o.vy, o.matt, o.villkor, o.grans, start: start, startPass: o.valtIPass)
+            let uppFel = foljning(rel, o.vy, o.matt, o.villkor, o.grans, start: fstart, startPass: o.felStart).rader
             var uppfyllda = 0
-            for u in upp.reversed() {
-                if u.uppfyllt != true { break }
+            for x in upp.reversed() {
+                if x.uppfyllt != true { break }
                 uppfyllda += 1
             }
             var utan = 0
-            for u in upp.reversed() {
-                if u.tydlig == true { break }
+            for x in upp.reversed() {
+                if x.tydlig == true { break }
                 utan += 1
             }
             var dagar = 0
-            if let sista = passIds.last, let a = Dag.fran(sista), let b = Dag.fran(o.felStart) { dagar = a - b }
+            if let sista = rel.last, let a = Dag.fran(sista.pass), let b = Dag.fran(o.felStart) { dagar = a - b }
             let rorelseIBlocket = uppFel.contains { $0.tydlig == true }
             var ejFlaggat = false
-            if let sista = passIds.last, sista > o.senastIPass, let a = analyser[sista] {
-                ejFlaggat = a.bedomning.contains { $0.id == fid && $0.status == .gron }
+            if let sista = rel.last, sista.pass > o.senastIPass {
+                ejFlaggat = sista.bedomning.contains { $0.id == o.fel && $0.status == .gron }
             }
+            let arAktiv = aktiv[k] == true
             var skal: String? = nil
             let lage: String
-            if !forraFel.contains(fid) {
+            if !arAktiv {
                 lage = "avslutad"
             } else if uppfyllda >= o.passIRad {
                 lage = "klart"
@@ -186,7 +213,8 @@ public struct Ovningslage: Sendable {
             } else if ejFlaggat {
                 lage = "klart"
                 skal = "inte_flaggat"
-            } else if !uppFel.isEmpty && !rorelseIBlocket && dagar >= fysikDagar && !o.harFysik {
+            } else if !uppFel.isEmpty && !rorelseIBlocket && dagar >= fysikDagar && !o.harFysik
+                        && medTest.contains(o.fel) {
                 lage = "fysik"
             } else if upp.isEmpty {
                 lage = "ny"
@@ -196,14 +224,14 @@ public struct Ovningslage: Sendable {
                 lage = "fortsatt"
             }
             let matt = o.matt
-            o.startForstaSerien = start.flatMap { Avrundning.avrunda(matt, $0) }
+            o.startForstaSerien = startv.flatMap { Avrundning.avrunda(matt, $0) }
             o.spridning = spr.flatMap { Avrundning.avrunda(matt, $0) }
             o.uppfoljning = upp
             o.dagarSedanFeletValdes = dagar
             o.rorelseSedanFeletValdes = rorelseIBlocket
             o.uppfylltIRad = uppfyllda
             o.passUtanRorelse = utan
-            o.aktuell = forraFel.contains(fid)
+            o.aktuell = arAktiv
             o.lage = lage
             o.klartSkal = skal
             ut.append(o)
