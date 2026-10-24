@@ -1,20 +1,20 @@
-ad4261f82f85db1f58f654de6e519e62a07d4e33 s6c2 2026-10-24T08:31:15Z run 40078184745
+72a0d262de6ddda95a82a48702a3150a495d62c3 s7afo 2026-10-24T08:32:50Z run 40078298841
 == swift-release
-GRÖNT: 289 test, 0 fel, 28 s i testerna, bygget 88 s
-Långsammast (av 289):
-      3.3 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      3.1 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.5 s  TreDTests.testTelefonensVagSomPython
+GRÖNT: 273 test, 0 fel, 21 s i testerna, bygget 89 s
+Långsammast (av 273):
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
       1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.2 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.1 s  TreDTests.testKortet
-      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.9 s  KlickTests.testSammaKlickSomPythonIBitar
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.8 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
       0.5 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.5 s  TreDTests.testDelstegenSomPython
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.4 s  TreDTests.testSparrenHopparOver
-      0.4 s  KatalogTests.testKontrollernaSomPython
-      0.3 s  ClaudeKontextTests.testUnderlagetOchSvaretTillbaka
+      0.3 s  KlickTests.testKantregelnKastarDetKapadeKlicket
+      0.3 s  TreDTests.testOrimligaTiderStopparSlagetUtanAttKrascha
+      0.3 s  KatalogTests.testKontrollernaSomPython
 
