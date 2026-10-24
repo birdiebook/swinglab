@@ -42,7 +42,7 @@ final class TreDKoppling {
     @ObservationIgnored private let store: Store
     @ObservationIgnored private(set) var link: PhoneLink?
     @ObservationIgnored private var jobb: Task<Void, Never>?
-    @ObservationIgnored private var rakning: Task<(TreDFil, Double)?, Never>?
+    @ObservationIgnored private var rakning: Task<(TreDFil, Double, TreDFigurIndex?)?, Never>?
     /// Ett nytt varv behövs när det pågående är klart (passet ändrades under tiden).
     @ObservationIgnored private var igen = false
     /// Passet fick ny 3D: vyn läser om (Progress och kortet).
