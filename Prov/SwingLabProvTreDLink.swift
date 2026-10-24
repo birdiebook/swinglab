@@ -207,7 +207,9 @@ final class SwingLabProvTreDLink: XCTestCase {
         let fel = PhoneLink(role: .follow, view: .fo, mode: .pass, partner: "en-annan", endpoint: ep2, bonjour: false,
                             device: "prov-folj")
         fel.start()
-        XCTAssertFalse(vänta(4) { !styr.peers.isEmpty || !fel.peers.isEmpty }, "kopplade till fel partner")
+        // Följaren stänger förbindelsen när den styrandes hello inte är partnerns: den ser ingen
+        // styrande, och inget kan skickas (den styrande hann se dess hello).
+        XCTAssertFalse(vänta(4) { !fel.peers.isEmpty }, "kopplade till fel partner")
         fel.stop()
 
         // Rätt partner men ett annat pass: nej, och följaren slutar skicka.
