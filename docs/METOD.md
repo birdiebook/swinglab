@@ -2300,7 +2300,7 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   (`Prov/SwingLabProvTreD.swift`) bygger och kör TreD på Darwin: fyra slag på 0,46 s i
   simulatorn (Actions macOS-maskin, Apple-processor; Linux 0,51 s), största avvikelse mot
   Python 6e-11°. **Telefonens väg (S6c-2, MS19)** med 2D-faserna ur lederna och den andra
-telefonens slag genom bunten: tio slag på **0,98 s** i simulatorn (iPhone 17 Pro, iOS 26.5,
+telefonens slag genom bunten: tio slag på **0,98–1,00 s** i simulatorn (två körningar) (iPhone 17 Pro, iOS 26.5,
 Actions macOS-maskin), största avvikelse mot Python 6,5e-11° per slag
 (`SwingLabProvTreDLink`); på Linux 2,5 s för två pass med faserna (TreDTelefonTests). Telefonen
 är inte mätt: `tre_d.json` bär tiden (`sekunder`), så att första passet med två telefoner ger
