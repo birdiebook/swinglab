@@ -1,0 +1,41 @@
+ff85e50d122bec434e69e5196f47823564113ff9 s6c2 2026-10-24T09:57:59Z run 40083683431 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:42: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:49: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:33: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:40: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:590:31: error: tuple pattern has the wrong length for tuple type '(device: String, kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:593:29: error: value of type 'LinkLeader' has no member 'forget'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:616:31: error: tuple pattern has the wrong length for tuple type '(kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:619:31: error: value of type 'LinkFollower' has no member 'forget'
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:42: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:49: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:33: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:40: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:590:31: error: tuple pattern has the wrong length for tuple type '(device: String, kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:593:29: error: value of type 'LinkLeader' has no member 'forget'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:616:31: error: tuple pattern has the wrong length for tuple type '(kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:619:31: error: value of type 'LinkFollower' has no member 'forget'
+
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:42: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:497:49: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:33: error: extra arguments at positions #2, #3 in call
+/Users/runner/work/swinglab/swinglab/App/Link.swift:499:40: error: cannot convert value of type 'String' to expected argument type '[LinkPart]'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:590:31: error: tuple pattern has the wrong length for tuple type '(device: String, kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:593:29: error: value of type 'LinkLeader' has no member 'forget'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:616:31: error: tuple pattern has the wrong length for tuple type '(kind: String, pass: String, id: String, bytes: Int, delar: [String])'
+/Users/runner/work/swinglab/swinglab/App/Link.swift:619:31: error: value of type 'LinkFollower' has no member 'forget'
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
