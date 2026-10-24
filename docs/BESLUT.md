@@ -1433,41 +1433,56 @@ Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar
   och kanten räcker mot en ljus bakgrund, och om axlarna och höfterna ska vara mitten i
   stället för två linjer var.
 
-## B71 — Klubbhuvudets bana: rörelsedifferens mellan ankarna på telefonen, planet utan tal än
-*2026-10-24 · prövas · PLAN.md S7b · METOD M61 · Johannes beställning 2026-10-23 och 2026-10-24*
+## B71 — Klubbhuvudets bana: rörelsedifferens mellan grannankare på telefonen, planet utan tal än
+*2026-10-24 · prövas · PLAN.md S7b · METOD M61 · Johannes beställning 2026-10-23 och 2026-10-24, granskad 2026-10-24*
 
 - **Varför:** Johannes vill se klubbhuvudet hela vägen genom svingen, och S7:s detektor
   behöver fler märkta rutor än trycken vid P1–P10.
 - **Valt:**
-  - **Spårningen** är mekanisk (M61): rörelsedifferens mot rutan två före och två efter,
-    kroppen maskerad ur Visions leder, och sökningen i en korridor kring greppet med
-    ankarnas skaft. Ingen tränad modell. Där den tappar interpoleras banan mellan säkra
-    punkter och rutan märks interpolerad.
+  - **Spårningen** är mekanisk (M61): rörelsedifferens mot rutorna 2/240 s före och efter med
+    en brusanpassad tröskel, kroppen maskerad ur Visions leder, en korridor kring greppet med
+    ankarnas skaft, fläcken vars yttre kant ligger närmast skaftets längd, och prövningar som
+    tappar en ruta hellre än låser fel (skak, radien, språnget, grannarna). Ingen tränad
+    modell. Där den tappar interpoleras banan mellan säkra punkter och rutan märks
+    interpolerad.
+  - **Bara mellan grannar i svingens ordning** (P1→P2→…→P10): granskningen visade att P1+P7
+    gav en bana över halva svingen som var fel med en skaftlängd. Saknas en position ritas
+    inget där, och chipet Club visas först när två grannpositioner är markerade.
   - **På telefonen** i SwingLabKit (`KlubbSpar`, bara Foundation, testbar på Linux) med
-    Python som facit (`klubbspar.py`, B12). Appen läser rutorna ur seriens fil i gråskala och
-    halv upplösning och ger dem som byte-arrayer; Kit vet inget om video.
+    Python som facit (`klubbspar.py`, B12). Appen läser rutorna ur seriens fil en gång i
+    tidsordning (`RutStrom`, Y-planet vridet upprätt, en ringbuffert i stället för hela slaget
+    i minnet); Kit vet inget om video.
+  - **Räkningen** ligger i `Store`, en i taget och per slag, och startar bara när Club slås på
+    (eller trycks när banan saknas för slaget), aldrig när ett slag öppnas. Den avbryts när
+    Club slås av eller granskningen stängs. Passet läses om ur disken innan banan sparas, och
+    den sparas bara om markeringarna inte ändrats under tiden. Saknas filen eller mer än 10 %
+    av rutorna sparas ingen bana; en grå rad under chipsen säger varför.
   - **Facit** är en påhittad film i båda språken med samma bytes (hashat brus, summan per
-    ruta i fixturen), så att Swift prövas på exakt samma bilder som Python utan att filmen
-    ligger i repot.
-  - **Visningen** är S4f:s spårlager (`SparLager`, B70) med chipet Club: banan fast där den
-    spelats, interpolerade bitar streckade. Bakifrån ritas P1-skaftets linje förlängd och
-    streckad, så att man ser om klubbhuvudet går över eller under den i nedsvingen.
-  - **Planet genom nedsvingen** räknas (P5–P7 per ruta mot P1-linjen, M47:s geometri, exakt i
-    2D med uppställningen bakifrån) men **visas inte som tal** förrän banan prövats mot
-    handmärkta rutor på riktiga klipp: felet i banan går rakt in i vinkeln, och kring träffen
-    blir den obestämd. Linjen i bilden räcker tills dess.
+    ruta i fixturen), och i Python varianter med det som riktiga klipp har (M61: bakifrån,
+    oskärpa, låg kontrast, textur med skak, boll, skugga, huvudets mitt bredvid hoseln, glesa
+    ankare). Varianterna genereras i proven och checkas inte in.
+  - **Visningen** är S4f:s spårlager (`SparLager`, B70) med chipet Club: en bredare vit linje
+    med en ring där huvudet är i rutan (händerna har en prick), fast där den spelats och
+    streckad där den är interpolerad. Bakifrån ritas P1-skaftets linje förlängd och märkt
+    "P1 plane", bara när banan är räknad ur dagens markeringar. VoiceOver läser om banan räknas
+    och hur många rutor som är interpolerade.
+  - **Planet genom nedsvingen** räknas (P5–P7 per ruta mot P1-linjen, M47:s geometri) men
+    **visas inte som tal** förrän banan prövats mot handmärkta rutor på riktiga klipp.
   - **Datamodellen för träningen:** banan sparas per slag (`ShotRecord.klubbaBana`) med
     ankarna den räknades ur, och varje ruta bär källan (`klick`, `spar`, `interpolerad`) och
     `granskning` (ogranskad, `godkand` eller `rattad`; en rättad ruta behåller maskinens
-    punkt). I filen är banans rutor `val: "bana"` i **`swinglab-klubba/3`** (FORMAT.md):
-    version 3 för att `val`, källorna och `granskning` är nya och en läsare av version 2
-    ska säga nej hellre än läsa fel. PC:n läser 1–3; markeringarna och måtten tar aldrig
-    banans rutor. Godkänna och rätta med ett tryck byggs senare.
+    punkt och dess källa). I filen är banans rutor `val: "bana"` i **`swinglab-klubba/3`**
+    (FORMAT.md); `samla_klubba.py` skriver version 3 när ett pass har en bana, ersätter banan
+    per slag med den senaste, och räknar aldrig banans rutor som markeringar. Banan blir alltså
+    aldrig S7:s indata som om den vore en markering. Godkänna och rätta byggs senare.
 - **Bortvalt:** en tränad detektor nu (S7, kräver märkta rutor), spårning utan ankare (gav 22
-  handrättningar och en hårdkodad mask i förebilden 2026-10-20), att gissa genom kroppen i
-  stället för att interpolera, spökbilder av klubbhuvudet (inte enkelt att göra tydligt utan
-  att täcka videon; omprövas med banan på riktiga klipp), och planet som tal i granskningen.
-- **Kostnad:** några sekunders räkning per slag på telefonen första gången Club slås på,
-  42 % interpolerade rutor i den påhittade filmen, och en ny formatversion.
+  handrättningar och en hårdkodad mask i förebilden 2026-10-20), en bana mellan ankare som
+  inte är grannar, att gissa genom kroppen i stället för att interpolera, en fast tröskel
+  (en låg kontrast försvann), spökbilder av klubbhuvudet (omprövas med banan på riktiga
+  klipp), planet som tal, och att räkna banan när ett slag öppnas.
+- **Kostnad:** några sekunders räkning per slag första gången Club slås på, många
+  interpolerade rutor där klubban syns dåligt (45 % i den påhittade filmen, 74 % bakifrån),
+  och en ny formatversion.
 - **Omprövas:** när banan provats på riktiga DTL-klipp mot handmärkta rutor (S7b:s Klart
-  när): gränserna i M61, mitten mot hoseln, om planet kan visas som tal, och spökbilderna.
+  när): gränserna i M61, särskilt bakifrån, mitten mot hoseln, om planet kan visas som tal,
+  och spökbilderna.

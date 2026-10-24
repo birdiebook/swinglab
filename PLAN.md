@@ -689,24 +689,30 @@ att en spårad eller interpolerad punkt blir en ny källa i samma format
 (`swinglab-klubba/2`, FORMAT.md) och en ruta mellan ankarna en ruta med en annan `val`;
 klubbmåtten tar i dag bara tryckta punkter.
 
-**Byggt (grenen `spar`, 2026-10-24).** METOD M61, BESLUT B71. `tools/pc/klubbspar.py` (facit)
-och `KlubbSpar` i SwingLabKit (samma tal inom 1e-6): rörelsedifferensen mot t−2 och t+2,
-kroppen maskerad ur lederna, korridoren kring greppet med ankarnas skaft, det yttersta
-bandet som klubbhuvud, och interpolering i polära koordinater där den tappar. Facit är den
-påhittade filmen `tools/pc/klubbfilm.py` / `KlubbFilm` (samma bytes i båda språken, en kropp
-som döljer klubban och ett mörkt fält): **spårade rutor median 0,59 px, p95 2,26 px (skaftet
-150 px), 42 % interpolerade med högst 23,5 px**, planet P5–P7 inom 0,52°. Datamodellen
-`KlubbBana` (`ShotRecord.klubbaBana`, källan per ruta, godkänn och rätta) och
-`swinglab-klubba/3` (FORMAT.md) i båda språken. Appen: `App/KlubbSparLasare.swift` läser
-Y-planet ur filen och vrider det upprätt (`KlubbRutor`), chipet Club räknar banan första
-gången och ritar den med `SparLager` (interpolerat streckat), och bakifrån P1-skaftets linje.
-Planet räknas men visas inte som tal (B71). Prov: `test_klubbspar`, `KlubbSparTests`,
-`KlubbBanaTests`, `KlubbRutorTests`, simulatorprovet `SwingLabProvSpar` (rutorna ur en
-riktig film upprätt, bilderna `klubba-bana-p6` och `klubba-bana-p10`).
+**Byggt (grenen `spar`, 2026-10-24, efter granskningen).** METOD M61, BESLUT B71.
+`tools/pc/klubbspar.py` (facit) och `KlubbSpar` i SwingLabKit (samma tal inom 1e-6, också med
+glesa ankare): bara mellan grannar i svingens ordning, rörelsedifferensen 2/240 s före och efter
+med en brusanpassad tröskel, kroppen maskerad ur lederna, korridoren kring greppet, fläcken
+vars yttre kant ligger närmast skaftets längd, mitten mot hoseln mätt vid ankarna, och
+prövningarna skak, radien, språnget och grannarna; där den tappar interpoleras banan polärt.
+Facit är den påhittade filmen `klubbfilm.py` / `KlubbFilm` (samma bytes i båda språken) och i
+Python åtta varianter (bakifrån, oskärpa, låg kontrast med och utan brus, textur med skak, boll,
+skugga, mitten bredvid hoseln): **inga grova fel bland de spårade rutorna i någon variant**,
+grunden median 0,59 px och p95 2,38 px (skaftet 150 px) med 45 % interpolerade; bakifrån och med
+låg kontrast i vanligt brus är tre av fyra rutor interpolerade (M61). Datamodellen `KlubbBana`
+och `swinglab-klubba/3` i båda språken, och `samla_klubba.py` med version 3. Appen: `RutStrom`
+läser Y-planet ur filen en gång med en ringbuffert (`KlubbRutor`, EXIF 1–8), `Store` räknar en
+bana i taget när Club slås på och kan avbrytas, chipet visar läget, och bakifrån ritas
+P1-planet. Planet räknas men visas inte som tal (B71). Prov: `test_klubbspar` (varianterna,
+glesa ankare, samla och formatet), `KlubbSparTests`, `KlubbBanaTests`, `KlubbRutorTests`,
+simulatorprovet `SwingLabProvSpar` (rutorna ur en riktig film upprätt, bilderna
+`klubba-bana-p6`, `klubba-bana-p10` och `klubba-bana-dtl`).
 
-**Oprövat på telefonen:** banan på riktiga klipp (klubbhuvudets mitt mot hoseln, rörelseoskärpa,
-bakgrund), tiden för att läsa rutorna och räkna, och minnet (cirka 340 rutor à 320 × 569).
-**Kvar till ✓:** S7b:s Klart när på DTL-klipp mot handmärkta rutor; godkänn och rätta i appen.
+**Oprövat på telefonen:** banan på riktiga klipp (mitten mot hoseln, rörelseoskärpa,
+bakgrund, bakifrån), tiden för att läsa rutorna och räkna, och att `RutStrom` läser riktiga
+slow motion-filer i rätt ordning.
+**Kvar till ✓:** S7b:s Klart när på DTL-klipp mot 20 slumpvis valda handmärkta rutor (M61);
+godkänn och rätta i appen.
 
 **Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
 rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.

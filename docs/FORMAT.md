@@ -677,7 +677,10 @@ markeringar, annars version 2. Banans rutor har `val: "bana"`, `status: "markera
 banans rutor; ankarna står som markeringar (`val` P1 … P10), inte i banan. Id:t är
 `<vy>-<slag>-bana-<n>`. Markeringarna och klubbmåtten tar aldrig banans rutor
 (`klubba.markeringar`, `KlubbFil.markeringar`); banan läses med `klubba.bana` och
-`KlubbFil.banor`. En läsare av version 2 säger nej till version 3.
+`KlubbFil.banor`; en ruta med `syns_inte` är ingen punkt i banan. `forslag.klubbhuvud` har
+källan `spar` eller `interpolerad`. `samla_klubba.py` skriver version 3 när ett pass har en
+bana, ersätter banan per fil och slag med den senast ändrade källans, och räknar aldrig banans
+rutor som markerade. En läsare av version 2 säger nej till version 3.
 
 ```json
 {"format": "swinglab-klubba/2", "pass": "20261103-180000",
