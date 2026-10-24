@@ -120,7 +120,7 @@ struct ShotReviewView: View {
                 .onChange(of: store.klubbaRaknar) { fore, nu in
                     // Banan är räknad och sparad i passet: läs om det och rita.
                     if fore == klubbNyckel, nu == nil, let p = store.load(passID) {
-                        pass = p
+                        self.pass = p
                         uppdateraSpar()
                     }
                 }
