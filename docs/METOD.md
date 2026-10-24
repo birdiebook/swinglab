@@ -2189,7 +2189,10 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   ingen.
 - **Spärren:** Sampson-felets median, i px på en 1920 px långsida, över **8 px**
   ger ingen mätning för uppställningen (`hoppat` i `kalibrering[]`); hoppas alla
-  över blir `tre_d.hoppat`. Uppmätt på facit (10 slag): bra brus 2,9 px, typiskt
+  över blir `tre_d.hoppat` uppställningarnas skäl när de är eniga (spärren eller
+  kalibreringen själv), annars "ingen serie gick att kalibrera". På PC:n står
+  parningen och uppställningarna kvar bredvid skälet (2026-10-24: ett riktigt pass
+  stoppade i kalibreringen, men skälet sade spärren och resten saknades). Uppmätt på facit (10 slag): bra brus 2,9 px, typiskt
   4,7, dåligt 9,2, mycket dåligt 14,1. Spärren ligger mellan typiskt och dåligt,
   där passets median enligt felbudgeten blir 18–21° fel (§6.7). **antagande.**
 - **Lodlinjen:** ur manifestet (`serier[].lodlinje`, uppåt i kamerans ram, g) när

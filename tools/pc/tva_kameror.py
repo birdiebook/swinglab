@@ -72,7 +72,13 @@ MATT = {"backen_vrid_topp": "backen_topp", "brost_vrid_topp": "brost_topp", "xfa
 
 
 class TreDFel(ValueError):
-    """3D gick inte för passet. Meddelandet nämner steget, aldrig ett värde."""
+    """3D gick inte för passet. Meddelandet nämner steget, aldrig ett värde. `delvis` är det
+    som hann räknas före felet (parningen, uppställningarna, de utelämnade slagen), så att
+    analysen visar var kedjan stannade. METOD MK3"""
+
+    def __init__(self, skal: str, delvis: dict | None = None):
+        super().__init__(skal)
+        self.delvis = delvis or {}
 
 
 # --- 1. parningen ----------------------------------------------------------------
@@ -475,7 +481,8 @@ def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None
              "fKA": fKA, "fKB": fKB, "traffA": traff_i_serien(fo, sf), "traffB": traff_i_serien(dtl, sd),
              "vA": vA, "vB": vB})
     if not grupper:
-        raise TreDFel("parningen: inga slag som båda telefonerna filmat och som går att mäta")
+        raise TreDFel("parningen: inga slag som båda telefonerna filmat och som går att mäta",
+                      {"parning": parning, "utelamnade": utelamnade})
     kalib, ut_slag, osaker = [], [], []
     for nyckel in sorted(grupper):
         info, ut = _uppstallning(dtl, fo, grupper[nyckel], rad, inre)
@@ -487,7 +494,10 @@ def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None
         if info.get("lodlinje_fel"):
             osaker.append(f"{namn}: lodlinjen i manifestet användes inte")
     if not ut_slag:
-        raise TreDFel("kalibreringen: ingen serie gick att kalibrera under spärren")
+        # Skälet är uppställningarnas när de är eniga (spärren eller kalibreringen själv). METOD MK3
+        skal = {i["hoppat"] for i in kalib}
+        raise TreDFel(skal.pop() if len(skal) == 1 else "kalibreringen: ingen serie gick att kalibrera",
+                      {"parning": parning, "kalibrering": kalib, "osaker": osaker, "utelamnade": utelamnade})
     matta = [r["matt"] for r in ut_slag if "matt" in r]
     sammanf = S.sammanfatta(matta)
     n = {m: sum(1 for x in matta if m in x) for m in MATT}

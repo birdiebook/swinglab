@@ -261,7 +261,7 @@ def tre_d(paket: list[Paket], slag: list[dict], forra: dict | None, katalog_3d: 
     try:
         t = _tre_d(vyer["dtl"], vyer["fo"], slag, forra, katalog_3d or KAT.las_3d())
     except TK.TreDFel as e:
-        t = {"hoppat": str(e)}
+        t = {"hoppat": str(e), **e.delvis}
     except Exception as e:  # noqa: BLE001 — 3D får aldrig stoppa 2D (BESLUT B37)
         t = {"hoppat": f"3D gick inte ({type(e).__name__})"}
     # Telefonens 3D (S6c-2, BESLUT B61): jämförs med PC:ns, som är facit. Ett fel här stoppar

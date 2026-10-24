@@ -5,7 +5,7 @@
   "grund": {
    "andra": {},
    "python": {
-    "hoppat": "kalibreringen: ingen serie gick att kalibrera under spärren"
+    "hoppat": "kalibreringen: Sampson-felet är över spärren"
    },
    "inre": [
     {

@@ -119,7 +119,7 @@ extension TreDTests {
 
         // Hoppat: inga rader och inga tal.
         let k3 = TreDKort(TreDFil(pass: "20261103-180000", raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
-                                  ut: .hoppat("kalibreringen: ingen serie gick att kalibrera under spärren")))
+                                  ut: .hoppat("kalibreringen: Sampson-felet är över spärren")))
         XCTAssertEqual(k3.rader, [])
         XCTAssertNil(k3.svingar)
         XCTAssertEqual(k3.skal, ["Cameras could not be placed"])

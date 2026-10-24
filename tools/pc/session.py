@@ -190,7 +190,9 @@ def main(argv=None) -> int:
         print("Paketet går inte att läsa:\n  " + "\n  ".join(e.fel))
         return 1
     pass_id = paket[0].pass_id
-    langd = a.langd or paket[0].langd_m or (None if a.ut else H.spelare(rot).get("spelarens_langd_m"))
+    # Längden ur det paket som bär den: ofta bara den styrande telefonens (F-S5-3).
+    langd = (a.langd or next((p.langd_m for p in paket if p.langd_m), None)
+             or (None if a.ut else H.spelare(rot).get("spelarens_langd_m")))
     if langd is None:
         print("Spelarens längd saknas: ange --langd (sparas i historiken till nästa gång).")
         return 1
@@ -227,7 +229,7 @@ def main(argv=None) -> int:
         from . import underlag as U
         skapad = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         if a.ut:
-            text = U.text(U.data(A.ren(analys), {}, [], [], skapad))
+            text = U.text(U.data(A.ren(analys), [], [], [], skapad))
         else:
             text = U.ur_historik(rot, pass_id, skapad)
         (ut / "claude-text.txt").write_text(text, encoding="utf-8")

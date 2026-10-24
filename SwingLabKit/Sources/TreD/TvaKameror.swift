@@ -637,7 +637,11 @@ public enum TvaKameror {
             }
             if let f = info.lodlinjeFel, !f.isEmpty { osaker.append("\(namn): lodlinjen i manifestet användes inte") }
         }
-        guard !utSlag.isEmpty else { throw TreDFel(skal: "kalibreringen: ingen serie gick att kalibrera under spärren") }
+        // Skälet är uppställningarnas när de är eniga (spärren eller kalibreringen själv). METOD MK3
+        let skal = Set(kalib.compactMap(\.hoppat))
+        guard !utSlag.isEmpty else {
+            throw TreDFel(skal: skal.count == 1 ? skal.first! : "kalibreringen: ingen serie gick att kalibrera")
+        }
         let matta = utSlag.compactMap(\.matt)
         let sammanf = Session.sammanfatta(matta)
         var n: [String: Int] = [:]

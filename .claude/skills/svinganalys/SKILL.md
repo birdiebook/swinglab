@@ -207,7 +207,8 @@ När passet har ett DTL- och ett FO-paket räknar `session.py` vridningen i 3D
 - Läs `tre_d.trend`: bäckenets och axlarnas vridning vid toppen, X-factor, stretchen
   och höfterna vid träffen, med `median`, `kvartiler`, `n` och `mot_forra`. Står
   `median: null` har passet färre än `min_slag` (10) slag i båda vyerna: säg det, och
-  skriv inget tal. Står `tre_d.hoppat`: skriv skälet i en rad.
+  skriv inget tal. Står `tre_d.hoppat`: skriv skälet i en rad, och med `tre_d.parning` antalet
+  parade slag och, med `tre_d.kalibrering`, varje uppställnings skäl och Sampson-fel.
 - **Bara som trend.** Inget 3D-mått bedöms grönt, gult eller rött, och inget blir en
   sak i `att_jobba_pa.json` (kontrollen känner inte dem). Trenden **påverkar aldrig
   valet** (BESLUT B14, B37): den står i rapporten som en egen rad, märkt "trend, utan
@@ -320,7 +321,8 @@ nästa steg (`halv_fart`), samma "klart när". Resan framåt och tappad hållnin
   inte bara i text. Kostnad: Claude kan inte sätta ett mellanmål (halva vägen);
   vill Johannes det blir det en ny regel i MT3.
 - **F-S5-3 — Spelarens längd i manifestet.** Valt: valfritt fält
-  `spelarens_langd_m` i `manifest.json` (S2f skriver det), annars `--langd` en
+  `spelarens_langd_m` i `manifest.json` (S2f skriver det, ofta bara den styrande
+  telefonen; session.py tar det paket som bär den), annars `--langd` en
   gång och sedan historiken. Bortvalt: att gissa en längd (skalan, M2, bär hela
   längdfelet).
 - **F-S5-4 — Första serien.** Valt: de fem första mätta slagen i serie 1

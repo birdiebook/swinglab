@@ -364,7 +364,7 @@ final class TreDTests: XCTestCase {
     func testSparrenHopparOver() throws {
         let ut = try korFixtur("sparren")
         guard case .failure(let e) = ut["grund"]! else { return XCTFail("spärren släppte igenom") }
-        XCTAssertEqual(e.skal, "kalibreringen: ingen serie gick att kalibrera under spärren")
+        XCTAssertEqual(e.skal, "kalibreringen: Sampson-felet är över spärren")
     }
 
     func testParningenSomPython() throws {

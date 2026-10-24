@@ -124,6 +124,25 @@ class Exemplet(unittest.TestCase):
         self.assertEqual((a["forra"]["pass"], a["baslinje"]["pass"]), (P1, [P1]))
         self.assertEqual(a["baslinje"]["svingar"], {"dtl": 8, "fo": 8})
 
+    def test_claude_texten_utan_historik(self) -> None:
+        # --ut läser ingen historik: texten byggs på passet ensamt (kraschade 2026-10-24).
+        with tempfile.TemporaryDirectory() as ut:
+            kod, text = _kor(S.main, [*map(str, self.p1), "--ut", ut, "--langd", "1.80", "--utan-kontaktark",
+                                      "--claude-text"])
+            self.assertEqual(kod, 0, text)
+            self.assertIn(P1, (Path(ut) / "claude-text.txt").read_text(encoding="utf-8"))
+
+    def test_langden_ur_det_paket_som_bar_den(self) -> None:
+        # Ofta bär bara den styrande telefonens paket längden, och det står inte alltid först.
+        t = Path(self.tmp.name) / "langd"
+        fo = GP.paket(t, P1, "fo", serier=2, langd_m=None)
+        dtl = GP.paket(t, P1, "dtl", serier=2, langd_m=1.86)
+        with tempfile.TemporaryDirectory() as ut:
+            kod, text = _kor(S.main, [str(fo), str(dtl), "--ut", ut, "--utan-kontaktark"])
+            self.assertEqual(kod, 0, text)
+            a = json.loads((Path(ut) / "analys.json").read_text(encoding="utf-8"))
+        self.assertEqual(a["spelarens_langd_m"], 1.86)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -45,7 +45,7 @@ extension SwingLabProvVyer {
         // Hoppat: bara rubriken och skälet, i grått. Ritas under kortet med färre svingar, så att
         // bilden visar båda (provet kräver något vitt).
         let hoppat = TreDKort(TreDFil(pass: fil.pass, raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
-                                      ut: .hoppat("kalibreringen: ingen serie gick att kalibrera under spärren")), katalog: k)
+                                      ut: .hoppat("kalibreringen: Sampson-felet är över spärren")), katalog: k)
         XCTAssertEqual(hoppat.rader.count, 0)
         XCTAssertEqual(hoppat.skal, ["Cameras could not be placed"])
         try rendera(VStack(spacing: 0) {

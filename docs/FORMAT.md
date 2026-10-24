@@ -370,7 +370,7 @@ för Progress och förra passet.
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `baslinje` (för ett fel utan gräns: baslinjens `median`, robusta `sd` och `n` svingar, avrundade; `null` med gräns eller under 8 svingar, S5b), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
-| `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}`; med `telefon` när paketet bar telefonens `tre_d.json` (S6c-2, nedan) |
+| `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}` med det som hann räknas före felet (`parning`, `kalibrering`, `osaker`, `utelamnade`; bara PC:n, MK3); med `telefon` när paketet bar telefonens `tre_d.json` (S6c-2, nedan) |
 
 **`tre_d`** (BESLUT B37, METOD MK1–MK7) när passet har ett DTL- och ett FO-paket:
 

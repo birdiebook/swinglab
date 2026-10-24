@@ -7,6 +7,7 @@ riktiga leder (CLAUDE.md, Dataregeln).
 """
 from __future__ import annotations
 
+import dataclasses
 import functools
 import io
 import json
@@ -262,8 +263,61 @@ class Sparren(unittest.TestCase):
     def test_samre_an_sparren_hoppas_over_och_2d_gar(self) -> None:
         d, f, _ = _pass("mycket_daligt", 3, n=4)
         a = A.analysera([P.las(d), P.las(f)], 1.80, [], skapad="")
-        self.assertIn("spärren", a["tre_d"]["hoppat"])
+        self.assertEqual(a["tre_d"]["hoppat"], "kalibreringen: Sampson-felet är över spärren")
         self.assertTrue(any("matt" in r for r in a["slag"]))
+        # Det som hann räknas står kvar, så att analysen visar var kedjan stannade.
+        self.assertEqual(a["tre_d"]["parning"]["par"], 4)
+        self.assertEqual([k["hoppat"] for k in a["tre_d"]["kalibrering"]], [a["tre_d"]["hoppat"]])
+        self.assertIn("sampson_px", a["tre_d"]["kalibrering"][0])
+
+    def test_kalibreringens_eget_skal_star_i_hoppat(self) -> None:
+        # Ett riktigt pass (2026-10-24) stoppade i kalibreringen själv, men skälet sade spärren.
+        d, f, _ = _pass("inget", 3, n=4)
+        orig = TK.kalibrera
+
+        def stopp(*a, **kw):
+            raise TK.TreDFel("kalibreringen: kamerorna står för nära samma riktning")
+        TK.kalibrera = stopp
+        try:
+            a = A.analysera([P.las(d), P.las(f)], 1.80, [], skapad="")
+        finally:
+            TK.kalibrera = orig
+        t = a["tre_d"]
+        self.assertEqual(t["hoppat"], "kalibreringen: kamerorna står för nära samma riktning")
+        self.assertEqual(t["parning"]["par"], 4)
+        self.assertEqual(t["kalibrering"][0]["hoppat"], t["hoppat"])
+        self.assertEqual(t["utelamnade"], [])
+
+    def test_olika_skal_ger_det_allmanna(self) -> None:
+        d, f, _ = _pass("inget", 3, n=4)
+        pd, pf = P.las(d), P.las(f)
+        orig, orig_para = TK._uppstallning, TK.para_slag
+        par, info = orig_para(pd, pf)
+        pf.serier[2] = pf.serier[1]
+        skal = iter(["kalibreringen: x", "kalibreringen: y"])
+        TK._uppstallning = lambda *a, **kw: ({"hoppat": next(skal)}, [])
+        # Två uppställningar: FO-slagen delas på två serier.
+        TK.para_slag = lambda *_: ([(sd, dataclasses.replace(sf, serie=1 + i % 2)) for i, (sd, sf) in enumerate(par)],
+                                   info)
+        try:
+            with self.assertRaises(TK.TreDFel) as e:
+                TK.analysera(pd, pf, A.mat_paket(pd, 1.80) + A.mat_paket(pf, 1.80))
+        finally:
+            TK._uppstallning, TK.para_slag = orig, orig_para
+        self.assertEqual(str(e.exception), "kalibreringen: ingen serie gick att kalibrera")
+        self.assertEqual([k["hoppat"] for k in e.exception.delvis["kalibrering"]],
+                         ["kalibreringen: x", "kalibreringen: y"])
+
+    def test_utan_parade_slag_star_parningen_kvar(self) -> None:
+        d, f, _ = _pass("inget", 3, n=4)
+        orig = TK.para_slag
+        TK.para_slag = lambda *_: ([], {"kalla": "klicken", "serier": [], "par": 0, "oparade": {"dtl": 4, "fo": 5}})
+        try:
+            a = A.analysera([P.las(d), P.las(f)], 1.80, [], skapad="")
+        finally:
+            TK.para_slag = orig
+        self.assertTrue(a["tre_d"]["hoppat"].startswith("parningen:"))
+        self.assertEqual(a["tre_d"]["parning"]["oparade"], {"dtl": 4, "fo": 5})
 
     def test_ovantat_fel_ger_typens_namn(self) -> None:
         d, f, _ = _pass("inget", 3, n=4)
@@ -434,7 +488,7 @@ class Telefonen(unittest.TestCase):
         self.assertIsNone(j["marginaler"][1])
 
     def test_hoppat_jamfors_pa_skalet(self) -> None:
-        fil = {"format": "swinglab-tre-d/1", "pass": "x", "hoppat": "kalibreringen: ingen serie gick att kalibrera under spärren"}
+        fil = {"format": "swinglab-tre-d/1", "pass": "x", "hoppat": "kalibreringen: Sampson-felet är över spärren"}
         j = TK.jamfor_telefon({"hoppat": fil["hoppat"]}, fil)
         self.assertTrue(j["inom"])
         self.assertFalse(TK.jamfor_telefon(self.a["tre_d"], fil)["inom"])
