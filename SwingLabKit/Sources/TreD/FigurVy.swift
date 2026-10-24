@@ -82,23 +82,28 @@ public struct TreDRiktning: Equatable, Sendable {
             let hofter = [median(f, rutor, hf), median(f, rutor, hb)].compactMap { $0 }
             let fot = [median(f, rutor, fram), median(f, rutor, bak)].compactMap { $0 }
             let bas = fot.isEmpty ? hofter : fot
-            let stans = bas.isEmpty ? [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, golv]
-                : [bas.map { $0[0] }.reduce(0, +) / Double(bas.count), bas.map { $0[1] }.reduce(0, +) / Double(bas.count), golv]
+            var stans: [Double] = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, golv]
+            if !bas.isEmpty {
+                let n = Double(bas.count)
+                let sx: Double = bas.map { $0[0] }.reduce(0, +), sy: Double = bas.map { $0[1] }.reduce(0, +)
+                stans = [sx / n, sy / n, golv]
+            }
             let m = mal ?? fo.flatMap { k in vagrat(LA.kryss(z, [stans[0] - k.c[0], stans[1] - k.c[1], 0])) } ?? [0, 1, 0]
             var c = LA.kryss(z, m)                               // vinkelrätt mot målet, vågrätt
             var tecken = 0.0
             if let n = median(f, rutor, 0), !hofter.isEmpty {
-                let h = [hofter.map { $0[0] }.reduce(0, +) / Double(hofter.count),
-                         hofter.map { $0[1] }.reduce(0, +) / Double(hofter.count)]
-                tecken = (n[0] - h[0]) * c[0] + (n[1] - h[1]) * c[1]
+                let k = Double(hofter.count)
+                let hx: Double = hofter.map { $0[0] }.reduce(0, +) / k, hy: Double = hofter.map { $0[1] }.reduce(0, +) / k
+                tecken = (n[0] - hx) * c[0] + (n[1] - hy) * c[1]
             }
             if abs(tecken) < 0.02, let k = fo {                  // näsan säger inget: mot FO-kameran
-                tecken = (k.c[0] - stans[0]) * c[0] + (k.c[1] - stans[1]) * c[1]
+                let tx: Double = (k.c[0] - stans[0]) * c[0], ty: Double = (k.c[1] - stans[1]) * c[1]
+                tecken = tx + ty
             }
             if tecken < 0 { c = c.map { -$0 } }
-            let mitt = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (golv + hi[2]) / 2]
-            let radie = max(0.6, 0.5 * ((hi[0] - lo[0]) * (hi[0] - lo[0]) + (hi[1] - lo[1]) * (hi[1] - lo[1])
-                + (hi[2] - golv) * (hi[2] - golv)).squareRoot())
+            let mitt: [Double] = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (golv + hi[2]) / 2]
+            let diagonal: Double = LA.norm3([hi[0] - lo[0], hi[1] - lo[1], hi[2] - golv])
+            let radie = max(0.6, 0.5 * diagonal)
             return TreDRiktning(mitt: mitt, mal: m, fram: c, golv: golv, stans: stans, radie: radie)
         }
         guard let fo, let dtl else { return nil }
@@ -112,7 +117,13 @@ public struct TreDRiktning: Equatable, Sendable {
         if abs(nam) > 1e-6 {
             let s = (b * e - cc * d) / nam, t = (a * e - b * d) / nam
             if s > 0.5, t > 0.5, s < 20, t < 20 {
-                mot = (0..<3).map { (fo.c[$0] + s * fo.fram[$0] + dtl.c[$0] + t * dtl.fram[$0]) / 2 }
+                var m = [Double](repeating: 0, count: 3)
+                for i in 0..<3 {
+                    let pa: Double = fo.c[i] + s * fo.fram[i]
+                    let pb: Double = dtl.c[i] + t * dtl.fram[i]
+                    m[i] = (pa + pb) / 2
+                }
+                mot = m
             }
         }
         let golv = u.golv ?? (min(fo.c[2], dtl.c[2]) - 1.0)
@@ -167,10 +178,17 @@ public struct TreDBetraktare: Equatable, Sendable {
         }
         var mitt = r.mitt, radie = r.radie
         if !kameror.isEmpty {
-            let alla = [r.mitt] + kameror
-            mitt = (0..<3).map { a in (alla.map { $0[a] }.min()! + alla.map { $0[a] }.max()!) / 2 }
-            radie = alla.map { p in ((0..<3).map { (p[$0] - mitt[$0]) * (p[$0] - mitt[$0]) }.reduce(0, +)).squareRoot() }
-                .max()! + 0.5
+            let alla: [[Double]] = [r.mitt] + kameror
+            for a in 0..<3 {
+                let v: [Double] = alla.map { $0[a] }
+                mitt[a] = (v.min()! + v.max()!) / 2
+            }
+            var storst = 0.0
+            for p in alla {
+                let d: Double = LA.norm3([p[0] - mitt[0], p[1] - mitt[1], p[2] - mitt[2]])
+                storst = max(storst, d)
+            }
+            radie = storst + 0.5
         }
         let avst = radie / sin(fov / 2 * .pi / 180) * 1.05
         return TreDBetraktare(mal: mitt, azimut: az, elevation: el, avstand: avst)
@@ -192,8 +210,10 @@ public struct TreDBetraktare: Equatable, Sendable {
     }
 
     public var oga: [Double] {
-        let c = cos(elevation)
-        return [mal[0] + avstand * c * cos(azimut), mal[1] + avstand * c * sin(azimut), mal[2] + avstand * sin(elevation)]
+        let c: Double = cos(elevation), d: Double = avstand
+        let x: Double = mal[0] + d * c * cos(azimut), y: Double = mal[1] + d * c * sin(azimut)
+        let z: Double = mal[2] + d * sin(elevation)
+        return [x, y, z]
     }
 }
 
@@ -228,7 +248,9 @@ public struct TreDProjektion: Sendable {
     }
 
     func skarm(_ x: Double, _ y: Double, _ z: Double) -> Punkt {
-        Punkt(cx + brannvidd * x / z, cy - brannvidd * y / z)
+        let u: Double = cx + brannvidd * x / z
+        let v: Double = cy - brannvidd * y / z
+        return Punkt(u, v)
     }
 
     /// Punkten på ytan och djupet (m), nil bakom ögat eller utan värde.
@@ -246,11 +268,15 @@ public struct TreDProjektion: Sendable {
         var (bx, by, bz) = ram(b)
         if az <= Self.nara && bz <= Self.nara { return nil }
         if az < Self.nara {
-            let s = (Self.nara - az) / (bz - az)
-            (ax, ay, az) = (ax + s * (bx - ax), ay + s * (by - ay), Self.nara)
+            let s: Double = (Self.nara - az) / (bz - az)
+            ax += s * (bx - ax)
+            ay += s * (by - ay)
+            az = Self.nara
         } else if bz < Self.nara {
-            let s = (Self.nara - bz) / (az - bz)
-            (bx, by, bz) = (bx + s * (ax - bx), by + s * (ay - by), Self.nara)
+            let s: Double = (Self.nara - bz) / (az - bz)
+            bx += s * (ax - bx)
+            by += s * (ay - by)
+            bz = Self.nara
         }
         return (skarm(ax, ay, az), skarm(bx, by, bz))
     }

@@ -48,7 +48,12 @@ public struct TreDFigurKamera: Codable, Equatable, Sendable {
     init(_ kam: Kamera3D, w: Int, h: Int, skala s: Double) {
         let r = kam.r, t = kam.t
         // C = −Rᵀ t
-        c = (0..<3).map { i in -(r[i] * t[0] + r[3 + i] * t[1] + r[6 + i] * t[2]) * s }
+        var c = [Double](repeating: 0, count: 3)
+        for i in 0..<3 {
+            let v: Double = r[i] * t[0] + r[3 + i] * t[1] + r[6 + i] * t[2]
+            c[i] = -v * s
+        }
+        self.c = c
         self.r = r
         k = kam.k
         self.w = w
@@ -290,9 +295,12 @@ public struct TreDFigurer: Equatable, Sendable {
     static func skala(_ figurer: [[Double]], _ langd: Double) -> (Double, String) {
         var b: [Double] = []
         func d(_ p: [Double], _ i: Int, _ a: Int, _ c: Int) -> Double {
-            let x = p[(i * 13 + a) * 3] - p[(i * 13 + c) * 3], y = p[(i * 13 + a) * 3 + 1] - p[(i * 13 + c) * 3 + 1]
-            let z = p[(i * 13 + a) * 3 + 2] - p[(i * 13 + c) * 3 + 2]
-            return (x * x + y * y + z * z).squareRoot()
+            let ia = (i * 13 + a) * 3, ic = (i * 13 + c) * 3
+            let x: Double = p[ia] - p[ic]
+            let y: Double = p[ia + 1] - p[ic + 1]
+            let z: Double = p[ia + 2] - p[ic + 2]
+            let q: Double = x * x + y * y + z * z
+            return q.squareRoot()
         }
         for p in figurer {
             let m = p.count / 39

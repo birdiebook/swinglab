@@ -28,6 +28,7 @@ enum AppKatalog {
 ///   Pass/<id>/Leder/s01.json  ett slags leder (JointSeries, S2e)
 ///   Pass/<id>/annan_telefon.json  den andra telefonens slag för 3D (SlagBunt, S6c-2)
 ///   Pass/<id>/tre_d.json      3D som telefonen räknade (TreDFil, S6c-2)
+///   Pass/<id>/tre_d_figur/    figuren i 3D: index.json och en fil per slag (S6d, BESLUT B72)
 ///   AttJobbaPa/att_jobba_pa-<pass>.json   vägen tillbaka från PC:n (S2f, BESLUT B28)
 /// Documents/Export/           paketen (S2f), synliga i Filer             (utanför backupen)
 /// ```
@@ -429,6 +430,49 @@ final class Store {
             return true
         } catch {
             problem = String(localized: "tre_d.json could not be saved.")
+            return false
+        }
+    }
+
+    /// Figurens index (S6d, BESLUT B72), eller nil (ingen, eller en som inte går att läsa).
+    func treDFigur(_ passID: String) -> TreDFigurIndex? {
+        guard PassID.isValid(passID) else { return nil }
+        return Self.figurIndex(passFolder(passID))
+    }
+
+    static func figurIndex(_ folder: URL) -> TreDFigurIndex? {
+        let url = folder.appending(path: TreDFigurIndex.mapp).appending(path: TreDFigurIndex.filnamn)
+        guard let d = try? Data(contentsOf: url) else { return nil }
+        return try? TreDFigurIndex.las(d)
+    }
+
+    /// Ett slags figur ur passets mapp, utanför huvudtråden (vyn läser bara slaget som visas).
+    static func lasFigur(_ folder: URL, fil: String) -> TreDFigur? {
+        guard !fil.contains("/"), !fil.hasPrefix(".") else { return nil }
+        let url = folder.appending(path: TreDFigurIndex.mapp).appending(path: fil)
+        guard let d = try? Data(contentsOf: url) else { return nil }
+        return try? TreDFigur.las(d)
+    }
+
+    /// Figuren till passets mapp, utanför huvudtråden: slagen och sist indexet i en ny mapp som
+    /// sedan ersätter den gamla, så att en halvskriven figur aldrig läses. Skriver inget när
+    /// passets mapp saknas (passet raderat). false = gick inte. BESLUT B72
+    static func skrivFigur(_ f: TreDFigurer, folder: URL) -> Bool {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: folder.path) else { return false }
+        let ny = folder.appending(path: ".\(TreDFigurIndex.mapp)-\(UUID().uuidString)")
+        let mal = folder.appending(path: TreDFigurIndex.mapp)
+        do {
+            try fm.createDirectory(at: ny, withIntermediateDirectories: false)
+            for fig in f.figurer {
+                try fig.data().write(to: ny.appending(path: fig.filnamn))
+            }
+            try f.index.data().write(to: ny.appending(path: TreDFigurIndex.filnamn))
+            if fm.fileExists(atPath: mal.path) { try fm.removeItem(at: mal) }
+            try fm.moveItem(at: ny, to: mal)
+            return true
+        } catch {
+            try? fm.removeItem(at: ny)
             return false
         }
     }

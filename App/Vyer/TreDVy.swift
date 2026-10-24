@@ -13,12 +13,35 @@ import TreD
 /// Ett tryck på en rad öppnar infobladet (BESLUT B41).
 struct TreDKortVy: View {
     let kort: TreDKort
+    /// Figuren i 3D (S6d, BESLUT B73): raden "3D" under måtten öppnar den; nil = ingen figur.
+    var onFigur: (() -> Void)? = nil
 
     var body: some View {
         Sektion(etikett: kort.rubrik, hoger: kort.svingar) {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(kort.rader) { r in
                     rad(r)
+                }
+                if let onFigur {
+                    Button(action: onFigur) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "rotate.3d")
+                                .typsnitt(15, .medium)
+                                .accessibilityHidden(true)
+                            Text(verbatim: Texter.treD)
+                                .typsnitt(15, .semibold)
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .typsnitt(13, .medium)
+                                .foregroundStyle(Theme.tertiary)
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundStyle(Theme.text)
+                        .frame(minHeight: 44)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
                 }
                 ForEach(kort.skal, id: \.self) { s in
                     Text(verbatim: s)

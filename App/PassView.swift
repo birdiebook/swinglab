@@ -32,6 +32,8 @@ struct PassShotsView: View {
     @State private var tred: TreDKoppling?
     /// Förra passet med 3D (samma klubba, vy och längd), för kortets skillnad (METOD MK7).
     @State private var forraTreD: PassState?
+    /// Figuren i 3D är öppen (S6d, BESLUT B73).
+    @State private var visarFigur = false
 
     struct SeriesID: Identifiable {
         let id: Int
@@ -49,7 +51,8 @@ struct PassShotsView: View {
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
                                   onHeight: setHeight, sendToPC: true,
                                   claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)),
-                                  treD: treDKort, annanTelefon: annanTelefon(pass))
+                                  treD: treDKort, annanTelefon: annanTelefon(pass),
+                                  onFigur: figurKnapp)
                     // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
                     // och granskningen, så att pass.json inte ändras under.
                     .disabled(store.exporting.contains(passID))
@@ -91,6 +94,15 @@ struct PassShotsView: View {
             }
             .environment(store)
         }
+        // Figuren i 3D (S6d): bara på telefonen som räknade den, för passets slag som de är nu.
+        .fullScreenCover(isPresented: $visarFigur) {
+            if let index = tred?.figur, let pass {
+                TreDFigurSkarm(passID: passID, index: index,
+                               nummer: Dictionary(ShotRow.rows(pass).map { ($0.id, $0.number) }, uniquingKeysWith: { a, _ in a }),
+                               vy: pass.setup.view) { visarFigur = false }
+                    .environment(store)
+            }
+        }
         .sheet(item: $enlarged) { s in
             if let pass, let shot = pass.shots.first(where: { $0.id == s.id }) {
                 ImpactLarge(pass: pass, shot: shot, overlay: overlays[s.id])
@@ -119,6 +131,12 @@ struct PassShotsView: View {
         guard let f = tred?.fil else { return nil }
         let forra = forraTreD.flatMap { p in p.treD.map { (datum: p.created, median: $0) } }
         return TreDKort(f, forra: forra, katalog: AppKatalog.katalog, aktuell: tred?.aktuell ?? true)
+    }
+
+    /// Raden "3D" i kortet när figuren finns på telefonen och gäller passets slag (S6d, B73).
+    private var figurKnapp: (() -> Void)? {
+        guard tred?.figurAktuell == true else { return nil }
+        return { visarFigur = true }
     }
 
     /// "Import other phone" och följarens grå rad, för ett mätt pass med två telefoner utan 3D
@@ -246,6 +264,8 @@ struct PassScreenContent: View {
     var treD: TreDKort? = nil
     /// "Import other phone" (BESLUT B61), för ett pass med två telefoner utan 3D.
     var annanTelefon: AnyView? = nil
+    /// Figuren i 3D (S6d, BESLUT B73): raden "3D" i kortet; nil = ingen figur på telefonen.
+    var onFigur: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -269,7 +289,7 @@ struct PassScreenContent: View {
                         .padding(.bottom, 8)
                 }
                 if let treD {
-                    TreDKortVy(kort: treD)
+                    TreDKortVy(kort: treD, onFigur: onFigur)
                 }
                 if let annanTelefon {
                     annanTelefon
