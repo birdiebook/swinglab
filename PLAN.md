@@ -517,24 +517,31 @@ marked" och korten med median och n. Prov: `tools/tests/test_klubba.py`, `Klubba
 och paketprovet bär markeringar som PC:n läser (`test_appens_paket.py`). Mätversionen är
 oförändrad (B47). Efter granskningen 2026-10-23: P2 mot planet borttaget (M47).
 
-**FO (grenen `s7afo`, BESLUT B56).** "Mark club" även för FO-serier, samma flöde (grepp och
-hosel vid P1–P10, glaset 3 ×, ringen, sparning av sig själv, ångra, positionsraden), utan
-riktpinne (`ClubMarking.view`, `stickAvailable`). P2, P6 och P8 framifrån föreslås ur
-kroppens tider, och när ändarna är markerade där skaftets vinkel går genom vågrätt
-(`forslag_tid_skaft` och `Klubba.forslagTidSkaft`, samma tal, M45). Två telefoner:
-`ClubPairTime` för FO-markeringens tid till DTL-slaget med parningens träffförskjutning, och
-`ClubMarking` föreslår den bakifrån (prövat i Swift). Uppställningen framifrån har sin rad
-("Facing the player, at hip height, aimed square to the target line") och sin känslighet i
-M49 (3D-provet: höjden 2,3° per 0,2 m på casting, sidoläget 1,6° per 0,1 m, vridningen
-≤ 0,2° per grad, rullningen 1:1). Fixturernas FO-skaft har längder som i bild (0,80 m vid
-400 px/m: 160–310 px, osäkerheten 0,8–1,5°). Prov: `test_klubba` (förslaget ur skaftet, FO-tryck
-till samma pixel), `KlubbaTests`, `KlubbaMarkeringTests` (FO-märkningen, förslaget, paret),
-simulatorprovet `testMarkeraKlubbanFramifran` (bilderna `klubba-fo-granskning` och
+**FO (grenen `s7afo`, BESLUT B57, B58).** "Mark club" även för FO-serier, samma flöde (grepp
+och hosel, glaset 3 ×, ringen, sparning av sig själv, ångra, positionsraden), utan riktpinne
+(`ClubMarking.view`, `stickAvailable`, `xTecken` ur svingen). Ordningen i båda vyerna är
+kroppens positioner först och skaftets sist: P1, P3, P4, P5, P7, P9, P10, P2, P6, P8
+(Johannes 2026-10-24, B58). P2, P6 och P8 framifrån föreslås där skaftets vinkel mellan de
+markerade ändarna går genom vågrätt, P2 från baksvingens start (`ShotMeasure.start`), och
+inget förslag ur skaftet över 270° (fel håll) (`forslag_tid_skaft` och
+`Klubba.forslagTidSkaft`, samma tal, M45); förslaget gäller också en hoppad position. Två
+telefoner: `ClubPairTime` (parningen DTL mot FO, klicken ur paret med index, träffens
+förskjutning) ger FO-markeringens tid till DTL-slaget, och `ClubMarking` föreslår den bakifrån
+när den finns, annars kroppens (prövat i Swift). Analysen skriver `klubba_flyktpunkt` bara
+bakifrån. Uppställningen framifrån har sin rad ("Facing the player, at hip height, aimed
+square to the target line") och sin känslighet i M49 (3D-provet från den uppställningen:
+höjden 2,3° per 0,2 m på casting, sidoläget 1,6° per 0,1 m, vridningen högst 0,21° per grad,
+rullningen 1:1). Fixturernas FO-skaft har längder som i bild (0,80 m vid 400 px/m: 160–310 px,
+osäkerheten 0,8–1,5°), och vänsterspelaren framifrån har P3 och P5. Prov: `test_klubba`
+(förslaget ur skaftet med starten och fel håll, flyktpunkten bara bakifrån, trycken till samma
+pixel), `KlubbaTests`, `KlubbaMarkeringTests` (ordningen, förslaget räknat för hand, den
+hoppade positionen, paret), simulatorprovet `testMarkeraKlubbanFramifran` (märker i appens
+ordning och prövar förslaget mot värden räknade för hand; bilderna `klubba-fo-granskning` och
 `klubba-fo-markera`).
 
 **Kvar:** telefonen i båda vyerna (trycken, glaset, gränserna 3 %, 5 % och 4 pt,
 riktpinnen bakifrån, förslaget ur skaftet framifrån), och vägen för FO-telefonens
-markeringar till DTL-telefonen (ett meddelande på länken eller paketet in i appen, B56):
+markeringar till DTL-telefonen (ett meddelande på länken eller paketet in i appen, B57):
 utan den används `ClubPairTime` inte i appen. Rullningen rättas med lodlinjen (MS17) när
 den kommer in i måtten.
 
