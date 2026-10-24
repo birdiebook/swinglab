@@ -177,8 +177,11 @@ def kontrollera(d) -> list[str]:
             rattad = r.get("granskning") == "rattad"
             if isinstance(kh, dict) and (kh.get("kalla") == "klick") != rattad:
                 fel.append(f"{p}.punkter.klubbhuvud.kalla ska vara klick bara i en rättad ruta")
-            if rattad and "klubbhuvud" not in (r.get("forslag") or {}):
+            fk = (r.get("forslag") or {}).get("klubbhuvud") if isinstance(r.get("forslag"), dict) else None
+            if rattad and fk is None:
                 fel.append(f"{p}.forslag.klubbhuvud saknas i en rättad ruta")
+            if fk is not None and not (isinstance(fk, dict) and fk.get("kalla") in KALLOR_BANA[:2]):
+                fel.append(f"{p}.forslag.klubbhuvud ska ha kalla spar eller interpolerad")
         elif "granskning" in r:
             fel.append(f"{p}.granskning finns bara i banans rutor")
         kallor = KALLOR_BANA if bana else (KALLOR if v2 else KALLOR[:1])
@@ -236,6 +239,8 @@ def bana(d: dict, slag: str | None = None) -> dict[str | None, list[dict]]:
         if r["val"] != BANA or (slag is not None and r.get("slag") != slag):
             continue
         q = r["punkter"]["klubbhuvud"]
+        if not (isinstance(q, dict) and "x" in q):
+            continue                      # syns_inte eller inte satt: ingen punkt i banan
         ut.setdefault(r.get("slag"), []).append({"t": float(r["t"]), "x": float(q["x"]), "y": float(q["y"]),
                                                  "kalla": q["kalla"], "granskning": r.get("granskning")})
     for v in ut.values():

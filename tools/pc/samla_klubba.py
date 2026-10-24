@@ -46,7 +46,9 @@ def _tid(iso: str) -> datetime:
 def sla_ihop(markeringar: list[dict]) -> dict[str, dict]:
     """Per pass (eller `video` utan pass): rutorna ur alla källor i ordning efter `andrad`
     (som tid). Samma ruta (`_samma_ruta`) tas en gång, den senast ändrade; en annan ruta med ett
-    id som redan finns får `-2`, `-3` … (som markera_klubba.sla_ihop)."""
+    id som redan finns får `-2`, `-3` … (som markera_klubba.sla_ihop). Klubbhuvudets bana
+    (version 3, BESLUT B71) ersätts per fil och slag av den senast ändrade källans bana, och
+    passet skrivs i version 3 bara när det har en bana; banans rutor är aldrig markeringar."""
     ut: dict[str, dict] = {}
     for d in sorted(markeringar, key=lambda x: _tid(x["andrad"])):
         nyckel = d["pass"] or "video"
@@ -54,6 +56,10 @@ def sla_ihop(markeringar: list[dict]) -> dict[str, dict]:
                                    "andrad": d["andrad"], "rutor": []})
         m["kalla"] += [k for k in d["kalla"] if k not in m["kalla"]]
         m["andrad"] = max(m["andrad"], d["andrad"], key=_tid)
+        banor = {(r["fil"], r.get("slag")) for r in d["rutor"] if r["val"] == KL.BANA}
+        if banor:
+            m["rutor"] = [r for r in m["rutor"] if not (r["val"] == KL.BANA and (r["fil"], r.get("slag")) in banor)]
+            m["format"] = KL.FORMAT_3
         for r in d["rutor"]:
             r = dict(r)
             gammal = next((i for i, x in enumerate(m["rutor"]) if _samma_ruta(x, r)), None)
@@ -106,9 +112,10 @@ def main(argv=None) -> int:
              "pass": []}
     for nyckel, m in sorted(per_pass.items()):
         (ut / f"{nyckel}.json").write_text(json.dumps(m, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-        markerade = [r for r in m["rutor"] if r["status"] == "markerad"]
+        markerade = [r for r in m["rutor"] if r["status"] == "markerad" and r["val"] != KL.BANA]
         index["pass"].append({"pass": m["pass"], "fil": f"{nyckel}.json", "kalla": m["kalla"],
                               "rutor": len(m["rutor"]), "markerade": len(markerade),
+                              "bana": sum(r["val"] == KL.BANA for r in m["rutor"]),
                               "positioner": sorted({r["val"] for r in markerade if r["val"] in KL.POSITIONER},
                                                    key=KL.POSITIONER.index)})
     (ut / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

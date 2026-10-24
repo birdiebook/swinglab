@@ -13,6 +13,7 @@ import _hjalp  # noqa: F401
 from pc import klubba as K
 from pc import klubbfilm as KF
 from pc import klubbspar as KS
+from pc import samla_klubba as SK
 
 # "Klart när" för den påhittade filmen (METOD M61), i skaftets längd (150 px i bilden).
 SPAR_MEDIAN, SPAR_P95, INTERP_MAX = 0.02, 0.05, 0.20
@@ -148,6 +149,39 @@ class Varianter(unittest.TestCase):
                     self.assertLessEqual(max(ip), tak[1] * KF.SKAFT)
 
 
+class Samla(unittest.TestCase):
+    """samla_klubba med telefonens version 3 (BESLUT B71): utfilen klarar kontrollen, banan
+    ersätts per slag av den senaste, och banans rutor räknas aldrig som markeringar."""
+
+    @staticmethod
+    def fil(andrad: str, rutor: list) -> dict:
+        return {"format": K.FORMAT_3, "pass": "20261103-180000", "kalla": ["f.zip"], "punkter": list(K.PUNKTER),
+                "andrad": andrad, "rutor": rutor}
+
+    @staticmethod
+    def ruta(id_: str, val: str, kh: dict, t: float = -0.1, **extra) -> dict:
+        return {"id": id_, "fil": "f.zip", "vy": "dtl", "slag": "s01", "val": val, "t": t, "t_klipp": None,
+                "forskjutning_ms": None, "t_ruta": None, "bredd": 1080, "hojd": 1920, "visad": [0, 0, 1080, 1920],
+                "status": "markerad", "punkter": {"grepp": {"x": 1.0, "y": 2.0, "kalla": "klick"} if val != "bana" else None,
+                                                  "skaft_mitt": None, "klubbhuvud": kh}, "forslag": {}, **extra}
+
+    def test_version_3(self) -> None:
+        kh = {"x": 10.0, "y": 20.0, "kalla": "spar"}
+        a = self.fil("2026-11-03T21:15:00+01:00", [self.ruta("dtl-s01-P1", "P1", {"x": 5.0, "y": 6.0, "kalla": "klick"}),
+                                                   self.ruta("dtl-s01-bana-1", "bana", kh, granskning=None),
+                                                   self.ruta("dtl-s01-bana-2", "bana", kh, t=-0.09, granskning=None)])
+        b = self.fil("2026-11-03T22:00:00+01:00", [self.ruta("dtl-s01-bana-1", "bana", kh, t=-0.2, granskning="godkand")])
+        self.assertEqual(K.kontrollera(a), [])
+        m = SK.sla_ihop([a, b])["20261103-180000"]
+        self.assertEqual(K.kontrollera(m), [])
+        self.assertEqual(m["format"], K.FORMAT_3)
+        self.assertEqual([r["id"] for r in m["rutor"] if r["val"] == "bana"], ["dtl-s01-bana-1"], "den senaste banan")
+        self.assertEqual(sum(1 for r in K.markeringar(m)["s01"]), 1)
+        # Utan bana: version 2.
+        v2 = {**self.fil("2026-11-03T21:15:00+01:00", [a["rutor"][0]]), "format": K.FORMAT}
+        self.assertEqual(SK.sla_ihop([v2])["20261103-180000"]["format"], K.FORMAT)
+
+
 class Delar(unittest.TestCase):
     def test_utan_ankare_ingen_bana(self) -> None:
         f = {"t": [0.0, 0.01], "rutor": [np.zeros((4, 4), np.uint8)] * 2, "leder": [[None] * 13] * 2}
@@ -178,6 +212,12 @@ class Delar(unittest.TestCase):
         self.assertTrue(K.kontrollera({**d, "rutor": [r]}))          # förslaget saknas
         r["forslag"] = {"klubbhuvud": {"x": 13.0, "y": 23.0, "kalla": "spar"}}
         self.assertEqual(K.kontrollera({**d, "rutor": [r]}), [])
+        # Förslaget i en rättad ruta är maskinens punkt; syns_inte i banan är ingen punkt.
+        r["forslag"] = {"klubbhuvud": {"x": 13.0, "y": 23.0, "kalla": "klick"}}
+        self.assertTrue(K.kontrollera({**d, "rutor": [r]}))
+        sy = ruta("s", "bana", kh={"syns_inte": True}, granskning=None)
+        self.assertEqual(K.kontrollera({**d, "rutor": [sy]}), [])
+        self.assertEqual(K.bana({**d, "rutor": [sy]}), {})
         # Version 2 känner inte banan.
         self.assertTrue(K.kontrollera({**d, "format": K.FORMAT}))
         self.assertTrue(K.kontrollera({**d, "rutor": [ruta("e", "bana", kh={"x": 1.0, "y": 2.0, "kalla": "klick"})]}))

@@ -205,6 +205,7 @@ final class KlubbBanaTests: XCTestCase {
         XCTAssertEqual(banan.map(\.kalla), ["spar", "klick"])
         XCTAssertEqual(banan[1].granskning, "rattad")
         XCTAssertEqual(banan[1].fore, KlubbPunkt(x: 31, y: 40))
+        XCTAssertEqual(banan[1].foreKalla, "interpolerad")
         XCTAssertEqual(rutor[1].forslag["klubbhuvud"]?.kalla, "interpolerad")
         XCTAssertEqual(rutor[0].tKlipp, 0.5)
     }

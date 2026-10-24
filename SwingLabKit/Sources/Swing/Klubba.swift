@@ -523,10 +523,10 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         var ut: [String: [KlubbBanPunkt]] = [:]
         for r in rutor where r.val == Self.valBana {
             guard let t = r.t, case let .klick(x, y, k)? = r.punkter.klubbhuvud else { continue }
-            var fore: KlubbPunkt? = nil
-            if let f = r.forslag["klubbhuvud"] { fore = KlubbPunkt(x: f.x, y: f.y) }
+            let f = r.forslag["klubbhuvud"]
             ut[r.slag ?? "", default: []].append(KlubbBanPunkt(t: t, x: x, y: y, kalla: k, granskning: r.granskning,
-                                                               fore: fore))
+                                                               fore: f.map { KlubbPunkt(x: $0.x, y: $0.y) },
+                                                               foreKalla: f?.kalla))
         }
         for k in ut.keys { ut[k]?.sort { $0.t < $1.t } }
         return ut
