@@ -74,10 +74,14 @@ struct ShotReviewView: View {
                                     onStep: markingStep, onUndo: { change { $0.undo() } },
                                     onSkip: { change { $0.skip(t: review.frames[frame].t) } },
                                     onStickSkip: skipStick, onStickDone: { saveStick(stickPoints) },
+                                    hasStick: pass?.riktpinne(series: shot.series) != nil, onStickRemove: removeStick,
+                                    onStickMenu: openStickStep,
                                     onPosition: { p in change { $0.go(to: p) } }, onHelp: { guidePage = 0 },
                                     onClose: closeMarking)
                         .padding(.vertical, 8)
                 }
+                // Ytans drag och nyp är märkningens; sidan rullar inte under dem (granskningen av S7c).
+                .scrollDisabled(true)
                 .task(id: frame) { await readLoupe() }
                 .confirmationDialog(Text("Clear the points?"), isPresented: Binding(
                     get: { pendingStep != nil }, set: { if !$0 { pendingStep = nil } }), titleVisibility: .visible) {
@@ -257,18 +261,24 @@ struct ShotReviewView: View {
     /// riktpinnens steg först när serien inte har någon och steget inte hoppats över, och guiden
     /// första gången (B59). METOD M45
     private func startMarking() {
-        guard let review, let shot, let pass, let series,
-              let sv = try? ShotMeasuring.sving(series, view: pass.setup.view, hand: pass.setup.hand,
-                                                heightM: pass.heightM ?? ShotMeasuring.assumedHeightM,
-                                                impact: shot.impact - shot.click.time) else { return }
+        guard let review, let shot, let pass, let series else { return }
         pause()
-        let serie = pass.series.first { $0.nr == shot.series }
-        marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
-                              crop: serie?.activeCrop, view: pass.setup.view, xTecken: sv.xTecken)
-        stickStep = pass.asksForRiktpinne(series: shot.series)
-        stickPoints = []
-        guidePage = store.settings.clubGuideSeen == true ? nil : 0
-        seekToPosition(zoom: !stickStep)
+        let vy = pass.setup.view, hand = pass.setup.hand, langd = pass.heightM ?? ShotMeasuring.assumedHeightM
+        let traff = shot.impact - shot.click.time
+        Task {
+            // Svingen (för xTecken) läses utanför huvudtråden.
+            let xTecken = await Task.detached(priority: .userInitiated) { () -> Double? in
+                (try? ShotMeasuring.sving(series, view: vy, hand: hand, heightM: langd, impact: traff))?.xTecken
+            }.value
+            guard let xTecken, marking == nil, let pass = self.pass, let shot = self.shot else { return }
+            let serie = pass.series.first { $0.nr == shot.series }
+            marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
+                                  crop: serie?.activeCrop, view: vy, xTecken: xTecken)
+            stickStep = pass.asksForRiktpinne(series: shot.series)
+            stickPoints = []
+            guidePage = store.settings.clubGuideSeen == true ? nil : 0
+            seekToPosition(zoom: !stickStep)
+        }
     }
 
     /// Guiden stängs: den har visats (en inställning per användare, B59).
@@ -304,8 +314,12 @@ struct ShotReviewView: View {
     private func tapped(_ u: Double, _ v: Double) {
         guard let m = marking, let review, review.frames.indices.contains(frame) else { return }
         if stickStep {
-            guard let p = m.imagePoint(u: u, v: v) else { return }
+            guard let p = m.imagePoint(u: u, v: v) else {
+                lastTapChanged = false
+                return
+            }
             stickPoints = Array((stickPoints + [p]).suffix(2))
+            lastTapChanged = true
             return
         }
         let t = review.frames[frame].t
@@ -319,7 +333,10 @@ struct ShotReviewView: View {
     /// punkt ångras (METOD M45).
     private func doubleTapped() {
         guard var m = marking, let review, let shot else { return }
-        if lastTapChanged && !stickStep {
+        if lastTapChanged && stickStep {
+            // Dubbeltrycket i riktpinnens steg ångrar stegets första tryck.
+            if !stickPoints.isEmpty { stickPoints.removeLast() }
+        } else if lastTapChanged {
             change { $0.undo() }
             m = marking ?? m
         }
@@ -347,6 +364,26 @@ struct ShotReviewView: View {
     private func skipStick() {
         guard var p = pass, let shot else { return }
         p.skipRiktpinne(series: shot.series)
+        store.save(p)
+        pass = p
+        endStickStep()
+    }
+
+    /// Riktpinnen ur menyn (bakifrån): steget igen, med seriens pinne om den finns, för att sätta
+    /// om den eller ta bort den (B59).
+    private func openStickStep() {
+        guard let shot, marking?.stickAvailable == true else { return }
+        stickPoints = pass?.riktpinne(series: shot.series) ?? []
+        stickStep = true
+        marking?.showWhole()
+    }
+
+    /// Riktpinnen tas bort; steget frågar inte igen för serien (flyktpunkten är då bildens mitt, M48).
+    private func removeStick() {
+        guard var p = pass, let shot, let series else { return }
+        let id = shotID, nr = shot.series, passID = p.id
+        p.setRiktpinne(nil, series: nr) { s in s.id == id ? series : store.joints(s.joints ?? "", in: passID) }
+        p.skipRiktpinne(series: nr)
         store.save(p)
         pass = p
         endStickStep()

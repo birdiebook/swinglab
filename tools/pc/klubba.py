@@ -541,19 +541,20 @@ def visad_telefonen(utsnitt, bredd: int, hojd: int) -> list[int]:
 
 
 ZOOM_START = 2.5      # METOD M45, BESLUT B59: en position öppnas högst så här inzoomad
-ZOOM_MARGINAL = 1.15  # METOD M45: cirkeln med skaftets längd kring mitten får plats med den marginalen
+ZOOM_RADIE = 0.6     # METOD M45: en cirkel med radien 0,6 · skaftets längd kring skaftets förväntade mitt får plats
 SKAFT_M = 0.80        # METOD M45, M49: grepp → hosel när inget är markerat (järn 7)
 
 
 def zoom_start(visad: list, mitt, langd: float | None) -> list[float]:
     """Telefonens startzoom i märkningen (`ClubMarking.startZoomRect`, METOD M45): ytan `visad`
-    (hela pixlar) förstorad ZOOM_START gånger, men så att en cirkel med skaftets längd `langd`
-    (px) och ZOOM_MARGINAL kring `mitt` får plats, aldrig under 1; mitten i `mitt` (None =
-    ytans mitt), flyttad in i ytan. Svarar [x, y, bredd, höjd] i hela bildens pixlar."""
+    (hela pixlar) förstorad ZOOM_START gånger, men så att en cirkel med radien ZOOM_RADIE ·
+    skaftets längd `langd` (px) kring `mitt` (skaftets förväntade mitt) får plats, aldrig under
+    1; mitten flyttad in i ytan (None = ytans mitt). Svarar [x, y, bredd, höjd] i hela
+    bildens pixlar."""
     x0, y0, cw, ch = (float(v) for v in visad)
     z = ZOOM_START
     if langd is not None and langd > 0:
-        z = min(z, min(cw, ch) / (2 * ZOOM_MARGINAL * langd))
+        z = min(z, min(cw, ch) / (2 * ZOOM_RADIE * langd))
     z = max(1.0, z)
     w, h = cw / z, ch / z
     cx, cy = mitt if mitt is not None else (x0 + cw / 2, y0 + ch / 2)
@@ -615,10 +616,10 @@ def fixturer() -> dict:
         visad = visad_telefonen(utsnitt, 1080, 1920)
         yta.append({"utsnitt": list(utsnitt) if utsnitt else None, "bredd": 1080, "hojd": 1920, "u": u, "v": v,
                     "visad": visad, "zoom": None, "punkt": list(yta_till_bild(u, v, visad))})
-    # Inzoomat (S7c): startzoomen kring händerna med skaftets längd ur skalan (0,25 cm/px:
-    # 320 px), mitt i bilden, vid kanten (flyttad in) och med ett skaft som är för långt för
-    # 2,5 gånger; trycket blir ändå hela bildens pixel.
-    for utsnitt, hander, cm_per_px, u, v in (((0.15, 0.2, 0.7, 0.75), (540.0, 1150.0), 0.25, 0.3, 0.7),
+    # Inzoomat (S7c): startzoomen kring en mitt med skaftets längd ur skalan (0,25 cm/px:
+    # 320 px, och 0,1 cm/px: 800 px, för långt för 2,5 gånger), mitt i bilden och vid kanten
+    # (flyttad in); trycket blir ändå hela bildens pixel.
+    for utsnitt, hander, cm_per_px, u, v in (((0.15, 0.2, 0.7, 0.75), (540.0, 1150.0), 0.1, 0.3, 0.7),
                                              ((0.15, 0.2, 0.7, 0.75), (120.0, 1700.0), 0.25, 0.9, 0.1),
                                              (None, (600.0, 900.0), 0.5, 0.04, 0.96),
                                              (None, (540.0, 960.0), None, 0.5, 0.5)):

@@ -144,13 +144,24 @@
         }
       }
     },
-    "All positions marked": {
+    "Alignment stick": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "All positions marked"
+            "value": "Alignment stick"
+          }
+        }
+      }
+    },
+    "All positions done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All positions done"
           }
         }
       }
@@ -837,13 +848,13 @@
         }
       }
     },
-    "On the shaft, between the hands. Tap 1? to use the guess.": {
+    "On the shaft, between the hands. Or tap 1? to use the app's guess.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "On the shaft, between the hands. Tap 1? to use the guess."
+            "value": "On the shaft, between the hands. Or tap 1? to use the app's guess."
           }
         }
       }
@@ -965,6 +976,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recording"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
           }
         }
       }
@@ -1321,13 +1343,13 @@
         }
       }
     },
-    "The next position opens": {
+    "The next position opens automatically.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The next position opens"
+            "value": "The next position opens automatically."
           }
         }
       }
@@ -1354,13 +1376,13 @@
         }
       }
     },
-    "The shaft line is drawn, and the app goes on by itself.": {
+    "The shaft line is drawn. Pinch to zoom, double-tap for the whole picture, and Skip when the club is not visible.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The shaft line is drawn, and the app goes on by itself."
+            "value": "The shaft line is drawn. Pinch to zoom, double-tap for the whole picture, and Skip when the club is not visible."
           }
         }
       }

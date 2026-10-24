@@ -37,6 +37,10 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     var onUndo: () -> Void = {}
     var onSkip: () -> Void = {}
     var onStickSkip: () -> Void = {}
+    /// Seriens riktpinne finns redan: steget öppnat ur menyn, där den kan sättas om eller tas bort.
+    var hasStick = false
+    var onStickRemove: () -> Void = {}
+    var onStickMenu: () -> Void = {}
     var onStickDone: () -> Void = {}
     var onPosition: (String) -> Void = { _ in }
     var onHelp: () -> Void = {}
@@ -54,6 +58,9 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     /// Senaste läget under en panorering och ett nyp, för stegen mellan två uppdateringar.
     @State private var panLast: CGPoint? = nil
     @State private var magnifyLast: CGFloat? = nil
+    /// Ett nyp pågår eller har pågått i gesten: draget blir varken panorering eller tryck förrän
+    /// alla fingrar släppt (METOD M45).
+    @State private var nyper = false
     /// Senaste trycket, för dubbeltrycket.
     @State private var lastTap: (date: Date, at: CGPoint)? = nil
 
@@ -66,7 +73,7 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     /// Vad nästa tryck gör, i klartext (BESLUT B59).
     var instruction: String {
         if stickStep { return String(localized: "Optional: tap both ends of an alignment stick on the ground") }
-        if marking.done { return String(localized: "All positions marked") }
+        if marking.done { return String(localized: "All positions done") }
         switch marking.next {
         case .grip: return String(localized: "1 · Tap the grip")
         case .hosel: return String(localized: "2 · Tap the clubhead")
@@ -102,6 +109,16 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             Navrad(titel: String(localized: "Mark club"), hoger: {
                 HStack(spacing: 2) {
+                    // Riktpinnen sätts om eller tas bort för serien (bara bakifrån, B59).
+                    if marking.stickAvailable && !stickStep {
+                        Menu {
+                            Button("Alignment stick", action: onStickMenu)
+                        } label: {
+                            Image(systemName: "ellipsis").typsnitt(17, .medium).foregroundStyle(Theme.text)
+                                .frame(width: 40, height: 40)
+                        }
+                        .accessibilityLabel(Text("Alignment stick"))
+                    }
                     Button(action: onHelp) {
                         Text(verbatim: "?").typsnitt(17, .semibold).foregroundStyle(Theme.text)
                             .frame(minWidth: 44, minHeight: 40)
@@ -154,8 +171,9 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
 
             HStack(spacing: 12) {
                 if stickStep {
-                    Button(action: onStickSkip) {
-                        Text("Skip").typsnitt(16, .medium).foregroundStyle(Theme.text).frame(minWidth: 64, minHeight: 52)
+                    Button(action: hasStick ? onStickRemove : onStickSkip) {
+                        Text(hasStick ? LocalizedStringKey("Remove") : LocalizedStringKey("Skip"))
+                            .typsnitt(16, .medium).foregroundStyle(Theme.text).frame(minWidth: 64, minHeight: 52)
                     }
                     .buttonStyle(.plain)
                     Button("Done", action: onStickDone)
@@ -169,8 +187,11 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                     .buttonStyle(.plain)
                     .disabled(!marking.canUndo)
                     Spacer(minLength: 8)
+                    // På en markerad position går knappen vidare utan att ändra den (Next); annars
+                    // hoppas positionen över (Skip). B59
                     Button(action: onSkip) {
-                        Text("Skip").typsnitt(16, .medium)
+                        Text(marking.isMarked ? LocalizedStringKey("Next") : LocalizedStringKey("Skip"))
+                            .typsnitt(16, .medium)
                             .foregroundStyle(marking.done ? Theme.tertiary : Theme.text)
                             .frame(minWidth: 64, minHeight: 52)
                     }
@@ -214,7 +235,8 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                     }
                 }
                 .onChanged { v in
-                    // Panorera när fingret inte tog en punkt och rört sig mer än 4 pt.
+                    // Panorera när fingret inte tog en punkt och rört sig mer än 4 pt, och aldrig under ett nyp.
+                    guard !nyper else { return }
                     let w = Double(geo.size.width), h = Double(geo.size.height)
                     let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y), width: w, height: h)
                     let dx = Double(v.location.x - v.startLocation.x), dy = Double(v.location.y - v.startLocation.y)
@@ -225,8 +247,11 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                 }
                 .onEnded { v in
                     let w = Double(geo.size.width), h = Double(geo.size.height)
-                    let panorerade = panLast != nil
+                    let panorerade = panLast != nil, nypte = nyper
                     panLast = nil
+                    magnifyLast = nil
+                    nyper = false
+                    if nypte { return }
                     let s = ClubMarking.surface(x: Double(v.startLocation.x), y: Double(v.startLocation.y),
                                                 width: w, height: h)
                     let e = ClubMarking.surface(x: Double(v.location.x), y: Double(v.location.y), width: w, height: h)
@@ -252,11 +277,21 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                 })
             .simultaneousGesture(MagnifyGesture()
                 .onChanged { v in
+                    nyper = true
                     let forra = magnifyLast ?? 1
                     onZoom(Double(v.magnification / forra), Double(v.startAnchor.x), Double(v.startAnchor.y))
                     magnifyLast = v.magnification
                 }
                 .onEnded { _ in magnifyLast = nil })
+            // En gest som avbryts (ScrollView, ett samtal) når aldrig onEnded: nollställ efteråt.
+            .onChange(of: drag == nil) { _, slut in
+                guard slut else { return }
+                DispatchQueue.main.async {
+                    panLast = nil
+                    magnifyLast = nil
+                    nyper = false
+                }
+            }
         }
         .background(Theme.cam)
         .clipped()
@@ -492,15 +527,15 @@ struct ClubGuideContent: View {
         switch page {
         case 0: return String(localized: "1 · Tap the grip")
         case 1: return String(localized: "2 · Tap the clubhead")
-        default: return String(localized: "The next position opens")
+        default: return String(localized: "The next position opens automatically.")
         }
     }
 
     private var rad: String {
         switch page {
-        case 0: return String(localized: "On the shaft, between the hands. Tap 1? to use the guess.")
+        case 0: return String(localized: "On the shaft, between the hands. Or tap 1? to use the app's guess.")
         case 1: return String(localized: "Where the shaft goes into the head.")
-        default: return String(localized: "The shaft line is drawn, and the app goes on by itself.")
+        default: return String(localized: "The shaft line is drawn. Pinch to zoom, double-tap for the whole picture, and Skip when the club is not visible.")
         }
     }
 

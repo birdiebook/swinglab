@@ -197,14 +197,15 @@ class Mattet(unittest.TestCase):
         fo = yta[3]
         self.assertEqual(fo["visad"], [48, 168, 984, 1752])
         self.assertEqual(fo["punkt"], [48 + 0.62 * 984, 168 + 0.18 * 1752])
-        # Inzoomat (S7c, M45): 2,5 gånger utan skala; med skaftet 320 px får cirkeln plats
-        # (984 / (2 · 1,15 · 320) = 1,34 gånger), mitten flyttas in i ytan, och trycket är
-        # zoomens pixel.
+        # Inzoomat (S7c, M45): 2,5 gånger utan skala och med skaftet 320 px (984 / (2 · 0,6 ·
+        # 320) = 2,56); med skaftet 800 px får cirkeln med radien 0,6 · 800 plats (1,03 gånger);
+        # mitten flyttas in i ytan, och trycket är zoomens pixel.
         zoomade = [y for y in yta if y["zoom"]]
         self.assertEqual(len(zoomade), 4)
         self.assertEqual(KL.zoom_start([0, 0, 1080, 1920], (540.0, 960.0), None), [324.0, 576.0, 432.0, 768.0])
+        self.assertAlmostEqual(1080 / KL.zoom_start([0, 0, 1080, 1920], (540.0, 960.0), 320.0)[2], 2.5, delta=1e-9)
         z = zoomade[0]["zoom"]["rect"]
-        self.assertAlmostEqual(984 / z[2], 984 / (2 * 1.15 * 320), delta=1e-9)
+        self.assertAlmostEqual(984 / z[2], 984 / (2 * 0.6 * 800), delta=1e-9)
         self.assertEqual(zoomade[1]["zoom"]["rect"][0], 48.0, "mitten vid kanten flyttas in")
         self.assertAlmostEqual(KL.zoom_start([0, 0, 1080, 1920], (540.0, 960.0), 2000.0)[2], 1080.0,
                                msg="aldrig under 1 gång")

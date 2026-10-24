@@ -96,7 +96,8 @@ public struct ClubMarking: Equatable, Sendable {
         zoom = self.crop
         let m = Dictionary((existing ?? []).map { ($0.position, $0) }, uniquingKeysWith: { _, b in b })
         marks = m
-        index = Self.order.firstIndex { m[$0] == nil } ?? 0
+        // Den första positionen utan markering; ett helt markerat slag är klart ("All positions done").
+        index = Self.order.firstIndex { m[$0] == nil } ?? Self.order.count
         grip = nil
         hosel = nil
         frameT = nil
@@ -104,6 +105,20 @@ public struct ClubMarking: Equatable, Sendable {
     }
 
     public var done: Bool { index >= Self.order.count }
+    /// Positionen som visas har en markering med båda punkterna: knappen heter Next och går
+    /// vidare utan att ändra den (B59).
+    public var isMarked: Bool { !done && marks[position]?.markerad == true }
+
+    /// Nästa position i ordningen som saknar markering efter den som visas, runt till början;
+    /// `order.count` (klar) när alla har en. METOD M45
+    func nextMissing() -> Int {
+        let n = Self.order.count
+        for k in 1...n {
+            let i = (index + k) % n
+            if i != index, marks[Self.order[i]] == nil { return i }
+        }
+        return n
+    }
     public var position: String { done ? Self.order[Self.order.count - 1] : Self.order[index] }
     /// Positionen i klartext, "P4 · Top of backswing · 3 of 10" (BESLUT B59); nil när alla är klara.
     public var positionLine: String? {
@@ -154,22 +169,23 @@ public struct ClubMarking: Equatable, Sendable {
     public static let zoomMax = 8.0
     /// Skaftet grepp → hosel när inget är markerat än, m (järn 7, METOD M49).
     public static let shaftM = 0.80
-    /// Cirkeln med skaftets längd kring mitten ska få plats med så mycket marginal. METOD M45
-    public static let fitMargin = 1.15
+    /// En cirkel med radien så här mycket av skaftets längd kring skaftets förväntade mitt ska
+    /// få plats: skaftet (halva längden åt varje håll) och lite marginal. METOD M45
+    public static let zoomRadius = 0.6
 
     /// Hur mycket som är inzoomat: 1 = hela ytan.
     public var zoomFactor: Double { crop.width / zoom.width }
 
-    /// Startzoomen (METOD M45): `zoomStart` gånger, men aldrig så mycket att en cirkel med
-    /// skaftets längd `length` (px) och marginalen `fitMargin` kring `center` inte får plats,
-    /// och aldrig under 1; mitten i `center` (hela bildens pixlar), flyttad in i ytan. nil
-    /// mitt = ytans mitt. Räknas i pixlar, som `klubba.zoom_start`.
+    /// Startzoomen (METOD M45): `zoomStart` gånger, men aldrig så mycket att en cirkel med radien
+    /// `zoomRadius` · skaftets längd `length` (px) kring `center` (skaftets förväntade mitt) inte
+    /// får plats, och aldrig under 1; mitten flyttad in i ytan. nil mitt = ytans mitt. Räknas i
+    /// pixlar, som `klubba.zoom_start`.
     public static func startZoomRect(crop: CropRect, width: Int, height: Int, center: KlubbPunkt?,
                                      length: Double?) -> CropRect {
         let W = Double(width), H = Double(height)
         let cx0 = crop.x * W, cy0 = crop.y * H, cw = crop.width * W, ch = crop.height * H
         var z = zoomStart
-        if let L = length, L > 0 { z = min(z, min(cw, ch) / (2 * fitMargin * L)) }
+        if let L = length, L > 0 { z = min(z, min(cw, ch) / (2 * zoomRadius * L)) }
         z = max(1, z)
         let w = cw / z, h = ch / z
         let c = center ?? KlubbPunkt(x: cx0 + cw / 2, y: cy0 + ch / 2)
@@ -177,10 +193,11 @@ public struct ClubMarking: Equatable, Sendable {
         return CropRect(x: x / W, y: y / H, width: w / W, height: h / H)
     }
 
-    /// Zoomen när en position öppnas (METOD M45): kring positionens egen markering när den
-    /// finns, annars kring händerna (`hands`, handledernas mitt), annars kring de markerade
-    /// greppens mitt; skaftets längd ur positionens markering, annars medianen av de
-    /// markerade, annars `shaftM` genom skalan (`cmPerPx`).
+    /// Zoomen när en position öppnas (METOD M45): kring skaftets förväntade mitt. Med positionens
+    /// egen markering är det dess mitt; annars greppet (händerna, `hands`, annars de markerade
+    /// greppens mitt) plus halva skaftet åt det håll skaftet pekar i den närmaste markerade
+    /// positionen i svingen (grannen), och utan granne händerna. Skaftets längd ur positionens
+    /// markering, annars medianen av de markerade, annars `shaftM` genom skalan (`cmPerPx`).
     public mutating func startZoom(hands: KlubbPunkt?, cmPerPx: Double?) {
         let egen = marks[position].flatMap { $0.markerad ? $0 : nil }
         func langd(_ m: KlubbMarkering) -> Double {
@@ -189,9 +206,7 @@ public struct ClubMarking: Equatable, Sendable {
         }
         let markerade = result.filter(\.markerad)
         var mitt = hands
-        if let e = egen {
-            mitt = KlubbPunkt(x: (e.grepp!.x + e.hosel!.x) / 2, y: (e.grepp!.y + e.hosel!.y) / 2)
-        } else if mitt == nil, !markerade.isEmpty {
+        if mitt == nil, !markerade.isEmpty {
             mitt = KlubbPunkt(x: markerade.map { $0.grepp!.x }.reduce(0, +) / Double(markerade.count),
                               y: markerade.map { $0.grepp!.y }.reduce(0, +) / Double(markerade.count))
         }
@@ -204,7 +219,25 @@ public struct ClubMarking: Equatable, Sendable {
         } else if let c = cmPerPx, c > 0 {
             L = Self.shaftM * 100 / c
         }
+        if let e = egen {
+            mitt = KlubbPunkt(x: (e.grepp!.x + e.hosel!.x) / 2, y: (e.grepp!.y + e.hosel!.y) / 2)
+        } else if let g = mitt, let L, let granne = Self.granne(position, markerade) {
+            let dx = granne.hosel!.x - granne.grepp!.x, dy = granne.hosel!.y - granne.grepp!.y
+            let n = (dx * dx + dy * dy).squareRoot()
+            if n > 0 { mitt = KlubbPunkt(x: g.x + dx / n * L / 2, y: g.y + dy / n * L / 2) }
+        }
         zoom = Self.startZoomRect(crop: crop, width: width, height: height, center: mitt, length: L)
+    }
+
+    /// Den markerade positionen närmast `position` i svingens ordning (P1–P10), den tidigare vid
+    /// lika avstånd.
+    static func granne(_ position: String, _ markerade: [KlubbMarkering]) -> KlubbMarkering? {
+        guard let i = Klubba.positioner.firstIndex(of: position) else { return nil }
+        return markerade.filter { $0.position != position }.min { a, b in
+            let da = abs((Klubba.positioner.firstIndex(of: a.position) ?? 0) - i)
+            let db = abs((Klubba.positioner.firstIndex(of: b.position) ?? 0) - i)
+            return da != db ? da < db : (Klubba.positioner.firstIndex(of: a.position) ?? 0) < (Klubba.positioner.firstIndex(of: b.position) ?? 0)
+        }
     }
 
     /// Hela ytan.
@@ -292,6 +325,11 @@ public struct ClubMarking: Equatable, Sendable {
             gripSource = Klubba.kalla
             frameT = t
         } else {
+            // Punkt 2 på punkt 1 är ett tryck på greppet, inte klubbhuvudet (B59).
+            if let g = grip, avstand(g, u, v) <= Self.grabRadius {
+                history.removeLast()
+                return false
+            }
             hosel = p
             frameT = frameT ?? t
             spara(now: now)
@@ -327,17 +365,17 @@ public struct ClubMarking: Equatable, Sendable {
         guard let g = grip, let h = hosel, let f = frameT else { return }
         marks[position] = KlubbMarkering(position: position, t: f, grepp: g, hosel: h,
                                          greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: Self.sekund(now))
-        index += 1
+        index = nextMissing()
         load()
     }
 
-    /// Nästa position utan ändring (en sparad position som visades). Svarar false när
-    /// positionen har en ensam punkt.
+    /// Nästa position som saknar markering, utan ändring (Next på en markerad position).
+    /// Svarar false när positionen har en ensam punkt.
     @discardableResult
     public mutating func advance() -> Bool {
         guard !done, grip == nil || hosel != nil else { return false }
         history.append(snapshot())
-        index += 1
+        index = nextMissing()
         load()
         return true
     }
@@ -352,13 +390,19 @@ public struct ClubMarking: Equatable, Sendable {
         frameT = nil
     }
 
-    /// Klubban syns inte i rutan med tiden `t`: positionen hoppas över (sparas som hoppad).
+    /// Klubban syns inte i rutan med tiden `t`: positionen hoppas över (sparas som hoppad), och
+    /// nästa position som saknar markering visas. En markerad position skrivs aldrig över: där
+    /// är knappen Next (`advance`).
     public mutating func skip(t: Double, now: Date = Date()) {
         guard !done else { return }
+        if isMarked {
+            advance()
+            return
+        }
         history.append(snapshot())
         marks[position] = KlubbMarkering(position: position, t: t, grepp: nil, hosel: nil, hoppad: true,
                                          andrad: Self.sekund(now))
-        index += 1
+        index = nextMissing()
         load()
     }
 

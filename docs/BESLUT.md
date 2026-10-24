@@ -1226,9 +1226,10 @@ B47 och s6c börjar på B48.
     som nästa tryck sätter lyser: mitt på greppet (mellan händerna), respektive där skaftet
     går in i huvudet. Ordet "hosel" finns inte längre i appen, inte heller i katalogens
     infoblad; i data, formatet och METOD betyder klubbhuvudets punkt fortfarande hoseln (B44).
-  - **Zoom:** varje position öppnas inzoomad, högst 2,5 ×, kring händerna och den förväntade
-    klubban (M45); nyp zoomar (högst 8 ×), dra panorerar och dubbeltryck växlar mot hela
-    bilden. Trycken blir hela bildens pixlar som förut (provat i `KlubbYtaFixturer`, samma i
+  - **Zoom:** varje position öppnas inzoomad 2,5 × kring skaftets förväntade mitt, ur
+    grannens markering och handlederna, och lägre bara när en cirkel med radien 0,6 · skaftet
+    inte får plats (M45); nyp zoomar (högst 8 ×), dra panorerar och dubbeltryck växlar mot
+    hela bilden. Trycken blir hela bildens pixlar som förut (provat i `KlubbYtaFixturer`, samma i
     Python). Förstoringsglaset finns kvar och förstorar 3 × ovanpå zoomen.
   - **Punkterna heter 1 och 2** i bilden, och skaftlinjen dras mellan dem när båda är satta.
   - **Gissningen:** ringen ersätts av en ihålig punkt märkt "1?" vid handledernas mitt. Ett
@@ -1236,12 +1237,15 @@ B47 och s6c börjar på B48.
     sätter greppet där.
   - **Positionen i klartext** i märkningens ordning (B58): "P4 · Top of backswing · 3 of 10"
     (`Texter.positionsnamn`: kroppens positioner som M28, skaftets som Sportsbox BCH, DCH och
-    FCH, research 5a). Next är borttagen, eftersom appen går vidare själv; "Not visible" heter
-    "Skip"; Undo finns kvar.
+    FCH, research 5a). Next är borttagen, eftersom appen går vidare själv till nästa position
+    som saknar markering; "Not visible" heter "Skip"; Undo finns kvar. På en markerad position
+    heter knappen Next och ändrar ingenting, och ett helt markerat slag öppnas som "All
+    positions done" (granskningen 2026-10-24: Skip skrev över en markering).
   - **Riktpinnen** är ett eget valfritt steg bakifrån, en gång per serie före P1: "Optional:
     tap both ends of an alignment stick on the ground", med en skiss och Skip och Done. Skip
     sparas i serien (`riktpinneHoppad`), så att steget inte kommer igen. Knappen Stick är
-    borta ur raden.
+    borta ur raden; menyvalet "Alignment stick" öppnar steget igen för att sätta om pinnen
+    eller ta bort den (Remove).
   - **Guiden** första gången märkningen öppnas, tre bilder: greppet, klubbhuvudet och klart
     (skaftlinjen och att appen går vidare själv); "?" öppnar den igen. Att den visats sparas i
     användarens inställningar (`clubGuideSeen`).
