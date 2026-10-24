@@ -1,6 +1,6 @@
-aab1cd209af761ff056606980939391dbd524bc0 main 2026-10-24T10:37:47Z run 40086495270
+aab1cd209af761ff056606980939391dbd524bc0 s6c2 2026-10-24T10:37:56Z run 40086496616
 == swift-release
-GRÖNT: 304 test, 0 fel, 26 s i testerna, bygget 95 s
+GRÖNT: 304 test, 0 fel, 26 s i testerna, bygget 98 s
 Långsammast (av 304):
       3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
       3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
@@ -13,8 +13,8 @@ Långsammast (av 304):
       1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
       0.9 s  KlickTests.testSammaKlickSomPythonIBitar
       0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.5 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.6 s  TreDTests.testResultatetArJsonSomAnalysens
+      0.4 s  KlickTests.testKantregelnKastarDetKapadeKlicket
       0.4 s  InspelningTests.testKlockanSomGarFelGerAnda240
       0.4 s  TreDTests.testSparrenHopparOver
-      0.3 s  FlikarTests.testIdagOchUtvecklingTarRattPass
 
