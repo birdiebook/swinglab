@@ -39,6 +39,10 @@ from .format import AXEL_F, HANDLED_F, Sving  # noqa: E402
 
 FORMAT_1 = "swinglab-klubba/1"
 FORMAT = "swinglab-klubba/2"          # BESLUT B47: P-positionerna och telefonens markeringar
+FORMAT_3 = "swinglab-klubba/3"        # BESLUT B71: dessutom klubbhuvudets bana mellan ankarna (val "bana")
+BANA = "bana"                         # BESLUT B71: en ruta mellan ankarna, spårad eller interpolerad (S7b)
+KALLOR_BANA = ("spar", "interpolerad", "klick")   # BESLUT B71: maskinens punkt, eller Johannes rättelse
+GRANSKNING = (None, "godkand", "rattad")          # BESLUT B71: banans ruta ogranskad, godkänd eller rättad
 PUNKTER = ("grepp", "skaft_mitt", "klubbhuvud")     # BESLUT B44: klubbhuvudet = GolfPose hosel
 POSITIONER = ("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10")
 SKAFTETS = ("P2", "P6", "P8")         # METOD M45: definieras av skaftet, inte av kroppen
@@ -93,16 +97,18 @@ def _heltal(v) -> bool:
 
 
 def kontrollera(d) -> list[str]:
-    """Formen på märkningen, version 1 och 2 (docs/FORMAT.md, "Klubbans märkning").
+    """Formen på märkningen, version 1, 2 och 3 (docs/FORMAT.md, "Klubbans märkning").
+    Version 3 (S7b, BESLUT B71) tillåter dessutom banans rutor (`val` "bana").
     Version 2 tillåter P-positionerna som `val`, `t_klipp` och `forskjutning_ms` som null
     (telefonens markering utan klipp och utan S3) och en markerad ruta utan skaftets mitt.
     Felen nämner rutans plats och fältet, aldrig värdet. BESLUT B44, B47"""
     if not isinstance(d, dict):
         return ["märkningen ska vara ett JSON-objekt"]
     fel = []
-    v2 = d.get("format") == FORMAT
-    if d.get("format") not in (FORMAT_1, FORMAT):
-        fel.append(f"format ska vara {FORMAT_1} eller {FORMAT}")
+    v3 = d.get("format") == FORMAT_3
+    v2 = d.get("format") == FORMAT or v3
+    if d.get("format") not in (FORMAT_1, FORMAT, FORMAT_3):
+        fel.append(f"format ska vara {FORMAT_1}, {FORMAT} eller {FORMAT_3}")
     if d.get("punkter") != list(PUNKTER):
         fel.append(f"punkter ska vara {list(PUNKTER)}")
     if d.get("pass") is not None and not (isinstance(d["pass"], str) and PASS_ID.match(d["pass"])):
@@ -114,7 +120,7 @@ def kontrollera(d) -> list[str]:
     rutor = d.get("rutor")
     if not isinstance(rutor, list):
         return fel + ["rutor ska vara en lista"]
-    val = VAL if v2 else VAL_1
+    val = VAL + (BANA,) if v3 else VAL if v2 else VAL_1
     kravs = ("grepp", "klubbhuvud") if v2 else PUNKTER
     ids = set()
     for i, r in enumerate(rutor):
@@ -157,6 +163,25 @@ def kontrollera(d) -> list[str]:
             fel.append(f"{p}.visad ska ligga inom bilden")
         if r.get("status") not in STATUS:
             fel.append(f"{p}.status ska vara en av {', '.join(STATUS)}")
+        bana = r.get("val") == BANA
+        if bana:
+            # Version 3 (S7b): klubbhuvudet ensamt, markerat, med maskinens källa eller en rättelse.
+            if r.get("status") != "markerad" or r.get("t") is None:
+                fel.append(f"{p} (bana) ska vara markerad och ha t")
+            if r.get("granskning") not in GRANSKNING:
+                fel.append(f"{p}.granskning ska vara null, godkand eller rattad")
+            pk_ = r.get("punkter")
+            if isinstance(pk_, dict) and (pk_.get("grepp") is not None or pk_.get("skaft_mitt") is not None):
+                fel.append(f"{p}.punkter (bana) har bara klubbhuvud")
+            kh = pk_.get("klubbhuvud") if isinstance(pk_, dict) else None
+            rattad = r.get("granskning") == "rattad"
+            if isinstance(kh, dict) and (kh.get("kalla") == "klick") != rattad:
+                fel.append(f"{p}.punkter.klubbhuvud.kalla ska vara klick bara i en rättad ruta")
+            if rattad and "klubbhuvud" not in (r.get("forslag") or {}):
+                fel.append(f"{p}.forslag.klubbhuvud saknas i en rättad ruta")
+        elif "granskning" in r:
+            fel.append(f"{p}.granskning finns bara i banans rutor")
+        kallor = KALLOR_BANA if bana else (KALLOR if v2 else KALLOR[:1])
         pk = r.get("punkter")
         if not isinstance(pk, dict) or set(pk) != set(PUNKTER):
             fel.append(f"{p}.punkter ska ha exakt {', '.join(PUNKTER)}")
@@ -170,7 +195,7 @@ def kontrollera(d) -> list[str]:
                 if q == {"syns_inte": True}:
                     continue
                 if not (isinstance(q, dict) and set(q) == {"x", "y", "kalla"} and _tal(q["x"]) and _tal(q["y"])
-                        and q["kalla"] in (KALLOR if v2 else KALLOR[:1])):
+                        and q["kalla"] in kallor):
                     fel.append(f"{p}.punkter.{n} ska vara null, {{x, y, kalla}} eller {{syns_inte: true}}")
                 elif bh and not (0 <= q["x"] <= bh[0] and 0 <= q["y"] <= bh[1]):
                     fel.append(f"{p}.punkter.{n} ligger utanför bilden")
@@ -185,7 +210,8 @@ def kontrollera(d) -> list[str]:
 
 
 def uppgradera(d: dict) -> dict:
-    """Version 1 som version 2: v1 är en delmängd av v2, så bara formatet byts. BESLUT B47"""
+    """Version 1 som version 2: v1 är en delmängd av v2, så bara formatet byts; version 3
+    behålls. BESLUT B47, B71"""
     return {**d, "format": FORMAT} if d.get("format") == FORMAT_1 else d
 
 
@@ -199,6 +225,22 @@ def las_dict(d, namn: str = "märkningen") -> dict:
 
 def _punkt(q) -> tuple[float, float] | None:
     return (float(q["x"]), float(q["y"])) if isinstance(q, dict) and "x" in q else None
+
+
+def bana(d: dict, slag: str | None = None) -> dict[str | None, list[dict]]:
+    """Klubbhuvudets bana per slag ur en (kontrollerad) fil i version 3: banans rutor som
+    {"t", "x", "y", "kalla", "granskning"} i tidsordning. Måtten tar dem aldrig (bara
+    tryckta punkter, M46). BESLUT B71"""
+    ut: dict[str | None, list[dict]] = {}
+    for r in d["rutor"]:
+        if r["val"] != BANA or (slag is not None and r.get("slag") != slag):
+            continue
+        q = r["punkter"]["klubbhuvud"]
+        ut.setdefault(r.get("slag"), []).append({"t": float(r["t"]), "x": float(q["x"]), "y": float(q["y"]),
+                                                 "kalla": q["kalla"], "granskning": r.get("granskning")})
+    for v in ut.values():
+        v.sort(key=lambda b: b["t"])
+    return ut
 
 
 def markeringar(d: dict, slag: str | None = None) -> dict[str | None, list[dict]]:
