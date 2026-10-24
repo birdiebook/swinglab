@@ -2012,7 +2012,7 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   vyns pass och paket, importen och vägen genom `LinkLeader`/`LinkFollower`. Simulatorn
   (`SwingLabProvVideo`): två telefoner över loopback med riktiga passthrough-klipp, ett missat
   klick, ett avbrott, "Get full video", originalen, synken som vita rutor på samma träff, de två
-  paketen som PC:n läser, och bilderna. Telefonen: AWDL, tiden och storleken på riktiga klipp,
+  paketen som PC:n läser, raden "3D" (S6d:s figur) i 3D-fliken i Leads parade pass, och bilderna. Telefonen: AWDL, tiden och storleken på riktiga klipp,
   bakgrunden.
 
 ## MT1 — Paketet till svingar

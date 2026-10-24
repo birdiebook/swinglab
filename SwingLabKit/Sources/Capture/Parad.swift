@@ -4,7 +4,8 @@ import Swing
 // Ett parat pass på den styrande telefonen (S6g, BESLUT B80–B83, METOD MS30, MS31): den andra
 // telefonens klipp (`AnnanVideo`), synken mellan vyerna på träffens tid, raden "14 swings · 12 from
 // both phones", förloppet, den andra vyns slag och mått ur bunten (S6c-2), paketet för den andra
-// vyn (Send to PC) och varningen för samma vy. Bara Foundation, så att allt prövas på Linux.
+// vyn (Send to PC) och varningen för samma vy. 3D-fliken bär S6d:s figur. Bara Foundation, så att
+// allt prövas på Linux.
 
 /// Den andra telefonens video i den styrandes pass: `<vy>/video.json` med klippen och de hela
 /// inspelningarna som kommit (BESLUT B81). Filerna ligger i `<vy>/Klipp/<slag>.mov` och
