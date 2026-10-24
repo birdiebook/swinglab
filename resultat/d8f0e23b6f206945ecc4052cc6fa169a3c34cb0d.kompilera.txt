@@ -1,0 +1,20 @@
+d8f0e23b6f206945ecc4052cc6fa169a3c34cb0d s7afo 2026-10-24T08:44:15Z run 40078671517 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:77:37: error: argument 'hasStick' must precede argument 'onStickDone'
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:77:37: error: argument 'hasStick' must precede argument 'onStickDone'
+
+/Users/runner/work/swinglab/swinglab/App/Vyer/GranskningVideo.swift:77:37: error: argument 'hasStick' must precede argument 'onStickDone'
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+FAILED (errors=1)
