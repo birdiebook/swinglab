@@ -37,6 +37,8 @@ def enhet(matt: str) -> str:
         return ""
     if matt.startswith("skaft"):         # klubbans mått ur markeringarna (METOD M46–M49)
         return "°"
+    if "_vrid_" in matt or matt.startswith(("xfaktor", "hofter_oppna")):   # 3D (METOD MK6)
+        return "°"
     if matt.endswith("_ms"):
         return "ms"
     if matt.endswith("_s"):
@@ -257,11 +259,22 @@ def tre_d(paket: list[Paket], slag: list[dict], forra: dict | None, katalog_3d: 
     if set(vyer) != {"dtl", "fo"}:
         return {"hoppat": "3D kräver ett DTL- och ett FO-paket från samma pass"}
     try:
-        return _tre_d(vyer["dtl"], vyer["fo"], slag, forra, katalog_3d or KAT.las_3d())
+        t = _tre_d(vyer["dtl"], vyer["fo"], slag, forra, katalog_3d or KAT.las_3d())
     except TK.TreDFel as e:
-        return {"hoppat": str(e)}
+        t = {"hoppat": str(e)}
     except Exception as e:  # noqa: BLE001 — 3D får aldrig stoppa 2D (BESLUT B37)
-        return {"hoppat": f"3D gick inte ({type(e).__name__})"}
+        t = {"hoppat": f"3D gick inte ({type(e).__name__})"}
+    # Telefonens 3D (S6c-2, BESLUT B61): jämförs med PC:ns, som är facit. Ett fel här stoppar
+    # inget; skillnaden står i tre_d.telefon. METOD MS19
+    for p in sorted(paket, key=lambda p: p.vy):
+        if p.tre_d is not None or p.tre_d_fel is not None:
+            try:
+                t["telefon"] = dict(TK.jamfor_telefon(t, p.tre_d), paket=p.fil) if p.tre_d is not None \
+                    else {"paket": p.fil, "fel": p.tre_d_fel}
+            except Exception as e:  # noqa: BLE001
+                t["telefon"] = {"paket": p.fil, "fel": f"jämförelsen gick inte ({type(e).__name__})"}
+            break
+    return t
 
 
 def _tre_d(dtl: Paket, fo: Paket, slag: list[dict], forra: dict | None, katalog_3d: dict) -> dict:

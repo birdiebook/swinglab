@@ -218,7 +218,7 @@ extension PassState {
         return Swing.Pass(datum: created, klubba: PassSetup.clubLabel(setup.club), svingar: countedSwings,
                           serie1: Swift.min(PassHistory.firstSet, iSerie1),
                           osakerStart: shots.filter { $0.counts && $0.measure?.startUncertain == true }.count,
-                          klubbMarkerade: clubMarkedCount)
+                          klubbMarkerade: clubMarkedCount, treD: treD ?? [:])
     }
 
     /// Längden som slagens mått bär, och om den är antagen: den första mätta. nil = inget mätt.
@@ -275,6 +275,12 @@ public enum PassHistory {
         let med = matta.filter { $0.measuredHeight?.heightM == h }
             .sorted { ($0.created, $0.id) < ($1.created, $1.id) }
         return (med, klubba.count - matta.count, matta.count - med.count)
+    }
+
+    /// Förra passet med 3D (S6c-2): det senaste av `earlier` (samma klubba, vy och längd) som har
+    /// 3D. Båda telefonerna har samma 3D, så vyn är den här telefonens. METOD MK7, MS19
+    public static func earlierTreD(_ nu: PassState, among alla: [PassState]) -> PassState? {
+        earlier(nu, among: alla).last { $0.treD != nil }
     }
 
     /// Måttens värden i de tidigare passen (alla slag som räknas), för den egna baslinjen.

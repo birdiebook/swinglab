@@ -4,7 +4,8 @@ import Swing
 // Två telefoner (S2_SPEC §7.1, BESLUT B21): meddelandena mellan dem och hur de
 // ramas in på TCP-strömmen. Appens Link.swift (Network.framework) skickar bara
 // det här; logiken i LinkSession.swift avgör vad som skickas. Bara kommandon,
-// klicktider och klockans prov, aldrig video (dataregeln, BESLUT B22).
+// klicktider och klockans prov, aldrig video (dataregeln, BESLUT B22). Sedan S6c-2 också
+// slagens leder och 3D i bitar (`part`, Overforing.swift, BESLUT B61).
 
 /// Rollen i uppställningen: ensam, styr (lyssnar och visar Start) eller följ (söker
 /// och ansluter). Manifestets `telefon.roll` (S2_SPEC §8.3).
@@ -93,15 +94,21 @@ public enum LinkMessage: Equatable, Sendable {
     case recorded(LinkSeries)
     case status(recording: Bool, freeGB: Double, pressure: String)
     case ack(LinkAck, series: Int)
+    /// En bit av en stor överföring (S6c-2): följarens slag till den styrande, och 3D tillbaka.
+    /// Versionen står i biten (`LinkPart.v`). METOD MS19
+    case part(LinkPart)
+    /// Kvittensen för en bit eller för hela överföringen. METOD MS19
+    case partAck(LinkPartAck)
 }
 
 extension LinkMessage: Codable {
     enum Typ: String, Codable {
-        case hello, ping, pong, start, stop, recorded, status, ack
+        case hello, ping, pong, start, stop, recorded, status, ack, part
+        case partAck = "part_ack"
     }
 
     enum Keys: String, CodingKey {
-        case type, hello, id, t0, t1, t2, passID = "pass", series, recorded, recording, freeGB, pressure, ack
+        case type, hello, id, t0, t1, t2, passID = "pass", series, recorded, recording, freeGB, pressure, ack, part
     }
 
     public init(from decoder: Decoder) throws {
@@ -121,6 +128,8 @@ extension LinkMessage: Codable {
                            freeGB: try c.decode(Double.self, forKey: .freeGB),
                            pressure: try c.decode(String.self, forKey: .pressure))
         case .ack: self = .ack(try c.decode(LinkAck.self, forKey: .ack), series: try c.decode(Int.self, forKey: .series))
+        case .part: self = .part(try c.decode(LinkPart.self, forKey: .part))
+        case .partAck: self = .partAck(try c.decode(LinkPartAck.self, forKey: .ack))
         }
     }
 
@@ -159,6 +168,12 @@ extension LinkMessage: Codable {
             try c.encode(Typ.ack, forKey: .type)
             try c.encode(kind, forKey: .ack)
             try c.encode(series, forKey: .series)
+        case let .part(p):
+            try c.encode(Typ.part, forKey: .type)
+            try c.encode(p, forKey: .part)
+        case let .partAck(a):
+            try c.encode(Typ.partAck, forKey: .type)
+            try c.encode(a, forKey: .ack)
         }
     }
 }
@@ -170,7 +185,8 @@ public enum Wire {
     /// Bonjour-tjänsten, samma som `NSBonjourServices` i project.yml. BESLUT B21
     public static let bonjourService = "_swinglab._tcp"
 
-    /// Längsta meddelande, byte. En serie med tusen klick är cirka 60 kB.
+    /// Längsta meddelande, byte. En serie med tusen klick är cirka 60 kB, en bit av en
+    /// överföring cirka 350 kB (`Overforing.delBytes`).
     public static let maxLength = 1 << 20
 
     /// Felen säger var, aldrig vad (dataregeln): meddelandets nummer på strömmen.

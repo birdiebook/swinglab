@@ -1262,3 +1262,74 @@ B47 och s6c börjar på B48.
   en gest till att lära sig (dubbeltrycket ångrar ett första tryck som satte en punkt).
 - **Omprövas:** när Johannes märkt svingar med S7c på telefonen: om instruktionen och guiden
   räcker, om 2,5 × är rätt start och om dubbeltrycket krockar med trycken.
+---
+
+Besluten B61–B63 kommer ur S6c-2 (3D i appen, grenen `s6c2`). Lucka: s7afo tar B57–B59.
+
+## B61 — 3D på telefonen: följaren skickar slagen efter analysen, den styrande räknar
+*2026-10-24 · prövas · PLAN.md S6c-2 · METOD MS19, M50*
+
+- **Valt:** när följarens slag är analyserade (Vision) skickar den dem till den styrande över
+  PhoneLink: ett paket utan video (`SlagBunt`, `swinglab-slag/1`: manifestet, enhet.json,
+  par.json och lederna per slag i kompakt form, docs/FORMAT.md). Stora meddelanden delas i
+  bitar om 192 kB (`part`, version 1), varje bit kvitteras och allt som inte kvitterats skickas
+  igen när kopplingen kommer tillbaka; helheten kvitteras först när den är sparad
+  (`Pass/<id>/annan_telefon.json`). Den styrande räknar 3D med `TreD` i `Task.detached` när
+  båda telefonernas slag är analyserade, sparar `tre_d.json` i passet och skickar den tillbaka;
+  följaren sparar samma fil. Båda visar alltså samma tal. 2D-faserna (start och topp) räknas på
+  telefonen ur samma leder och med samma kod som PC:ns `analys.mat_paket` (MS19).
+- **Kopplingen i passet:** PhoneLink startas i passets skärm för ett pass med rollen Lead eller
+  Follow, eftersom lederna finns först efter Analyze, när kameran är stängd. Båda telefonerna
+  ska alltså ha passet öppet en stund efter analysen. Ett pass räknas om när någon telefons slag
+  ändras (Detection wrong, domen, redigeringen): `tre_d.json` bär buntarnas summor.
+- **Reserven:** "Import other phone" i passet läser den andra telefonens paket
+  (`swinglab-<pass>-<vy>.zip`, Send to PC) ur Filer eller AirDrop, fil för fil utan klippen,
+  till samma bunt. Den telefon som importerar räknar själv.
+- **Varför:** Johannes mål (2026-10-23) är att så mycket som möjligt görs på telefonen. Lederna
+  är det enda 3D behöver; videon stannar på sin telefon (BESLUT B22). En överföring per pass
+  efter analysen i stället för per serie under passet, eftersom lederna inte finns förrän då.
+- **Bortvalt:** att skicka per serie under inspelningen (lederna finns inte än); att skicka
+  ledfilerna som JSON (cirka 4 gånger större); zlib (finns inte i Foundation på Linux, där
+  logiken prövas); att följaren också räknar (två räkningar som kan skilja); att räkna på PC:n
+  bara (B48:s mål).
+- **Kostnad:** cirka 105 kB per slag i bunten och 140 kB på kopplingen (960 rutor, MS19), 2–3 MB
+  för ett pass om 20 slag. En äldre app som inte känner `part` stänger förbindelsen; båda
+  telefonerna ska ha samma bygge. Följaren måste ha tagit den styrandes pass-id (S2g), annars
+  vägrar den styrande bitarna och importen är vägen.
+- **Omprövas:** efter telefonprovet med två telefoner (PLAN S6c-2).
+
+## B62 — 3D i appen: kortet i passet, trenden i Progress och lutningen i uppställningen
+*2026-10-24 · gäller · Johannes godkände utformningen · PLAN.md S6c-2 · METOD MS19*
+
+- **Passet:** ett kort "3D" med rubriken "3D · no markers" i grått och de fem måtten (Pelvis
+  turn at the top, Shoulder turn at the top, X-factor at the top, X-factor stretch, Hips open at
+  impact): passets median, skillnaden mot förra passet med 3D ("+3.1° vs Nov 10", grå, ljusare
+  när den är tydlig enligt MK7) och antalet svingar. Kortet syns bara när passet har
+  `tre_d.json`. Skälen (hoppat, osaker, utelämnade, färre än 10) står korta och i grått, och
+  kortet visar aldrig ett tal där skälet säger nej. Ett tryck på en rad öppnar infobladet (B41).
+- **Progress:** de fem måtten är valbara bland de andra, sist, när något pass har 3D. Varje punkt
+  är ett pass, median över minst 10 svingar, med passmedianens ungefärliga fel som ett tunt
+  spann (felbudgetens SD med typiskt brus, MK7). Inga gränser och inget grönt eller rött (B14,
+  B37); spannet 35–45° för höfterna visas inte än.
+- **Uppställningen:** en tunn horisontlinje över kamerans bild med lutningen åt sidan i grader,
+  svartvit och utan värdeord; över 45° från lodlinjen står "Tilt too large for 3D" (B39, MS17).
+  Linjen är en egen vy (`LutningVy`) som inspelningen bara visar.
+- **Today** ändras inte.
+- **Katalogen:** 3D-måtten flyttar från `katalog_3d.json` till `katalog.json` (listan `tre_d`) och
+  Swift-fixturerna, med infobladets `vad`, `varfor` och `tecken` (B37:s kostnad, B41). PC:n läser
+  samma lista (`katalog.las_3d`).
+- **Bortvalt:** gränser eller färg för 3D utan markörer (B14); 3D på Today; en egen flik.
+- **Omprövas:** när markörerna ger mått per sving (B14).
+
+## B63 — Paketet: telefonens 3D följer med, och PC:n räknar själv och jämför
+*2026-10-24 · prövas · PLAN.md S6c-2 · METOD MS19*
+
+- **Valt:** `tre_d.json` följer med i paketet (Send to PC) när passet har den. PC:n räknar 3D själv
+  som förut och är facit (B12); `analys.json` får `tre_d.telefon`: samma parning,
+  uppställningar, skäl och avrundade fält, och största skillnaden per slag mot 0,05°
+  (`tva_kameror.jamfor_telefon`), och session.py skriver en rad. En fil som inte går att läsa
+  stoppar inget (`tre_d.telefon.fel`).
+- **Varför:** S6c-2:s "Klart när" är att telefonen ger samma tre_d som PC:n på riktiga leder;
+  jämförelsen gör varje pass till ett prov, utan att PC:n litar på telefonen.
+- **Bortvalt:** att PC:n tar telefonens tal (då finns inget facit), och att PC:n slutar räkna 3D.
+- **Omprövas:** när riktiga pass visat att telefonen och PC:n är lika.

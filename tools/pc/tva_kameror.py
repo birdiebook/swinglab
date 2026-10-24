@@ -507,3 +507,63 @@ def jamfor(nu: dict, forra: dict | None) -> dict | None:
         j["golv"] = TREND_GOLV[m]
         j["tydlig"] = abs(j["skillnad"]) > max(j["spridning"], TREND_GOLV[m])
     return ut
+
+
+# --- telefonens 3D mot PC:ns (S6c-2) ---------------------------------------------------
+
+# Telefonens mått per slag ska ligga så nära PC:ns, grader (PLAN S6c-2, Klart när). METOD MS19
+TELEFON_TOL = 0.05
+TELEFON_FORMAT = "swinglab-tre-d/1"
+# Fälten som ska vara lika: parningen, skälen och antalen (de avrundade jämförs exakt nedan).
+TELEFON_LIKA = ("lage", "min_slag", "matt", "parning", "osaker", "utelamnade", "n")
+
+
+def jamfor_telefon(pc: dict, fil: dict) -> dict:
+    """Telefonens tre_d.json (den styrande telefonens paket, BESLUT B61) mot PC:ns tre_d: samma
+    parning, uppställningar, skäl och avrundade fält, och den största skillnaden i måtten per
+    slag och i passets median. `inom` = allt lika och varje mått per slag inom TELEFON_TOL.
+    PC:n är facit (B12); skillnaden skrivs, inget räknas om. METOD MS19"""
+    ut = {"raknad": fil.get("raknad"), "raknad_av": fil.get("raknad_av"), "sekunder": fil.get("sekunder"),
+          "tol": TELEFON_TOL}
+    tel = fil.get("tre_d")
+    if "hoppat" in pc or tel is None:
+        ut.update(hoppat={"pc": pc.get("hoppat"), "telefon": fil.get("hoppat")}, olika=[], storsta_skillnad=None,
+                  per_slag=[])
+        ut["inom"] = pc.get("hoppat") == fil.get("hoppat")
+        return ut
+    olika = [f for f in TELEFON_LIKA if pc.get(f) != tel.get(f)]
+    pk, tk = pc.get("kalibrering", []), tel.get("kalibrering", [])
+    if len(pk) != len(tk):
+        olika.append("kalibrering")
+    else:
+        for i, (a, b) in enumerate(zip(pk, tk)):
+            olika += [f"kalibrering[{i}].{f}" for f in sorted(set(a) | set(b)) if a.get(f) != b.get(f)]
+    storst, per_slag = 0.0, []
+    ps = {(s["dtl"], s["fo"]): s for s in pc.get("slag", [])}
+    ts = {(s.get("dtl"), s.get("fo")): s for s in tel.get("slag", [])}
+    if list(ps) != list(ts):
+        olika.append("slag")
+    for nyckel in ps:
+        a, b = ps[nyckel], ts.get(nyckel)
+        if b is None:
+            continue
+        olika += [f"slag {nyckel[0]}/{nyckel[1]}.{f}" for f in ("serie", "synk_ms", "aterprojektion_px", "fel")
+                  if a.get(f) != b.get(f)]
+        am, bm = a.get("matt") or {}, b.get("matt") or {}
+        if set(am) != set(bm):
+            olika.append(f"slag {nyckel[0]}/{nyckel[1]}.matt")
+        for m in sorted(set(am) & set(bm)):
+            d = abs(am[m] - bm[m])
+            storst = max(storst, d)
+            if d > TELEFON_TOL:
+                per_slag.append({"dtl": nyckel[0], "fo": nyckel[1], "matt": m, "skillnad": round(d, 4)})
+    sess = 0.0
+    for m, s in pc.get("session", {}).items():
+        t = tel.get("session", {}).get(m)
+        if t is None:
+            olika.append(f"session.{m}")
+        else:
+            sess = max(sess, abs(s["median"] - t["median"]))
+    ut.update(olika=olika, storsta_skillnad=storst, storsta_skillnad_median=sess, per_slag=per_slag,
+              inom=not olika and storst <= TELEFON_TOL)
+    return ut

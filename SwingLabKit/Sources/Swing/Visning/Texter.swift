@@ -73,6 +73,10 @@ public enum Texter {
             "skaft_riktning_topp": "Shaft across the line", "skaft_plan_p6": "Clubhead to plane",
             "skaft_topp": "Shaft to level", "skaft_arm_p5": "Lead arm to shaft", "skaft_arm_p6": "Lead arm to shaft",
             "skaft_lutning_traff": "Shaft lean",
+            // 3D ur två telefoner (PLAN S6c-2, METOD MK6): Johannes godkända namn (BESLUT B62).
+            "backen_vrid_topp": "Pelvis turn at the top", "brost_vrid_topp": "Shoulder turn at the top",
+            "xfaktor_topp": "X-factor at the top", "xfaktor_stretch": "X-factor stretch",
+            "hofter_oppna_traff": "Hips open at impact",
         ]
         // Tilläggen mot Sportsbox i 2D (PLAN S1b, METOD M30–M37), ett namn per fas.
         for (m, namn) in [("backen_bojning", "Hip hinge"), ("framre_kna", "Lead knee flex"),
@@ -129,6 +133,29 @@ public enum Texter {
 
     /// "+ to target", "+ away from target"
     public static func plus(_ hall: String) -> String { hall == awayFromTarget ? "+ \(hall)" : "+ to \(hall)" }
+
+    // MARK: 3D ur två telefoner (PLAN S6c-2, BESLUT B62)
+
+    /// Kortets och Progress-måttets rubrik: läget, utan markörer (BESLUT B14).
+    public static let treDRubrik = "3D · no markers"
+    /// Passets kort heter "3D".
+    public static let treD = "3D"
+    /// "12 swings": slagen som måtten är medianen av.
+    public static func svingar(_ n: Int) -> String { n == 1 ? "1 swing" : "\(n) swings" }
+    /// Skälen i kortet, korta och i grått (METOD MS19). Varför 3D inte räknades:
+    public static let treDInteParat = "No swing filmed by both phones"
+    public static let treDKalibrering = "Cameras could not be placed"
+    public static let treDVyerna = "Needs one DTL and one FO phone"
+    public static let treDPaketet = "Other phone's data unreadable"
+    public static let treDInte = "3D not computed"
+    /// Varför talen är osäkrare, eller färre:
+    public static let treDVinkel = "Camera angle outside 60–120°"
+    public static let treDLutning = "Phone tilt not used"
+    public static func treDSerie(_ dtl: Int, _ fo: Int) -> String { "Set \(dtl) · \(fo) not measured" }
+    public static func treDUtelamnade(_ n: Int) -> String { n == 1 ? "1 swing left out" : "\(n) swings left out" }
+    public static func treDFarre(_ min: Int) -> String { "Fewer than \(min) swings" }
+    /// Uppställningen: telefonen lutar för mycket för 3D (lodlinjen, METOD MS17, MS19).
+    public static let lutningForStor = "Tilt too large for 3D"
 
     // MARK: märkningen (Markning)
 

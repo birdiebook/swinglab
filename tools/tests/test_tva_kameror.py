@@ -375,20 +375,103 @@ class Analysen(unittest.TestCase):
         json.loads(text)
 
 
+def _telefonens_fil(t: dict, pass_id: str) -> dict:
+    """tre_d.json som telefonen skriver den (BESLUT B61): bara kedjans fält, utan trenden."""
+    falt = ("lage", "min_slag", "matt", "parning", "kalibrering", "osaker", "slag", "utelamnade", "n", "session")
+    return {"format": "swinglab-tre-d/1", "pass": pass_id, "raknad": "2026-11-03T18:30:00Z", "raknad_av": "dtl",
+            "kallor": {"dtl": "0-1", "fo": "0-2"}, "sekunder": 1.2,
+            "tre_d": json.loads(json.dumps({k: t[k] for k in falt}))}
+
+
+class Telefonen(unittest.TestCase):
+    """S6c-2: telefonens tre_d.json i paketet mot PC:ns 3D (BESLUT B61, METOD MS19)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.rot, p = _analyspass()
+        cls.d, cls.f, _, cls.a = p["20261103-180000"]
+
+    def test_samma_tal_ar_lika(self) -> None:
+        j = TK.jamfor_telefon(self.a["tre_d"], _telefonens_fil(self.a["tre_d"], "20261103-180000"))
+        self.assertTrue(j["inom"], j)
+        self.assertEqual(j["olika"], [])
+        self.assertEqual(j["storsta_skillnad"], 0.0)
+
+    def test_skillnaderna_skrivs(self) -> None:
+        fil = _telefonens_fil(self.a["tre_d"], "20261103-180000")
+        s = next(x for x in fil["tre_d"]["slag"] if "matt" in x)
+        s["matt"]["xfaktor_stretch"] += 0.1
+        fil["tre_d"]["osaker"] = ["serie 1 (DTL) mot 1 (FO): lodlinjen i manifestet användes inte"]
+        fil["tre_d"]["kalibrering"][0]["sampson_px"] += 0.01
+        j = TK.jamfor_telefon(self.a["tre_d"], fil)
+        self.assertFalse(j["inom"])
+        self.assertIn("osaker", j["olika"])
+        self.assertIn("kalibrering[0].sampson_px", j["olika"])
+        self.assertEqual([(x["dtl"], x["matt"]) for x in j["per_slag"]], [(s["dtl"], "xfaktor_stretch")])
+        self.assertAlmostEqual(j["storsta_skillnad"], 0.1, places=9)
+        # Under gränsen: lika.
+        fil = _telefonens_fil(self.a["tre_d"], "20261103-180000")
+        fil["tre_d"]["slag"][0]["matt"]["backen_vrid_topp"] += 0.04
+        self.assertTrue(TK.jamfor_telefon(self.a["tre_d"], fil)["inom"])
+
+    def test_hoppat_jamfors_pa_skalet(self) -> None:
+        fil = {"format": "swinglab-tre-d/1", "pass": "x", "hoppat": "kalibreringen: ingen serie gick att kalibrera under spärren"}
+        j = TK.jamfor_telefon({"hoppat": fil["hoppat"]}, fil)
+        self.assertTrue(j["inom"])
+        self.assertFalse(TK.jamfor_telefon(self.a["tre_d"], fil)["inom"])
+
+    def _med_fil(self, fil: dict, namn: str) -> Path:
+        ut = Path(TMP.name) / f"telefon-{namn}" / Path(self.d).name
+        ut.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(self.d) as a, zipfile.ZipFile(ut, "w", zipfile.ZIP_STORED) as b:
+            for i in a.infolist():
+                b.writestr(i, a.read(i.filename))
+            b.writestr("tre_d.json", json.dumps(fil))
+        return ut
+
+    def test_session_skriver_skillnaden(self) -> None:
+        """Paketet bär telefonens tre_d.json: session.py skriver tre_d.telefon och en rad."""
+        d = self._med_fil(_telefonens_fil(self.a["tre_d"], "20261103-180000"), "lika")
+        self.assertEqual(P.las(d).tre_d["format"], "swinglab-tre-d/1")
+        ut = Path(TMP.name) / "telefon-lika-ut"
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertEqual(S.main([str(d), str(self.f), "--ut", str(ut), "--langd", "1.8", "--utan-kontaktark"]), 0)
+        t = json.loads((ut / "analys.json").read_text(encoding="utf-8"))["tre_d"]
+        self.assertEqual(t["telefon"]["paket"], d.name)
+        self.assertTrue(t["telefon"]["inom"], t["telefon"])
+        self.assertIn("3D på telefonen", buf.getvalue())
+
+    def test_trasig_fil_stoppar_inget(self) -> None:
+        d = self._med_fil({"format": "swinglab-tre-d/1", "pass": "20261103-999999", "hoppat": "x"}, "trasig")
+        p = P.las(d)
+        self.assertIsNone(p.tre_d)
+        self.assertEqual(p.tre_d_fel, "tre_d.json: pass ska vara paketets")
+        a = A.analysera([p, P.las(self.f)], 1.80, [], skapad="")
+        self.assertEqual(a["tre_d"]["telefon"], {"paket": p.fil, "fel": p.tre_d_fel})
+        self.assertIn("session", a["tre_d"])
+
+
 class Katalogen(unittest.TestCase):
-    def test_katalog_3d_ar_hel(self) -> None:
+    def test_katalogens_3d_ar_hel(self) -> None:
+        """3D-måtten står i katalog.json (BESLUT B62), i analysens ordning, med infobladet."""
         k = KAT.las_3d()
-        self.assertEqual({e["matt"] for e in k["matt"]}, set(TK.MATT))
+        self.assertEqual([e["matt"] for e in k["matt"]], list(TK.MATT))
         self.assertTrue(all(e["lage"] == "utan_markorer" and e["min_slag"] == TK.MIN_SLAG for e in k["matt"]))
+        self.assertTrue(all(e[f].strip() for e in k["matt"] for f in ("vad", "varfor", "tecken")))
+        self.assertFalse((Path(__file__).resolve().parents[2] / "katalog_3d.json").exists())
 
     def test_kontrollen_faller_fel(self) -> None:
-        k = KAT.las_3d()
-        k["matt"][0]["lage"] = "ibland"
-        k["matt"][1]["matt"] = "backen_vrid_topp"
-        del k["matt"][2]["spann"]
-        fel = "; ".join(KAT.kontrollera_3d(k))
-        for ord_ in ("lage", "två gånger", "fälten", "saknar"):
+        k = KAT.las()
+        k["tre_d"][0]["lage"] = "ibland"
+        k["tre_d"][1]["matt"] = "backen_vrid_topp"
+        del k["tre_d"][2]["spann"]
+        k["tre_d"][3]["vad"] = " "
+        fel = "; ".join(KAT.kontrollera(k))
+        for ord_ in ("lage", "två gånger", "fälten", "saknar", "vad ska vara en text"):
             self.assertIn(ord_, fel)
+        del k["tre_d"]
+        self.assertIn("katalogen: listan tre_d saknas", KAT.kontrollera(k))
 
 
 if __name__ == "__main__":

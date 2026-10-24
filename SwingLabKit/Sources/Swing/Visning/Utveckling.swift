@@ -16,7 +16,15 @@ public struct Utveckling: Sendable {
     public enum Band: Equatable, Sendable {
         case grans(lo: Double, hi: Double)
         case baslinje(lo: Double, hi: Double)
+        /// 3D utan markörer (S6c-2): passmedianens ungefärliga fel, ± grader runt varje punkt,
+        /// ur felbudgeten (METOD MK7, MS19). Ingen gräns och ingen baslinje (BESLUT B14, B37).
+        case fel(Double)
     }
+
+    /// Passmedianens SD för kedjan med typiskt brus (S6_FELBUDGET §6.7, METOD MK7: golvet / √2),
+    /// grader. Progress ritar den som ett tunt spann runt varje 3D-punkt. METOD MS19
+    public static let felband3D = ["backen_vrid_topp": 11.1, "brost_vrid_topp": 9.7, "xfaktor_topp": 13.6,
+                                   "xfaktor_stretch": 5.7, "hofter_oppna_traff": 6.0]
 
     public let id: String
     public let namn: String
@@ -89,6 +97,20 @@ public struct Utveckling: Sendable {
                   block: block)
     }
 
+    /// Ett 3D-mått över passen (S6c-2, BESLUT B62): en punkt per pass med 3D och en median
+    /// (minst `min_slag` slag, METOD MK7), rubriken "3D · no markers", inget serie 1, inga
+    /// kvartiler och ingen gräns: bara felbandet runt punkterna (BESLUT B14, B37).
+    public init(_ post: Katalog.TreDPost, pass: [Pass], block: [Date] = []) {
+        let namn = Etiketter.etikett(post.matt).namn
+        let punkter = pass.compactMap { p -> Passpunkt? in
+            guard let m = p.treD[post.matt], m.n >= post.minSlag, let v = m.median, v.isFinite else { return nil }
+            return Passpunkt(datum: p.datum, pass: v, serie1: nil)
+        }
+        self.init(id: post.id, matt: post.matt, namn: namn, rubrik: Texter.treDRubrik, markning: nil,
+                  info: Infoblad(post, namn: namn), punkter: punkter,
+                  band: Utveckling.felband3D[post.matt].map { Band.fel($0) }, klubba: pass.last?.klubba, block: block)
+    }
+
     /// Det gemensamma: talet nu, skillnaden mot första passet, axeln, månaderna och blocken.
     init(id: String, matt: String, namn: String, rubrik: String, markning: Markning?, info: Infoblad,
          punkter: [Passpunkt], band: Band?, klubba: String?, block: [Date]) {
@@ -119,6 +141,9 @@ public struct Utveckling: Sendable {
             for v in [lo, hi] where v.isFinite {
                 varden.append(Swift.min(hi0 + ra * 0.33, Swift.max(lo0 - ra * 0.33, v)))
             }
+        case let .fel(sd):
+            // Felbandet hör till punkterna: axeln rymmer det helt.
+            varden += punkter.flatMap { [$0.pass - sd, $0.pass + sd] }
         case nil:
             break
         }
@@ -163,7 +188,9 @@ public struct Utvecklingsvisning: Sendable {
         }
         // Spridningen mellan slagen efter felen (METOD M44, BESLUT B46).
         let spridning = katalog.spridning.map { Utveckling($0, pass: pass, block: block) }
-        matt = (fel + spridning).filter { !$0.punkter.isEmpty }
+        // 3D sist, bara när något pass har 3D (S6c-2, BESLUT B62).
+        let treD = katalog.treD.map { Utveckling($0, pass: pass, block: block) }
+        matt = (fel + spridning + treD).filter { !$0.punkter.isEmpty }
     }
 
     /// "7i · Oct–Jan · 16": klubban, månaderna och antalet ("Jan" inom en månad); "" utan datum.

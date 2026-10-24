@@ -89,9 +89,11 @@ public struct TreDPaket: Equatable, Sendable {
     public var parFel: String?
     /// enhet.json:s valda format, när serien inte bär sitt synfält. METOD MK3
     public var enhetSynfalt: Synfalt?
+    /// Manifestets `spelarens_langd_m`, för 2D-faserna på telefonen (S6c-2, METOD MS19).
+    public var spelarensLangdM: Double?
 
     public init(passID: String, vy: Vy, spelhand: Hand, avstandM: Double?, serier: [Int: TreDSerie], slag: [TreDSlag],
-                par: ParFil? = nil, parFel: String? = nil, enhetSynfalt: Synfalt? = nil) {
+                par: ParFil? = nil, parFel: String? = nil, enhetSynfalt: Synfalt? = nil, spelarensLangdM: Double? = nil) {
         self.passID = passID
         self.vy = vy
         self.spelhand = spelhand
@@ -104,6 +106,7 @@ public struct TreDPaket: Equatable, Sendable {
         self.par = par
         self.parFel = parFel
         self.enhetSynfalt = enhetSynfalt
+        self.spelarensLangdM = spelarensLangdM
     }
 }
 
@@ -168,7 +171,8 @@ extension TreDPaket {
         }
         return TreDPaket(passID: o["pass"]!.text!, vy: Vy(rawValue: o["vy"]!.text!)!,
                          spelhand: Hand(rawValue: o["spelhand"]!.text!)!, avstandM: o["avstand_m"]?.tal,
-                         serier: ut, slag: lista, par: parFil, parFel: parFel, enhetSynfalt: enhetSF)
+                         serier: ut, slag: lista, par: parFil, parFel: parFel, enhetSynfalt: enhetSF,
+                         spelarensLangdM: o["spelarens_langd_m"]?.tal)
     }
 
     static func sakertNamn(_ v: JSONVarde?) -> Bool {

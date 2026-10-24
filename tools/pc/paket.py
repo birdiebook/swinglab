@@ -104,6 +104,10 @@ class Paket:
     # den går att läsa; annars None och, om den fanns men inte gick att läsa, skälet. BESLUT B47
     klubba: dict | None = None
     klubba_fel: str | None = None
+    # tre_d.json (S6c-2): 3D som telefonen räknade, när paketet bär den och den går att läsa;
+    # annars None och, om den fanns men inte gick att läsa, skälet. PC:n jämför (BESLUT B61).
+    tre_d: dict | None = None
+    tre_d_fel: str | None = None
 
 
 def _tal(v) -> bool:
@@ -370,6 +374,26 @@ def las_ur_zip(z: zipfile.ZipFile, paket: str, fil: str) -> bytes:
         raise PaketFel([f"{paket}: {fil} är skadad i zippen"]) from None
 
 
+TRE_D_FIL = "tre_d.json"
+
+
+def kontrollera_tre_d(d, pass_id: str) -> list[str]:
+    """tre_d.json (docs/FORMAT.md, swinglab-tre-d/1): formatet, passet och antingen tre_d
+    (ett objekt) eller hoppat (en text). Felen nämner fältet, aldrig värdet. METOD MS19"""
+    F = TRE_D_FIL
+    if not isinstance(d, dict):
+        return [f"{F}: ska vara ett JSON-objekt"]
+    fel = []
+    if d.get("format") != "swinglab-tre-d/1":
+        fel.append(f"{F}: format ska vara swinglab-tre-d/1")
+    if d.get("pass") != pass_id:
+        fel.append(f"{F}: pass ska vara paketets")
+    har_t, har_h = isinstance(d.get("tre_d"), dict), isinstance(d.get("hoppat"), str)
+    if har_t == har_h:
+        fel.append(f"{F}: ska ha antingen tre_d eller hoppat")
+    return fel
+
+
 def las(sokvag, med_leder: bool = True) -> Paket:
     """Läser och kontrollerar ett paket. Kastar PaketFel med alla formfel."""
     sokvag = Path(sokvag)
@@ -438,6 +462,19 @@ def las(sokvag, med_leder: bool = True) -> Paket:
                 p.par_fel = "; ".join(f)
             else:
                 p.par = d
+        if TRE_D_FIL in i_zip:
+            # Valfri (S6c-2): telefonens 3D, som PC:n jämför med sin egen. Stoppar aldrig paketet.
+            try:
+                d = json.loads(las_ur_zip(z, namn, TRE_D_FIL).decode("utf-8"))
+                f = kontrollera_tre_d(d, p.pass_id)
+            except PaketFel as e:
+                f = e.fel
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                f = [f"{TRE_D_FIL} är inte giltig JSON"]
+            if f:
+                p.tre_d_fel = "; ".join(f)
+            else:
+                p.tre_d = d
         if KL.FIL in i_zip:
             # Valfri (S7a): ett fel här stoppar inte paketet, bara klubbans mått. BESLUT B47
             try:

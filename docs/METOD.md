@@ -1796,6 +1796,58 @@ värden i `CaptureTests`.
   kortas till **24** tecken. **antagande** (en rad, B13; det första felet räcker för att säga
   vad Claude ska rätta; 24 tecken rymmer fältets namn bredvid).
 
+## MS19 — 3D mellan telefonerna och i vyerna (S6c-2)
+
+- **Bunten** (`SlagBunt`, BESLUT B61): manifestet, enhet.json och par.json som text, och lederna
+  per slag: tiderna som int32 i 1e-4 s, x och y som int16 i 0,1 px (int32 när ett tal inte ryms,
+  t.ex. en 4K-bild) och konfidensen som uint16 i 0,001, little endian i base64. Stegen är
+  ledfilens egna (`JointSeries.rounded`, MS12), och talen läses tillbaka som n · steg, så att
+  TreD får exakt ledfilens tal. En led med konfidensen 0 efter avrundningen, eller med ett tal som
+  inte är ändligt, skickas som saknad: båda räknas som saknade i 3D (MK2) och 2D (M1). Rutans
+  `pts` och observationens konfidens följer inte med. **räkning.**
+- **Storleken:** 4 + 13 · 6 = 82 byte per ruta, i base64 cirka 109 byte. Det täta fönstret är
+  4 s (MS5), högst 960 rutor i 240 Hz: cirka **105 kB per slag** i bunten, och med base64 igen i
+  bitarna cirka **140 kB per slag** på kopplingen; ett pass om 20 slag cirka **2,1 MB** i
+  bunten och **2,8 MB** på kopplingen (15 bitar). Ledfilerna som JSON är cirka 4 gånger större.
+  **räkning** (prövad i `OverforingTests.testStorlekenPerSlag`).
+- **Bitarna** (`part`, version 1): **192 kB** per bit (cirka 350 kB som meddelande, under ramens
+  1 MB), id = innehållets summa (CRC-32 och längden). Varje bit kvitteras; en bit med en annan
+  version, fel storlek eller fel antal tas inte emot. När alla bitar kommit prövas summan: fel
+  summa ger en kvittens `ok: false` och allt skickas igen. Helheten kvitteras först när den är
+  sparad. Efter ett tapp skickas bitarna som inte kvitterats igen, eller den sista när bara
+  helhetens kvittens fattas; mottagaren svarar då med den igen. En ny överföring av samma slag
+  ersätter den förra. Den styrande tar bara emot bitar för sitt pass. **räkning.**
+- **Vem som räknar:** den telefon som har den andra telefonens bunt (den styrande, eller den som
+  importerade) räknar när passets alla slag är analyserade, och igen när någon buntens summa
+  ändrats (`tre_d.json`:s `kallor`). Följaren skickar sin bunt när den styrandes resultat inte
+  gäller dess nuvarande slag. **räkning.**
+- **2D-faserna på telefonen:** start och topp per slag ur `Matt.mat` på slagets leder, med
+  domen sving eller osaker och inte Detection wrong, träffen ur manifestet (`traff_s − klick_s`,
+  annars avståndet, MT1) och längden ur den räknande telefonens pass, annars DTL-paketets,
+  annars 1,80 m (PC:n: det första paketets). Samma som PC:ns `analys.mat_paket` (B12); prövat mot
+  fixturernas faser inom 1e-9 s (`TreDTelefonTests`). **räkning.**
+- **Kortet** (B62): passets median per mått bara med minst **10** svingar (MK7); skillnaden mot
+  förra passet med 3D (samma klubba, vy och längd) i grader med en decimal, tydlig när den är
+  större än förra passets spridning och golvet (MK7). Skälen i kortet: varför 3D hoppades över
+  (inga parade slag, kamerorna gick inte att placera, inte ett DTL- och ett FO-paket, den andra
+  telefonens data, annars "3D not computed"), en uppställning som inte mättes, vinkeln mellan
+  kamerorna, lodlinjen som inte användes, och slagen som lämnades utanför (`utelamnade` och slag
+  med `fel`). **räkning.**
+- **Felbandet i Progress:** ± passmedianens SD för kedjan med typiskt brus (S6_FELBUDGET §6.7, MK7:
+  golvet / √2): bäckenet **11,1°**, bröstet **9,7°**, X-factor **13,6°**, stretchen **5,7°**,
+  höfterna **6,0°**. **antagande** (påhittat brus, tills S3 mätt posemodellens fel).
+- **Lutningen i uppställningen:** `CMDeviceMotion.gravity` var 0,1 s medan inspelningen är
+  öppen, vriden till kamerans ram som lodlinjen (MS17, EXIF 6). Linjen och talet är lutningen
+  åt sidan, atan2(uppåt x, −uppåt y), eftersom den gör kamerornas vågräta fel (MK3); framåt och
+  bakåt spelar ingen roll där. "Tilt too large for 3D" när vinkeln mellan uppåt och bildens
+  överkant är över **45°** (MS17: då skrivs inget fält). Ett prov utanför 0,5–1,5 g visas inte.
+  **standard** (ramarna), **räkning.**
+- **Vad som provas var.** Linux: bunten, bitarna, tappen och kvittenserna (`OverforingTests`),
+  lutningen (`LutningTests`), faserna och telefonens väg mot Pythons tal (`TreDTelefonTests`),
+  kortet och katalogen. Simulatorn (`SwingLabProvTreD`): två telefoner över loopback som för
+  över ett påhittat pass, 3D mot Pythons fixtur inom 0,05° per slag, tiden, och bilderna av
+  kortet, Progress och lutningen. Telefonen: Bonjour, tiden på en iPhone och riktiga leder.
+
 ---
 
 # Tolkningen (S5)

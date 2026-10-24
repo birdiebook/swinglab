@@ -282,9 +282,13 @@ public struct PassState: Codable, Equatable, Sendable {
     /// det tar Me:s längd när det läses (`fillMissingHeight`), som förut. Skrivs inte i
     /// pass.json. METOD MS16
     public var heightPending = false
+    /// 3D ur två telefoner (S6c-2): passets median per 3D-mått ur `tre_d.json`, så att Progress
+    /// och jämförelsen mot förra passet inte läser filen. nil = passet har ingen 3D. METOD MS19
+    public var treD: [String: TreDMedian]?
 
     enum CodingKeys: String, CodingKey {
         case format, id, created, setup, series, lightCheck, status, shots, vision, lastShotNumber, heightM
+        case treD = "tre_d"
     }
 
     public init(id: String, created: Date, setup: PassSetup, series: [SeriesRecord] = [],
@@ -318,6 +322,7 @@ public struct PassState: Codable, Equatable, Sendable {
         vision = try c.decodeIfPresent(VisionStats.self, forKey: .vision)
         lastShotNumber = try c.decodeIfPresent(Int.self, forKey: .lastShotNumber)
             ?? (shots.compactMap { ShotRecord.number($0.id) }.max() ?? 0)
+        treD = try c.decodeIfPresent([String: TreDMedian].self, forKey: .treD)
         // Ett pass från före S4c saknar längden. Med mätta slag: den som slagen mättes med (då
         // Me:s), så att passet behåller sina tal. Utan: Me:s längd när passet läses. METOD MS16
         if c.contains(.heightM) {
@@ -345,6 +350,7 @@ public struct PassState: Codable, Equatable, Sendable {
         try c.encodeIfPresent(vision, forKey: .vision)
         try c.encode(lastShotNumber, forKey: .lastShotNumber)
         try c.encode(heightM, forKey: .heightM)
+        try c.encodeIfPresent(treD, forKey: .treD)
     }
 
     /// Ett pass från före S4c utan mätta slag tar Me:s längd (`settings`); andra rörs inte.

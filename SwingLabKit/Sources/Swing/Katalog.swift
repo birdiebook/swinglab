@@ -14,6 +14,71 @@ public struct Katalog: Decodable, Sendable {
     /// Måtten vars spridning mellan slagen passet och Progress visar, ett tal per pass
     /// (METOD M44, BESLUT B46).
     public let spridning: [Spridningspost]
+    /// Måtten ur två telefoner (S6c-2, BESLUT B37, B62): trenden per pass utan bedömning.
+    public let treD: [TreDPost]
+
+    enum CodingKeys: String, CodingKey {
+        case version, fel, matt, spridning
+        case treD = "tre_d"
+    }
+
+    /// 3D-måtten i analysens ordning (METOD MK6), som `tva_kameror.MATT` och `TvaKameror.matt`.
+    public static let treDMatt = ["backen_vrid_topp", "brost_vrid_topp", "xfaktor_topp", "xfaktor_stretch",
+                                  "hofter_oppna_traff"]
+    public static let treDLagen = ["utan_markorer", "med_markorer"]          // BESLUT B14
+
+    /// Ett 3D-mått (katalogens `tre_d`, docs/FORMAT.md): namnet, läget, slagen som passets median
+    /// kräver, riktmärket och källan, och infobladet (BESLUT B41). Bedöms aldrig (B14, B37).
+    public struct TreDPost: Decodable, Sendable {
+        public let matt: String
+        public let namn: String
+        public let enhet: String
+        public let fas: String
+        public let lage: String
+        public let minSlag: Int
+        /// Riktmärket, visas inte än (Johannes 2026-10-24).
+        public let spann: [Double?]?
+        public let kalla: String
+        public let status: String
+        public let kontrollerad: Bool
+        public let notering: String
+        public let vad: String
+        public let varfor: String
+        public let tecken: String
+        let andraFalt: [String]
+        let saknas: [String]
+
+        enum CodingKeys: String, CodingKey, CaseIterable {
+            case matt, namn, enhet, fas, lage
+            case minSlag = "min_slag"
+            case spann, kalla, status, kontrollerad, notering, vad, varfor, tecken
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let alla = try decoder.container(keyedBy: Mattpost.Nyckel.self).allKeys.map { $0.stringValue }
+            let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
+            andraFalt = alla.filter { !kanda.contains($0) }
+            saknas = CodingKeys.allCases.map { $0.rawValue }.filter { !alla.contains($0) }
+            matt = try c.decodeIfPresent(String.self, forKey: .matt) ?? ""
+            namn = try c.decodeIfPresent(String.self, forKey: .namn) ?? ""
+            enhet = try c.decodeIfPresent(String.self, forKey: .enhet) ?? ""
+            fas = try c.decodeIfPresent(String.self, forKey: .fas) ?? ""
+            lage = try c.decodeIfPresent(String.self, forKey: .lage) ?? ""
+            minSlag = try c.decodeIfPresent(Int.self, forKey: .minSlag) ?? 0
+            spann = try c.decodeIfPresent([Double?].self, forKey: .spann)
+            kalla = try c.decodeIfPresent(String.self, forKey: .kalla) ?? ""
+            status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+            kontrollerad = try c.decodeIfPresent(Bool.self, forKey: .kontrollerad) ?? false
+            notering = try c.decodeIfPresent(String.self, forKey: .notering) ?? ""
+            vad = try c.decodeIfPresent(String.self, forKey: .vad) ?? ""
+            varfor = try c.decodeIfPresent(String.self, forKey: .varfor) ?? ""
+            tecken = try c.decodeIfPresent(String.self, forKey: .tecken) ?? ""
+        }
+
+        /// Progress-måttets id: skilt från felens och spridningens.
+        public var id: String { "\(matt)_3d" }
+    }
 
     /// Ett mått vars spridning mellan passets slag visas: måttet, vyn och infobladet. METOD M44
     public struct Spridningspost: Decodable, Sendable {
@@ -264,6 +329,32 @@ public struct Katalog: Decodable, Sendable {
             if spridda.contains("\(e.vy)/\(e.matt)") { fel.append("\(namn): står två gånger") }
             spridda.insert("\(e.vy)/\(e.matt)")
         }
+        fel += kontrolleraTreD(k.treD)
+        return fel
+    }
+
+    /// Katalogens `tre_d`, som `kontrollera_3d` i tools/pc/katalog.py: fälten, varje 3D-mått en
+    /// gång, läget, min_slag, spannet, statusen och infobladet. BESLUT B37, B41
+    static func kontrolleraTreD(_ poster: [TreDPost]) -> [String] {
+        var fel: [String] = []
+        var sedda = Set<String>()
+        for e in poster {
+            let namn = e.matt.isEmpty ? "tre_d" : e.matt
+            if !e.andraFalt.isEmpty || !e.saknas.isEmpty {
+                fel.append("\(namn): ska ha fälten " + TreDPost.CodingKeys.allCases.map { $0.rawValue }.joined(separator: ", "))
+                continue
+            }
+            if !treDMatt.contains(e.matt) { fel.append("\(namn): inget 3D-mått") }
+            if sedda.contains(e.matt) { fel.append("\(namn): står två gånger") }
+            sedda.insert(e.matt)
+            if !treDLagen.contains(e.lage) { fel.append("\(namn): lage ska vara \(treDLagen.joined(separator: " eller "))") }
+            if e.minSlag < 1 { fel.append("\(namn): min_slag ska vara ett positivt heltal") }
+            if let s = e.spann, s.count != 2 { fel.append("\(namn): spann ska vara [min, max] eller null") }
+            if !statusar.contains(e.status) { fel.append("\(namn): status ska vara en av \(statusar.joined(separator: ", "))") }
+            fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
+        }
+        let saknas = treDMatt.filter { !sedda.contains($0) }
+        if !saknas.isEmpty { fel.append("tre_d: saknar " + saknas.sorted().joined(separator: ", ")) }
         return fel
     }
 

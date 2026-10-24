@@ -25,10 +25,10 @@ from .positioner import POSITIONER
 POSITIONER_KLUBBA = KL.POSITIONER
 
 KATALOG = Path(__file__).resolve().parents[2] / "katalog.json"
-# Måtten ur två kameror (S6a): en egen fil som bara PC:n läser. BESLUT B37
-KATALOG_3D = Path(__file__).resolve().parents[2] / "katalog_3d.json"
+# Måtten ur två kameror (S6a) står i katalogens lista tre_d sedan appen fick 3D (S6c-2; förut
+# katalog_3d.json, som bara PC:n läste). BESLUT B37, B62
 FALT_3D = ("matt", "namn", "enhet", "fas", "lage", "min_slag", "spann", "kalla", "status", "kontrollerad",
-           "notering")
+           "notering", "vad", "varfor", "tecken")
 LAGEN_3D = ("utan_markorer", "med_markorer")      # BESLUT B14
 VYER = ("dtl", "fo", "bada")
 STATUS = ("tillverkare", "forskning", "tranare", "antagande")
@@ -152,7 +152,7 @@ def kontrollera(k: dict) -> list[str]:
         if (e["vy"], e["matt"]) in spridda:
             fel.append(f"{namn}: står två gånger")
         spridda.add((e["vy"], e["matt"]))
-    return fel
+    return fel + kontrollera_3d(k)
 
 
 def las(sokvag: Path = KATALOG) -> dict:
@@ -164,13 +164,13 @@ def las(sokvag: Path = KATALOG) -> dict:
 
 
 def kontrollera_3d(k: dict) -> list[str]:
-    """katalog_3d.json: formen, och att varje mått är ett av 3D-måtten
-    (tva_kameror.MATT) en gång. BESLUT B37"""
+    """Katalogens tre_d: formen, infobladet (BESLUT B41) och att varje mått är ett av
+    3D-måtten (tva_kameror.MATT) en gång. Samma som Katalog.kontrolleraTreD i Swift. BESLUT B37, B62"""
     from .tva_kameror import MATT as MATT_3D
-    if not isinstance(k, dict) or k.get("version") != 1 or not isinstance(k.get("matt"), list):
-        return ["katalog_3d: ska ha version 1 och listan matt"]
+    if not isinstance(k, dict) or not isinstance(k.get("tre_d"), list):
+        return ["katalogen: listan tre_d saknas"]
     fel, sedda = [], set()
-    for i, e in enumerate(k["matt"]):
+    for i, e in enumerate(k["tre_d"]):
         namn = e.get("matt", f"matt {i}") if isinstance(e, dict) else f"matt {i}"
         if not isinstance(e, dict) or set(e) != set(FALT_3D):
             fel.append(f"{namn}: ska ha fälten {', '.join(FALT_3D)}")
@@ -192,18 +192,20 @@ def kontrollera_3d(k: dict) -> list[str]:
             fel.append(f"{namn}: status ska vara en av {', '.join(STATUS)}")
         if not isinstance(e["kontrollerad"], bool):
             fel.append(f"{namn}: kontrollerad ska vara true/false")
+        fel += _info(namn, e)
     saknas = set(MATT_3D) - sedda
     if saknas:
-        fel.append("katalog_3d: saknar " + ", ".join(sorted(saknas)))
+        fel.append("tre_d: saknar " + ", ".join(sorted(saknas)))
     return fel
 
 
-def las_3d(sokvag: Path = KATALOG_3D) -> dict:
+def las_3d(sokvag: Path = KATALOG) -> dict:
+    """3D-måtten ur katalogen, som {"matt": [...]} (formen som analysen läser)."""
     k = json.loads(Path(sokvag).read_text(encoding="utf-8"))
     fel = kontrollera_3d(k)
     if fel:
         raise KatalogFel("; ".join(fel))
-    return k
+    return {"version": 1, "matt": k["tre_d"]}
 
 
 def _inom(v: float, spann: list) -> bool:

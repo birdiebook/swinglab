@@ -137,6 +137,26 @@ def utanfor_repot(mapp) -> bool:
     return not m.is_relative_to(REPO) or m.is_relative_to(REPO / "data")
 
 
+def _skriv_telefon(j: dict | None) -> None:
+    """Telefonens 3D mot PC:ns (S6c-2, BESLUT B61): en rad, och det som skiljer. METOD MS19"""
+    if j is None:
+        return
+    if "fel" in j:
+        print(f"  3D på telefonen ({j['paket']}): lästes inte ({j['fel']})")
+        return
+    if "hoppat" in j:
+        print(f"  3D på telefonen ({j['paket']}): " + ("samma skäl som PC:n" if j["inom"] else
+              f"skiljer: PC:n {j['hoppat']['pc'] or 'räknade'}, telefonen {j['hoppat']['telefon'] or 'räknade'}"))
+        return
+    print(f"  3D på telefonen ({j['paket']}): " + ("lika" if j["inom"] else "skiljer")
+          + f", största skillnad per slag {j['storsta_skillnad']:.2g}° (gräns {j['tol']}°)"
+          + (f", {j['sekunder']:.1f} s på telefonen" if j.get("sekunder") is not None else ""))
+    for f in j["olika"]:
+        print(f"    olika: {f}")
+    for x in j["per_slag"]:
+        print(f"    {x['dtl']}/{x['fo']} {x['matt']}: {x['skillnad']}°")
+
+
 def main(argv=None) -> int:
     from . import analys as A
     from . import historik as H
@@ -236,6 +256,7 @@ def main(argv=None) -> int:
                      f"lodlinjen ur {k['lodlinje']}, {k['vinkel_mellan_kamerorna']}° mellan kamerorna"))
         for o in t["osaker"]:
             print(f"    osäker: {o}")
+    _skriv_telefon(t.get("telefon"))
     print(f"Skrev {ut / 'analys.json'}")
     if a.claude_text:
         print(f"Skrev {ut / 'claude-text.txt'} (klistra in i Claude-appen)")

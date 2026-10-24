@@ -45,6 +45,13 @@ public struct Infoblad: Equatable, Sendable, Identifiable {
                   kalla: Texter.kallaMatt(oprovad: false))
     }
 
+    /// Ett 3D-mått (S6c-2): källan som för ett fel utan gräns, trenden mot sig själv (BESLUT B14).
+    public init(_ post: Katalog.TreDPost, namn: String) {
+        self.init(namn: namn, vad: post.vad, varfor: post.varfor, tecken: post.tecken,
+                  kalla: Texter.kalla(status: post.status, kontrollerad: post.kontrollerad, gransFinns: false,
+                                      varden: Self.webbplatser(post.kalla)))
+    }
+
     /// Bladet för ett mått i en vy: felet som har måttet, annars posten i `matt`.
     public static func fran(_ k: Katalog, matt: String, vy: Vy?) -> Infoblad? {
         let namn = Etiketter.etikett(matt).namn

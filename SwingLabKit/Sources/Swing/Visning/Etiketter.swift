@@ -124,6 +124,12 @@ public enum Etiketter {
             e("skaft_arm_p5", "°", "P5"),
             e("skaft_arm_p6", "°", "P6"),
             e("skaft_lutning_traff", "°", T.impact, tecken: true, plus: T.target),
+            // 3D ur två telefoner (PLAN S6c-2, METOD MK6): + bort från målet, vridningen mot adressen.
+            e("backen_vrid_topp", "°", T.top, tecken: true),
+            e("brost_vrid_topp", "°", T.top, tecken: true),
+            e("xfaktor_topp", "°", T.top, tecken: true),
+            e("xfaktor_stretch", "°", T.downswing, tecken: true),
+            e("hofter_oppna_traff", "°", T.impact, tecken: true),
         ])
     }()
 

@@ -13,15 +13,18 @@ public struct Pass: Sendable {
     public let osakerStart: Int
     /// Slagen som räknas och har klubban markerad (PLAN S7a, METOD M45).
     public let klubbMarkerade: Int
+    /// 3D ur två telefoner (S6c-2): passets median per 3D-mått, när passet har 3D. METOD MK7
+    public let treD: [String: TreDMedian]
 
     public init(datum: Date, klubba: String, svingar: [SvingMatt], serie1: Int = 0, osakerStart: Int = 0,
-                klubbMarkerade: Int = 0) {
+                klubbMarkerade: Int = 0, treD: [String: TreDMedian] = [:]) {
         self.datum = datum
         self.klubba = klubba
         self.svingar = svingar
         self.serie1 = serie1
         self.osakerStart = osakerStart
         self.klubbMarkerade = klubbMarkerade
+        self.treD = treD
     }
 
     /// Slagen: den telefon som såg flest.
@@ -68,6 +71,23 @@ public struct Pass: Sendable {
     /// Värdena för ett mått i passet, i passets ordning.
     public func varden(_ matt: String, _ grupp: String) -> [Double] {
         self.grupp(grupp).compactMap { $0.matt[matt] }.filter { $0.isFinite }
+    }
+}
+
+/// Ett 3D-mått för ett pass (S6c-2): slagen med måttet, och medianen och kvartilerna när de
+/// är minst `min_slag` (METOD MK7), annars nil. Sparas i pass.json, så att Progress och
+/// jämförelsen mot förra passet inte läser om 3D-filen.
+public struct TreDMedian: Codable, Equatable, Sendable {
+    public var n: Int
+    public var median: Double?
+    public var q1: Double?
+    public var q3: Double?
+
+    public init(n: Int, median: Double?, q1: Double?, q3: Double?) {
+        self.n = n
+        self.median = median
+        self.q1 = q1
+        self.q3 = q3
     }
 }
 

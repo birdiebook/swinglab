@@ -9,6 +9,8 @@ public enum Avrundning {
     public static func enhet(_ matt: String) -> String {
         if matt == "tempo" || matt == "stans_bredd" { return "" }
         if matt.hasPrefix("skaft") { return "°" }        // klubbans mått (METOD M46–M49)
+        // 3D (METOD MK6): vridningen, X-factor och höfterna vid träffen.
+        if matt.contains("_vrid_") || matt.hasPrefix("xfaktor") || matt.hasPrefix("hofter_oppna") { return "°" }
         if matt.hasSuffix("_ms") { return "ms" }
         if matt.hasSuffix("_s") { return "s" }
         if matt.contains("vinkelfart") { return "°/s" }
