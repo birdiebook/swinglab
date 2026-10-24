@@ -1,20 +1,20 @@
-49c44822d968d8506d5894c2dcc4cc497923f90d pc-visare 2026-10-24T16:05:44Z run 40109764480
+49c44822d968d8506d5894c2dcc4cc497923f90d main 2026-10-24T16:13:10Z run 40110304308
 == swift-release
-GRÖNT: 329 test, 0 fel, 27 s i testerna, bygget 75 s
+GRÖNT: 329 test, 0 fel, 32 s i testerna, bygget 104 s
 Långsammast (av 329):
-      2.6 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      2.5 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.0 s  KlubbSparTests.testBananSomPython
-      1.9 s  TreDTests.testTelefonensVagSomPython
-      1.2 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.1 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.0 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.9 s  KlubbSparTests.testFeletMotSanningen
-      0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.9 s  TreDTests.testInreIFilenOchUppdateras
-      0.9 s  TreDTests.testKortet
-      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
-      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
-      0.6 s  KlubbSparTests.testGlesaAnkareSomPython
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.4 s  TreDTests.testTelefonensVagSomPython
+      2.3 s  KlubbSparTests.testBananSomPython
+      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testInreIFilenOchUppdateras
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  TreDTests.testKortet
+      1.1 s  KlubbSparTests.testFeletMotSanningen
+      0.9 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.8 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.5 s  KlubbSparTests.testGlesaAnkareSomPython
       0.5 s  TreDTests.testResultatetArJsonSomAnalysens
 
