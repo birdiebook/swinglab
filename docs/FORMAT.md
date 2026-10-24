@@ -95,7 +95,7 @@ Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
 
 ## Katalogen: `katalog.json`
 
-I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [ … ], "spridning": [ … ]}`,
+I repots rot (BESLUT B6). `{"version": 1, "om": "…", "fel": [ … ], "matt": [ … ], "spridning": [ … ], "tre_d": [ … ]}` (`tre_d`: 3D-måtten, nedan),
 där varje fel har:
 
 | Fält | Typ | Betydelse |
@@ -297,8 +297,47 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 
 **Meddelandena** mellan telefonerna (TCP, `_swinglab._tcp`): fyra bytes längd
 (big-endian) och sedan JSON med `type` (`hello`, `ping`, `pong`, `start`, `stop`,
-`recorded`, `status`, `ack`). Typerna är `LinkMessage` i
+`recorded`, `status`, `ack`, och sedan S6c-2 `part` och `part_ack`). Typerna är `LinkMessage` i
 `SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna.
+
+### 3D mellan telefonerna (S6c-2): `part`, `swinglab-slag/1` och `tre_d.json`
+
+En stor överföring går i bitar (BESLUT B61, METOD MS19). `part` bär `{"v": 1, "kind", "pass",
+"id", "index", "count", "bytes", "data"}`: `kind` är `slag` (följarens slag till den styrande)
+eller `tre_d` (resultatet tillbaka), `id` innehållets summa (CRC-32 i hex och längden,
+`"1a2b3c4d-123456"`), `count` = ⌈`bytes` / 196 608⌉ och `data` bitens byte i base64. `part_ack`
+bär `{"v", "kind", "pass", "id", "index", "ok"}`: en bit (`index`), eller hela överföringen
+(`index` null) när den är sparad (`ok: true`) eller när summan inte stämde (`ok: false`: allt
+skickas igen). En bit med en annan version än 1 läses inte.
+
+`swinglab-slag/1` (`Pass/<id>/annan_telefon.json` hos den som räknar) är en telefons slag utan
+video:
+
+```json
+{"format": "swinglab-slag/1", "pass": "20261103-180000", "vy": "fo",
+ "manifest": "{… manifest.json som text …}", "enhet": "{… enhet.json …}", "par": null,
+ "leder": {"s01": {"width": 1080, "height": 1920, "source": "vision-2d-r1", "enc": "i16",
+                   "t": "<base64>", "j": "<base64>"}}}
+```
+
+`t` är tiderna som int32 i 1e-4 s; `j` per ruta och led (13, FORMAT "Lederna") x och y i 0,1 px
+som int16 (`enc` `i16`) eller int32 (`i32`) och konfidensen som uint16 i 0,001, little endian.
+Konfidensen 0 = saknad. Talen läses tillbaka som n · steg: exakt ledfilens tal
+(`JointSeries.rounded`, METOD MS12). "Import other phone" bygger samma bunt ur paketets zip.
+
+`tre_d.json` (`swinglab-tre-d/1`) i båda telefonernas pass och i paketet:
+
+| Fält | Innehåll |
+|---|---|
+| `format`, `pass` | `"swinglab-tre-d/1"` och passets id |
+| `raknad`, `raknad_av` | när (ISO 8601, UTC) och vilken telefons vy som räknade |
+| `kallor` | buntarnas summor per vy (`dtl`, `fo`): ett pass vars slag ändrats räknas om |
+| `sekunder` | räkningens tid på telefonen (METOD M50) |
+| `tre_d` | `TreDResultat`: samma fält som `analys.json`:s `tre_d` utom `mot_forra`, `trend` och `telefon` |
+| `hoppat` | i stället för `tre_d`: skälet (METOD M51) |
+
+`pass.json` bär `tre_d` med passets median per mått (`n`, `median`, `q1`, `q3`, null under 10 slag)
+för Progress och förra passet.
 
 ## Analysen: `analys.json`
 
@@ -325,7 +364,7 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `bedomning[]` | ett per fel i katalogen: `bedom_varde` (`id`, `varde`, `status`, `grund`, `z`) plus `namn`, `vy`, `matt`, `fas`, `enhet`, `visat` (avrundat, METOD MT3), `n`, `spann`, `gult`, `kontrollerad`, `kalla_status`, `samre`, `forsta_serien` (avrundad median), `klart_nar` (förslaget: `villkor`, `grans`, `grund`, `markning`, eller `null`), `baslinje` (för ett fel utan gräns: baslinjens `median`, robusta `sd` och `n` svingar, avrundade; `null` med gräns eller under 8 svingar, S5b), `mot_forra` (`skillnad`, `tydlig`) när förra passet finns |
 | `kandidater[]` | de gula och röda felen i läsordning (METOD MT6): `fel`, `status`, `fas`, `orsaker` (flaggade orsaker med vägen genom kedjan), `foljdfel` (bool), `fysik` (kopplade test) |
 | `kontaktark` | per vy `{"fil", "rader", "kolumner"}` eller `{"hoppat": skäl}` (METOD MT7) |
-| `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}` |
+| `tre_d` | två kameror (S6a, nedan), eller `{"hoppat": skäl}`; med `telefon` när paketet bar telefonens `tre_d.json` (S6c-2, nedan) |
 
 **`tre_d`** (BESLUT B37, METOD MK1–MK7) när passet har ett DTL- och ett FO-paket:
 
@@ -342,10 +381,18 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 | `n` | antal slag med måttet |
 | `session` | M25:s sammanfattning per mått, bara mått med minst `min_slag` slag |
 | `mot_forra` | `null`, eller `pass` och `jamforelse` per mått: `skillnad`, `spridning`, `golv`, `tydlig` (MK7) |
-| `trend[]` | katalogens mått i `katalog_3d.json`:s ordning: `matt`, `namn`, `enhet`, `fas`, `lage`, `n`, `min_slag`, `median` och `kvartiler` (1 decimal, `null` under `min_slag`), `spann`, `kalla_status`, `kontrollerad`, `mot_forra` (`skillnad`, `tydlig`) |
+| `trend[]` | katalogens mått i `katalog.json`:s `tre_d`-ordning: `matt`, `namn`, `enhet`, `fas`, `lage`, `n`, `min_slag`, `median` och `kvartiler` (1 decimal, `null` under `min_slag`), `spann`, `kalla_status`, `kontrollerad`, `mot_forra` (`skillnad`, `tydlig`) |
 
 Trenden är det skillen läser och rapporterar. Inget i `tre_d` bedöms eller blir en
 sak i `att_jobba_pa.json` (B14).
+
+**`tre_d.telefon`** (S6c-2, BESLUT B63, METOD MS19) när ett paket bär telefonens `tre_d.json`:
+`paket`, `raknad`, `raknad_av`, `sekunder`, `tol` (0,05°), `olika` (fälten som skiljer: parningen,
+skälen, antalen, varje uppställnings fält och varje slags `serie`, `synk_ms`,
+`aterprojektion_px`, `fel` och måttens namn), `storsta_skillnad` (grader, per slag),
+`storsta_skillnad_median`, `per_slag[]` (`dtl`, `fo`, `matt`, `skillnad` över 0,05°) och
+`inom`. När PC:n eller telefonen hoppade över: `hoppat` (`pc`, `telefon`) och `inom` = samma
+skäl. En fil som inte gick att läsa: `{"paket", "fel"}`.
 
 ### Facit för 3D på telefonen (S6c-1)
 
@@ -365,11 +412,12 @@ diff:
   `manifest_fel.json`: trasiga manifest och `paket._kontrollera_manifest`:s fel;
   `komponenter.json`: delstegen för ett slag.
 
-## 3D-katalogen: `katalog_3d.json`
+## 3D-måtten: `katalog.json`:s `tre_d`
 
-I repots rot (BESLUT B37). Bara PC:n läser den (`tools/pc/katalog.py` `las_3d`); appens
-katalog är `katalog.json`. `{"version": 1, "om": "…", "matt": [ … ]}`, ett objekt per
-3D-mått, varje mått en gång och alla fem med (MK6), med exakt fälten:
+Sedan S6c-2 står 3D-måtten i `katalog.json`, listan `tre_d` (BESLUT B37, B62; förut
+`katalog_3d.json`, som bara PC:n läste). Appen läser den (`Katalog.treD`) och PC:n
+(`tools/pc/katalog.py` `las_3d`). Ett objekt per 3D-mått, varje mått en gång och alla fem med
+(MK6), med exakt fälten:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
@@ -380,7 +428,8 @@ katalog är `katalog.json`. `{"version": 1, "om": "…", "matt": [ … ]}`, ett 
 | `lage` | text | `"utan_markorer"` eller `"med_markorer"` (BESLUT B14). |
 | `min_slag` | heltal | Slag som passets median kräver (10, MK7). |
 | `spann` | `[min, max]` eller `null` | Riktmärke att visa bredvid trenden, aldrig en bedömning (B37). |
-| `kalla`, `status`, `kontrollerad`, `notering` | | Som i `katalog.json`. |
+| `kalla`, `status`, `kontrollerad`, `notering` | | Som för felen. |
+| `vad`, `varfor`, `tecken` | text | Infobladet (BESLUT B41), på engelska. |
 
 ## Att jobba på: `att_jobba_pa.json` — kontraktet med appen
 

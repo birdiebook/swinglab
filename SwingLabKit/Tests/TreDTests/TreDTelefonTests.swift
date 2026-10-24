@@ -92,7 +92,8 @@ extension TreDTests {
         let fil = TreDFil(pass: "20261103-180000", raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: nil,
                           ut: .resultat(r))
         var forra = fil.medianer!
-        forra["xfaktor_stretch"]?.median = (forra["xfaktor_stretch"]?.median ?? 0) - 20
+        let stretchNu = try XCTUnwrap(Avrundning.avrunda("xfaktor_stretch", forra["xfaktor_stretch"]?.median))
+        forra["xfaktor_stretch"]?.median = stretchNu - 20
         let k = TreDKort(fil, forra: (Tal.dag(2026, 11, 1), forra), katalog: katalog)
         XCTAssertEqual(k.rubrik, "3D · no markers")
         XCTAssertEqual(k.rader.map(\.matt), Katalog.treDMatt)

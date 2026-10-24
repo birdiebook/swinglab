@@ -125,6 +125,12 @@ public struct TreDUtelamnat: Equatable, Sendable, Codable {
     public var dtl: String
     public var fo: String
     public var skal: String
+
+    public init(dtl: String, fo: String, skal: String) {
+        self.dtl = dtl
+        self.fo = fo
+        self.skal = skal
+    }
 }
 
 /// 3D för passet eller skälet till att det inte gick (analys.json `tre_d` eller

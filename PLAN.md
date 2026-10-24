@@ -374,7 +374,7 @@ Sampson-felet mäts inte, synken finjusteras per slag på återprojektionen, led
 trianguleras, och bäckenets och axlarnas vridning,
 X-factor, stretchen och höfterna vid träffen blir passets median över minst 10 slag,
 märkt "utan markörer". `session.py` skriver `tre_d` i `analys.json`, måtten står i
-`katalog_3d.json` (bara PC:n, BESLUT B37), minnet bär trenden pass för pass och
+`katalog_3d.json` (bara PC:n, BESLUT B37; i `katalog.json` sedan S6c-2), minnet bär trenden pass för pass och
 skillen `svinganalys` rapporterar den som trend. Ett fel i 3D stoppar aldrig 2D.
 METOD MK1–MK8, BESLUT B37–B39.
 

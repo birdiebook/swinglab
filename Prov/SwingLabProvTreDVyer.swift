@@ -23,7 +23,8 @@ extension SwingLabProvVyer {
         let (fil, r) = try treDFil()
         var forra = try XCTUnwrap(fil.medianer)
         for (m, d) in [("xfaktor_stretch", -9.4), ("backen_vrid_topp", 2.6), ("hofter_oppna_traff", -1.2)] {
-            forra[m]?.median = forra[m]?.median.map { $0 + d }
+            let v = forra[m]?.median
+            forra[m]?.median = v.map { $0 + d }
         }
         let kort = TreDKort(fil, forra: (Tal.dag(2026, 10, 27), forra), katalog: k)
         XCTAssertEqual(kort.rader.count, 5)
