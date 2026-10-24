@@ -186,10 +186,20 @@ public struct TreDBetraktare: Equatable, Sendable {
             az = atan2(-r.mal[0], r.mal[1])
             el = elevationTop
         }
-        return passad(TreDBetraktare(mal: r.mitt, azimut: az, elevation: el, avstand: 1), r.omfang + kameror,
+        // Bredvid varje telefon, bort från spelaren, plats för dess namn.
+        var punkter = r.omfang
+        for c in kameror {
+            punkter.append(c)
+            if let u = TreDRiktning.vagrat([c[0] - r.mitt[0], c[1] - r.mitt[1], 0]) {
+                punkter.append([c[0] + namnPlats * u[0], c[1] + namnPlats * u[1], c[2]])
+            }
+        }
+        return passad(TreDBetraktare(mal: r.mitt, azimut: az, elevation: el, avstand: 1), punkter,
                       bredd: bredd, hojd: hojd)
     }
 
+    /// Plats för en telefons namn utanför den, m (bort från spelaren).
+    public static let namnPlats = 1.0
     /// Andelen av ytans halva bredd och höjd som de passade punkterna får fylla.
     public static let fyllnad = (0.9, 0.86)
 

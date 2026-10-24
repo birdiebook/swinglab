@@ -2381,7 +2381,8 @@ Geometrin i `FigurVy.swift` (SwingLabKit, prövad på Linux), ritad av appens `T
 - **Vinklarna:** Face on ser spelaren framifrån (målet till höger på skärmen för en
   högerspelare), Down the line bakifrån längs mållinjen, båda **6°** över vågrätt; Top uppifrån,
   **89°** (vid 90° saknar vyn ett upp), med målet till höger. Vyn passas till det som ska synas
-  (lederna i var sjätte ruta och stansen, med telefonerna också de): mitten där utbredningen åt
+  (lederna i var sjätte ruta och stansen, med telefonerna också de och en punkt 1 m utanför
+  varje telefon, bort från spelaren, där dess namn står): mitten där utbredningen åt
   sidan och i höjd har sin mitt, och det minsta avståndet där varje punkt ryms inom **90 %** av
   ytans halva bredd och **86 %** av dess halva höjd med synfältet **40°** över kortsidan, minst
   0,5 m framför ögat. En sfär kring figuren (första versionen) gjorde den till en tredjedel av
