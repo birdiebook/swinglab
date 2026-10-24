@@ -50,7 +50,7 @@ final class KlubbSparTests: XCTestCase {
         let d = try Self.fixtur()
         let f = Self.film()
         let bana = KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd, skala: KlubbFilm.skala,
-                                   ankare: f.ankare)
+                                   ankare: f.ankare, bildBredd: KlubbFilm.bredd, bildHojd: KlubbFilm.hojd)
         let py = try XCTUnwrap(d["bana"] as? [Any])
         XCTAssertEqual(bana.count, py.count)
         var olika = 0
@@ -75,12 +75,42 @@ final class KlubbSparTests: XCTestCase {
         }
     }
 
+    /// Glesa ankare: bara grannar i svingens ordning ger en bana, som Python (METOD M61).
+    func testGlesaAnkareSomPython() throws {
+        let d = try Self.fixtur()
+        let f = Self.film()
+        let glesa = try XCTUnwrap(d["glesa"] as? [String: [Any]])
+        XCTAssertEqual(glesa.count, 3)
+        for (namn, py) in glesa {
+            let keep = Set(namn.split(separator: ",").map(String.init))
+            let bana = KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd, skala: KlubbFilm.skala,
+                                       ankare: f.ankare.filter { keep.contains($0.position) },
+                                       bildBredd: KlubbFilm.bredd, bildHojd: KlubbFilm.hojd)
+            XCTAssertEqual(bana.count, py.count)
+            for (k, (a, b)) in zip(bana, py).enumerated() {
+                guard let b = b as? [String: Any] else {
+                    XCTAssertNil(a, "\(namn) ruta \(k)")
+                    continue
+                }
+                let a = try XCTUnwrap(a, "\(namn) ruta \(k)")
+                XCTAssertEqual(a.kalla, b["kalla"] as? String, "\(namn) ruta \(k)")
+                XCTAssertEqual(a.x, b["x"] as! Double, accuracy: 1e-6)
+                XCTAssertEqual(a.y, b["y"] as! Double, accuracy: 1e-6)
+            }
+        }
+        // P1, P4, P7 och P10: bara ankarna.
+        let p = KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd, skala: KlubbFilm.skala,
+                                ankare: f.ankare.filter { ["P1", "P4", "P7", "P10"].contains($0.position) })
+        XCTAssertEqual(p.compactMap { $0 }.map(\.kalla), ["klick", "klick", "klick", "klick"])
+        XCTAssertEqual(KlubbSpar.segment(["P1", "P2", "P4", "P5", "P10"]).map { [$0.0, $0.1] }, [[0, 1], [2, 3]])
+    }
+
     /// Felet mot sanningen (METOD M61): spårade rutor median ≤ 2 % och p95 ≤ 5 % av skaftet,
     /// interpolerade högst 20 %, och högst hälften av rutorna interpolerade.
     func testFeletMotSanningen() {
         let f = Self.film()
         let bana = KlubbSpar.spara(f.rutor, bredd: KlubbFilm.rutBredd, hojd: KlubbFilm.rutHojd, skala: KlubbFilm.skala,
-                                   ankare: f.ankare)
+                                   ankare: f.ankare, bildBredd: KlubbFilm.bredd, bildHojd: KlubbFilm.hojd)
         var spar: [Double] = [], interp: [Double] = [], n = 0
         for (b, s) in zip(bana, f.sanning) {
             guard let b else { continue }
