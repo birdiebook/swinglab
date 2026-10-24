@@ -310,11 +310,33 @@ public enum Texter {
     /// Kodens text, eller "invalid" för en kod utan text.
     public static func kontrollfel(_ kod: String) -> String { kontrollfelTexter[kod] ?? "invalid" }
 
+    /// Längsta okända nyckel som visas; en längre kortas med "…" (nyckeln är Claudes text, inte
+    /// ett mått, men raden ska rymmas). METOD MS18
+    public static let maxNyckel = 24
+
+    /// Ett fel som appen visar det: fältet och kodens text, med en okänd nyckel kortad. METOD MS18
+    public static func kontrollfelText(_ f: Kontrollfel) -> String {
+        var falt = f.falt
+        if f.kod == "okand_nyckel" {
+            let i = falt.lastIndex(of: ".").map { falt.index(after: $0) } ?? falt.startIndex
+            let nyckel = falt[i...]
+            if nyckel.count > maxNyckel { falt = String(falt[..<i]) + String(nyckel.prefix(maxNyckel - 1)) + "…" }
+        }
+        return "\(falt): \(kontrollfel(f.kod))"
+    }
+
     /// "Paste from Claude" i appen (S5b-2): det första felet som en rad, fältet och kodens text,
     /// och antalet fel till ("saker[0].ovning.tanke: too long · +2"). Aldrig ett värde ur svaret.
     /// BESLUT B60, METOD MS18
     public static func kontrollfelRad(_ fel: [Kontrollfel]) -> String {
         guard let f = fel.first else { return "" }
-        return fel.count > 1 ? f.text + skilje + "+\(fel.count - 1)" : f.text
+        let t = kontrollfelText(f)
+        return fel.count > 1 ? t + skilje + "+\(fel.count - 1)" : t
     }
+
+    /// Alla felen, ett per rad, när Johannes trycker på raden.
+    public static func kontrollfelAlla(_ fel: [Kontrollfel]) -> [String] { fel.map(kontrollfelText) }
+
+    /// "Use" kunde inte spara filen: fältet och koden, som felen ovan.
+    public static let focusSparadesInte = "\(filen): could not be saved"
 }

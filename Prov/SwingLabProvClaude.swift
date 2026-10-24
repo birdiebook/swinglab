@@ -1,18 +1,23 @@
 // SIMULATORPROVET FÖR CLAUDE-APPEN PÅ TELEFONEN (PLAN S5b-2, BESLUT B52, B54, B60; METOD MS18).
 //
 // Vad som bevisas här, på PÅHITTADE pass och PÅHITTADE leder (SwingDemo; inga riktiga svingar,
-// CLAUDE.md: Dataregeln), genom appens egen väg (ClaudeApp, som knapparna kör):
+// CLAUDE.md: Dataregeln), genom appens egen väg (ClaudeApp och Bladsteg, som knapparna kör):
 //   Ask Claude         passen mäts som i passets skärm, texten byggs utanför huvudtråden och
 //                      läggs i urklippet; urklippet är tecken för tecken ClaudeUnderlag för samma
 //                      pass, räknat här ur de sparade passen;
 //   Paste from Claude  ett påhittat giltigt svar (byggt ur mallen, som skillen gör) läses ur
 //                      urklippet, visas i bladet och blir Focus efter "Use": Store.focus, Today och
-//                      accenten följer med;
+//                      accenten följer med, och urklippet töms;
 //   ogiltigt           ett svar med en siffra i tanken ger raden med fältet och koden, utan värdet,
-//                      och Focus är orört;
-//   en fil finns       samma svar en gång till: bladet frågar innan filen skrivs över.
-// Bilderna: claude-passet (knapparna i passet, med Copied och Open Claude), claude-idag (Today),
-// claude-blad (bladet med svaret), claude-blad-ersatt (frågan) och claude-fel (felraden).
+//                      ett svar för ett annat pass ger "pass: is not this session" först, och Focus
+//                      är orört;
+//   en fil finns       ett nytt svar för samma pass: "Use" frågar, "Cancel" sparar inget,
+//                      "Replace" skriver över;
+//   ett äldre pass     ett svar för det förra passet sparas, men Focus är kvar på det senaste, och
+//                      bladet säger det.
+// Bilderna: claude-passet (knapparna i passet, med Copied och Open Claude), claude-idag och
+// claude-idag-stor (Today), claude-blad (bladet med svaret), claude-blad-ersatt (frågan),
+// claude-blad-aldre (ett äldre pass) och claude-fel (felraden).
 // iOS fråga om tillåtelse att klistra in syns inte här: provet läser det appen själv lagt i
 // urklippet. FRÅGAN OCH CLAUDE-APPEN PROVAS BARA PÅ TELEFONEN.
 
@@ -73,6 +78,7 @@ extension SwingLabProvVyer {
             ids.append(p.id)
         }
         let nuID = ids[1]
+        func focusTanke() -> String? { store.focus?.saker.first?.ovning.tanke }
 
         // 1. Ask Claude: texten i urklippet, samma som ClaudeUnderlag för samma pass.
         UIPasteboard.general.string = ""
@@ -95,14 +101,19 @@ extension SwingLabProvVyer {
             return XCTFail("svaret togs inte emot")
         }
         XCTAssertFalse(m.finns, "ingen fil för passet än")
+        XCTAssertTrue(m.blirFocus)
+        XCTAssertNil(m.focusFran)
         XCTAssertNil(store.focus, "inget sparat före Use")
         XCTAssertEqual(m.fileName, "att_jobba_pa-\(nuID).json")
+        var steg = Bladsteg(finns: m.finns)
+        XCTAssertEqual(steg.tryck(.anvand), .spara, "utan fil: Use sparar direkt")
         let blad = AttJobbaPaVisning(m.focus, katalog: k)
         XCTAssertEqual(blad.saker.count, 1)
-        try rendera(ClaudeSvarsblad(visning: blad, finns: false), namn: "claude-blad", accent: nil)
+        try rendera(ClaudeSvarsblad(visning: blad, steg: Bladsteg(finns: false)), namn: "claude-blad", accent: nil)
         try ClaudeApp.anvand(m, store: store)
         XCTAssertEqual(store.focus?.pass, nuID)
         XCTAssertEqual(store.focus?.ovas, ["sway_topp"])
+        XCTAssertFalse(UIPasteboard.general.hasStrings, "svaret lämnar urklippet efter Use (Dataregeln)")
         // Today och accenten följer med (BESLUT B31, B36).
         let (data, alla) = await Flikdata.load(store, katalog: k, idag: Tal.dag(2026, 11, 14))
         XCTAssertEqual(data.senaste, nuID)
@@ -118,8 +129,11 @@ extension SwingLabProvVyer {
                                       editable: false, claude: AnyView(ClaudeRad(lage: .kopierat, oppna: true))),
                     namn: "claude-passet", skala: 2)
         try rendera(IdagVy(visning: data.idag, importera: {}, claude: AnyView(ClaudeRad())), namn: "claude-idag")
+        // Största textstorleken: knapparna under varandra, inget klipps.
+        try rendera(IdagVy(visning: data.idag, importera: {}, claude: AnyView(ClaudeRad(lage: .kopierat, oppna: true))),
+                    namn: "claude-idag-stor", textstorlek: .accessibility5)
 
-        // 3. Ett ogiltigt svar: raden nämner fältet och koden, aldrig värdet, och Focus är orört.
+        // 3. Ogiltiga svar: raden nämner fältet och koden, aldrig värdet, och Focus är orört.
         let fore = try Data(contentsOf: store.focusFolder.appending(path: m.fileName))
         UIPasteboard.general.string = try claudeSvar(u, tanke: "Keep 7 inches of room.")
         guard case let .fel(f) = await ClaudeApp.klistra(passID: nuID, store: store, katalog: k) else {
@@ -127,26 +141,66 @@ extension SwingLabProvVyer {
         }
         XCTAssertTrue(f.contains(Kontrollfel("saker[0].ovning.tanke", "siffror")), "\(f)")
         let rad = Texter.kontrollfelRad(f)
-        XCTAssertTrue(f.map(\.text).contains("saker[0].ovning.tanke: no digits"), rad)
+        XCTAssertTrue(Texter.kontrollfelAlla(f).contains("saker[0].ovning.tanke: no digits"), rad)
         XCTAssertFalse(rad.contains("7") || rad.contains("inches"), "värdet i raden: \(rad)")
         XCTAssertEqual(try Data(contentsOf: store.focusFolder.appending(path: m.fileName)), fore, "inget ändrat")
         XCTAssertEqual(store.focus?.pass, nuID)
+        // Svaret för det senaste passet, inklistrat i det förra: fel pass först.
+        UIPasteboard.general.string = try claudeSvar(u, tanke: "Leave the stick standing.")
+        guard case let .fel(annat) = await ClaudeApp.klistra(passID: ids[0], store: store, katalog: k) else {
+            return XCTFail("ett svar för ett annat pass togs emot")
+        }
+        XCTAssertEqual(annat.first, Kontrollfel("pass", "inte_analysens"), "\(annat)")
         UIPasteboard.general.string = "I need the miss first."
         guard case let .fel(g) = await ClaudeApp.klistra(passID: nuID, store: store, katalog: k) else {
             return XCTFail("ett svar utan block togs emot")
         }
         XCTAssertEqual(Texter.kontrollfelRad(g), "svaret: no code block from Claude")
-        try rendera(ClaudeRad(lage: .fel(rad)), namn: "claude-fel", accent: false)
-        print("PROV: ogiltigt svar: \(rad)")
+        XCTAssertEqual(store.focus?.pass, nuID)
+        XCTAssertEqual(try Data(contentsOf: store.focusFolder.appending(path: m.fileName)), fore, "inget ändrat")
+        try rendera(ClaudeRad(lage: .fel(rad: rad, alla: Texter.kontrollfelAlla(f))), namn: "claude-fel", accent: false)
+        print("PROV: ogiltigt svar: \(rad); fel pass: \(Texter.kontrollfelRad(annat))")
 
-        // 4. Passet har redan en fil: samma svar igen ger frågan före "Use".
-        UIPasteboard.general.string = try claudeSvar(u, tanke: "Leave the stick standing.")
+        // 4. Passet har redan en fil: "Use" frågar, "Cancel" sparar inget, "Replace" skriver över.
+        UIPasteboard.general.string = try claudeSvar(u, tanke: "Keep the stick still.")
         guard case let .mottaget(m2) = await ClaudeApp.klistra(passID: nuID, store: store, katalog: k) else {
             return XCTFail("svaret togs inte emot andra gången")
         }
         XCTAssertTrue(m2.finns, "filen finns: bladet frågar")
-        try rendera(ClaudeSvarsblad(visning: AttJobbaPaVisning(m2.focus, katalog: k), finns: true, fragar: true),
+        XCTAssertTrue(m2.blirFocus)
+        steg = Bladsteg(finns: m2.finns)
+        XCTAssertEqual(steg.tryck(.anvand), .fraga)
+        XCTAssertTrue(steg.fragar)
+        try rendera(ClaudeSvarsblad(visning: AttJobbaPaVisning(m2.focus, katalog: k), steg: steg),
                     namn: "claude-blad-ersatt", accent: nil)
-        print("PROV: en fil finns: bladet frågar före Use")
+        XCTAssertEqual(steg.tryck(.avbryt), .stang)
+        XCTAssertEqual(focusTanke(), "Leave the stick standing.", "Cancel sparar inget")
+        XCTAssertEqual(try Data(contentsOf: store.focusFolder.appending(path: m.fileName)), fore)
+        steg = Bladsteg(finns: m2.finns)
+        XCTAssertEqual(steg.tryck(.anvand), .fraga)
+        XCTAssertEqual(steg.tryck(.ersatt), .spara)
+        try ClaudeApp.anvand(m2, store: store)
+        XCTAssertEqual(focusTanke(), "Keep the stick still.", "Replace skriver över")
+        print("PROV: en fil finns: Use frågar, Cancel sparar inget, Replace skriver över")
+
+        // 5. Ett svar för det förra passet sparas, men Focus är kvar på det senaste.
+        let u0 = try XCTUnwrap(ClaudeKontext.underlag(nu: passen[0], alla: passen, filer: [], katalog: k,
+                                                      skapad: skapad))
+        UIPasteboard.general.string = try claudeSvar(u0, tanke: "Leave the stick standing.")
+        guard case let .mottaget(m0) = await ClaudeApp.klistra(passID: ids[0], store: store, katalog: k) else {
+            return XCTFail("svaret för det förra passet togs inte emot")
+        }
+        XCTAssertFalse(m0.finns)
+        XCTAssertFalse(m0.blirFocus, "ett äldre pass blir inte Focus")
+        XCTAssertEqual(m0.focusFran, "Nov 13")
+        let blad0 = AttJobbaPaVisning(m0.focus, katalog: k)
+        XCTAssertEqual(blad0.fran, "Nov 10")
+        try rendera(ClaudeSvarsblad(visning: blad0, steg: Bladsteg(finns: false), blirFocus: false, focusFran: m0.focusFran),
+                    namn: "claude-blad-aldre", accent: nil)
+        try ClaudeApp.anvand(m0, store: store)
+        XCTAssertEqual(store.focus?.pass, nuID, "Focus är kvar på det senaste passet")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.focusFolder.appending(path: m0.fileName).path),
+                      "sparad för det förra passet")
+        print("PROV: ett äldre pass: sparat som \(m0.fileName), Focus kvar \(store.focus?.pass ?? "-")")
     }
 }

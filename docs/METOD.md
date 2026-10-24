@@ -1673,18 +1673,27 @@ värden i `CaptureTests`.
 ## MS18 — Knapparna för Claude-appen (S5b-2)
 
 - **Passet:** i passets skärm passet som visas, på Today det senaste passet (`PassHistory.latest`).
-  Raden visas bara när passet har ett mätt slag. Passet och de tidigare passen med samma
-  klubba, vy och längd mäts som i passets skärm (`PassMeasures`, MS14), och `ClaudeKontext`
-  bygger underlaget (MT11) utanför huvudtråden. **räkning.**
+  Raden visas bara när passet har ett mätt slag, och den är spärrad under Analyze och medan ett
+  paket skrivs. Passet och de tidigare passen med samma klubba, vy och längd mäts som i passets
+  skärm (`PassMeasures`, MS14), och `ClaudeKontext` bygger underlaget (MT11) utanför
+  huvudtråden. Ett jobb gäller passet det startades för: byts passet eller försvinner raden
+  avbryts det, och inget skrivs till urklippet eller raden efteråt. **räkning.**
+- **Urklippet:** texten läggs bara på telefonen (`localOnly`, inte Universal Clipboard till
+  Macen) och går ut efter **600 s**. Efter "Use" töms urklippet, om `changeCount` visar att det
+  fortfarande är Claudes svar. **antagande** (tio minuter räcker för att klistra in i
+  Claude-appen; texten bär mätningar, Dataregeln).
 - **"Paste from Claude"** bygger underlaget för samma pass igen och kontrollerar svaret mot det
   (MT12). Minnet tas före passets val, så en fil som redan finns för passet ändrar inte
   kontrollen. Har passet redan en fil (`AttJobbaPa/att_jobba_pa-<pass>.json`) frågar bladet
-  innan den skrivs över. **räkning.**
-- **"Copied"** står kvar i **3 s**; "Open Claude" står kvar tills raden visar något annat.
-  **antagande** (det ska hinna läsas, utan att bli en ruta som måste stängas).
+  innan den skrivs över ("Replace", "Cancel"). Focus är filen med det högsta pass-id:t (B36):
+  ett svar för ett äldre pass sparas ("Save"), och bladet säger att Focus är kvar. **räkning.**
+- **"Copied"** står kvar i **3 s**; "Open Claude" står kvar tills "Paste from Claude" trycks
+  eller passet byts. VoiceOver läser upp "Copied" och felraden. **antagande** (det ska hinna
+  läsas, utan att bli en ruta som måste stängas).
 - **Felraden:** det första felet (fältet och kodens text, BESLUT B54) och antalet fel till
-  ("+2"). **antagande** (en rad, B13; det första felet räcker för att säga vad Claude ska
-  rätta).
+  ("+2"); ett tryck visar alla, och texten går att markera. En okänd nyckel är Claudes text och
+  kortas till **24** tecken. **antagande** (en rad, B13; det första felet räcker för att säga
+  vad Claude ska rätta; 24 tecken rymmer fältets namn bredvid).
 
 ---
 

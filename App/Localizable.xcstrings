@@ -925,6 +925,17 @@
         }
       }
     },
+    "Replace the file from %@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace the file from %@?"
+          }
+        }
+      }
+    },
     "Replace the focus from %@?": {
       "extractionState": "manual",
       "localizations": {
@@ -943,6 +954,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Right"
+          }
+        }
+      }
+    },
+    "Save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        }
+      }
+    },
+    "Saved for %@ · Focus stays %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved for %@ · Focus stays %@"
           }
         }
       }

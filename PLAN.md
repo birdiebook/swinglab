@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b · S6 · S6c · S7 · S7a · S7b · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S5 · S5b nu · S6 · S6c · S7 · S7a · S7b · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -315,10 +315,11 @@ from Claude" på en grå rad i passet (under måtten) och på Today (under det s
 rader), i `App/Vyer/ClaudeVy.swift`. Ask lägger underlaget i urklippet och visar "Copied", och
 "Open Claude" när `claude://` går att öppna. Paste läser urklippet efter trycket, kontrollerar
 svaret och visar sakerna i ett blad med "Use" och "Cancel"; finns redan en fil för passet frågar
-bladet innan den skrivs över. Ett ogiltigt svar ger en rad med fältet och koden, och inget
+bladet innan den skrivs över, och ett svar för ett äldre pass sparas utan att bli Focus. Urklippet
+stannar på telefonen i 600 s och töms efter "Use". Ett ogiltigt svar ger en rad med fältet och koden, och inget
 ändras. Simulatorprovet (`Prov/SwingLabProvClaude.swift`): urklippet är `ClaudeUnderlag` för
 samma pass, ett påhittat svar blir Focus och accent på Today, ett ogiltigt ger raden, en fil som
-finns ger frågan, och bilderna `claude-*`. **Oprövat:** iOS fråga om att klistra in, Claude-appens
+finns ger frågan (Cancel och Replace), ett äldre pass behåller Focus, och bilderna `claude-*`. **Oprövat:** iOS fråga om att klistra in, Claude-appens
 `claude://` och ett riktigt svar från Claude-appen; det provas på telefonen.
 
 **Klart när:** Johannes har tolkat ett pass i Claude-appen på rangen och svaret blivit Focus

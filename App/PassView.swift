@@ -225,6 +225,7 @@ struct PassScreenContent: View {
                 }
                 if let claude {
                     claude
+                        .disabled(analysis.running)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }

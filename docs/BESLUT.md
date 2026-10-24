@@ -1126,22 +1126,28 @@ B47 och s6c börjar på B48.
 - **Valt:** "Ask Claude" och "Paste from Claude" som två grå textknappar på en rad med en
   tunn linje ovanför: i passet under måtten (och längden), och på Today under det senaste
   passets rader, före Focus. Raden visas bara för ett mätt pass. Ask lägger texten i
-  urklippet (`UIPasteboard`) och visar "Copied" i grått; finns Claude-appen visas "Open
-  Claude" bredvid, som öppnar `claude://`. Paste läser urklippet först efter trycket, så att
-  iOS frågar om tillåtelse att klistra in. Ett godkänt svar visas i ett blad med sakerna som
-  i Focus (`SakVy`), "Use" och "Cancel"; har passet redan en fil frågar bladet "Replace the
-  focus from …?" innan den skrivs över. Ett ogiltigt svar ger en vit rad under knapparna
-  med fältet och kodens text (METOD MS18), och inget ändras. "Use" sparar som "Import
-  focus", så att `Store.focus`, Today och accenten (B31) följer med direkt.
+  urklippet och visar "Copied" i grått; finns Claude-appen visas "Open Claude" bredvid, som
+  öppnar `claude://`. Paste läser urklippet först efter trycket, så att iOS frågar om
+  tillåtelse att klistra in. Ett godkänt svar visas i ett blad med sakerna som i Focus
+  (`SakVy`), "Use" och "Cancel"; har passet redan en fil frågar bladet "Replace the focus
+  from …?" innan den skrivs över. Ett svar för ett äldre pass än Focus sparas med "Save", och
+  en grå rad säger att Focus är kvar ("Saved for Nov 10 · Focus stays Nov 13"). Ett ogiltigt
+  svar ger en vit rad under knapparna med fältet och kodens text (METOD MS18), och inget
+  ändras. "Use" sparar som "Import focus", så att `Store.focus`, Today och accenten (B31)
+  följer med direkt.
+- **Dataregeln i urklippet:** texten och svaret bär passets mätningar. Texten läggs därför bara
+  på telefonen (`localOnly`: Universal Clipboard för den inte till Macen) och går ut efter 600 s
+  (METOD MS18), och urklippet töms efter "Use" när det fortfarande är Claudes svar. Det Johannes
+  klistrar in i Claude-appen skickar han själv.
 - **`LSApplicationQueriesSchemes: [claude]`** står i project.yml: utan den svarar
   `canOpenURL` alltid nej.
 - **Varför:** B13 och Todays enkelhet: ingen ikon, ingen primärknapp och ingen förklaring;
-  raden sitter vid passet den gäller. Bladet visar vad som blir Focus innan något skrivs.
+  raden sitter vid passet den gäller. Bladet visar vad som sparas innan något skrivs.
 - **Bortvalt:** en meny i passets rad (bredvid "Send to PC"), där "Copied" och felet inte
   får plats; `PasteButton` (ingen fråga, men den ritar en egen systemknapp utanför
   formspråket och Johannes ska se frågan); en dialog för frågan om att skriva över (den går
   inte att rita i provet); att öppna Claude-appen med texten i adressen (texten är ≈ 15 kB).
 - **Kostnad:** "Open Claude" bygger på att Claude-appen svarar på `claude://`, vilket inte
-  är prövat (simulatorn har ingen Claude-app). Svaret för ett äldre pass sparas men blir
-  inte Focus när ett senare pass har en fil (`Store.focus` är den senaste, B36).
+  är prövat (simulatorn har ingen Claude-app). Efter 600 s är texten borta ur urklippet och
+  Ask får tryckas igen.
 - **Omprövas:** efter telefonprovet med Claude-appen på rangen.

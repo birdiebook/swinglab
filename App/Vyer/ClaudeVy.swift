@@ -1,11 +1,13 @@
 import SwiftUI
 import UIKit
+import Accessibility
+import UniformTypeIdentifiers
 import Swing
 import Capture
 
 // Claude-appen på telefonen (S5b-2, BESLUT B52, B60): "Ask Claude" kopierar underlaget för ett
 // pass till urklippet, och "Paste from Claude" läser svaret, kontrollerar det som PC:n (B54) och
-// visar sakerna i ett blad innan de blir Focus. Raden sitter i passet och på Today (det senaste
+// visar sakerna i ett blad innan de sparas. Raden sitter i passet och på Today (det senaste
 // passet). Formspråket är B13: text i gråskala, ingen ikon, inget värdeord. METOD MS18
 
 /// Logiken bakom knapparna, utan vy, så att provet går samma väg som appen.
@@ -17,6 +19,9 @@ enum ClaudeApp {
 
     /// "Open Claude" visas bara när appen finns.
     static var kanOppnas: Bool { UIApplication.shared.canOpenURL(url) }
+
+    /// Så länge texten ligger i urklippet: den bär passets mätningar (Dataregeln). METOD MS18
+    static let urklippSekunder: TimeInterval = 600
 
     /// Passet och de tidigare passen som kan jämföras (samma klubba, vy och längd), mätta som i
     /// passets skärm (`PassMeasures`, METOD MS14). nil när passet inte finns.
@@ -41,11 +46,21 @@ enum ClaudeApp {
         }.value
     }
 
-    /// "Ask Claude": texten i urklippet. Svarar texten, eller nil när det inte finns något att fråga om.
+    /// Texten i urklippet bara på den här telefonen (inte Universal Clipboard till Macen) och bara
+    /// i `urklippSekunder` (Dataregeln, BESLUT B60). Svarar urklippets `changeCount`.
+    @discardableResult
+    static func kopiera(_ text: String, nu: Date = Date()) -> Int {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]],
+                                      options: [.localOnly: true, .expirationDate: nu.addingTimeInterval(urklippSekunder)])
+        return UIPasteboard.general.changeCount
+    }
+
+    /// "Ask Claude" i ett steg (provet): underlaget i urklippet. Svarar texten, eller nil när det
+    /// inte finns något att fråga om. Knapparna gör samma två steg, med en kontroll emellan.
     @discardableResult
     static func fraga(passID: String, store: Store, katalog: Katalog, skapad: Date = Date()) async -> String? {
         guard let u = await underlag(passID: passID, store: store, katalog: katalog, skapad: skapad) else { return nil }
-        UIPasteboard.general.string = u.text
+        kopiera(u.text)
         return u.text
     }
 
@@ -60,6 +75,12 @@ enum ClaudeApp {
         let data: Data
         /// Passet har redan en fil: "Use" frågar innan den skrivs över (PLAN S5b-2).
         let finns: Bool
+        /// Filen blir Focus (den senaste, `Store.focus`); annars sparas den för ett äldre pass.
+        let blirFocus: Bool
+        /// Dagen för filen som förblir Focus ("Nov 13") när den här inte blir det.
+        let focusFran: String?
+        /// Urklippets `changeCount` när svaret lästes: det töms efter "Use" bara om det är kvar.
+        let urklipp: Int
         var id: String { fileName }
     }
 
@@ -74,9 +95,8 @@ enum ClaudeApp {
     /// (`FocusInbox.acceptClaude`); inget sparas förrän "Use".
     static func klistra(passID: String, store: Store, katalog: Katalog) async -> Klistrat {
         let text = UIPasteboard.general.string ?? ""
-        guard let p = await passen(passID, store: store) else {
-            return .fel([ClaudeApp.utanPass])
-        }
+        let urklipp = UIPasteboard.general.changeCount
+        guard let p = await passen(passID, store: store) else { return .fel([ClaudeApp.utanPass]) }
         let nu = p.nu, alla = p.alla
         let root = store.root
         let mapp = store.focusFolder
@@ -89,55 +109,90 @@ enum ClaudeApp {
             case let .rejected(f):
                 return .fel(f)
             case let .accepted(focus, fileName, data):
-                let finns = FileManager.default.fileExists(atPath: mapp.appending(path: fileName).path)
-                return .mottaget(Mottaget(focus: focus, fileName: fileName, data: data, finns: finns))
+                // Focus är filen med det högsta pass-id:t (`Store.latestFocus`, BESLUT B36).
+                let namn = (try? FileManager.default.contentsOfDirectory(atPath: mapp.path)) ?? []
+                let blir = FocusInbox.latest(namn + [fileName]) == fileName
+                var fran: String?
+                if !blir, let senaste = FocusInbox.latest(namn),
+                   let d = try? Data(contentsOf: mapp.appending(path: senaste)),
+                   let f = try? FocusInbox.accept(d).focus {
+                    fran = f.passDatum.map(Tal.datum)
+                }
+                return .mottaget(Mottaget(focus: focus, fileName: fileName, data: data, finns: namn.contains(fileName),
+                                          blirFocus: blir, focusFran: fran, urklipp: urklipp))
             }
         }.value
     }
 
     /// "Use": filen sparas som en från PC:n ("Import focus"), och `Store.focus` följer med, så att
-    /// Today och accenten (BESLUT B31) ändras direkt.
+    /// Today och accenten (BESLUT B31) ändras direkt. Svaret bär mätningarna, så urklippet töms
+    /// när det fortfarande är Claudes svar (Dataregeln, BESLUT B60).
     static func anvand(_ m: Mottaget, store: Store) throws {
         try store.importFocus(m.data)
+        if UIPasteboard.general.changeCount == m.urklipp { UIPasteboard.general.items = [] }
     }
 }
 
 /// Raden med knapparna, som värden (provet ritar den): två diskreta textknappar med en tunn
-/// linje ovanför, och under dem "Copied" med "Open Claude", eller felraden.
+/// linje ovanför, och under dem "Copied" med "Open Claude", eller felraden. Ett tryck på felraden
+/// visar alla felen; texten går att markera.
 struct ClaudeRad: View {
     enum Lage: Equatable {
         case vila
         case arbetar
         case kopierat
-        /// `Texter.kontrollfelRad`: fältet och koden.
-        case fel(String)
+        /// `Texter.kontrollfelRad` och `kontrollfelAlla`: fältet och koden.
+        case fel(rad: String, alla: [String])
     }
 
-    var lage: Lage = .vila
+    var lage: Lage
     /// Claude-appen går att öppna (`ClaudeApp.kanOppnas`) och texten är kopierad.
-    var oppna = false
-    var fraga: () -> Void = {}
-    var klistra: () -> Void = {}
-    var oppnaClaude: () -> Void = {}
+    var oppna: Bool
+    var fraga: () -> Void
+    var klistra: () -> Void
+    var oppnaClaude: () -> Void
+    @State private var visaAlla: Bool
+
+    init(lage: Lage = .vila, oppna: Bool = false, visaAlla: Bool = false, fraga: @escaping () -> Void = {},
+         klistra: @escaping () -> Void = {}, oppnaClaude: @escaping () -> Void = {}) {
+        self.lage = lage
+        self.oppna = oppna
+        self.fraga = fraga
+        self.klistra = klistra
+        self.oppnaClaude = oppnaClaude
+        _visaAlla = State(initialValue: visaAlla)
+    }
 
     private struct Stil: ButtonStyle {
         func makeBody(configuration: Configuration) -> some View {
             configuration.label
                 .typsnitt(15, .medium)
                 .foregroundStyle(Theme.secondary)
+                .multilineTextAlignment(.leading)
                 .frame(minHeight: 44)
                 .contentShape(.rect)
                 .opacity(configuration.isPressed ? 0.6 : 1)
         }
     }
 
+    @ViewBuilder private var knappar: some View {
+        Button("Ask Claude", action: fraga)
+        Button("Paste from Claude", action: klistra)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 24) {
-                Button("Ask Claude", action: fraga)
-                Button("Paste from Claude", action: klistra)
-                Spacer(minLength: 0)
-                if lage == .arbetar { ProgressView().controlSize(.small) }
+            // Bredvid varandra när de får plats, annars under varandra (stor text).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) {
+                    knappar
+                    Spacer(minLength: 0)
+                    if lage == .arbetar { ProgressView().controlSize(.small) }
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    knappar
+                    if lage == .arbetar { ProgressView().controlSize(.small) }
+                }
             }
             .buttonStyle(Stil())
             .disabled(lage == .arbetar)
@@ -155,37 +210,85 @@ struct ClaudeRad: View {
                 }
                 .frame(minHeight: 32)
             }
-            if case let .fel(rad) = lage {
-                Text(verbatim: rad)
-                    .typsnitt(13)
-                    .foregroundStyle(Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 8)
+            if case let .fel(rad, alla) = lage {
+                VStack(alignment: .leading, spacing: 4) {
+                    if visaAlla {
+                        ForEach(Array(alla.enumerated()), id: \.offset) { _, t in Text(verbatim: t) }
+                    } else {
+                        Text(verbatim: rad)
+                    }
+                }
+                .typsnitt(13)
+                .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+                .onTapGesture { if alla.count > 1 { visaAlla.toggle() } }
+                .padding(.bottom, 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) {
             Rectangle().fill(Theme.hair).frame(height: 1)
         }
+        .onChange(of: lage) { _, _ in visaAlla = false }
+    }
+}
+
+/// Bladets steg som värden, så att provet går samma väg som knapparna: "Use" frågar först när
+/// passet redan har en fil, "Replace" sparar och "Cancel" stänger utan att något sparas.
+struct Bladsteg: Equatable {
+    let finns: Bool
+    private(set) var fragar = false
+
+    enum Tryck { case anvand, ersatt, avbryt }
+    enum Utfall: Equatable { case fraga, spara, stang }
+
+    init(finns: Bool, fragar: Bool = false) {
+        self.finns = finns
+        self.fragar = fragar
+    }
+
+    mutating func tryck(_ t: Tryck) -> Utfall {
+        switch t {
+        case .anvand:
+            if finns && !fragar {
+                fragar = true
+                return .fraga
+            }
+            return .spara
+        case .ersatt:
+            return .spara
+        case .avbryt:
+            return .stang
+        }
     }
 }
 
 /// Bladet med Claudes svar: sakerna som i Focus (`SakVy`), och "Use" och "Cancel". Har passet
-/// redan en fil frågar "Use" först, uttryckligen, innan den skrivs över (PLAN S5b-2).
+/// redan en fil frågar "Use" först, uttryckligen, innan den skrivs över (PLAN S5b-2). Blir filen
+/// inte Focus (ett äldre pass) säger en grå rad det, och knappen heter "Save".
 struct ClaudeSvarsblad: View {
     let visning: AttJobbaPaVisning
-    let finns: Bool
-    var anvand: () -> Void = {}
-    var avbryt: () -> Void = {}
-    @State private var fragar: Bool
+    let blirFocus: Bool
+    let focusFran: String?
+    /// `.spara` eller `.stang`; `.fraga` stannar i bladet.
+    var klar: (Bladsteg.Utfall) -> Void
+    @State private var steg: Bladsteg
 
-    init(visning: AttJobbaPaVisning, finns: Bool, fragar: Bool = false,
-         anvand: @escaping () -> Void = {}, avbryt: @escaping () -> Void = {}) {
+    init(visning: AttJobbaPaVisning, steg: Bladsteg, blirFocus: Bool = true, focusFran: String? = nil,
+         klar: @escaping (Bladsteg.Utfall) -> Void = { _ in }) {
         self.visning = visning
-        self.finns = finns
-        self.anvand = anvand
-        self.avbryt = avbryt
-        _fragar = State(initialValue: fragar)
+        self.blirFocus = blirFocus
+        self.focusFran = focusFran
+        self.klar = klar
+        _steg = State(initialValue: steg)
+    }
+
+    private func tryck(_ t: Bladsteg.Tryck) {
+        let u = steg.tryck(t)
+        if u != .fraga { klar(u) }
     }
 
     var body: some View {
@@ -206,21 +309,33 @@ struct ClaudeSvarsblad: View {
                     .accessibilityLabel(s.upplasningHel)
             }
             VStack(alignment: .leading, spacing: 8) {
-                if fragar {
-                    Text("Replace the focus from \(visning.fran)?")
-                        .typsnitt(15, .medium)
-                        .foregroundStyle(Theme.text)
+                if !blirFocus, let focusFran {
+                    Under(text: String(localized: "Saved for \(visning.fran) · Focus stays \(focusFran)"))
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.bottom, 4)
-                    Button("Replace", action: anvand)
+                }
+                if steg.fragar {
+                    Group {
+                        if blirFocus {
+                            Text("Replace the focus from \(visning.fran)?")
+                        } else {
+                            Text("Replace the file from \(visning.fran)?")
+                        }
+                    }
+                    .typsnitt(15, .medium)
+                    .foregroundStyle(Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 4)
+                    Button("Replace") { tryck(.ersatt) }
+                        .buttonStyle(PrimaryButtonStyle())
+                } else if blirFocus {
+                    Button("Use") { tryck(.anvand) }
                         .buttonStyle(PrimaryButtonStyle())
                 } else {
-                    Button("Use") {
-                        if finns { fragar = true } else { anvand() }
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
+                    Button("Save") { tryck(.anvand) }
+                        .buttonStyle(PrimaryButtonStyle())
                 }
-                Button("Cancel", action: avbryt)
+                Button("Cancel") { tryck(.avbryt) }
                     .buttonStyle(RowButtonStyle())
             }
             .padding(.top, 28)
@@ -230,7 +345,9 @@ struct ClaudeSvarsblad: View {
     }
 }
 
-/// Knapparna med sitt läge och bladet, för ett pass. `onFocus` körs när ett svar blivit Focus.
+/// Knapparna med sitt läge och bladet, för ett pass. `onFocus` körs när ett svar sparats. Ett jobb
+/// gäller passet det startades för: byts passet, eller försvinner raden, avbryts det, och inget
+/// skrivs till urklippet eller raden efteråt.
 struct ClaudeKnappar: View {
     let passID: String
     var onFocus: () -> Void = {}
@@ -239,7 +356,10 @@ struct ClaudeKnappar: View {
     @State private var lage = ClaudeRad.Lage.vila
     @State private var oppna = false
     @State private var mottaget: ClaudeApp.Mottaget?
+    @State private var jobb: Task<Void, Never>?
     @State private var bekraftelse: Task<Void, Never>?
+    /// Passet som det pågående jobbet gäller; nil = inget jobb.
+    @State private var jobbID: String?
 
     /// Så länge "Copied" står kvar. METOD MS18
     static let bekraftelseSekunder = 3.0
@@ -247,16 +367,26 @@ struct ClaudeKnappar: View {
     var body: some View {
         ClaudeRad(lage: lage, oppna: oppna, fraga: fraga, klistra: klistra,
                   oppnaClaude: { UIApplication.shared.open(ClaudeApp.url) })
+            // Medan ett paket skrivs (Send to PC) ändras inga pass (PassMeasures sparar mått).
+            .disabled(!store.exporting.isEmpty)
             .onChange(of: passID) { _, _ in
+                avbryt()
                 lage = .vila
                 oppna = false
+                mottaget = nil
+            }
+            .onDisappear {
+                avbryt()
+                if lage == .arbetar { lage = .vila }
             }
             .sheet(item: $mottaget) { m in
                 ScrollView {
                     if let k = AppKatalog.katalog {
-                        ClaudeSvarsblad(visning: AttJobbaPaVisning(m.focus, katalog: k), finns: m.finns,
-                                        anvand: { anvand(m) }, avbryt: { mottaget = nil })
-                            .padding(.vertical, 16)
+                        ClaudeSvarsblad(visning: AttJobbaPaVisning(m.focus, katalog: k), steg: Bladsteg(finns: m.finns),
+                                        blirFocus: m.blirFocus, focusFran: m.focusFran) { utfall in
+                            if utfall == .spara { anvand(m) } else { mottaget = nil }
+                        }
+                        .padding(.vertical, 16)
                     }
                 }
                 .background(Theme.ground, ignoresSafeAreaEdges: .all)
@@ -265,15 +395,37 @@ struct ClaudeKnappar: View {
             }
     }
 
+    private func avbryt() {
+        jobb?.cancel()
+        jobb = nil
+        bekraftelse?.cancel()
+        bekraftelse = nil
+        jobbID = nil
+    }
+
+    private func meddela(_ text: String) {
+        AccessibilityNotification.Announcement(text).post()
+    }
+
     private func fraga() {
         guard lage != .arbetar, let k = AppKatalog.katalog else { return }
+        avbryt()
+        let id = passID
+        jobbID = id
         lage = .arbetar
-        bekraftelse?.cancel()
-        Task {
-            let text = await ClaudeApp.fraga(passID: passID, store: store, katalog: k)
-            lage = text == nil ? .vila : .kopierat
-            oppna = text != nil && ClaudeApp.kanOppnas
-            guard text != nil else { return }
+        oppna = false
+        jobb = Task {
+            let u = await ClaudeApp.underlag(passID: id, store: store, katalog: k)
+            guard !Task.isCancelled, jobbID == id else { return }
+            jobbID = nil
+            guard let u else {
+                lage = .vila
+                return
+            }
+            ClaudeApp.kopiera(u.text)
+            lage = .kopierat
+            oppna = ClaudeApp.kanOppnas
+            meddela(String(localized: "Copied"))
             bekraftelse = Task {
                 try? await Task.sleep(for: .seconds(Self.bekraftelseSekunder))
                 if !Task.isCancelled, lage == .kopierat { lage = .vila }
@@ -283,15 +435,23 @@ struct ClaudeKnappar: View {
 
     private func klistra() {
         guard lage != .arbetar, let k = AppKatalog.katalog else { return }
+        avbryt()
+        let id = passID
+        jobbID = id
         lage = .arbetar
-        bekraftelse?.cancel()
-        Task {
-            switch await ClaudeApp.klistra(passID: passID, store: store, katalog: k) {
+        oppna = false
+        jobb = Task {
+            let r = await ClaudeApp.klistra(passID: id, store: store, katalog: k)
+            guard !Task.isCancelled, jobbID == id else { return }
+            jobbID = nil
+            switch r {
             case let .mottaget(m):
                 lage = .vila
                 mottaget = m
             case let .fel(f):
-                lage = .fel(Texter.kontrollfelRad(f))
+                let rad = Texter.kontrollfelRad(f)
+                lage = .fel(rad: rad, alla: Texter.kontrollfelAlla(f))
+                meddela(rad)
             }
         }
     }
@@ -300,10 +460,10 @@ struct ClaudeKnappar: View {
         mottaget = nil
         do {
             try ClaudeApp.anvand(m, store: store)
-            oppna = false
             onFocus()
         } catch {
-            lage = .fel(error.localizedDescription)
+            lage = .fel(rad: Texter.focusSparadesInte, alla: [Texter.focusSparadesInte])
+            meddela(Texter.focusSparadesInte)
         }
     }
 }

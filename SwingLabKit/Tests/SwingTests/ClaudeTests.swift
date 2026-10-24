@@ -125,7 +125,7 @@ final class ClaudeTests: XCTestCase {
                 // Appens rad (S5b-2): det första felet och antalet till, inget värde.
                 let rad = Texter.kontrollfelRad(felen)
                 XCTAssertEqual(rad.isEmpty, felen.isEmpty)
-                if let f = felen.first { XCTAssertTrue(rad.hasPrefix(f.text), rad) }
+                if let f = felen.first { XCTAssertTrue(rad.hasPrefix(Texter.kontrollfelText(f)), rad) }
                 for v in ["slice", "great", "Great", "Well", "igår", "-1", "20261399", "kg"] {
                     XCTAssertFalse(rad.contains(v), "\(rad) bär \(v)")
                 }
@@ -140,6 +140,16 @@ final class ClaudeTests: XCTestCase {
         XCTAssertEqual(Texter.kontrollfelRad([Kontrollfel("saker[0].ovning.tanke", "for_lang"), Kontrollfel("skapad", "iso"),
                                               Kontrollfel("pass", "inte_analysens")]),
                        "saker[0].ovning.tanke: too long\u{00A0}\u{00B7} +2")
+        // En okänd nyckel är Claudes text: den kortas till 24 tecken, fältet före står kvar.
+        let lang = String(repeating: "x", count: 40)
+        XCTAssertEqual(Texter.kontrollfelRad([Kontrollfel("saker[0].ovning." + lang, "okand_nyckel")]),
+                       "saker[0].ovning." + String(repeating: "x", count: 23) + "…: unknown key")
+        XCTAssertEqual(Texter.kontrollfelText(Kontrollfel(lang, "okand_nyckel")),
+                       String(repeating: "x", count: 23) + "…: unknown key")
+        XCTAssertEqual(Texter.kontrollfelText(Kontrollfel("saker[0].kort", "okand_nyckel")), "saker[0].kort: unknown key")
+        XCTAssertEqual(Texter.kontrollfelAlla([Kontrollfel("pass", "inte_analysens"), Kontrollfel("skapad", "iso")]),
+                       ["pass: is not this session", "skapad: must be an ISO 8601 time"])
+        XCTAssertEqual(Texter.focusSparadesInte, "file: could not be saved")
     }
 
     /// Instruktionen under 8 KiB, ett typiskt pass under 8 KiB data med marginal, varje
