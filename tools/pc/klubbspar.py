@@ -30,6 +30,7 @@ import math
 import numpy as np
 
 from . import faser
+from . import klubba as K
 
 STEG = 2                 # METOD M61: rutorna t−2 och t+2
 TROSKEL = 40             # METOD M61: gråtoner i båda differenserna
@@ -44,6 +45,7 @@ KROPP = 0.18             # METOD M61: lemmarnas radie i bålens längd
 BAL = 0.35               # METOD M61: bålens radie
 HUVUDET = 0.40           # METOD M61: huvudets radie kring näsan
 HANDERNA = 0.20          # METOD M61: händernas radie kring handledernas mitt
+PLAN_MIN = 0.25          # METOD M61: närmare P1:s hosel än så (i P1-skaft) mäts inte planet
 BEN = [(1, 2), (7, 8), (1, 3), (3, 5), (2, 4), (4, 6), (7, 9), (9, 11), (8, 10), (10, 12)]
 
 KALLA_SPAR, KALLA_INTERPOLERAD = "spar", "interpolerad"
@@ -56,6 +58,11 @@ def _wrap(a: float) -> float:
         r += 2.0 * math.pi
     r -= math.pi
     return math.pi if r == -math.pi else r
+
+
+def _langd(dx: float, dy: float) -> float:
+    """√(dx² + dy²) som Swift räknar den (inte math.hypot, som avrundar annorlunda)."""
+    return math.sqrt(dx * dx + dy * dy)
 
 
 def _mitt(a, b):
@@ -82,7 +89,7 @@ def balens_langd(leder: list[list]) -> float | None:
     for L in leder:
         a, h = _mitt(L[1], L[2]), _mitt(L[7], L[8])
         if a is not None and h is not None:
-            v.append(math.hypot(a[0] - h[0], a[1] - h[1]))
+            v.append(_langd(a[0] - h[0], a[1] - h[1]))
     return float(np.median(v)) if v else None
 
 
@@ -153,7 +160,7 @@ def hitta(bilder: list[np.ndarray], k: int, g: tuple, theta: float, lim: float, 
     mx, my = float(cx[band].sum()) / m, float(cy[band].sum()) / m
     # Bredden tvärs riktningen greppet → bandets mitt.
     ex, ey = mx - g[0], my - g[1]
-    en = math.hypot(ex, ey)
+    en = _langd(ex, ey)
     tvars = (vx[band] * (-ey / en) + vy[band] * (ex / en))
     if float(tvars.max() - tvars.min()) < BRED * L:
         return None
@@ -180,7 +187,7 @@ def spara(t: list[float], bilder: list[np.ndarray], leder: list[list], ankare: l
         g = (a["grepp"][0] * skala, a["grepp"][1] * skala)
         hs = (a["hosel"][0] * skala, a["hosel"][1] * skala)
         off = (g[0] - hm[k][0], g[1] - hm[k][1]) if hm[k] is not None else (0.0, 0.0)
-        ank[k] = {"g": g, "h": hs, "off": off, "L": math.hypot(hs[0] - g[0], hs[1] - g[1]),
+        ank[k] = {"g": g, "h": hs, "off": off, "L": _langd(hs[0] - g[0], hs[1] - g[1]),
                   "theta": math.atan2(hs[1] - g[1], hs[0] - g[0])}
     ks = sorted(ank)
     punkt: dict[int, tuple] = {k: ank[k]["h"] for k in ks}
@@ -203,7 +210,7 @@ def spara(t: list[float], bilder: list[np.ndarray], leder: list[list], ankare: l
                  hm[k][1] + A["off"][1] + f * (B["off"][1] - A["off"][1]))
             grepp[k] = g
             q = hitta(bilder, k, g, A["theta"] + f * dth, lim, L, kroppens_streck(Ls[k], bal))
-            if q is not None and math.hypot(q[0] - forra[0], q[1] - forra[1]) > SPRANG * L * (k - kforra):
+            if q is not None and _langd(q[0] - forra[0], q[1] - forra[1]) > SPRANG * L * (k - kforra):
                 q = None
             if q is None:
                 tappade.append(k)
@@ -222,8 +229,8 @@ def spara(t: list[float], bilder: list[np.ndarray], leder: list[list], ankare: l
             p0, p1 = punkt[k0], punkt[k1]
             a0 = math.atan2(p0[1] - g0[1], p0[0] - g0[0])
             a1 = math.atan2(p1[1] - g1[1], p1[0] - g1[0])
-            r0 = math.hypot(p0[0] - g0[0], p0[1] - g0[1])
-            r1 = math.hypot(p1[0] - g1[0], p1[1] - g1[1])
+            r0 = _langd(p0[0] - g0[0], p0[1] - g0[1])
+            r1 = _langd(p1[0] - g1[0], p1[1] - g1[1])
             a = a0 + f * _wrap(a1 - a0)
             r = r0 + f * (r1 - r0)
             kalla[k] = KALLA_INTERPOLERAD
@@ -231,4 +238,28 @@ def spara(t: list[float], bilder: list[np.ndarray], leder: list[list], ankare: l
         punkt.update(nya)
     for k, q in punkt.items():
         ut[k] = {"x": q[0] / skala, "y": q[1] / skala, "kalla": kalla[k]}
+    return ut
+
+
+def planet(bana: list, t: list[float], ankare: list[dict], x_tecken: float) -> list[dict]:
+    """Klubbhuvudet mot P1-planet bakifrån i varje ruta från P5 till P7: samma vinkel som
+    `skaft_plan_p6` (M47) men med banans punkt, grader, + = över planet. Kräver P1, P5 och
+    P7 bland ankarna; [] annars. En punkt närmare P1:s hosel än `PLAN_MIN` skaft mäts inte
+    (vinkeln vid hoseln är obestämd där, kring träffen). Visas inte i appen än (BESLUT B71).
+    METOD M61"""
+    pos = {a["position"]: a for a in ankare}
+    if not all(p in pos for p in ("P1", "P5", "P7")):
+        return []
+    s = x_tecken
+    g1 = (s * pos["P1"]["grepp"][0], pos["P1"]["grepp"][1])
+    h1 = (s * pos["P1"]["hosel"][0], pos["P1"]["hosel"][1])
+    L1 = _langd(h1[0] - g1[0], h1[1] - g1[1])
+    ut = []
+    for k, b in enumerate(bana):
+        if b is None or not (pos["P5"]["t"] - 1e-9 <= t[k] <= pos["P7"]["t"] + 1e-9):
+            continue
+        q = (s * b["x"], b["y"])
+        if _langd(q[0] - h1[0], q[1] - h1[1]) < PLAN_MIN * L1:
+            continue
+        ut.append({"t": t[k], "grader": -K.vinkel_mellan(K._upp(h1, g1), K._upp(h1, q)), "kalla": b["kalla"]})
     return ut

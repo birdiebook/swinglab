@@ -194,3 +194,30 @@ def summa(r: np.ndarray) -> int:
     """Rutans kontrollsumma: Σ (index + 1) · byte mod 2³²."""
     v = r.reshape(-1).astype(np.uint64)
     return int((v * (np.arange(v.size, dtype=np.uint64) + 1)).sum() % (1 << 32))
+
+
+def fixtur() -> dict:
+    """Facit till Swift (BESLUT B12): rutornas summor, ankarna, Pythons bana och planet,
+    och sanningen."""
+    from . import klubbspar as KS
+    f = film()
+    bana = KS.spara(f["t"], f["rutor"], f["leder"], f["ankare"], SKALA)
+    return {"bredd": BREDD, "hojd": HOJD, "skala": SKALA,
+            "t": f["t"], "summa": [summa(r) for r in f["rutor"]],
+            "ankare": [{"position": a["position"], "t": a["t"], "grepp": list(a["grepp"]), "hosel": list(a["hosel"])}
+                       for a in f["ankare"]],
+            "bana": bana, "planet": KS.planet(bana, f["t"], f["ankare"], 1.0),
+            "sanning": [list(p) for p in f["sanning"]]}
+
+
+def main() -> int:
+    FIXTUR.write_text(json.dumps(fixtur(), ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"skrev {FIXTUR}")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from pc import klubbfilm as _kf
+    raise SystemExit(_kf.main())

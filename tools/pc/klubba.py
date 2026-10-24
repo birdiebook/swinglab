@@ -189,7 +189,7 @@ def kontrollera(d) -> list[str]:
             for n in PUNKTER:
                 q = pk[n]
                 if q is None:
-                    if r.get("status") == "markerad" and n in kravs:
+                    if r.get("status") == "markerad" and n in (("klubbhuvud",) if bana else kravs):
                         fel.append(f"{p}.punkter.{n} saknas i en markerad ruta")
                     continue
                 if q == {"syns_inte": True}:
