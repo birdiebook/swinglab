@@ -140,7 +140,8 @@ struct Flikar: View {
         if let v = data?.idag {
             IdagVy(visning: v, startaPass: { flow = .record }, importera: { flow = .photos },
                    oppnaPasset: { if let id = data?.senaste { opened = StartView.OpenPass(id: id) } },
-                   oppnaJobba: { if data?.jobba != nil { focusOpen = true } })
+                   oppnaJobba: { if data?.jobba != nil { focusOpen = true } },
+                   claude: data?.senaste.map { AnyView(ClaudeKnappar(passID: $0).environment(store)) })
         } else {
             VStack(alignment: .leading) {
                 Button("Start session") { flow = .record }

@@ -310,11 +310,16 @@ flera klubbor analyseras per klubba, och PC:n väljer tidigare pass som telefone
 tak för storlek och djup, true är inte 1, och facit har en ändring per felkod i åtta
 historiker.
 
-**S5b-2 — knapparna (efter att `s7a` landat, samma vyer):** "Ask Claude" och "Paste from
-Claude" i passet och på Today, felet som en rad i formspråket (B13), och simulatorprovet:
-texten kopieras, ett påhittat svar klistras in och blir Focus, och ett ogiltigt visar fältet.
-`FocusInbox.acceptClaude` skriver inget själv: finns redan en fil för passet frågar appen
-innan den skrivs över.
+**S5b-2 — knapparna (byggt, grenen `s5b2`, BESLUT B60, METOD MS18):** "Ask Claude" och "Paste
+from Claude" på en grå rad i passet (under måtten) och på Today (under det senaste passets
+rader), i `App/Vyer/ClaudeVy.swift`. Ask lägger underlaget i urklippet och visar "Copied", och
+"Open Claude" när `claude://` går att öppna. Paste läser urklippet efter trycket, kontrollerar
+svaret och visar sakerna i ett blad med "Use" och "Cancel"; finns redan en fil för passet frågar
+bladet innan den skrivs över. Ett ogiltigt svar ger en rad med fältet och koden, och inget
+ändras. Simulatorprovet (`Prov/SwingLabProvClaude.swift`): urklippet är `ClaudeUnderlag` för
+samma pass, ett påhittat svar blir Focus och accent på Today, ett ogiltigt ger raden, en fil som
+finns ger frågan, och bilderna `claude-*`. **Oprövat:** iOS fråga om att klistra in, Claude-appens
+`claude://` och ett riktigt svar från Claude-appen; det provas på telefonen.
 
 **Klart när:** Johannes har tolkat ett pass i Claude-appen på rangen och svaret blivit Focus
 utan att någon fil redigerats för hand, och samma text (`session.py --claude-text`) har

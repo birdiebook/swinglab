@@ -144,6 +144,17 @@
         }
       }
     },
+    "Ask Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask Claude"
+          }
+        }
+      }
+    },
     "Camera": {
       "extractionState": "manual",
       "localizations": {
@@ -162,6 +173,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Camera access is off for SwingLab in Settings."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         }
       }
@@ -250,6 +272,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Continue"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
           }
         }
       }
@@ -771,6 +804,17 @@
         }
       }
     },
+    "Open Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Claude"
+          }
+        }
+      }
+    },
     "Orientation suspect": {
       "extractionState": "manual",
       "localizations": {
@@ -778,6 +822,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Orientation suspect"
+          }
+        }
+      }
+    },
+    "Paste from Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste from Claude"
           }
         }
       }
@@ -855,6 +910,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recording"
+          }
+        }
+      }
+    },
+    "Replace": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace"
+          }
+        }
+      }
+    },
+    "Replace the focus from %@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace the focus from %@?"
           }
         }
       }
@@ -1229,6 +1306,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Undo"
+          }
+        }
+      }
+    },
+    "Use": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use"
           }
         }
       }

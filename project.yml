@@ -64,6 +64,10 @@ targets:
         # Documents/Export syns i Filer och i Apple Devices över kabel (som Idunn).
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
+        # S5b-2, BESLUT B60: "Open Claude" visas bara när Claude-appen finns, och canOpenURL svarar
+        # bara för scheman som står här.
+        LSApplicationQueriesSchemes:
+          - claude
     scheme: {}
 
   # BESLUT B20. Simulatorprovet: körs inuti appen (TEST_HOST) av kompilera.yml vid

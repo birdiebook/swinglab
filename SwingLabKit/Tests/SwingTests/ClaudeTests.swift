@@ -115,14 +115,31 @@ final class ClaudeTests: XCTestCase {
         for h in try XCTUnwrap(Self.facit["historiker"]?.somLista) {
             let u = try underlag(h)
             for s in h["svar"]?.somLista ?? [] {
-                for f in u.svar(s["text"]?.somText ?? "").felen {
+                let felen = u.svar(s["text"]?.somText ?? "").felen
+                for f in felen {
                     XCTAssertNotEqual(Texter.kontrollfel(f.kod), "invalid", f.kod)
                     for v in ["slice", "great", "Great", "Well", "igår", "-1", "20261399", "kg"] {
                         XCTAssertFalse(f.text.contains(v), "\(f.text) bär \(v)")
                     }
                 }
+                // Appens rad (S5b-2): det första felet och antalet till, inget värde.
+                let rad = Texter.kontrollfelRad(felen)
+                XCTAssertEqual(rad.isEmpty, felen.isEmpty)
+                if let f = felen.first { XCTAssertTrue(rad.hasPrefix(f.text), rad) }
+                for v in ["slice", "great", "Great", "Well", "igår", "-1", "20261399", "kg"] {
+                    XCTAssertFalse(rad.contains(v), "\(rad) bär \(v)")
+                }
             }
         }
+    }
+
+    /// "Paste from Claude": felraden i appen (BESLUT B60, METOD MS18).
+    func testFelraden() {
+        XCTAssertEqual(Texter.kontrollfelRad([]), "")
+        XCTAssertEqual(Texter.kontrollfelRad([Kontrollfel("svaret", "inget_block")]), "svaret: no code block from Claude")
+        XCTAssertEqual(Texter.kontrollfelRad([Kontrollfel("saker[0].ovning.tanke", "for_lang"), Kontrollfel("skapad", "iso"),
+                                              Kontrollfel("pass", "inte_analysens")]),
+                       "saker[0].ovning.tanke: too long\u{00A0}\u{00B7} +2")
     }
 
     /// Instruktionen under 8 KiB, ett typiskt pass under 8 KiB data med marginal, varje

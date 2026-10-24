@@ -42,7 +42,8 @@ struct PassShotsView: View {
                 PassScreenContent(pass: pass, visning: visning, images: images, overlays: overlays,
                                   analysis: AnalysisState(analysis), unmeasured: unmeasured, onClose: onClose, onAnalyze: analyze,
                                   onVerdict: setVerdict, onThumb: open, onEdit: { editing = SeriesID(id: $0) },
-                                  onHeight: setHeight, sendToPC: true)
+                                  onHeight: setHeight, sendToPC: true,
+                                  claude: AnyView(ClaudeKnappar(passID: passID, onFocus: reload).environment(store)))
                     // Medan paketet skrivs (Send to PC) väntar Analyze, domen, längden, redigeraren
                     // och granskningen, så att pass.json inte ändras under.
                     .disabled(store.exporting.contains(passID))
@@ -197,6 +198,9 @@ struct PassScreenContent: View {
     var onHeight: (Double) -> Void = { _ in }
     /// "Send to PC" i raden (S2f, Export.swift); false i provets bilder, som saknar Store.
     var sendToPC = false
+    /// "Ask Claude" och "Paste from Claude" (S5b-2, `ClaudeKnappar`) under passets mått, när något
+    /// slag är mätt; nil i provets bilder utan Store. BESLUT B60
+    var claude: AnyView? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -216,6 +220,11 @@ struct PassScreenContent: View {
                 }
                 if unmeasured > 0 {
                     Under(text: String(localized: "\(unmeasured) earlier not measured"))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
+                }
+                if let claude {
+                    claude
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }

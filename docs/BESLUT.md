@@ -1013,7 +1013,7 @@ B47 och s6c börjar på B48.
   bilder, bara talen.
 - **S5b-1 (byggt):** logiken i SwingLabKit (`Swing/Claude/`, `Capture/ClaudeKontext.swift`)
   och PC-sidan (`tools/pc/underlag.py`, `att_jobba_pa.py --ur-text`, `session.py
-  --claude-text`). **S5b-2:** knapparna och simulatorprovet.
+  --claude-text`). **S5b-2 (byggt, B60):** knapparna och simulatorprovet.
 - **Omprövas:** efter de första passen tolkade i Claude-appen: jämför valet med skillens
   fulla väg på PC:n (`session.py --claude-text` ger samma text).
 
@@ -1119,3 +1119,29 @@ B47 och s6c börjar på B48.
 - **Kostnad:** analyser från före B56 saknar `klubba` och tar klubban ur `klubbor` när den är
   en; kör session.py igen för pass med flera klubbor.
 - **Omprövas:** om Johannes vill välja saker för en andra klubba i samma pass.
+
+## B60 — Knapparna för Claude-appen: en rad i passet och på Today, svaret i ett blad
+*2026-10-24 · prövas · PLAN.md S5b-2*
+
+- **Valt:** "Ask Claude" och "Paste from Claude" som två grå textknappar på en rad med en
+  tunn linje ovanför: i passet under måtten (och längden), och på Today under det senaste
+  passets rader, före Focus. Raden visas bara för ett mätt pass. Ask lägger texten i
+  urklippet (`UIPasteboard`) och visar "Copied" i grått; finns Claude-appen visas "Open
+  Claude" bredvid, som öppnar `claude://`. Paste läser urklippet först efter trycket, så att
+  iOS frågar om tillåtelse att klistra in. Ett godkänt svar visas i ett blad med sakerna som
+  i Focus (`SakVy`), "Use" och "Cancel"; har passet redan en fil frågar bladet "Replace the
+  focus from …?" innan den skrivs över. Ett ogiltigt svar ger en vit rad under knapparna
+  med fältet och kodens text (METOD MS18), och inget ändras. "Use" sparar som "Import
+  focus", så att `Store.focus`, Today och accenten (B31) följer med direkt.
+- **`LSApplicationQueriesSchemes: [claude]`** står i project.yml: utan den svarar
+  `canOpenURL` alltid nej.
+- **Varför:** B13 och Todays enkelhet: ingen ikon, ingen primärknapp och ingen förklaring;
+  raden sitter vid passet den gäller. Bladet visar vad som blir Focus innan något skrivs.
+- **Bortvalt:** en meny i passets rad (bredvid "Send to PC"), där "Copied" och felet inte
+  får plats; `PasteButton` (ingen fråga, men den ritar en egen systemknapp utanför
+  formspråket och Johannes ska se frågan); en dialog för frågan om att skriva över (den går
+  inte att rita i provet); att öppna Claude-appen med texten i adressen (texten är ≈ 15 kB).
+- **Kostnad:** "Open Claude" bygger på att Claude-appen svarar på `claude://`, vilket inte
+  är prövat (simulatorn har ingen Claude-app). Svaret för ett äldre pass sparas men blir
+  inte Focus när ett senare pass har en fil (`Store.focus` är den senaste, B36).
+- **Omprövas:** efter telefonprovet med Claude-appen på rangen.

@@ -309,4 +309,12 @@ public enum Texter {
 
     /// Kodens text, eller "invalid" för en kod utan text.
     public static func kontrollfel(_ kod: String) -> String { kontrollfelTexter[kod] ?? "invalid" }
+
+    /// "Paste from Claude" i appen (S5b-2): det första felet som en rad, fältet och kodens text,
+    /// och antalet fel till ("saker[0].ovning.tanke: too long · +2"). Aldrig ett värde ur svaret.
+    /// BESLUT B60, METOD MS18
+    public static func kontrollfelRad(_ fel: [Kontrollfel]) -> String {
+        guard let f = fel.first else { return "" }
+        return fel.count > 1 ? f.text + skilje + "+\(fel.count - 1)" : f.text
+    }
 }

@@ -12,6 +12,9 @@ struct IdagVy: View {
     var importera: (() -> Void)? = nil
     var oppnaPasset: () -> Void = {}
     var oppnaJobba: () -> Void = {}
+    /// "Ask Claude" och "Paste from Claude" för det senaste passet (S5b-2, `ClaudeKnappar`), under
+    /// passets rader; nil = raden visas inte. BESLUT B60
+    var claude: AnyView? = nil
     /// Bladet som visas (BESLUT B41): ⓘ på en rad eller radens VoiceOver-åtgärd.
     @State private var blad: Infoblad?
 
@@ -153,6 +156,7 @@ struct IdagVy: View {
                 .contentShape(Rectangle())
                 .onTapGesture(perform: oppnaPasset)
                 .accessibilityAddTraits(.isButton)
+                if let claude { claude }
             }
 
             if !visning.fokus.isEmpty {

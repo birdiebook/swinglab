@@ -1670,6 +1670,22 @@ värden i `CaptureTests`.
   skrivs rätt och läses av `paket.py`. Telefonen: att `gravity` och tiden är det som
   antas här, spridningen på stativet, och tillåtelsen på iOS 27.2.
 
+## MS18 — Knapparna för Claude-appen (S5b-2)
+
+- **Passet:** i passets skärm passet som visas, på Today det senaste passet (`PassHistory.latest`).
+  Raden visas bara när passet har ett mätt slag. Passet och de tidigare passen med samma
+  klubba, vy och längd mäts som i passets skärm (`PassMeasures`, MS14), och `ClaudeKontext`
+  bygger underlaget (MT11) utanför huvudtråden. **räkning.**
+- **"Paste from Claude"** bygger underlaget för samma pass igen och kontrollerar svaret mot det
+  (MT12). Minnet tas före passets val, så en fil som redan finns för passet ändrar inte
+  kontrollen. Har passet redan en fil (`AttJobbaPa/att_jobba_pa-<pass>.json`) frågar bladet
+  innan den skrivs över. **räkning.**
+- **"Copied"** står kvar i **3 s**; "Open Claude" står kvar tills raden visar något annat.
+  **antagande** (det ska hinna läsas, utan att bli en ruta som måste stängas).
+- **Felraden:** det första felet (fältet och kodens text, BESLUT B54) och antalet fel till
+  ("+2"). **antagande** (en rad, B13; det första felet räcker för att säga vad Claude ska
+  rätta).
+
 ---
 
 # Tolkningen (S5)

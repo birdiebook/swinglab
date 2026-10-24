@@ -49,6 +49,8 @@ final class SwingLabProv: XCTestCase {
             XCTAssertFalse((info[nyckel] as? String ?? "").isEmpty, "\(nyckel) saknas")
         }
         XCTAssertEqual(info["NSBonjourServices"] as? [String], ["_swinglab._tcp"])
+        // "Open Claude" (S5b-2, BESLUT B60): canOpenURL svarar bara för scheman som står här.
+        XCTAssertEqual(info["LSApplicationQueriesSchemes"] as? [String], ["claude"])
         XCTAssertEqual(info["ITSAppUsesNonExemptEncryption"] as? Bool, false)
         // Ikonen: actool skriver in den när AppIcon finns i Assets.xcassets.
         let ikoner = info["CFBundleIcons"] as? [String: Any]

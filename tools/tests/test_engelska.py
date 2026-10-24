@@ -98,6 +98,7 @@ INTE_TEXT = {
     "\\(…) cm", "katalog", "json", "P1", "P4", "P7", "P10", " s", " ",
     "eye", "eye.slash", "ellipsis", "\\(…) / \\(…)", "—",
     "smallcircle.filled.circle", "chart.xyaxis.line", "person", "chevron.right", "info.circle",
+    "claude://", "ej_i_analysen",
 }
 
 
