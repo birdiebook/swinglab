@@ -1,15 +1,44 @@
-78c7b31ec8b89d9887b2774128d3a6d2be71560d s6d 2026-10-24T17:29:26Z run 40115954698 kompilera
+5c33c8c14e1d387fcd185856b4798ef0f4cd8507 s6g 2026-10-24T17:33:07Z run 40116062055 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
-RÖTT: arkiveringen gick inte igenom
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:231:29: error: constant 'self.fram' captured by a closure before being initialized
-** ARCHIVE FAILED **
+GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
 RÖTT: ingen sammanräkning i loggen (kompilerade det?)
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:231:29: error: constant 'self.fram' captured by a closure before being initialized
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:103:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:117:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:120:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:144:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:145:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:150:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:155:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:262:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:270:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:103:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:117:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:120:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:144:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:145:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:150:29: error: 'async' call in an autoclosure that does not support concurrency
 
-/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/TreD/FigurVy.swift:231:29: error: constant 'self.fram' captured by a closure before being initialized
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:103:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:117:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:120:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:144:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:145:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:150:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:155:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:262:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:270:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:103:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:117:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:120:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:144:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:145:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:150:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:155:29: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:262:40: error: 'async' call in an autoclosure that does not support concurrency
+/Users/runner/work/swinglab/swinglab/Prov/SwingLabProvVideo.swift:270:29: error: 'async' call in an autoclosure that does not support concurrency
 ** TEST FAILED **
 == provets mätningar (påhittad film)
 
@@ -17,4 +46,6 @@ RÖTT: ingen sammanräkning i loggen (kompilerade det?)
 RÖTT: PC:n läste inte appens paket
 ERROR: setUpClass (test_appens_paket.AppensPaket)
 FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
-FAILED (errors=1)
+ERROR: setUpClass (test_appens_paket.AppensParadePaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket-parat/facit.json'
+FAILED (errors=2)
