@@ -240,7 +240,7 @@ class Jamforelsen(unittest.TestCase):
         cm = [m for m in res["matt"] if m["enhet"] == "cm"]
         self.assertGreater(len(cm), 10)
         self.assertLess(max(abs(m["skillnad"]) for m in cm), 0.1)
-        self.assertEqual(json.loads((ut / "s3.json").read_text())["format"], S3.FORMAT)
+        self.assertEqual(json.loads((ut / "s3.json").read_text(encoding="utf-8"))["format"], S3.FORMAT)
 
     def test_kant_brus_hittas(self) -> None:
         res = self.brus
@@ -276,7 +276,7 @@ class Jamforelsen(unittest.TestCase):
         res, ut = self.brus, self.brus_ut
         faser = {r["fas"] for r in res["leder"] if r["n"]}
         self.assertTrue(set(S3.FASER_S3) <= faser)
-        md = (ut / "s3.md").read_text()
+        md = (ut / "s3.md").read_text(encoding="utf-8")
         self.assertIn("## Det som avgör B5", md)
         self.assertIn("nedsving", md)
         self.assertIn("ingen källa", md)
@@ -296,9 +296,9 @@ class Jamforelsen(unittest.TestCase):
         self.assertIn("hoppat", res["kontaktark"]["dtl"])
         self.assertIsNone(res["beslut_b5"]["dtl"]["alla"])
         self.assertTrue(all(m["skillnad"] is None and m["tydlig"] is None for m in res["matt"]))
-        self.assertIn("–", (ut / "s3.md").read_text())
+        self.assertIn("–", (ut / "s3.md").read_text(encoding="utf-8"))
         # Ett annat utsnitt eller en annan modell gör de sparade lederna ogiltiga.
-        d = json.loads(next((ut / "mediapipe").glob("*.json")).read_text())
+        d = json.loads(next((ut / "mediapipe").glob("*.json")).read_text(encoding="utf-8"))
         self.assertTrue(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), S3.MODELL_FIL))
         self.assertFalse(S3._cache_giltig(d, 1080, 1920, (0, 0, 1080, 1920), S3.MODELL_FIL))
         self.assertFalse(S3._cache_giltig(d, 1080, 1920, tuple(d["utsnitt_px"]), "pose_landmarker_full.task"))
