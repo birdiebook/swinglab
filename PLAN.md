@@ -335,14 +335,27 @@ hur det rört sig genom rymden. I förlängningen blir det en 3D-figur som följ
 I granskningen slår Johannes på spår för valda punkter: händerna (greppet, handledernas mitt
 med greppregeln M1), axlarna, höfterna och huvudet; klubbhuvudet när S7b ger banan. Ett spår
 är en tunn linje över hela svingen: det som spelats upp ritas fast, resten svagt. Valet är
-chips under videon ("Hands · Shoulders · Hips · Head · Club"), sparat per användare. Svartvitt
-med gråtoner och linjestil per punkt (B13), ingen accent (B31). Banan jämnas lätt med
-mätningens utjämning (M3), och en ruta där leden saknas ger ett avbrott, aldrig en gissning.
-Ritlagret är en egen vy (`SparLager`) som tar namngivna punktserier i bildens pixlar med tider,
-så att S7b och senare S6d återanvänder det. Mätningen rörs inte.
+chips under videon ("Hands · Shoulders · Hips · Head", "Club" när S7b ger banan), sparat per
+användare. Svartvitt
+med gråtoner och linjestil per punkt (B13), ingen accent (B31). Banan jämnas lätt för
+visningen (M60: mätningens σ, fönstret symmetriskt vid en kant), och en ruta där leden saknas
+ger ett avbrott, aldrig en gissning.
+Ritlagret är en egen vy (`SparLager`) som tar namngivna punktserier i bildens pixlar med tider
+(`SparSerie`); S7b ritar med samma lager, och datamodellen och delningen återanvänds av S6d, som
+ritar 3D med en egen vy. Mätningen rörs inte.
 
 **Klart när:** simulatorprovet ritar spåren vid P4 och P7, och Johannes har slagit på spåren
 på telefonen och förstått direkt vad han ser.
+
+**Byggt (grenen `spar-s4f`).** METOD M60, BESLUT B70. SwingLabKit: `SparSerie` (namngiven serie i
+bildens pixlar med tider; delarna, gränsen spelat/kvar och avbrotten) och `Spar.serier` (händerna
+med greppregeln och brott där den byter handled, axlarna och höfterna som två serier var,
+huvudet; `Spar.jamna`), och `ShotReview.yta` (samma avbildning för lederna och spåren), prövat i
+`SparTests`. Appen: `App/Vyer/SparLager.swift` (`SparBild` räknad en gång, lagret med hela banan
+svagt och det spelade fast, chipsen `SparVal`), ett eget lager i `ReviewStage` och en egen rad
+under videons kontroller; valet sparas i `AppSettings.trails`. Simulatorprovet: bilderna
+`granskning-spar-p4` (händerna) och `granskning-spar-p7` (alla fyra, lederna av). **Oprövat på
+telefonen:** hur spåren syns mot en riktig bakgrund, och om chipsen får plats och förstås.
 
 ## S6 — Två kameror: vridningen och X-factor
 

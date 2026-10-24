@@ -111,15 +111,20 @@ public struct ShotReview: Sendable {
         return lo
     }
 
+    /// En punkt i hela bildens pixlar → ytans koordinater (0–1 i utsnittet, origo uppe till
+    /// vänster). Lederna, skaftet och spåren (S4f) går genom samma. METOD MS13, MS15, M60
+    public static func yta(x: Double, y: Double, bredd: Int, hojd: Int, crop: CropRect) -> (x: Double, y: Double) {
+        crop.local(x: x / Double(bredd), y: y / Double(hojd))
+    }
+
     /// Lederna och linjerna i ruta k, i ytans koordinater.
     public func overlay(_ k: Int) -> Overlay {
         guard frames.indices.contains(k), width > 0, height > 0 else { return Overlay(points: [], lines: []) }
         let f = frames[k]
-        let w = Double(width), h = Double(height)
         let points = (0..<JointSeries.names.count).map { i -> Point? in
             guard i < f.joints.count, let j = f.joints[i], j.x.isFinite, j.y.isFinite, j.c >= Self.shownConfidence
             else { return nil }
-            let l = crop.local(x: j.x / w, y: j.y / h)
+            let l = Self.yta(x: j.x, y: j.y, bredd: width, hojd: height, crop: crop)
             return Point(x: l.x, y: l.y, state: j.c >= Self.measuredConfidence ? .measured : .weak)
         }
         let lines = Self.bones.compactMap { b -> Line? in
@@ -143,8 +148,8 @@ public struct ShotReview: Sendable {
         guard frames.indices.contains(k), width > 0, height > 0,
               let m = marks?.first(where: { $0.markerad && abs($0.t - frames[k].t) < Self.sameFrame }),
               let g = m.grepp, let h = m.hosel else { return nil }
-        let w = Double(width), hh = Double(height)
-        return (crop.local(x: g.x / w, y: g.y / hh), crop.local(x: h.x / w, y: h.y / hh))
+        return (Self.yta(x: g.x, y: g.y, bredd: width, hojd: height, crop: crop),
+                Self.yta(x: h.x, y: h.y, bredd: width, hojd: height, crop: crop))
     }
 
     /// En markering hör till rutan när tiderna skiljer mindre än så, s (lederna avrundas till

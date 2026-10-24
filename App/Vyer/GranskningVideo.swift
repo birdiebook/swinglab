@@ -52,7 +52,7 @@ struct ShotReviewView: View {
     /// Sparningen utanför huvudtråden; bara den senaste skrivs.
     @State private var saveCount = 0
     /// Spåren som visas (S4f, BESLUT B70), räknade när valet eller slaget ändras.
-    @State private var spar: [SparSerie] = []
+    @State private var spar: SparBild?
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -115,7 +115,10 @@ struct ShotReviewView: View {
                                   onMarkClub: startMarking)
                         .padding(.vertical, 8)
                 }
-                .task(id: store.settings.trails) { spar = review.spar(Array(store.settings.sparVal)) }
+                .task(id: store.settings.trails) {
+                    let s = review.spar(Array(store.settings.sparVal))
+                    spar = s.isEmpty ? nil : SparBild(serier: s, bredd: review.width, hojd: review.height, crop: review.crop)
+                }
             } else {
                 VStack(alignment: .leading) {
                     Navrad(titel: "", hoger: { EmptyView() }, tillbaka: close)
@@ -500,7 +503,7 @@ struct ReviewContent<Surface: View>: View {
     /// Skaftet som är markerat i rutan (S7a), i ytans koordinater; nil = inget.
     var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
     /// Spåren (S4f, BESLUT B70): serierna, valet och ett tryck på ett chip; nil = inget val.
-    var spar: [SparSerie] = []
+    var spar: SparBild? = nil
     var sparVal: Set<SparPunkt> = []
     var onSpar: ((SparPunkt) -> Void)? = nil
     /// Menyn är en UIKit-del som provets ImageRenderer inte ritar; utan den bara symbolen.
@@ -535,11 +538,8 @@ struct ReviewContent<Surface: View>: View {
     }
 
     /// Spåren i rutan: det som spelats upp till rutans tid (S4f).
-    private var sparBild: SparBild? {
-        guard !spar.isEmpty, review.frames.indices.contains(frame) else { return nil }
-        return SparBild(serier: spar, nu: review.frames[frame].t, bredd: review.width, hojd: review.height,
-                        crop: review.crop)
-    }
+    /// Rutans tid: spåren är spelade fram till den (S4f).
+    private var sparNu: Double { review.frames.indices.contains(frame) ? review.frames[frame].t : -.infinity }
 
     /// "−0.250 s" från träffen.
     var timeText: String {
@@ -580,7 +580,7 @@ struct ReviewContent<Surface: View>: View {
             }
 
             ReviewStage(surface: surface, overlay: review.overlay(frame), overlayOn: overlayOn, time: timeText,
-                        shaft: shaft, spar: sparBild)
+                        shaft: shaft, spar: spar, sparNu: sparNu)
                 .aspectRatio(CGFloat(review.aspect), contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.stageHeight)
@@ -677,12 +677,14 @@ struct ReviewStage<Surface: View>: View {
     var shaft: (grip: (x: Double, y: Double), hosel: (x: Double, y: Double))? = nil
     /// Spåren (S4f, BESLUT B70): ett eget lager under lederna, oberoende av ögat.
     var spar: SparBild? = nil
+    var sparNu = 0.0
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             surface
-            if let spar { SparLager(bild: spar) }
-            if overlayOn { LedOverlay(overlay: overlay) }
+            if let spar { SparLager(bild: spar, nu: sparNu) }
+            // Med spåren påslagna dämpas lederna, så att spåren skiljer sig från dem (B70).
+            if overlayOn { LedOverlay(overlay: overlay, dampad: spar != nil) }
             if overlayOn { ShaftOverlay(shaft: shaft) }
             if !time.isEmpty {
                 Text(verbatim: time)
@@ -700,6 +702,8 @@ struct ReviewStage<Surface: View>: View {
 /// som mäts, ihålig för en osäker, linjerna streckade mot en osäker led, näsan lite större.
 struct LedOverlay: View {
     let overlay: ShotReview.Overlay
+    /// Grå i stället för vit, när spåren visas (S4f, BESLUT B70).
+    var dampad = false
 
     var body: some View {
         Canvas { c, s in
@@ -707,11 +711,11 @@ struct LedOverlay: View {
             for l in overlay.lines {
                 guard overlay.points.indices.contains(l.from), overlay.points.indices.contains(l.to),
                       let a = overlay.points[l.from], let b = overlay.points[l.to] else { continue }
-                c.linje(p(a), p(b), Theme.text, 1.2, streckad: l.measured ? [] : [3, 3])
+                c.linje(p(a), p(b), dampad ? Theme.secondary : Theme.text, 1.2, streckad: l.measured ? [] : [3, 3])
             }
             for (i, q) in overlay.points.enumerated() {
                 guard let q else { continue }
-                c.prick(p(q), i == 0 ? 3.5 : 2.6, Theme.text, ihalig: q.state == .weak)
+                c.prick(p(q), i == 0 ? 3.5 : 2.6, dampad ? Theme.secondary : Theme.text, ihalig: q.state == .weak)
             }
         }
         .allowsHitTesting(false)

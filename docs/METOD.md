@@ -2387,20 +2387,32 @@ en bild, inget mått: mätningen och slagets tal rörs inte.
   **axlarna** och **höfterna** = två serier var (vänster och höger led), så att vridningen
   syns som att linjerna närmar sig och korsar varandra; **huvudet** = näsan. En led räknas
   från konfidensen **0,3** (M1). **Klubbhuvudet** kommer ur S7b:s bana (M61).
-- **Utjämningen** är mätningens (M3): gaussvikt över tiden med **σ = 7,5 ms**, x och y var
-  för sig, som inte fyller luckor (`Spar.serier`, `Faser.jamna`). Med 240 bilder/s tar den
-  bort skakningen i Visions leder ruta för ruta utan att runda av svingens vändningar
-  (fönstret 3σ = 22,5 ms). **antagande** (samma som mätningen, inte kalibrerad för bilden).
+- **Greppregelns byte bryter banan:** där händernas punkt går från mitten till en handled
+  (eller tillbaka, eller från den ena till den andra) hoppar den en halv handledsbredd, så
+  spåret bryts där i stället för att rita hoppet (`SparSerie.brott`). **räkning.**
+- **Utjämningen** (`Spar.jamna`, bara för visningen): gaussvikt över tiden med **σ = 7,5 ms**
+  som mätningen (M3), men fönstret krymper **symmetriskt** vid en kant: h = min(3σ, tiden till
+  delens första ruta, tiden till dess sista), så att en lucka eller ett brott aldrig drar en
+  punkt åt ena hållet. En del slutar där punkten saknas, över en lucka längre än **0,10 s**
+  och vid ett brott; delens ändpunkter ritas som de är. Provat: en lucka mitt i en rörelse
+  på 2 000 px/s lämnar rutorna bredvid exakt på linjen (mätningens fönster drar dem 1,5 px),
+  och en vändning står kvar på samma ruta, 0,1 px från sitt läge. Mätningens `Faser.jamna`
+  (M3) är orörd. **antagande** (σ, samma som mätningen).
 - **Avbrott:** en ruta där punkten saknas ger ett avbrott i linjen, och likaså en lucka i
   rutnätet längre än **0,10 s** (M3); ingen gissning över luckan. En ensam punkt ritas inte.
-- **Spelat och kvar:** delen fram till rutan som visas (t ≤ rutans tid) ritas fast, resten
-  med opaciteten **0,22**, och de två delarna delar punkten vid gränsen så att linjen är hel
-  (`SparSerie.delar`). Punktens läge i rutan är en prick. **antagande** (0,22 valt för att
-  formen ska synas utan att konkurrera med det spelade; oprövat på telefonen).
-- **Ritningen** (`SparLager`, appen): seriernas punkter i hela bildens pixlar räknas om till
-  utsnittets yta som lederna (MS13), så att ett spår hamnar på sin led. Provat i
-  simulatorprovet: händernas spår vid P4 ligger inom 3 px från handledernas mitt
-  (`granskning-spar-p4`).
+- **Spelat och kvar:** hela banan ritas med opaciteten **0,30** (en gång, oberoende av
+  rutan), och delen fram till rutan som visas (t ≤ rutans tid, binärsökning) ritas fast
+  ovanpå (`SparSerie.delar`, `grans`, `spelade`). Punktens läge i rutan är en prick. Under
+  varje linje ligger en **svart kant med opaciteten 0,5, 1,5 pt bredare**, så att spåret syns
+  mot en ljus bakgrund. Strecken räknas från seriens start (båglängden), så att de inte
+  kryper när rutan byts. **antagande** (0,30, 0,5 och 1,5 pt; oprövat på telefonen).
+- **Ritningen** (`SparLager`, appen): seriernas punkter i hela bildens pixlar räknas en gång
+  om till ytan med samma avbildning som lederna (`ShotReview.yta`, MS13; provat med ett snett
+  utsnitt i `SparTests`). Med ett spår påslaget ritas lederna gråa (`Theme.secondary`), så att
+  spåren skiljer sig från dem. Provat i simulatorprovet: händernas spår vid P4 ligger inom 3 px
+  från handledernas mitt (`granskning-spar-p4`).
+- **Återanvändningen:** datamodellen (`SparSerie`) och delningen (avbrotten, spelat och kvar)
+  återanvänds av klubbhuvudets bana (S7b) och av 3D (S6d); 3D ritar med en egen vy.
 
 ---
 

@@ -237,7 +237,8 @@ final class SwingLabProvGranskning: XCTestCase {
                           overlayOn: overlayOn, position: position, positions: pos,
                           rows: ReviewRows.rows(pass: klar, shot: s4, position: position, baseline: [:]),
                           detectionWrong: wrong, impact: s4.impact - s4.click.time,
-                          spar: spar.map { review.spar($0) } ?? [], sparVal: Set(spar ?? []),
+                          spar: spar.map { SparBild(serier: review.spar($0), bredd: review.width, hojd: review.height,
+                                                    crop: review.crop) }, sparVal: Set(spar ?? []),
                           onSpar: spar == nil ? nil : { _ in }, editable: false)
         }
         try rita(granskning(k4, "P4", still: stillP4), "granskning-video")

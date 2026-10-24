@@ -287,6 +287,17 @@
         }
       }
     },
+    "Club trail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Club trail"
+          }
+        }
+      }
+    },
     "Clubs": {
       "extractionState": "manual",
       "localizations": {
@@ -584,6 +595,17 @@
         }
       }
     },
+    "Hands trail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hands trail"
+          }
+        }
+      }
+    },
     "Head": {
       "extractionState": "manual",
       "localizations": {
@@ -591,6 +613,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Head"
+          }
+        }
+      }
+    },
+    "Head trail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Head trail"
           }
         }
       }
@@ -613,6 +646,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hips"
+          }
+        }
+      }
+    },
+    "Hips trail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hips trail"
           }
         }
       }
@@ -1295,6 +1339,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shoulders"
+          }
+        }
+      }
+    },
+    "Shoulders trail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shoulders trail"
           }
         }
       }

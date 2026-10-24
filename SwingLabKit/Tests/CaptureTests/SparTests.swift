@@ -81,4 +81,66 @@ final class SparTests: XCTestCase {
         XCTAssertEqual(d.map(\.interpolerad), [false, true, false])
         XCTAssertEqual(d.map(\.punkter.count), [2, 3, 3])
     }
+
+    /// En lucka mitt i en snabb rörelse drar inte punkterna bredvid åt ett håll: fönstret
+    /// krymper symmetriskt (M60). Mätningens utjämning (M3) drar dem.
+    func testLuckaISnabbRorelse() {
+        let t = (0..<30).map { Double($0) / 240 }
+        var p = t.map { Punkt(2000 * $0, 100) }            // 2 000 px/s
+        p[15] = .saknad
+        let s = Spar.jamna(t, p)
+        for k in [13, 14, 16, 17] {
+            XCTAssertEqual(s[k].x, 2000 * t[k], accuracy: 1e-9, "ruta \(k)")
+        }
+        XCTAssertFalse(s[15].hel)
+        let m = Faser.jamna(t, p)
+        XCTAssertGreaterThan(abs(m[14].x - 2000 * t[14]), 0.5, "mätningens fönster är ensidigt vid luckan")
+    }
+
+    /// En vändning (händerna vid toppen) står kvar på samma ruta och nästan samma ställe.
+    func testVandningenStarKvar() throws {
+        let t = (0..<60).map { Double($0) / 240 }
+        let t0 = t[30]
+        let p = t.map { Punkt(300, 400 + 2000 * ($0 - t0) * ($0 - t0)) }   // högst i bilden (minst y) vid t0
+        let s = Spar.jamna(t, p)
+        let topp = try XCTUnwrap(s.indices.min { s[$0].y < s[$1].y })
+        XCTAssertEqual(topp, 30)
+        XCTAssertEqual(s[30].y, 400, accuracy: 0.5)
+    }
+
+    /// Där greppregeln byter handled bryts banan (punkten hoppar en halv handledsbredd).
+    func testGreppregelnBryter() {
+        let s = Spar.serier(Self.rutor(40, enHand: Set(20..<30)), val: [.hands])[0]
+        XCTAssertEqual(s.brott, [20, 30])
+        XCTAssertEqual(s.delar().map(\.punkter.count), [20, 10, 10])
+        // Ingen utjämning över brottet: rutan före är exakt mitten.
+        XCTAssertEqual(s.p[19].x, 100 + 38, accuracy: 1e-9)
+    }
+
+    /// Punkten i rutan saknas när leden saknas där, och gränsen hittas med binärsökning.
+    func testPunktenSaknasDarLedenSaknas() {
+        let s = Spar.serier(Self.rutor(20, utan: [7]), val: [.hands])[0]
+        XCTAssertNil(s.punkt(nu: s.t[7]))
+        XCTAssertNotNil(s.punkt(nu: s.t[8]))
+        XCTAssertEqual(s.grans(nu: s.t[7] + 0.001), 7)
+        XCTAssertNil(s.grans(nu: -1))
+        let d = s.delar()
+        XCTAssertEqual(SparSerie.spelade(d, till: 10).map(\.punkter.count), [7, 3])
+        XCTAssertEqual(SparSerie.spelade(d, till: nil), [])
+    }
+
+    /// Lederna och spåren går genom samma avbildning till ytan, också med ett snett utsnitt.
+    func testSammaYtaSomLederna() throws {
+        let crop = CropRect(x: 0.37, y: 0.03, width: 0.55, height: 0.33)
+        var f = Self.rutor(1)[0]
+        f.joints[0] = PoseJoint(x: 700, y: 300, c: 0.9)
+        let serie = JointSeries(width: 1080, height: 1920, frames: [f])
+        let review = ShotReview(series: serie, crop: crop)
+        let led = try XCTUnwrap(review.overlay(0).points[0])
+        let y = ShotReview.yta(x: 700, y: 300, bredd: 1080, hojd: 1920, crop: review.crop)
+        XCTAssertEqual(led.x, y.x, accuracy: 1e-12)
+        XCTAssertEqual(led.y, y.y, accuracy: 1e-12)
+        XCTAssertEqual(y.x, (700.0 / 1080 - review.crop.x) / review.crop.width, accuracy: 1e-12)
+        XCTAssertEqual(y.y, (300.0 / 1920 - review.crop.y) / review.crop.height, accuracy: 1e-12)
+    }
 }
