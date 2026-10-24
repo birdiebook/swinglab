@@ -16,7 +16,7 @@ import TreD
 @MainActor
 @Observable
 final class TreDKoppling {
-    /// Följarens överföring, som en grå rad i passet.
+    /// Följarens överföring, som en grå rad i passet (METOD MS19).
     enum Skickat: Equatable {
         case vantar, skickat, annatPass, annanVersion
     }
