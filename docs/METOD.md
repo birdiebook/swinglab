@@ -2308,6 +2308,25 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   raderna "Bra brus" och "Grund (typiskt brus)"), och utan brus inom 0,5° (varje
   slag inom 1°). Uppmätt för kedjan på 24 pass per nivå står i §6.7.
 
+## MK9 — Visaren: kamerorna, figuren och skalan (S6f)
+
+`tools/pc/visa.py` visar kedjans tal och mäter inget eget:
+
+- **Kamerorna** per uppställning: kalibreringen räknas om med kedjans synk efter
+  sista varvet (MK3, MK4), samma anrop som kedjans sista, så att läget, Sampson-felet
+  och vinkeln är kedjans. En uppställning över spärren ritas ändå, med figuren
+  triangulerad (MK5) och märkt "över spärren": den ger inga mått.
+- **Figuren** är kedjans triangulerade leder på FO:s klocka (träffen = 0); DTL:s klipp
+  flyttas med synken. Samma leder projiceras tillbaka i båda klippen med K · R · (X − C).
+  Testet kräver att den projicerade figuren ligger inom 6 px (median) från Visions
+  leder på påhittade pass med bra brus.
+- **Skalan** (bara för bilden): självkalibreringen saknar skala, så världen skalas så
+  att näsan över fotlederna (median över rutorna) blir **0,89** × spelarens längd
+  (ögonen 0,936 och fotleden 0,039 av längden, Drillis och Contini 1966, **ej läst i
+  original**). Utan figur är avståndet mellan kamerorna 1. Inget mått beror på den.
+- **MediaPipe** (S3) läggs på Visions tid med S3:s förskjutning (MF1): t = tk −
+  förskjutningen − `klick_i_klipp_s`; utan förskjutning 0, och sidan säger det.
+
 
 ## M50 — 3D på telefonen: Swift mot Python (S6c-1)
 

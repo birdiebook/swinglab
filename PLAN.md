@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d · S6e · S6f nu · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -551,6 +551,38 @@ med två telefoner spelas upp i 3D på telefonen, och banorna går att vrida och
 En modell som skattar djupet ur 2D-lederna (monokulär lyftning). Ett stort jobb, med licens
 och facit att utreda (S6:s två telefoner är facit). Görs senare, om två telefoner känns
 krångligt i praktiken.
+
+### S6f — Visaren på PC:n (Johannes 2026-10-24)
+
+Första riktiga passet med två telefoner (2026-10-24) gav ingen 3D: telefonerna var märkta
+med fel vy, och kalibreringen satte kamerorna 165–177° isär med Sampson-felet långt över
+spärren. Siffrorna i terminalen sa att något var fel, men inte vad. En bild av lederna och
+kamerorna hade visat båda felen direkt. Visaren är PC:ns verkstad och facit (VISION), ingen
+andra app: den visar det kedjan redan räknar, så att ett trasigt pass syns och ett bra pass
+går att granska. Den dubblerar inte S6d, som är 3D på telefonen. Formspråket är B13: ett
+mätinstrument, ingen modellerad kropp.
+
+**Gör:** `tools/pc/visa.py <dtl.zip> <fo.zip> [--ut <mapp>]` skriver en fristående sida per
+pass, `~/swinglab-analys/<pass>/visa.html` (en utmapp i repot utanför `data/` vägras, som i
+`session.py`), med klippen kopierade bredvid. Den öppnas i webbläsaren utan server och visar:
+
+- båda vyernas klipp sida vid sida med Visions leder ovanpå, och MediaPipes när S3 sparat dem
+  (`~/swinglab-s3/<pass>/mediapipe/`, flyttade med S3:s förskjutning), med stegning P1–P10
+  ur 2D-faserna och uppspelning i takt på träffens tid;
+- 3D-figuren ur `tva_kameror.py`:s triangulerade leder (three.js), som går att vrida och
+  spelas i takt med klippen, och 3D-lederna projicerade tillbaka i båda klippen;
+- kamerorna där kalibreringen placerade dem, per uppställning, med Sampson-felet mot
+  spärren, vinkeln mellan kamerorna mot 60–120° och varje pakets vy-etikett, så att en
+  fel märkt telefon eller en trasig kalibrering syns direkt. En uppställning över spärren
+  ritas ändå, märkt "över spärren": det är det som ska synas;
+- måtten per sving (2D per vy och 3D per par) och skälen när 3D hoppades över.
+
+3D-lederna sparas inte i `analys.json` (formen är oförändrad); visaren anropar kedjan själv,
+med en valfri krok i `TK.analysera` som lämnar uppställningarnas slag.
+
+**Klart när:** testerna bygger sidan på påhittade pass (med 3D, över spärren och med två
+paket med samma vy) och den bär figuren, kamerorna och måtten; och Johannes har öppnat ett
+riktigt pass i visaren och sett kamerorna och figuren där kalibreringen satte dem.
 
 ## S7 — Klubban
 

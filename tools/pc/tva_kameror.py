@@ -448,15 +448,17 @@ def utelamnat(t: np.ndarray) -> str | None:
     return None
 
 
-def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None, minne: dict | None = None) -> dict:
+def analysera(dtl: Paket, fo: Paket, rader: list[dict], inre: list | None = None, minne: dict | None = None,
+              grupper: dict | None = None) -> dict:
     """3D för passet: parningen, en kalibrering per uppställning (serie mot serie),
     måtten per slag och passets trend. `rader` är 2D-analysens slag
     (analys.mat_paket) för båda paketen. `inre`: se _uppstallning; `minne`: se
-    _spar_och_vikter. Ett parat slag som inte mäts står i `utelamnade` med skälet.
-    METOD MK1–MK7, M51"""
+    _spar_och_vikter. `grupper` (en dict) får uppställningarnas slag med spåren, även
+    när passet sedan hoppas över, för visaren (tools/pc/visa.py, PLAN S6f). Ett parat
+    slag som inte mäts står i `utelamnade` med skälet. METOD MK1–MK7, M51"""
     par, parning = para_slag(dtl, fo)
     rad = {(r["vy"], r["id"]): r for r in rader}
-    grupper: dict[tuple[int, int], list[dict]] = {}
+    grupper = {} if grupper is None else grupper
     utelamnade = []
     for sd, sf in par:
         skal = None
