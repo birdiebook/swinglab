@@ -349,6 +349,6 @@ struct Reglage: ToggleStyle {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityAddTraits(configuration.isOn ? [.isToggle, .isSelected] : .isToggle)
+        .accessibilityAddTraits(configuration.isOn ? AccessibilityTraits([.isToggle, .isSelected]) : AccessibilityTraits.isToggle)
     }
 }
