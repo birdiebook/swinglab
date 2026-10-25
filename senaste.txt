@@ -1,20 +1,20 @@
-b87408cbdc93719a2dea752b561985c96ed979da s7e-bana3d 2026-10-25T20:42:09Z run 40231772184
+a9878be2ffdaba356a16513fc107ea790d20f455 s7e-bana3d 2026-10-25T20:51:17Z run 40232510280
 == swift-release
-GRÖNT: 414 test, 0 fel, 31 s i testerna, bygget 94 s
+GRÖNT: 414 test, 0 fel, 28 s i testerna, bygget 74 s
 Långsammast (av 414):
-      2.5 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      2.3 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.3 s  TreDTests.testFigurenSomPython
-      1.9 s  TreDTests.testTelefonensVagSomPython
-      1.8 s  KlubbSparTests.testBananSomPython
-      1.1 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.1 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.0 s  TreDTests.testFigurensFilTurOchRetur
-      0.9 s  TreDTests.testVinklarnaForEnVansterspelare
-      0.9 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.9 s  KlubbSparTests.testFeletMotSanningen
-      0.9 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
-      0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.8 s  TreDTests.testKortet
+      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.7 s  TreDTests.testFigurenSomPython
+      1.5 s  TreDTests.testTelefonensVagSomPython
+      1.4 s  KlubbSparTests.testBananSomPython
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      0.8 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
       0.8 s  TreDTests.testInreIFilenOchUppdateras
+      0.8 s  KlubbSparTests.testFeletMotSanningen
+      0.7 s  TreDTests.testFigurensFilTurOchRetur
+      0.7 s  TreDTests.testVinklarnaForEnVansterspelare
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  KlickTests.testSammaKlickSomPythonIBitar
+      0.7 s  TreDTests.testKortet
 
