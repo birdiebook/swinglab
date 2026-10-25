@@ -6,7 +6,8 @@ import Swing
 // det här; logiken i LinkSession.swift avgör vad som skickas. Bara kommandon,
 // klicktider och klockans prov (dataregeln, BESLUT B22). Sedan S6c-2 också slagens leder och
 // 3D i bitar (`part`, Overforing.swift, BESLUT B61), och sedan S6g svingarnas klipp från
-// följaren till den styrande efter passet (Klipp.swift, BESLUT B80).
+// följaren till den styrande efter passet (Klipp.swift, BESLUT B80). Sedan S2k följarens
+// förhandsbild till den styrande under uppställningen (Forhandsbild.swift, BESLUT B90).
 
 /// Rollen i uppställningen: ensam, styr (lyssnar och visar Start) eller följ (söker
 /// och ansluter). Manifestets `telefon.roll` (S2_SPEC §8.3).
@@ -35,11 +36,12 @@ public struct LinkHello: Codable, Equatable, Sendable {
     /// `Mode`:s text; nil = en äldre app (inspelningen).
     public var mode: String?
     /// Förmågorna: "part1" = bitarna version 1 (`LinkPart`), "video1" = klippen mellan
-    /// telefonerna (S6g, `KlippBegaran`, BESLUT B80).
+    /// telefonerna (S6g, `KlippBegaran`, BESLUT B80), "preview1" = förhandsbilden live (S2k,
+    /// `LinkPreview`, BESLUT B90).
     public var caps: [String]?
 
     /// Den här appens förmågor.
-    public static let ourCaps = ["part1", "video1"]
+    public static let ourCaps = ["part1", "video1", LinkPreview.cap]
 
     public init(role: LinkRole, device: String, model: String, app: String, view: Vy, mode: Mode = .record,
                 caps: [String]? = LinkHello.ourCaps) {
@@ -60,6 +62,10 @@ public struct LinkHello: Codable, Equatable, Sendable {
 
     /// Telefonen begär och skickar klippen (S6g, BESLUT B80, METOD MS30).
     public var kanVideo: Bool { kanDelar && caps?.contains("video1") == true }
+
+    /// Telefonen skickar och tar emot förhandsbilden (S2k, BESLUT B90). En äldre app saknar den
+    /// och får ingen bild: allt annat fungerar som förut. METOD MS35
+    public var kanForhandsbild: Bool { caps?.contains(LinkPreview.cap) == true }
 }
 
 /// En inspelad serie som klick på telefonens egen tidslinje: följaren skickar den efter
@@ -128,16 +134,21 @@ public enum LinkMessage: Equatable, Sendable {
     case part(LinkPart)
     /// Kvittensen för en bit eller för hela överföringen. METOD MS19
     case partAck(LinkPartAck)
+    /// Följarens förhandsbild till den styrande (S2k), och kvittensen tillbaka: nästa bild skickas
+    /// först när den förra är kvitterad (mottrycket). BESLUT B90, METOD MS35
+    case preview(LinkPreview)
+    case previewAck(n: Int)
 }
 
 extension LinkMessage: Codable {
     enum Typ: String, Codable, CaseIterable {
-        case hello, ping, pong, start, stop, recorded, status, ack, part
+        case hello, ping, pong, start, stop, recorded, status, ack, part, preview
         case partAck = "part_ack"
+        case previewAck = "preview_ack"
     }
 
     enum Keys: String, CodingKey {
-        case type, hello, id, t0, t1, t2, passID = "pass", series, recorded, recording, freeGB, pressure, ack, part
+        case type, hello, id, t0, t1, t2, passID = "pass", series, recorded, recording, freeGB, pressure, ack, part, preview, n
     }
 
     public init(from decoder: Decoder) throws {
@@ -159,6 +170,8 @@ extension LinkMessage: Codable {
         case .ack: self = .ack(try c.decode(LinkAck.self, forKey: .ack), series: try c.decode(Int.self, forKey: .series))
         case .part: self = .part(try c.decode(LinkPart.self, forKey: .part))
         case .partAck: self = .partAck(try c.decode(LinkPartAck.self, forKey: .ack))
+        case .preview: self = .preview(try c.decode(LinkPreview.self, forKey: .preview))
+        case .previewAck: self = .previewAck(n: try c.decode(Int.self, forKey: .n))
         }
     }
 
@@ -203,6 +216,12 @@ extension LinkMessage: Codable {
         case let .partAck(a):
             try c.encode(Typ.partAck, forKey: .type)
             try c.encode(a, forKey: .ack)
+        case let .preview(p):
+            try c.encode(Typ.preview, forKey: .type)
+            try c.encode(p, forKey: .preview)
+        case let .previewAck(n):
+            try c.encode(Typ.previewAck, forKey: .type)
+            try c.encode(n, forKey: .n)
         }
     }
 }
@@ -215,7 +234,8 @@ public enum Wire {
     public static let bonjourService = "_swinglab._tcp"
 
     /// Längsta meddelande, byte. En serie med tusen klick är cirka 60 kB, en bit av en
-    /// överföring cirka 262 kB (`Overforing.delBytes` i base64).
+    /// överföring cirka 262 kB (`Overforing.delBytes` i base64), en förhandsbild högst cirka
+    /// 270 kB (`LinkPreview.maxBytes` i base64, MS35).
     public static let maxLength = 1 << 20
 
     /// Felen säger var, aldrig vad (dataregeln): meddelandets nummer på strömmen.

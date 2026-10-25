@@ -370,7 +370,7 @@ final class OverforingTests: XCTestCase {
                     if let d, ledarensSvar == .sparad { ledarenFick.append(d) }
                     ledare(l.svara(device: dev, kind: kind, pass: pass, id: id, d == nil ? .felSumma : ledarensSvar))
                 case let .close(p): stangt.append(p)
-                case .paired, .store, .stream, .streamRefused: break
+                case .paired, .store, .stream, .streamRefused, .preview: break
                 }
             }
         }
@@ -396,7 +396,7 @@ final class OverforingTests: XCTestCase {
                     foljare(f.svara(kind: kind, pass: pass, id: id, d == nil ? .felSumma : foljarensSvar))
                 case let .delivered(kind, _, _): levererat.append(kind)
                 case let .refused(_, _, fel): nekat.append(fel)
-                case .startRecording, .stopRecording, .streamAck: break
+                case .startRecording, .stopRecording, .streamAck, .previewAck: break
                 }
             }
         }

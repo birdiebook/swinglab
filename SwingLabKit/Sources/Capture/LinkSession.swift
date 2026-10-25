@@ -23,6 +23,9 @@ public struct LinkFollower: Sendable {
         case refused(kind: String, pass: String, fel: String)
         /// En kvittens för ett klipp som följaren strömmar (S6g, `KlippSandare`). METOD MS30
         case streamAck(LinkPartAck)
+        /// Den styrande kvitterade förhandsbilden `n` (S2k): nästa får skickas
+        /// (`ForhandsSandare.kvitterad`). METOD MS35
+        case previewAck(Int)
     }
 
     public let hello: LinkHello
@@ -79,6 +82,17 @@ public struct LinkFollower: Sendable {
     /// strömmen står (`KlippSandare`). METOD MS30
     public func sendStream(_ delar: [LinkPart]) -> [Action] {
         kanVideo ? delar.map { .send(.part($0)) } : []
+    }
+
+    /// Den styrande tar emot förhandsbilden (S2k): kopplingen är uppe och dess hello har
+    /// "preview1". En äldre styrande får ingen bild. BESLUT B90, METOD MS35
+    public var kanForhandsbild: Bool { isConnected && lead?.kanForhandsbild == true }
+
+    /// En förhandsbild till den styrande, eller inget när den inte tar emot den: då släpper
+    /// appen bilden ur flykten (`ForhandsSandare.slapp`). Bilden sparas inte här och skickas
+    /// aldrig igen (BESLUT B90). METOD MS35
+    public func sendPreview(_ p: LinkPreview) -> [Action] {
+        kanForhandsbild ? [.send(.preview(p))] : []
     }
 
     /// Ett nej för ett klipp till den styrande (S6g): `saknas` när originalet fattas eller klippet
@@ -154,7 +168,9 @@ public struct LinkFollower: Sendable {
             case let .igen(d): return d.map { .send(.part($0)) }
             case let .nekad(kind, pass, fel): return [.refused(kind: kind, pass: pass, fel: fel)]
             }
-        case .pong, .recorded, .status:
+        case let .previewAck(n):
+            return [.previewAck(n)]
+        case .pong, .recorded, .status, .preview:
             return []
         }
     }
@@ -203,6 +219,9 @@ public struct LinkLeader: Sendable {
         case stream(device: String, LinkPart)
         /// Följarens nej för ett klipp (`saknas`, S6g): appen slutar begära det. BESLUT B84
         case streamRefused(device: String, LinkPartAck)
+        /// En förhandsbild från en följare (S2k): appen visar den och sparar den inte. Kvittensen
+        /// har redan gått (`send` före). BESLUT B90, METOD MS35
+        case preview(device: String, LinkPreview)
     }
 
     public enum Command: Equatable, Sendable {
@@ -461,7 +480,14 @@ public struct LinkLeader: Sendable {
                                 .send(peer: peer, .ack(.recorded, series: s.series))]
             if let a = pair(dev, s.series) { ut.append(a) }
             return ut
-        case .ping, .start, .stop:
+        case let .preview(p):
+            // Bara från en följare som sagt "preview1" i sitt hello (S2k). Kvittensen går direkt,
+            // också för en version som inte går att visa, så att följaren inte väntar ut tiden.
+            guard let dev = peerDevice[peer], followers[dev]?.hello.kanForhandsbild == true else { return [] }
+            var ut: [Action] = [.send(peer: peer, .previewAck(n: p.n))]
+            if p.v == LinkPreview.version { ut.append(.preview(device: dev, p)) }
+            return ut
+        case .ping, .start, .stop, .previewAck:
             return []
         }
     }

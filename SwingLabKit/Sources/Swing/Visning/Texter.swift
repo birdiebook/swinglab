@@ -306,6 +306,11 @@ public enum Texter {
     /// "about 40 min"
     public static func inspMinuter(_ n: Int) -> String { "about \(n) min" }
     public static func inspFps(_ n: Int) -> String { "\(n) fps" }
+    /// Den andra telefonens bild (S2k, METOD MS35): fördröjningen och takten, "0.12 s · 12 fps";
+    /// utan klocka bara takten.
+    public static func inspForhandsbild(sekunder: String?, fps: Int) -> String {
+        (sekunder.map { $0 + " s" + skilje } ?? "") + inspFps(fps)
+    }
     public static let inspMikInbyggd = "Built-in"
     public static let inspMikExtern = "External"
     public static let inspMikAv = "Off"
