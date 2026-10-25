@@ -115,6 +115,8 @@ INTE_TEXT = {
     "/", ".", ".\\(…)-", ", ", "chevron.up", "chevron.down", "rotate.3d", "px", "fo", "dtl",
     # Inspelningens skärm (S2j, BESLUT B85): kugghjulet och varningens ikon.
     "gearshape", "exclamationmark.triangle",
+    # Den andra telefonens bild (S2k, BESLUT B90): stängknappens symbol och kön.
+    "xmark", "swinglab.forhandsbild",
 }
 
 

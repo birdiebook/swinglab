@@ -126,6 +126,9 @@ jobs:
               grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
               echo "== provets mätningar (påhittad film)"
               grep -E '^PROV: ' prov.log | head -160 || true
+              # S2k: förhandsbildens mätningar, också när raderna ovan nått taket.
+              echo "== den andra telefonens bild (S2k, METOD MS35)"
+              grep -E '^PROV: förhandsbild' prov.log || true
             fi
             echo
             echo "== PC:n läser appens paket (tools/tests/test_appens_paket.py)"

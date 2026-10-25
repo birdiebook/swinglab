@@ -7,7 +7,8 @@ import Capture
 
 // Två telefoner (S2_SPEC §7, S2g): Network.framework med Bonjour, en styrande som
 // lyssnar och en eller flera följare som söker och ansluter av sig själva, igen och
-// igen. Bara kommandon, klick och ping går över kopplingen (BESLUT B21, B22); vad som
+// igen. Bara kommandon, klick och ping går över kopplingen (BESLUT B21, B22), och sedan S2k
+// följarens förhandsbild till den styrande (BESLUT B90, aldrig sparad); vad som
 // sägs och när står i SwingLabKit (LinkSession.swift) och är prövat på Linux. Här
 // finns bara nätet och klockan.
 
@@ -442,6 +443,13 @@ final class PhoneLink {
     @ObservationIgnored var onHello: ((LinkHello) -> Void)?
     /// Förbindelsen till den andra telefonen föll (S6g: strömmen stannar).
     @ObservationIgnored var onDown: (() -> Void)?
+    /// Följaren: den styrande kvitterade förhandsbilden (S2k): nästa får skickas. METOD MS35
+    @ObservationIgnored var onPreviewAck: ((Int) -> Void)?
+    /// Den styrande: den andra telefonens bild live (S2k, BESLUT B90), bara i minnet.
+    let andraBild = AndraBild()
+    @ObservationIgnored private var mottagare = ForhandsMottagare()
+    /// När senaste förhandsbilden kom, värdklockan (nätets kö).
+    @ObservationIgnored private var ankomst = 0.0
 
     private let transport: LinkTransport
     @ObservationIgnored private var leader: LinkLeader?
@@ -617,6 +625,29 @@ final class PhoneLink {
 
     // MARK: Följaren
 
+    /// Den styrande tar emot förhandsbilden (S2k): kopplad och "preview1" i dess hello.
+    var kanForhandsbild: Bool { follower?.kanForhandsbild ?? false }
+
+    /// Följaren: en förhandsbild till den styrande. Falskt = inte skickad (ingen koppling eller en
+    /// äldre styrande): bilden släpps ur flykten. Skickas aldrig igen och sparas inte. METOD MS35
+    @discardableResult
+    func sendPreview(_ p: LinkPreview) -> Bool {
+        guard let c = followConnection, let a = follower?.sendPreview(p), !a.isEmpty else { return false }
+        for case let .send(m) in a { transport.send(m, to: c) }
+        return true
+    }
+
+    /// Den styrande: rutan i hörnet visas (kopplad, ingen egen serie, en färsk bild). METOD MS35
+    func forhandsbildVisas(nu: Double, inspelar: Bool) -> Bool {
+        let kopplad = mottagare.enhet.flatMap { leader?.followers[$0] }.map { $0.peer != nil && $0.live } ?? false
+        return mottagare.visas(nu: nu, kopplad: kopplad, inspelar: inspelar)
+    }
+
+    /// Den styrande: fördröjningen (median, s) och takten (bilder/s) till kugghjulet.
+    func forhandsbildMatt(nu: Double) -> (fordrojning: Double?, hz: Double) {
+        (mottagare.fordrojning, mottagare.takt(nu: nu))
+    }
+
     /// Följarens serie är sparad: den skickas nu eller när kopplingen kommer tillbaka.
     func finished(_ s: LinkSeries) {
         apply(follower?.finished(s) ?? [])
@@ -657,6 +688,11 @@ final class PhoneLink {
         case let .down(id):
             if role == .lead {
                 leader?.disconnected(peer: id)
+                // Bildens telefon är borta: ingen bild (den sparas inte, B90).
+                if let e = mottagare.enhet, leader?.followers[e]?.peer == nil {
+                    mottagare.nollstall()
+                    andraBild.tom()
+                }
                 onDown?()
             } else if followConnection == id {
                 followConnection = nil
@@ -665,6 +701,7 @@ final class PhoneLink {
             }
         case let .message(id, m, t):
             if role == .lead {
+                if case .preview = m { ankomst = t }
                 apply(leader?.receive(m, from: id, at: t) ?? [])
                 if case let .hello(h) = m, leader?.followers[h.device]?.peer == id {
                     burst(id)
@@ -712,6 +749,9 @@ final class PhoneLink {
                 onStream?(device, p)
             case let .streamRefused(device, a):
                 onStreamRefused?(device, a)
+            case let .preview(device, p):
+                mottagare.ta(p, fran: device, nu: ankomst, klocka: leader?.followers[device]?.latestClock)
+                andraBild.ta(p)
             }
         }
         refresh()
@@ -735,6 +775,8 @@ final class PhoneLink {
                 onRefused?(kind, pass, fel)
             case let .streamAck(a):
                 onStreamAck?(a)
+            case let .previewAck(n):
+                onPreviewAck?(n)
             }
         }
         refresh()

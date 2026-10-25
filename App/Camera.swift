@@ -9,7 +9,7 @@ import Capture
 /// exponeringen räknas i SwingLabKit så att inget tal lämnar formatets gränser (risk R2).
 /// BESLUT B15, B16, B17
 @Observable
-final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
+final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
     enum Phase: Equatable { case idle, starting, metering, ready, recording, probing, failed }
 
     /// En avslutad serie.
@@ -38,6 +38,14 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
     @ObservationIgnored private var probeWaiter: CheckedContinuation<Bool, Never>?
     @ObservationIgnored private var probeDone: Bool?
     @ObservationIgnored private var seriesWaiter: CheckedContinuation<Finished?, Never>?
+    /// Följarens förhandsbild till den styrande (S2k, BESLUT B90): sätts före `start()`. Rutorna
+    /// kommer ur en egen videoutgång i förhandsbildens storlek (`deliversPreviewSizedOutputBuffers`),
+    /// som är avstängd när ingen tar emot och under varje inspelning. METOD MS35
+    @ObservationIgnored var forhandsbild: ForhandsKalla?
+    @ObservationIgnored private var dataOutput: AVCaptureVideoDataOutput?
+    @ObservationIgnored private let forhandsQueue = DispatchQueue(label: "swinglab.forhandsbild")
+    /// Den styrande vill ha bilden (takten över noll); kamerans kö.
+    @ObservationIgnored private var forhandsPa = false
 
     private(set) var phase: Phase = .idle
     /// Rutnätet som ställdes in, bilder/s.
@@ -91,7 +99,10 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
                     DispatchQueue.main.async { self?.pressureChanged(p) }
                 }
             }
-            await onQueue { self.session.startRunning() }
+            await onQueue {
+                self.session.startRunning()
+                self.kontrolleraForhandsbild()
+            }
             checkMicrophone()
             phase = .metering
             exposure = await onQueue { self.meterAndLock() }
@@ -135,7 +146,10 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         seriesPressure = pressure
         phase = .recording
         gravityToken = GravityRecorder.shared.start()                 // lodlinjen (S6b), METOD MS17
-        queue.async { [self] in output.startRecording(to: url, recordingDelegate: self) }
+        queue.async { [self] in
+            setForhandsConnection(false)                                // ingen förhandsbild under serien (MS35)
+            output.startRecording(to: url, recordingDelegate: self)
+        }
     }
 
     /// Avslutar en pågående serie och väntar på filen, när vyn försvinner mitt i en
@@ -166,7 +180,10 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         let url = FileManager.default.temporaryDirectory.appending(path: "ljusprov-\(UUID().uuidString).mov")
         probeURL = url
         probeDone = nil
-        queue.async { [self] in output.startRecording(to: url, recordingDelegate: self) }
+        queue.async { [self] in
+            setForhandsConnection(false)                                // inte under ljusprovet (MS35)
+            output.startRecording(to: url, recordingDelegate: self)
+        }
         try? await Task.sleep(for: .seconds(LightProbe.seconds + 0.3))
         let ok: Bool = await withCheckedContinuation { c in
             if let done = probeDone {
@@ -251,6 +268,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
             guard session.canAddOutput(output) else { throw CameraError.cannotAdd }
             session.addOutput(output)
             output.minFreeDiskSpaceLimit = PassStorage.recordingFloor
+            addForhandsOutput()
 
             try device.lockForConfiguration()
             device.activeFormat = format                                  // sessionens preset blir .inputPriority
@@ -267,6 +285,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         } catch {
             for i in session.inputs { session.removeInput(i) }
             for o in session.outputs { session.removeOutput(o) }
+            dataOutput = nil
             throw error
         }
         if let c = output.connection(with: .video) {
@@ -277,6 +296,63 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         return described
     }
 
+    // MARK: Förhandsbilden (S2k, BESLUT B90, METOD MS35)
+
+    /// Körs på `queue` i konfigurationen: följarens egen videoutgång i förhandsbildens storlek, som
+    /// kameran skalar själv. Avstängd tills den styrande tar emot. Går den inte att lägga till blir
+    /// det ingen förhandsbild, och inspelningen är som förut.
+    private func addForhandsOutput() {
+        guard forhandsbild != nil, dataOutput == nil else { return }
+        let d = AVCaptureVideoDataOutput()
+        d.alwaysDiscardsLateVideoFrames = true
+        d.automaticallyConfiguresOutputBufferDimensions = false
+        d.deliversPreviewSizedOutputBuffers = true
+        guard session.canAddOutput(d) else { return }
+        session.addOutput(d)
+        d.setSampleBufferDelegate(self, queue: forhandsQueue)
+        d.connection(with: .video)?.isEnabled = false
+        dataOutput = d
+    }
+
+    /// Körs på `queue` när sessionen gått igång: filens koppling måste vara aktiv med utgången
+    /// bredvid. Är den inte det tas förhandsbildens utgång bort, så att inspelningen aldrig betalar
+    /// för bilden (den säkra vägen, MS35).
+    private func kontrolleraForhandsbild() {
+        guard let d = dataOutput else { return }
+        guard let film = output.connection(with: .video), film.isActive, film.isEnabled else {
+            session.beginConfiguration()
+            session.removeOutput(d)
+            session.commitConfiguration()
+            dataOutput = nil
+            return
+        }
+        setForhandsConnection(forhandsPa)
+    }
+
+    /// Den styrande tar emot förhandsbilden (takten över noll) eller inte. Under en serie och
+    /// ljusprovet förblir utgången avstängd.
+    func setForhandsbild(_ pa: Bool) {
+        queue.async { [self] in
+            forhandsPa = pa
+            setForhandsConnection(pa && !output.isRecording)
+        }
+    }
+
+    /// Körs på `queue`.
+    private func setForhandsConnection(_ pa: Bool) {
+        guard let c = dataOutput?.connection(with: .video), c.isEnabled != pa else { return }
+        c.isEnabled = pa
+    }
+
+    /// Förhandsbildens ruta (`forhandsQueue`): tiden på värdklockan, som filens start (B19).
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard let k = forhandsbild, let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let clock = session.synchronizationClock ?? CMClock.hostTimeClock
+        let host = CMSyncConvertTime(pts, from: clock, to: CMClock.hostTimeClock)
+        k.ruta(pb, tid: host.isValid ? host.seconds : LinkClock.now())
+    }
+
     /// Körs på `queue`: tar bort in- och utgångar.
     private func tearDown() {
         session.stopRunning()
@@ -284,6 +360,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         for i in session.inputs { session.removeInput(i) }
         for o in session.outputs { session.removeOutput(o) }
         session.commitConfiguration()
+        dataOutput = nil
         device = nil
     }
 

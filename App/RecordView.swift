@@ -5,7 +5,8 @@ import Capture
 /// Inspelningen (S2_SPEC §2, §12 S2c): förhandsbilden med hjälplinjerna, start och stopp, och
 /// kvittot efter varje serie. Grunden är Airtimes RecordView. Skärmen ovanpå (S2j, BESLUT B85):
 /// bara statusen, en varning som kräver handling och lutningen när den är för stor; frekvensen,
-/// värmen, parningen, lagringen och ljusprovet bakom kugghjulet (`InspelningsLager`).
+/// värmen, parningen, lagringen och ljusprovet bakom kugghjulet (`InspelningsLager`). Sedan S2k
+/// (BESLUT B90) skickar följaren sin förhandsbild, och den styrande visar den i hörnet.
 struct RecordView: View {
     @Binding var pass: PassState
     var onClose: () -> Void
@@ -41,6 +42,12 @@ struct RecordView: View {
     @State private var nu = Date()
     @State private var ledigt: Int64?
     @State private var raknare = Raknare()
+    /// Den andra telefonens bild (S2k, BESLUT B90): rutan hos den styrande, stor efter ett tryck,
+    /// och fördröjningen och takten i kugghjulet. Följarens källa för bilderna. METOD MS35
+    @State private var visaAndraBild = false
+    @State private var andraBildStor = false
+    @State private var andraBildMatt: (fordrojning: Double?, hz: Double)?
+    @State private var forhandsKalla: ForhandsKalla?
 
     /// Räknarna som uppdateras 20 gånger i sekunden utan att rita om vyn; bara det som syns
     /// läggs i vyns tillstånd när det ändras. METOD MS32
@@ -49,6 +56,9 @@ struct RecordView: View {
         var vakt = AndraStoppadeVakt()
         var svingar = LevandeSvingar()
         var ledigtLast = Date.distantPast
+        /// Förhandsbildens utgång på (följaren) och senaste mätningen till kugghjulet (den styrande).
+        var forhandsPa = false
+        var mattLast = Date.distantPast
     }
 
     var body: some View {
@@ -68,6 +78,10 @@ struct RecordView: View {
                 kanSpelaIn: (camera.phase == .ready || camera.phase == .recording) && !working,
                 arbetar: working || camera.phase == .metering || camera.phase == .probing || camera.phase == .starting,
                 ljusprov: light.map { Receipt.rows($0) },
+                andraBild: visaAndraBild ? link?.andraBild : nil,
+                andraBildStor: andraBildStor,
+                hjalplinjer: store.settings.visaHjalplinjer,
+                onAndraBild: { andraBildStor = $0 },
                 onStang: stang,
                 onInstallningar: { visaInstallningar = true },
                 onKnapp: toggle,
@@ -182,7 +196,7 @@ struct RecordView: View {
         return InspelningsInstallningar.rader(
             roll: pass.setup.role, vy: pass.setup.view, andraVy: peer?.view, fps: camera.frameRate,
             lutning: lutning, svingar: antalSvingar, horda: horda, minuter: Lagringstid.minuter(ledigt: ledigt, mbPerMinut: mb),
-            tryck: camera.pressure, mikrofon: mik)
+            tryck: camera.pressure, mikrofon: mik, andraBild: visaAndraBild ? andraBildMatt : nil)
     }
 
     /// Lutningen, svingarna, vakten för den andra telefonen och disken medan vyn är öppen: 20 gånger
@@ -211,12 +225,39 @@ struct RecordView: View {
             let stoppade = r.vakt.uppdatera(roll: pass.setup.role, egenInspelar: inspelar && !stopparSerie,
                                             andra: andra)
             if stoppade != andraStoppade { andraStoppade = stoppade }
+            forhandsbild(r, t: t)
             if t.timeIntervalSince(r.ledigtLast) >= 5 {
                 r.ledigtLast = t
                 let b = store.availableBytes()
                 if b != ledigt { ledigt = b }
             }
             try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    /// Den andra telefonens bild (S2k, METOD MS35), i samma takt som räknarna. Följaren: takten ur
+    /// kopplingen, serien och värmen, och videoutgången på bara när den styrande tar emot. Den
+    /// styrande: rutan när bilden är färsk och ingen serie spelas in, och mätningen en gång i sekunden.
+    private func forhandsbild(_ r: Raknare, t: Date) {
+        let inspelar = camera.phase == .recording || camera.phase == .probing
+        if let k = forhandsKalla {
+            let hz = Forhandstakt.hz(kanSkicka: link?.kanForhandsbild ?? false, inspelar: inspelar, tryck: camera.pressure)
+            k.stall(hz: hz)
+            if (hz > 0) != r.forhandsPa {
+                r.forhandsPa = hz > 0
+                camera.setForhandsbild(hz > 0)
+            }
+        }
+        guard pass.setup.role == .lead, let link else { return }
+        let nu = LinkClock.now()
+        let visas = link.forhandsbildVisas(nu: nu, inspelar: inspelar)
+        if visas != visaAndraBild {
+            visaAndraBild = visas
+            if !visas { andraBildStor = false }
+        }
+        if visas, t.timeIntervalSince(r.mattLast) >= 1 {
+            r.mattLast = t
+            andraBildMatt = link.forhandsbildMatt(nu: nu)
         }
     }
 
@@ -272,6 +313,23 @@ struct RecordView: View {
     private func startLink() {
         guard link == nil, pass.setup.role != .solo else { return }
         let l = PhoneLink(role: pass.setup.role, view: pass.setup.view)
+        // Följaren skickar sin förhandsbild till den styrande (S2k, BESLUT B90): kamerans utgång
+        // läggs till när kameran startar, så källan finns före `camera.start()`.
+        if pass.setup.role == .follow {
+            let k = forhandsKalla ?? ForhandsKalla()
+            k.onBild = { [weak l] p in
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated {
+                        if l?.sendPreview(p) != true { k.slapp(p.n) }
+                    }
+                }
+            }
+            l.onPreviewAck = { [weak k] n in k?.kvitterad(n) }
+            if forhandsKalla == nil {
+                forhandsKalla = k
+                camera.forhandsbild = k
+            }
+        }
         l.onStart = { passID, n in linkStart(passID: passID, series: n) }
         l.onPartner = { partner = $0 }
         l.onStop = { n in linkStop(n) }

@@ -1112,6 +1112,17 @@
         }
       }
     },
+    "Other phone's view": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone's view"
+          }
+        }
+      }
+    },
     "P1 plane": {
       "extractionState": "manual",
       "localizations": {

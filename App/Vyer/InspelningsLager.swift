@@ -6,6 +6,8 @@ import Capture
 // kräver ställningstagande. Överst Close, statusen och kugghjulet (under serien bara REC-pillen med tiden),
 // en varning i taget, lutningen när den är för stor, och inspelningsknappen nere i mitten.
 // Resten står i kugghjulets blad. Värden in, så att provet kan rita lägena utan kamera.
+// Sedan S2k (BESLUT B90) den andra telefonens bild i en liten ruta nere till vänster, där
+// kameraappen har sin senaste bild, och stor med hjälplinjerna efter ett tryck.
 // Heldragna svarta rutor med vit text, så att texten syns mot all video.
 
 struct InspelningsLager: View {
@@ -21,6 +23,13 @@ struct InspelningsLager: View {
     var arbetar = false
     /// Ljusprovets kort efter ett prov (startat i kugghjulet).
     var ljusprov: [ReceiptRow]? = nil
+    /// Den andra telefonens bild (S2k): rutan när telefonerna är kopplade och bilden färsk; nil =
+    /// ingen ruta. Aldrig under serien.
+    var andraBild: AndraBild? = nil
+    /// Bilden stor, med hjälplinjerna när de är på.
+    var andraBildStor = false
+    var hjalplinjer = true
+    var onAndraBild: (Bool) -> Void = { _ in }
     var onStang: () -> Void = {}
     var onInstallningar: () -> Void = {}
     var onKnapp: () -> Void = {}
@@ -42,12 +51,18 @@ struct InspelningsLager: View {
                 Spacer(minLength: 0)
                 if let ljusprov, !inspelar {
                     ReceiptCard(rows: ljusprov).padding(.horizontal, 16)
+                        .padding(.bottom, visarRuta ? AndraBildRuta.over : 0)
                 }
                 knappRad
             }
             .padding(.top, 8)
+            if andraBildStor, let andraBild, !inspelar {
+                AndraBildStor(modell: andraBild, hjalplinjer: hjalplinjer, onStang: { onAndraBild(false) })
+            }
         }
     }
+
+    private var visarRuta: Bool { andraBild != nil && !inspelar }
 
     @ViewBuilder private var topp: some View {
         if inspelar {
@@ -104,7 +119,13 @@ struct InspelningsLager: View {
 
     private var knappRad: some View {
         HStack {
-            Color.clear.frame(width: 80, height: 44)
+            // Rutan i hörnet ritas ovanpå platsen, så att knappen inte flyttar när den kommer.
+            Color.clear.frame(width: 80, height: 80)
+                .overlay(alignment: .leading) {
+                    if let andraBild, !inspelar {
+                        AndraBildRuta(modell: andraBild, onTryck: { onAndraBild(true) })
+                    }
+                }
             Spacer()
             InspelningsKnapp(inspelar: inspelar, action: onKnapp)
                 .disabled(!kanSpelaIn)
@@ -258,6 +279,74 @@ struct InspelningsKnapp: View {
     }
 }
 
+/// Den andra telefonens bild i hörnet (S2k, BESLUT B90): bara bilden, en tunn vit kant och raka
+/// hörn (B13), inga ord. Ett tryck gör den stor.
+struct AndraBildRuta: View {
+    let modell: AndraBild
+    var onTryck: () -> Void = {}
+
+    static let bredd: CGFloat = 60
+    static let hojd: CGFloat = 60 * 16 / 9
+    /// Så långt rutan når över knappraden (80 pt), åt varje håll.
+    static let over: CGFloat = (hojd - 80) / 2
+
+    var body: some View {
+        if let bild = modell.bild {
+            Button(action: onTryck) {
+                Image(uiImage: bild)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Self.bredd, height: Self.hojd)
+                    .clipShape(.rect(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.text, lineWidth: 1))
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Other phone's view"))
+        }
+    }
+}
+
+/// Den andra telefonens bild stor (S2k): hela bilden på svart, hjälplinjerna i bildens ram (de gäller
+/// den andra telefonens bild) och en stängknapp där kugghjulet sitter. Ett tryck var som helst
+/// stänger också.
+struct AndraBildStor: View {
+    let modell: AndraBild
+    var hjalplinjer = true
+    var onStang: () -> Void = {}
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Theme.ground.ignoresSafeArea()
+            if let bild = modell.bild {
+                Image(uiImage: bild)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .overlay {
+                        if hjalplinjer { GuideLines().allowsHitTesting(false).accessibilityHidden(true) }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text("Other phone's view"))
+            }
+            Button(action: onStang) {
+                Image(systemName: "xmark")
+                    .typsnitt(20, .semibold)
+                    .foregroundStyle(Theme.text)
+                    .padding(10)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .background(Theme.ground, in: .circle)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Close"))
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+        .contentShape(.rect)
+        .onTapGesture(perform: onStang)
+    }
+}
+
 /// Kugghjulets blad "Recording": raderna med etikett och värde i grått, hjälplinjerna och Light
 /// test. Rader som inte gäller lämnas bort av `rader`. Utan ScrollView, så att provet kan rita det;
 /// inspelningen lägger det i en.
@@ -349,7 +438,7 @@ struct InspelningsInstallningar: View {
     /// Raderna som gäller, i skissens ordning. METOD MS32
     static func rader(roll: LinkRole, vy: Vy, andraVy: Vy?, fps: Double, lutning: Lutning?, svingar: Int? = nil,
                       horda: (par: Int, av: Int, rest: Double?, osaker: Bool)?, minuter: Int?, tryck: Pressure,
-                      mikrofon: Mikrofon?) -> [Rad] {
+                      mikrofon: Mikrofon?, andraBild: (fordrojning: Double?, hz: Double)? = nil) -> [Rad] {
         func rollNamn(_ r: LinkRole) -> String? {
             switch r {
             case .lead: return Texter.inspRollStyr
@@ -361,6 +450,12 @@ struct InspelningsInstallningar: View {
         if roll != .solo, let andraVy {
             ut.append(Rad(etikett: "Other phone",
                           varde: Texter.inspTelefon(roll: rollNamn(roll == .lead ? .follow : .lead), vy: andraVy)))
+        }
+        // Den andra telefonens bild (S2k): fördröjningen och takten, när bilden kommer (MS35).
+        if roll == .lead, let b = andraBild, b.hz > 0 {
+            ut.append(Rad(etikett: "Other phone's view",
+                          varde: Texter.inspForhandsbild(sekunder: b.fordrojning.map { Taltext.decimal($0, digits: 2) },
+                                                         fps: Int(b.hz.rounded()))))
         }
         if fps > 0 { ut.append(Rad(etikett: "Frame rate", varde: Texter.inspFps(Int(fps.rounded())))) }
         if let lutning {
