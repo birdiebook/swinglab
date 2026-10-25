@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S7e · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -686,7 +686,7 @@ parabelns topp eller synkens minimum) och med hur mycket, innan toleransen ändr
 
 S6c triangulerar redan 13 leder per ruta. Visa banorna (S4f:s punkter) i 3D och en figur av
 streck och leder som spelas upp med svingen och kan vridas, i formspråket B13: ett
-mätinstrument, ingen modellerad kropp. Klubban kommer med när S7b ger klubbhuvudet i båda vyerna.
+mätinstrument, ingen modellerad kropp. Klubban kommer med i S7e, ur förmärkarens klubbhuvud i båda vyerna.
 Johannes mål (2026-10-24): Lead-telefonen gör hela analysen för ett pass med två telefoner, 3D
 och synken mellan det de ser; S6d är figuren, S6g videon och S6h 3D-måtten.
 
@@ -1034,6 +1034,83 @@ godkänn och rätta i appen.
 
 **Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
 rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.
+
+### S7e — Klubbens bana i 3D (Johannes 2026-10-25, väntar på ja)
+
+Beställningen: linjer för hur klubbhuvudet, och gärna skaftet, rör sig genom luften under
+svingen, ur våra videor, i 3D som går att vrida. Sportsbox gör det ur en kamera med en modell av
+kropp och klubba. Vi har två telefoner (B9) och en förmärkare som hittar huvudet i båda vyerna
+(MF7, B95).
+
+**Läget 2026-10-25.** Det enda passet med två telefoner är provpasset 2026-10-24. `par.json`
+parar 12 klick, men den följande telefonen (DTL) skickade klipp för bara tre slag. **Två slag**
+har därför klipp från båda: DTL s02 och s03 mot FO s06 och s08, båda med förmärkarens huvud i båda
+vyerna. Självkalibreringen gick inte igenom, inte heller med vy-etiketterna bytta: Sampson-felet
+blev 35,6 px mot spärren 8 och vinkeln 154° mellan kamerorna (S6f). Oktobers järn 7 filmades med
+en telefon i taget (Kamera-appen). I dag finns alltså ingen riktig 3D att lägga banan i.
+
+**Vägarna** (felen är antaganden; 1 px ≈ 2 mm vid 3 m med telefonens brännvidd):
+
+| Väg | Kräver | Väntat fel | Mäts mot |
+|---|---|---|---|
+| **(a) Triangulering** av huvudet ur två vyer med S6:s kalibrering och synk | två telefoner med kalibreringen under spärren; huvudet i båda vyerna (finns, MF7); greppet ur 3D-handlederna tills punktmodellen ger det (S7-1) | brus 1–2 cm (3–6 px per vy); 2–4 cm systematiskt, eftersom rutans mitt är olika punkter på huvudet i de två vyerna (MF7: mitten ligger 4 % av skaftet från hoseln); synken: 2 ms (MK4) är 8 cm av banan vid 40 m/s, så synken tas om på huvudet självt, och den rullande slutaren syns som en rest som beror på raden i bilden. Cirka 2–4 cm i baksvingen och 3–8 cm kring träffen | påhittat facit med känd bana; på riktiga pass skaftets längd i 3D (ska vara konstant, så spridningen är ett fel utan facit), återprojektionen i båda vyerna och Johannes hoslar |
+| **(b) En vy:** huvudet på en sfär med skaftets längd kring greppet i 3D, med svingplanet och jämnheten över tiden som villkor | greppet i 3D: med en telefon ur en monokulär lyftning (S6e, inte byggd; DTU: för stora fel för golf, research 7 §1.2), annars ur två telefoner | 10–30 cm från greppets okända djup, och två skärningar där strålen tangerar sfären: bakifrån vid P2, P6 och P8, alltså just där planet mäts | (a) på samma pass |
+| **(c) Ett svingplan** anpassat till 2D-banan | en telefon; förmärkarens eller S7b:s 2D-bana | bakifrån står planet på kant mot kameran (därför är en sving på planet ett streck i DTL), så djupet går inte att läsa där. Framifrån går ett lutat plan att anpassa, men allt utanför planet blir noll, och just det (över eller under planet, olika plan upp och ner) är det intressanta. En modell, inte en mätning (B13) | (a) |
+
+**Rekommendation: (a), med (b):s sfär som utfyllnad** där huvudet syns i bara en vy; greppet
+finns då i 3D ur trianguleringen. (b) ensam väntar på S6e, och (c) ritar en modell som döljer det
+vi vill se.
+
+**Gör:**
+
+1. **Kalibreringen med klubbhuvudet, provpasset först.** Huvudet sveper cirka 2 m, och lederna
+   ligger inom en halv meter i djup, så huvudets punkter i båda vyerna ger fler och mer spridda
+   punktpar till MK3:s självkalibrering. I första varvet bara rutor där huvudet rör sig långsamt
+   (adress till topp), så att synken inte blir ett kalibreringsfel. Sampson-felet och vinkeln på
+   provpasset redovisas med och utan huvudet. Går det under spärren får provpassets två slag en
+   bana. Gör det inte det, var det uppställningen, och det står i METOD.
+2. **Trianguleringen** (ett nytt verktyg i `tools/pc/`): förslagsfilernas huvud (konfidens ≥ 0,3,
+   B95) på Visions tid. Synken finjusteras per slag på huvudets återprojektion i nedsvingen och
+   jämförs med MK4:s. DLT som MK5, utan utjämning av banan (M61: utjämningen drar in bågen).
+   Greppet är 3D-handledernas mitt (M1) tills punktmodellen ger det. En ruta med huvudet i en vy
+   får sfären med slagets skaftlängd (medianen grepp → huvud i de triangulerade rutorna), den
+   skärning som ligger närmast grannarna, och märks `en_vy`. Utan huvud i någon vy blir det
+   ingen punkt, alltså en lucka: en gissning ska aldrig se ut som en bana (M61). Skaftet är
+   linjen grepp → huvud.
+3. **Facit, påhittat:** `tre_d/sving.py` får en klubba: greppet ur handlederna, skaftets längd och
+   huvudet på en känd bana som inte är plan. `generera_paket.py --tva` skriver huvudets 2D med
+   förmärkarens fel: bruset, mitten förskjuten mot hoseln olika i vyerna, 15 % och 8 % saknade
+   rutor (MF7) och synken ±7 ms. Ut kommer felet i 3D per fas (median och p95), andelen `en_vy`
+   och deras fel.
+4. **Visaren** (`visa.py`, S6f): huvudets bana som linje i 3D-figuren, färgad efter fas
+   (baksving, nedsving, genomsving), med P1–P10 som prickar och ett val för fart (färgskala).
+   `en_vy` ritas streckad, skaftet som spökstreck var n:te ruta och vid P1–P10, och P1-planet som
+   en svag yta. Banan följer klippens stegning och projiceras tillbaka i båda klippen, så att en
+   trasig bana syns mot videon.
+5. **Johannes del: ett pass med två telefoner** enligt S6_FELBUDGET §7 (90°, 3 m, höfthöjd, rätt
+   vy på varje telefon), cirka 15 svingar, med S6g:s klipp till Lead och Send to PC. Samma pass
+   ger S6c-2:s, S6d:s och S6g:s Klart när, så det görs en gång för alla fyra. Klart när kräver
+   fler slag än provpassets två, så passet behövs även om steg 1 räddar provpasset.
+
+**Klart när:**
+
+- **Facitet:** med typiskt brus ligger huvudets 3D-fel inom 3 cm i median och 8 cm i p95 över
+  P1–P10, utan grova fel (> 15 cm) bland de triangulerade rutorna, med `en_vy` och deras fel
+  redovisade. Gränserna är antaganden och sätts i METOD efter första mätningen.
+- **Ett riktigt pass** med två telefoner, kalibreringen under spärren och minst 5 slag med klipp
+  från båda: skaftets längd grepp → huvud i 3D håller sig inom ±5 cm (p5–p95) från slagets median
+  över P1–P9; huvudets återprojektion och dess rest mot raden i bilden är redovisade per vy;
+  andelen triangulerade, `en_vy` och tomma rutor är redovisad per fas.
+- **Visaren:** testerna bygger sidan på ett påhittat pass med klubba (banan, `en_vy` och
+  färgerna), och Johannes har vridit banan för ett riktigt pass i visaren.
+- Provpassets kalibrering med och utan huvudet står i METOD, hur den än gick.
+
+**Appen, inte i S7e** (beslut efter visaren): banan är en bild, inget tal, så VISION:s regel om
+bra eller dåligt gäller inte den, men enkelheten gör det. Den hör hemma som ett spår till,
+"Club", bland S6d:s spår (Hands, Shoulders, Hips, Head) i det parade passets 3D-figur, färgad
+efter fas: ingen ny skärm och inget nytt tal. Det kräver huvudet på telefonen (S7-2) eller en fil
+med banan från PC:n, som förslagsfilen (B93). Farten och "över eller under planet" visas som tal
+först när de har en dom (B71).
 
 ## S8 — Bollen vid adressen
 
