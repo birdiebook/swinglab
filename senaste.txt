@@ -1,20 +1,20 @@
-fa681d8404c7ff9353772320ae693ee7aa35323c s7-1-formarkare 2026-10-25T19:45:20Z run 40227320393
+8fbc63afe97773f1b5deb1fe307872f397ca4fbf s7-1-formarkare 2026-10-25T19:59:17Z run 40228348014
 == swift-release
-GRÖNT: 414 test, 0 fel, 28 s i testerna, bygget 79 s
+GRÖNT: 414 test, 0 fel, 40 s i testerna, bygget 127 s
 Långsammast (av 414):
-      2.0 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      1.8 s  TreDTests.testFigurenSomPython
-      1.4 s  TreDTests.testTelefonensVagSomPython
-      1.4 s  KlubbSparTests.testBananSomPython
-      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      0.7 s  KlubbSparTests.testFeletMotSanningen
-      0.7 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
-      0.7 s  TreDTests.testVinklarnaForEnVansterspelare
-      0.7 s  TreDTests.testFigurensFilTurOchRetur
-      0.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.7 s  TreDTests.testKortet
-      0.7 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.6 s  TreDTests.testInreIFilenOchUppdateras
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      3.0 s  TreDTests.testFigurenSomPython
+      2.5 s  TreDTests.testTelefonensVagSomPython
+      2.3 s  KlubbSparTests.testBananSomPython
+      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testFigurensFilTurOchRetur
+      1.2 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.2 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  TreDTests.testInreIFilenOchUppdateras
+      1.1 s  TreDTests.testKortet
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+      1.1 s  KlubbSparTests.testFeletMotSanningen
 
