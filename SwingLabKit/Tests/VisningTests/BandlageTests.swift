@@ -49,6 +49,12 @@ final class BandlageTests: XCTestCase {
         }
     }
 
+    /// Ett tal som inte är ändligt har inget läge, som Python (METOD M62).
+    func testInteEttTal() {
+        XCTAssertEqual(Bandlage.lage(.nan, gront: [-2.5, nil], golv: 2), .ingen)
+        XCTAssertEqual(Bandlage.lage(.infinity, baslinje: (lo: 0, hi: 1), samre: "+", golv: 1), .ingen)
+    }
+
     func testVarjePostIKatalogenSomPython() throws {
         let f = try facit(), k = try katalog()
         let poster = try lista(f["poster"])
@@ -114,6 +120,22 @@ final class BandlageTests: XCTestCase {
         }
     }
 
+    /// Felet i passet med klubban och klubbans källa (BESLUT B86, B88), som `i_passet`: samma för
+    /// passets kort, granskningens rader och analysen till Claude.
+    func testFeletIPassetSomPython() throws {
+        let f = try facit(), k = try katalog()
+        let fall = try lista(f["i_passet"])
+        XCTAssertGreaterThan(fall.count, 30)
+        for p in fall {
+            let fel = try XCTUnwrap(k.fel.first { $0.id == p["fel"]?.somText })
+                .iPasset(klubba: p["klubba"]?.somText, klubbaMarkerad: bool(p["markerad"]) ?? false)
+            XCTAssertEqual(fel.matt, p["matt"]?.somText, "\(p)")
+            XCTAssertEqual(fel.gront, spann(p["gront"]), "\(p)")
+            XCTAssertEqual(fel.golv, p["golv"]?.somTal, "\(p)")
+            XCTAssertEqual(fel.gransHarledd, bool(p["grans_harledd"]), "\(p)")
+        }
+    }
+
     /// Passet: järnets band på järnpass, inget band på driver, och over the top på klubbans plan
     /// när klubban är markerad (BESLUT B86, B88).
     func testPassetMedLaget() throws {
@@ -136,10 +158,14 @@ final class BandlageTests: XCTestCase {
         XCTAssertFalse(v.kort.contains { $0.id == "flying_elbow" || $0.id == "axellutning" })     // dom (b)
         // Ett fel som övas syns ändå.
         XCTAssertTrue(Passvisning(katalog: k, pass: [jarn], ovas: ["flying_elbow"]).kort.contains { $0.id == "flying_elbow" })
-        // Driver: inget band, inget läge utan baslinje.
-        let dr = Passvisning(katalog: k, pass: [pass("Dr", ["backen_sway_topp": -3.0], ["handbana": 1.5])])
-        XCTAssertEqual(dr.kort.first { $0.id == "sway_topp" }?.lage, .ingen)
-        XCTAssertEqual(dr.kort.first { $0.id == "sway_topp" }?.markning, .egen)
+        // Driver: ett band som klubban flyttar (sway gap) visas inte, och utan baslinje inget läge;
+        // swayen vid toppen har samma band med båda klubborna (research 6 §6, BESLUT B86).
+        let dr = Passvisning(katalog: k, pass: [pass("Dr", ["backen_sway_topp": -3.0, "sway_gap_traff": 2.0],
+                                                     ["handbana": 1.5])])
+        XCTAssertEqual(dr.kort.first { $0.id == "sway_gap" }?.lage, .ingen)
+        XCTAssertEqual(dr.kort.first { $0.id == "sway_gap" }?.markning, .egen)
+        XCTAssertEqual(dr.kort.first { $0.id == "sway_topp" }?.lage, Bandlage(.gul))
+        XCTAssertNil(dr.kort.first { $0.id == "sway_topp" }?.markning)
         // Klubban markerad: over the top på skaft_plan_p6 och inget eget kort för planet.
         let klubba = pass("7i", [:], ["handbana": 1.5, "skaft_plan_p6": 12.0])
         let kv = Passvisning(katalog: k, pass: [klubba])
@@ -165,8 +191,13 @@ final class BandlageTests: XCTestCase {
         let p6 = Positionsmatt.rader(k, vy: .dtl, position: "P6", varden: markerat)
         XCTAssertEqual(p6.filter { $0.matt == "skaft_plan_p6" }.count, 1)
         XCTAssertEqual(p6.first { $0.matt == "skaft_plan_p6" }?.lage, Bandlage(.gron))
-        // Driver: inget band på bröstets lyft.
+        // Driver: bröstets lyft vid toppen har samma band med båda klubborna, vid träffen flyttar
+        // klubban bandet och då visas inget (research 6 §6, BESLUT B86).
         let dr = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["brost_lyft_topp": -6.5], klubba: "dr")
-        XCTAssertEqual(dr.first { $0.matt == "brost_lyft_topp" }?.lage, .ingen)
+        XCTAssertEqual(dr.first { $0.matt == "brost_lyft_topp" }?.lage, Bandlage(.rod, pil: .under))
+        let dr7 = Positionsmatt.rader(k, vy: .dtl, position: "P7", varden: ["brost_lyft_traff": -6.5], klubba: "dr")
+        XCTAssertEqual(dr7.first { $0.matt == "brost_lyft_traff" }?.lage, .ingen)
+        let j7 = Positionsmatt.rader(k, vy: .dtl, position: "P7", varden: ["brost_lyft_traff": -6.5], klubba: "j7")
+        XCTAssertEqual(j7.first { $0.matt == "brost_lyft_traff" }?.lage, Bandlage(.rod, pil: .under))
     }
 }

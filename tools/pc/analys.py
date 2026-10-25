@@ -406,7 +406,10 @@ def _del(pass_id: str, slag: list[dict], kl, langd_m, tidigare: list[dict], kata
     else:
         a["forra"] = None
     bed = []
-    for fel in katalog["fel"]:
+    for fel0 in katalog["fel"]:
+        # Samma källa och band som appen (BESLUT B86, B88): klubbans plan när klubban är markerad
+        # i enhetens slag, och ett band som klubban flyttar bara på järn.
+        fel = KAT.i_passet(fel0, kl, KAT.markerad(fel0, slag))
         g, m = _grupp(fel["vy"]), fel["matt"]
         vy = vy_alla if fel["vy"] == "bada" else fel["vy"]
         b_ = [s["matt"][m] for s in bas if s["vy"] == vy and m in s["matt"]]

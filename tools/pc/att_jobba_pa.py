@@ -227,12 +227,16 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
             continue
         if not k["aktiv"]:
             fel.append(_F(f"{p}.fel", "är avstängt i katalogen", "avstangt"))
-        for f in ("namn", "vy", "matt"):
-            if not _lika(s.get(f), k[f]):
+        # Måttet och bandet som analysen bedömde felet på: katalogens, utom klubbans källa när
+        # klubban är markerad och ett band som klubban flyttar på andra klubbor (BESLUT B86, B88).
+        kb = bed.get(fid) or {}
+        matt, spann = kb.get("matt", k["matt"]), kb.get("spann", k["gront"])
+        for f, v in (("namn", k["namn"]), ("vy", k["vy"]), ("matt", matt)):
+            if not _lika(s.get(f), v):
                 fel.append(_F(f"{p}.{f}", "ska vara katalogens", "katalogens"))
-        if not _lika(s.get("enhet"), A.enhet(k["matt"])):
+        if not _lika(s.get("enhet"), A.enhet(matt)):
             fel.append(_F(f"{p}.enhet", "ska vara måttets", "mattets"))
-        if not _lika(s.get("spann"), k["gront"]):
+        if not _lika(s.get("spann"), spann):
             fel.append(_F(f"{p}.spann", "ska vara katalogens gröna spann", "katalogens"))
         # Tidigt i svingen före sent (research 3 (a) 2).
         f_i = fas.get(k["fas"], len(fas))
@@ -359,7 +363,7 @@ def kontrollera(d, analys: dict, ovningar: list[dict] | None = None, katalog: di
                     fel.append(_F(f"{q}.fel", "är också en vald sak", "vald"))
                 if not _lika(f.get("namn"), K[ffid]["namn"]):
                     fel.append(_F(f"{q}.namn", "ska vara katalogens", "katalogens"))
-                if not _lika(f.get("enhet"), A.enhet(K[ffid]["matt"])):
+                if not _lika(f.get("enhet"), A.enhet(bed.get(ffid, {}).get("matt", K[ffid]["matt"]))):
                     fel.append(_F(f"{q}.enhet", "ska vara måttets", "mattets"))
                 if not _lika(f.get("nu"), bed.get(ffid, {}).get("visat")):
                     fel.append(_F(f"{q}.nu", "ska vara analysens tal (visat)", "analysens_tal"))

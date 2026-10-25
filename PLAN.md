@@ -384,8 +384,10 @@ mått och felen flying elbow och axellutningen), dom (c) borttagna (åtta mått,
 `tools/tests/fixturer/bandlage.json`) och Swift (`Bandlage`, `Katalog.visade(i:)`,
 `Fel.medKalla`, `Fel.medKlubba`), prövat i `test_katalog.Laget` och `BandlageTests`. Appen: en
 grön prick, en gul ring eller en röd pil bredvid talet i passets kort och granskningens rader,
-och samma form som markör på spannet (`App/Vyer/Bandet.swift`), järnets band bara på järnpass,
-den egna baslinjen märkt "Your usual". Simulatorprovet: `Prov/SwingLabProvBand.swift` (bilderna
+och samma form som markör på spannet (`App/Vyer/Bandet.swift`), de sju band som klubban flyttar
+(`klubbberoende`) bara på järnpass och de andra på alla klubbor, den egna baslinjen märkt "Your
+usual". Analysen till Claude bygger på samma källa och band som appen (`katalog.i_passet`,
+`Fel.iPasset`), och Progress döljer dom (b) som passet. Simulatorprovet: `Prov/SwingLabProvBand.swift` (bilderna
 `band-passet-fo`, `band-passet-dtl`, `band-passet-driver`, `band-granskning-p4` utan (b)-måtten och
 `band-granskning-p6-klubba`).
 

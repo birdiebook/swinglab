@@ -2841,8 +2841,9 @@ högst **60 %** av rutorna mellan ankarna är interpolerade. **antagande** (grä
 ## M62 — Läget mot bandet: grönt, gult, rött och pilen (S4g)
 
 Banden ur research 6 (`docs/research/6_ranges.md`, BESLUT B86) och färgerna (BESLUT B87).
-Samma regler i Python (`katalog.lage`, `lage_baslinje`, `lage_for`, `visade`, `kalla_for`) och
-Swift (`Bandlage`, `Katalog.visade(i:)`, `Fel.medKalla`, `Fel.medKlubba`), prövat mot
+Samma regler i Python (`katalog.lage`, `lage_baslinje`, `lage_for`, `band`, `visade`, `kalla_for`,
+`i_passet`) och Swift (`Bandlage`, `Katalog.visade(i:)`, `Fel.medKalla`, `Fel.medKlubba`,
+`Fel.iPasset`), prövat mot
 `tools/tests/fixturer/bandlage.json` (`python3 tools/pc/katalog.py --swift`, BESLUT B12).
 
 - **Bandet** (`gront`): **grönt** innanför; **gult** utanför men högst måttets **golv** från
@@ -2864,22 +2865,25 @@ Swift (`Bandlage`, `Katalog.visade(i:)`, `Fel.medKalla`, `Fel.medKlubba`), pröv
   ligger **mer än golvet utanför ramens ände** åt det hållet blir det rött med pil, annars inget
   läge. Ramens ände, inte medianen: en stor egen spridning ska inte ge rött inne i ramen.
 - **Klubban** (BESLUT B86): katalogens band är järnets (`gront`), och driverns står i
-  `gront_driver` utan att användas. Bandet visas bara på **järnpass**: järnen 4–9 och PW, som id
-  (`j7`, `pw`) eller etikett (`7i`, `PW`); en okänd klubba räknas som järn, standarden. På andra
-  klubbor visas inget band, och läget är den egna baslinjens. Analysen till Claude (M27, MT3)
-  bär järnets band för alla klubbor, som förut, och underlaget säger klubban.
+  `gront_driver` utan att användas. Ett band som inte beror på klubban gäller alla klubbor. De
+  sju band som klubban flyttar (research 6 §6) bär `klubbberoende: true` och visas bara på
+  **järnpass**: järnen 4–9 och PW, som id (`j7`, `pw`) eller etikett (`7i`, `PW`); en okänd
+  klubba räknas som järn, standarden. På andra klubbor visas inget band för dem, och läget är
+  den egna baslinjens. Analysen till Claude (M27, MT3) följer samma regel per enhet (klubba).
 - **Läget räknas på det visade talet** (avrundat som PC:n, `Avrundning`), så att färgen stämmer
   med siffran: "4.3" är grönt mot bandet ≤ 4,3.
 - **Vad sessionen visar** (BESLUT B86): katalogens `visas: false` är dom (b): måttet visas inte
-  i passet eller granskningen, men finns kvar i exporten, paketet och underlaget till Claude
+  i passet, granskningen eller Progress, men finns kvar i exporten, paketet och underlaget till Claude
   (S5b). Ett fel som övas (Att jobba på) visas ändå, så att det Claude valt syns. Dom (c) är
   borttagna ur katalogen; måtten räknas fortfarande (MATVERSION oförändrad), eftersom
   research 6 bara gällde vad som visas.
 - **Felets källa med klubban** (BESLUT B88): ett fel med `klubba` (over the top) bygger på
-  klubbmåttet (`skaft_plan_p6`, M47) när klubban är markerad: i passet när något slag i vyn har
-  måttet, i granskningen på slaget som har det. Då tar felet klubbmåttets positioner, band,
-  golv, källa och infoblad, och klubbmåttet får inget eget kort eller egen rad. Annars händernas
-  bana (M13). Klubbans plan: mål 0, bandet ±5° (bredden ett antagande: inte finare än golvet,
+  klubbmåttet (`skaft_plan_p6`, M47) när klubban är markerad: i passet och i analysens enhet när
+  något slag i vyn har måttet (`katalog.markerad`), i granskningen på slaget som har det. Då tar
+  felet klubbmåttets positioner, band, golv, källa och infoblad, och klubbmåttet får inget eget
+  kort eller egen rad. Annars händernas bana (M13). Analysen till Claude, underlagets mall och
+  kontrollen av svaret tar måttet, enheten och bandet ur analysens rad (`i_passet`), så att
+  appen och urklippet bygger på samma källa. Klubbans plan: mål 0, bandet ±5° (bredden ett antagande: inte finare än golvet,
   research 6 rad 38), golvet 5°.
 - **Formen** (design/README.md): grönt är en fylld prick, gult en ring och rött en fylld
   triangel som pekar åt värdet (upp eller ner bredvid talet, höger eller vänster på spannets

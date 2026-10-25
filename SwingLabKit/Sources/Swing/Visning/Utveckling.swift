@@ -181,8 +181,10 @@ public struct Utvecklingsvisning: Sendable {
         period = Self.periodText(klubba: pass.last?.klubba, datum: pass.map(\.datum))
         let delar = (ejMatta > 0 ? [Texter.ejMatta(ejMatta)] : []) + (annanLangd > 0 ? [Texter.annanLangd(annanLangd)] : [])
         self.ejMatta = delar.isEmpty ? nil : delar.joined(separator: Texter.skilje)
-        let fel = katalog.fel.filter { $0.aktiv }.map { f -> Utveckling in
-            var u = Utveckling(f, pass: pass, block: block)
+        // Dom (b) visas inte utom när felet övas, och ett band som klubban flyttar bara på järn
+        // (BESLUT B86). Över passen står felets eget mått (händernas bana för over the top, B88).
+        let fel = katalog.fel.filter { $0.aktiv && $0.visas(ovas: ovas) }.map { f -> Utveckling in
+            var u = Utveckling(f.medKlubba(pass.last?.klubba), pass: pass, block: block)
             u.ovas = ovas.contains(f.id)
             return u
         }

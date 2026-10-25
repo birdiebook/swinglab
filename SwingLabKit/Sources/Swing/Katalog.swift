@@ -146,6 +146,9 @@ public struct Katalog: Decodable, Sendable {
         public let kallaStatus: String?
         public let kontrollerad: Bool?
         public let gransHarledd: Bool
+        /// true = klubban flyttar bandet (research 6 §6): det visas bara på järnpass (BESLUT B86).
+        public let klubbberoende: Bool
+        let klubbberoendeRad: Bool?
         /// false = dom (b): visas inte för spelaren, men finns i exporten och underlaget (B86).
         public let visas: Bool
         /// Fält utöver de kända; kontrollen fäller dem, och ett av infobladets fält som saknas,
@@ -164,6 +167,7 @@ public struct Katalog: Decodable, Sendable {
             case kallaStatus = "kalla_status"
             case kontrollerad
             case gransHarledd = "grans_harledd"
+            case klubbberoende
             case visas
         }
 
@@ -205,6 +209,8 @@ public struct Katalog: Decodable, Sendable {
             let harledd = las(Bool.self, .gransHarledd)
             gransHarledd = harledd ?? false
             if harledd == false { felTyp.append(CodingKeys.gransHarledd.rawValue) }      // bara true, som Python
+            klubbberoendeRad = las(Bool.self, .klubbberoende)
+            klubbberoende = klubbberoendeRad ?? false
             visas = las(Bool.self, .visas) ?? true
             self.felTyp = felTyp
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
@@ -261,6 +267,10 @@ public struct Katalog: Decodable, Sendable {
         /// Gränsen är ett antagande härlett ur källan (sway_topp, METOD M15); bladets källa
         /// säger då "Assumption from manufacturer". Valfritt, false utan fältet. BESLUT B41
         public internal(set) var gransHarledd: Bool
+        /// true = klubban flyttar bandet (research 6 §6): det visas bara på järnpass (BESLUT B86).
+        /// Valfritt, false utan fältet.
+        public internal(set) var klubbberoende: Bool
+        let klubbberoendeRad: Bool?
         /// false = dom (b): visas inte i sessionen för spelaren (BESLUT B86). Valfritt, true utan fältet.
         public let visas: Bool
         /// Felets källa när klubban är markerad i passet (over the top, BESLUT B88), eller nil.
@@ -277,7 +287,7 @@ public struct Katalog: Decodable, Sendable {
 
         enum CodingKeys: String, CodingKey, CaseIterable {
             case id, namn, vy, matt, fas, gront, golv, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
-            case positioner, vad, varfor, tecken, visas, klubba
+            case positioner, vad, varfor, tecken, visas, klubba, klubbberoende
             case grontDriver = "gront_driver"
             case gransHarledd = "grans_harledd"
             case ovningId = "ovning_id"
@@ -312,6 +322,8 @@ public struct Katalog: Decodable, Sendable {
             varfor = try c.decode(String.self, forKey: .varfor)
             tecken = try c.decode(String.self, forKey: .tecken)
             gransHarledd = try c.decodeIfPresent(Bool.self, forKey: .gransHarledd) ?? false
+            klubbberoendeRad = try c.decodeIfPresent(Bool.self, forKey: .klubbberoende)
+            klubbberoende = klubbberoendeRad ?? false
             visas = try c.decodeIfPresent(Bool.self, forKey: .visas) ?? true
             klubba = try c.decodeIfPresent(Klubbkalla.self, forKey: .klubba)
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
@@ -381,6 +393,7 @@ public struct Katalog: Decodable, Sendable {
             }
             if !(e.golv > 0) { fel.append("\(e.id): golv ska vara ett positivt tal") }
             if e.gront == nil && e.grontDriver != nil { fel.append("\(e.id): gront_driver utan gront") }
+            fel += klubbberoendeFel(e.id, e.klubbberoendeRad, gront: e.gront, grontDriver: e.grontDriver)
             if let kl = e.klubba { fel += klubbansFel(e, kl) }
             if e.gransHarledd && e.gront == nil {
                 fel.append("\(e.id): grans_harledd ska vara true/false och kräver gront")
@@ -400,7 +413,7 @@ public struct Katalog: Decodable, Sendable {
             if let s = e.status, s != "oprovad" { fel.append("\(namn): status ska vara oprovad") }
             if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
             fel += bandetsFel(namn, falt: e.falt, felTyp: e.felTyp, gront: e.gront, grontDriver: e.grontDriver,
-                              golv: e.golv, samre: e.samre, kallaStatus: e.kallaStatus)
+                              golv: e.golv, samre: e.samre, kallaStatus: e.kallaStatus, klubbberoende: e.klubbberoendeRad)
             if let vy = Vy(rawValue: e.vy) {
                 // Klubbans mått ur markeringarna (METOD M46–M49) står också här.
                 if !(Matt.namn(vy) + Klubba.katalognamn(vy)).contains(e.matt) {
@@ -423,7 +436,7 @@ public struct Katalog: Decodable, Sendable {
             }
             fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
             fel += bandetsFel(namn, falt: e.falt, felTyp: [], gront: nil, grontDriver: nil, golv: e.golv, samre: e.samre,
-                              kallaStatus: nil)
+                              kallaStatus: nil, klubbberoende: nil)
             if let vy = Vy(rawValue: e.vy) {
                 if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
             } else {
@@ -439,7 +452,8 @@ public struct Katalog: Decodable, Sendable {
     /// Ett mått med band eller riktning (BESLUT B86, METOD M62), som `_band_fel` i Python: gront
     /// kräver golv och källan, samre kräver golv, grans_harledd och gront_driver kräver gront.
     static func bandetsFel(_ namn: String, falt: Set<String>, felTyp: [String], gront: [Double?]?,
-                           grontDriver: [Double?]?, golv: Double?, samre: String?, kallaStatus: String?) -> [String] {
+                           grontDriver: [Double?]?, golv: Double?, samre: String?, kallaStatus: String?,
+                           klubbberoende: Bool?) -> [String] {
         var fel: [String] = []
         for (n, g) in [("gront", gront), ("gront_driver", grontDriver)] where falt.contains(n) {
             if felTyp.contains(n) || g?.count != 2 { fel.append("\(namn): \(n) ska vara [min, max]") }
@@ -463,8 +477,19 @@ public struct Katalog: Decodable, Sendable {
             fel.append("\(namn): grans_harledd ska vara true och kräver gront")
         }
         if falt.contains("gront_driver"), !falt.contains("gront") { fel.append("\(namn): gront_driver kräver gront") }
+        if falt.contains("klubbberoende") {
+            fel += klubbberoendeFel(namn, klubbberoende ?? false, gront: gront, grontDriver: grontDriver)
+        }
         if felTyp.contains("visas") { fel.append("\(namn): visas ska vara true/false") }
         return fel
+    }
+
+    /// `klubbberoende` (BESLUT B86): true, och bara på ett band med driverns band bredvid. Som
+    /// `_klubbberoende_fel` i Python; nil = fältet saknas.
+    static func klubbberoendeFel(_ namn: String, _ k: Bool?, gront: [Double?]?, grontDriver: [Double?]?) -> [String] {
+        guard let k else { return [] }
+        return k && gront != nil && grontDriver != nil
+            ? [] : ["\(namn): klubbberoende ska vara true och kräver gront och gront_driver"]
     }
 
     /// Felets källa med klubban (BESLUT B88), som `_klubba_fel` i Python.

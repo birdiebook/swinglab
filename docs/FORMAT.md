@@ -105,8 +105,9 @@ där varje fel har:
 | `vy` | text | `"dtl"`, `"fo"` eller `"bada"` (måttet över alla svingar, tempot). |
 | `matt` | text | Måttets namn; måste finnas i vyn. |
 | `fas` | text | Var i svingen felet syns (`adress`, `topp`, `nedsving`, `traff`, `efter_traff`, `hela`). Bara för visningen. |
-| `gront` | `[min, max]` eller `null` | Bandet (grönt) för järn; `null` i en ände = öppen. `null` = **egen baslinje**. Visas bara på järnpass (BESLUT B86). |
+| `gront` | `[min, max]` eller `null` | Bandet (grönt) för järn; `null` i en ände = öppen. `null` = **egen baslinje**. Visas på alla klubbor, utom med `klubbberoende` (BESLUT B86). |
 | `gront_driver` | `[min, max]` | Valfri. Driverns band ur samma källa; används inte än (BESLUT B86). Kräver `gront`. |
+| `klubbberoende` | bool | Valfri, bara `true`. Klubban flyttar bandet (research 6 §6): det visas bara på järnpass, och på andra klubbor gäller den egna baslinjen. Utan fältet gäller bandet alla klubbor (BESLUT B86). Kräver `gront` och `gront_driver`. |
 | `golv` | tal > 0 | Måttets brusgolv: gult inom det utanför bandet, rött längre bort; för den egna baslinjen rött åt `samre` utanför ramen med mer än golvet (METOD M62, BESLUT B87). Ersätter `gult` (2026-10-25): analysen räknar det gula ur bandet och golvet. |
 | `kalla` | text | URL till källan för definitionen eller gränsen. |
 | `status` | text | Gränsens status: `tillverkare`, `forskning`, `tranare` eller `antagande` (egen baslinje är `antagande`). |
@@ -141,6 +142,7 @@ och `positioner`, och valfritt `fel` och `status` och bandets fält; inga andra 
 | `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "Your usual". Utan fältet: egen baslinje eller bandet. |
 | `gront` | `[min, max]` | Valfri. Bandet för järn ur research 6 (BESLUT B86, METOD M62); kräver `golv`, `kalla`, `kalla_status` och `kontrollerad`. Utan fältet: egen baslinje. |
 | `gront_driver` | `[min, max]` | Valfri. Driverns band, används inte än. Kräver `gront`. |
+| `klubbberoende` | bool | Valfri, bara `true`: bandet visas bara på järnpass, som felens (BESLUT B86). |
 | `golv` | tal > 0 | Måttets brusgolv (METOD M62). Krävs med `gront` eller `samre`. |
 | `samre` | `"+"` eller `"-"` | Valfri. Det sämre hållet för den egna baslinjen: rött åt det hållet (dom a, BESLUT B86). |
 | `kalla`, `kalla_status`, `kontrollerad`, `grans_harledd` | text, text, bool, `true` | Bandets källa, som felens `kalla`, `status`, `kontrollerad` och `grans_harledd`. |

@@ -11,9 +11,11 @@ En gräns som inte är kontrollerad i original (BESLUT B10) bär `kontrollerad: 
 ändå, märkt.
 
 Läget som spelaren ser (METOD M62) räknas av `lage`, `lage_baslinje` och `lage_for`: grönt,
-gult, rött med en pil åt det håll värdet ligger, eller inget. Banden gäller järn (`jarn`);
-`visas` säger vad sessionen visar (dom b, BESLUT B86), och `kalla_for` byter felets källa till
-klubbans när klubban är markerad (over the top, BESLUT B88). Swift räknar samma sak
+gult, rött med en pil åt det håll värdet ligger, eller inget. Ett band som klubban flyttar
+(`klubbberoende`) visas bara på järnpass (`jarn`, `band`); `visas` säger vad sessionen visar (dom b,
+BESLUT B86), och `kalla_for` byter felets källa till klubbans när klubban är markerad (over the top,
+BESLUT B88). `i_passet` gör båda, och analysen till Claude använder den, så att appen och
+underlaget bygger på samma källa och samma band. Swift räknar samma sak
 (SwingLabKit `Bandlage`), prövat mot `tools/tests/fixturer/bandlage.json` (BESLUT B12).
 """
 from __future__ import annotations
@@ -47,8 +49,9 @@ STATUS = ("tillverkare", "forskning", "tranare", "antagande")
 SAMRE = ("+", "-", None)
 FALT = ("id", "namn", "vy", "matt", "fas", "gront", "golv", "kalla", "status", "kontrollerad",
         "aktiv", "samre", "ovning_id", "ovning", "tanke", "positioner", "vad", "varfor", "tecken")
-# Valfria fält i ett fel: driverns band (används inte än), visas (dom b) och klubbans källa (B88).
-FEL_VALFRIA = ("notering", "grans_harledd", "gront_driver", "visas", "klubba")
+# Valfria fält i ett fel: driverns band (används inte än), klubbberoende (bandet bara på järnpass),
+# visas (dom b) och klubbans källa (B88).
+FEL_VALFRIA = ("notering", "grans_harledd", "gront_driver", "klubbberoende", "visas", "klubba")
 KLUBBA_FALT = ("matt", "positioner", "gront", "golv", "kalla", "status", "kontrollerad", "grans_harledd",
                "vad", "varfor", "tecken")
 # Infobladet (BESLUT B41): vad som mäts, varför det spelar roll och tecknet, på engelska.
@@ -56,9 +59,9 @@ INFO = ("vad", "varfor", "tecken")
 MATT_FALT = ("matt", "vy", "positioner") + INFO   # och valfritt fel: felet vars accent måttet följer (B31)
 # status: "oprovad" = oprövat på telefonen (METOD M35–M37). Bandet (BESLUT B86, METOD M62): gront med
 # golv, kalla, kalla_status och kontrollerad, valfritt grans_harledd och gront_driver; samre med golv för
-# den egna baslinjen; visas: false = dom (b).
+# den egna baslinjen; klubbberoende: true = klubban flyttar bandet (bara på järnpass); visas: false = dom (b).
 MATT_VALFRIA = ("fel", "status", "gront", "gront_driver", "golv", "samre", "kalla", "kalla_status", "kontrollerad",
-                "grans_harledd", "visas")
+                "grans_harledd", "klubbberoende", "visas")
 MATT_BAND = ("golv", "kalla", "kalla_status", "kontrollerad")
 MATT_STATUS = ("oprovad",)
 SPRIDNING_FALT = ("matt", "vy") + INFO            # METOD M44
@@ -138,9 +141,18 @@ def _band_fel(namn: str, e: dict) -> list[str]:
         fel.append(f"{namn}: grans_harledd ska vara true och kräver gront")
     if "gront_driver" in e and "gront" not in e:
         fel.append(f"{namn}: gront_driver kräver gront")
+    fel += _klubbberoende_fel(namn, e)
     if "visas" in e and not isinstance(e["visas"], bool):
         fel.append(f"{namn}: visas ska vara true/false")
     return fel
+
+
+def _klubbberoende_fel(namn: str, e: dict) -> list[str]:
+    """`klubbberoende` (BESLUT B86): true, och bara på ett band med driverns band bredvid."""
+    if "klubbberoende" in e and not (e["klubbberoende"] is True and e.get("gront") is not None
+                                     and e.get("gront_driver") is not None):
+        return [f"{namn}: klubbberoende ska vara true och kräver gront och gront_driver"]
+    return []
 
 
 def _klubba_fel(namn: str, e: dict) -> list[str]:
@@ -200,6 +212,7 @@ def kontrollera(k: dict) -> list[str]:
             fel.append(f"{namn}: golv ska vara ett positivt tal")
         if e.get("gront") is None and e.get("gront_driver") is not None:
             fel.append(f"{namn}: gront_driver utan gront")
+        fel += _klubbberoende_fel(namn, e)
         if "visas" in e and not isinstance(e["visas"], bool):
             fel.append(f"{namn}: visas ska vara true/false")
         if "klubba" in e:
@@ -334,16 +347,19 @@ def jarn(klubba: str | None) -> bool:
 
 
 def band(e: dict, klubba: str | None = None) -> list | None:
-    """Bandet som visas för en post i ett pass med klubban `klubba`: järnets band på järnpass,
-    annars inget (driverns band används inte än). BESLUT B86"""
-    return e.get("gront") if jarn(klubba) else None
+    """Bandet som visas för en post i ett pass med klubban `klubba`. Ett band som klubban flyttar
+    (`klubbberoende`, research 6 §6) visas bara på järnpass, och på andra klubbor inget (driverns
+    band används inte än); de andra banden gäller alla klubbor. BESLUT B86"""
+    if e.get("klubbberoende") and not jarn(klubba):
+        return None
+    return e.get("gront")
 
 
 def lage(varde: float, gront: list | None, golv: float) -> dict:
     """Ett värde mot bandet: grönt innanför, gult utanför men inom golvet från gränsen, rött
     längre bort med pilen åt det håll värdet ligger ("over" = större än bandet). Utan band:
-    ingen. Gränserna är slutna. METOD M62"""
-    if gront is None:
+    ingen, och ett tal som inte är ändligt har inget läge. Gränserna är slutna. METOD M62"""
+    if gront is None or not math.isfinite(varde):
         return {"lage": "ingen", "pil": None}
     lo, hi = gront
     if _inom(varde, gront):
@@ -361,7 +377,7 @@ def lage_baslinje(varde: float, baslinje: tuple | None, samre: str | None, golv:
     """Ett värde mot den egna baslinjen (medianen ± en robust sd, M27), som inte får grönt eller
     gult (Johannes 2026-10-25): rött med pil bara när måttets sämre håll är känt och värdet ligger
     mer än golvet utanför baslinjens ände åt det hållet. METOD M62"""
-    if baslinje is None or samre is None or golv is None:
+    if baslinje is None or samre is None or golv is None or not math.isfinite(varde):
         return {"lage": "ingen", "pil": None}
     lo, hi = baslinje
     if samre == "+" and varde > hi + golv + EPS:
@@ -408,13 +424,32 @@ def kalla_for(fel: dict, klubba_markerad: bool) -> dict:
     k = fel.get("klubba")
     if not klubba_markerad or k is None:
         return fel
-    ut = {x: v for x, v in fel.items() if x not in ("klubba", "gront_driver", "grans_harledd")}
+    ut = {x: v for x, v in fel.items() if x not in ("klubba", "gront_driver", "grans_harledd", "klubbberoende")}
     ut.update(matt=k["matt"], positioner=k["positioner"], gront=k["gront"], golv=k["golv"], kalla=k["kalla"],
               status=k["status"], kontrollerad=k["kontrollerad"], vad=k["vad"], varfor=k["varfor"],
               tecken=k["tecken"])
     if k["grans_harledd"]:
         ut["grans_harledd"] = True
     return ut
+
+
+def markerad(fel: dict, slag: list[dict]) -> bool:
+    """Klubban är markerad för felets källa (BESLUT B88): något slag i felets vy har klubbmåttet.
+    `slag` = rader med `vy` och `matt` (som analysens). Som `Mattkort.visat` i Swift."""
+    k = fel.get("klubba")
+    return k is not None and any(r.get("vy") == fel["vy"] and k["matt"] in (r.get("matt") or {}) for r in slag)
+
+
+def i_passet(fel: dict, klubba: str | None, klubba_markerad: bool) -> dict:
+    """Felet som det gäller i ett pass med klubban `klubba`: klubbans källa när den är markerad
+    (`kalla_for`, BESLUT B88) och sedan bandet efter klubban (`band`, BESLUT B86). Appen
+    (`Mattkort.visat`, `Positionsmatt`) och analysen till Claude (`analys._del`, `Passanalys`)
+    bygger på samma, så att de aldrig säger olika saker."""
+    f = kalla_for(fel, klubba_markerad)
+    if f.get("gront") is not None and band(f, klubba) is None:
+        f = {x: v for x, v in f.items() if x not in ("gront_driver", "grans_harledd")}
+        f["gront"] = None
+    return f
 
 
 def visade(katalog: dict, vy: str) -> list[str]:
@@ -544,9 +579,16 @@ def facit_bandlage(katalog: dict | None = None) -> dict:
                 kallor[f"{f['id']}/{'klubba' if markerad else 'utan'}"] = {
                     x: k.get(x) for x in ("matt", "positioner", "gront", "golv", "kalla", "status", "kontrollerad",
                                           "vad", "varfor", "tecken")} | {"grans_harledd": k.get("grans_harledd", False)}
+    i_pass = []
+    for f in katalog["fel"]:
+        for kl in ("j7", "dr", None):
+            for m in ((False, True) if "klubba" in f else (False,)):
+                g = i_passet(f, kl, m)
+                i_pass.append({"fel": f["id"], "klubba": kl, "markerad": m, "matt": g["matt"], "gront": g["gront"],
+                               "golv": g["golv"], "grans_harledd": g.get("grans_harledd", False)})
     return {"om": "Pythons läge mot bandet (METOD M62, BESLUT B86–B88), facit för SwingLabKit BandlageTests. "
                   "Skrivs av python3 tools/pc/katalog.py --swift.",
-            "lage": lagen, "baslinje": bas, "poster": poster,
+            "lage": lagen, "baslinje": bas, "poster": poster, "i_passet": i_pass,
             "jarn": [{"klubba": kl, "jarn": jarn(kl)} for kl in FACIT_KLUBBOR],
             "visade": {vy: visade(katalog, vy) for vy in ("dtl", "fo")},
             "kallor": kallor}

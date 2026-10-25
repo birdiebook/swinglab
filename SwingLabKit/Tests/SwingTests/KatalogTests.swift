@@ -140,6 +140,10 @@ final class KatalogTests: XCTestCase {
         ("\"samre\": \"-\", \"golv\": 0.5}", "\"samre\": \"-\"}", "matt handfart_max: gront och samre kräver golv"),
         ("\"tecken\": \"+ toward target · − away\", \"visas\": false}",
          "\"tecken\": \"+ toward target · − away\", \"visas\": \"nej\"}", "matt hander_fore_adress_traff: visas ska vara"),
+        ("\"gront_driver\": [11.2, null],\n   \"klubbberoende\": true,",
+         "\"gront_driver\": [11.2, null],\n   \"klubbberoende\": false,", "sway_gap: klubbberoende ska vara"),
+        ("\"gront_driver\": [-6.1, -2.1], \"klubbberoende\": true", "\"klubbberoende\": true",
+         "matt backen_sway_p3: klubbberoende ska vara"),
         // Spridningen (METOD M44).
         ("{\"matt\": \"brost_bojning_adress\", \"vy\": \"dtl\", \"vad\": \"The spread",
          "{\"matt\": \"brost_bojning_adress\", \"vy\": \"fo\", \"vad\": \"The spread",

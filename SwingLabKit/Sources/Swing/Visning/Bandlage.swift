@@ -38,9 +38,10 @@ public struct Bandlage: Equatable, Sendable {
         return jarnen.contains(k.lowercased())
     }
 
-    /// Ett värde mot bandet (`gront`, nil i en ände = öppen) och golvet. METOD M62
+    /// Ett värde mot bandet (`gront`, nil i en ände = öppen) och golvet; ett tal som inte är
+    /// ändligt har inget läge. METOD M62
     public static func lage(_ v: Double, gront: [Double?]?, golv: Double) -> Bandlage {
-        guard let g = gront, g.count == 2 else { return .ingen }
+        guard let g = gront, g.count == 2, v.isFinite else { return .ingen }
         let lo = g[0], hi = g[1]
         if (lo.map { v >= $0 - eps } ?? true) && (hi.map { v <= $0 + eps } ?? true) { return Bandlage(.gron) }
         let d: Double, pil: Riktning
@@ -58,28 +59,37 @@ public struct Bandlage: Equatable, Sendable {
     /// gul (Johannes 2026-10-25): röd med pil bara när måttets sämre håll är känt och värdet ligger
     /// mer än golvet utanför baslinjens ände åt det hållet. METOD M62
     public static func lage(_ v: Double, baslinje: (lo: Double, hi: Double)?, samre: String?, golv: Double?) -> Bandlage {
-        guard let b = baslinje, let s = samre, let g = golv else { return .ingen }
+        guard let b = baslinje, let s = samre, let g = golv, v.isFinite else { return .ingen }
         if s == "+" && v > b.hi + g + eps { return Bandlage(.rod, pil: .over) }
         if s == "-" && v < b.lo - g - eps { return Bandlage(.rod, pil: .under) }
         return .ingen
     }
 
-    /// Läget för en post i ett pass med klubban `klubba`: mot bandet när det visas (järnpass),
-    /// annars mot den egna baslinjen ur `baslinje` (tidigare värden). Som `lage_for`. METOD M62
+    /// Bandet som visas i ett pass med klubban `klubba`: ett band som klubban flyttar
+    /// (`klubbberoende`, research 6 §6) bara på järnpass, de andra på alla klubbor. Som `band`
+    /// i Python. BESLUT B86
+    public static func band(_ gront: [Double?]?, klubbberoende: Bool, klubba: String?) -> [Double?]? {
+        klubbberoende && !jarn(klubba) ? nil : gront
+    }
+
+    /// Läget för en post i ett pass med klubban `klubba`: mot bandet när det visas, annars mot den
+    /// egna baslinjen ur `baslinje` (tidigare värden). Som `lage_for`. METOD M62
     public static func lage(_ v: Double, gront: [Double?]?, golv: Double?, samre: String?, baslinje: [Double],
-                            klubba: String?) -> Bandlage {
-        if let g = gront, jarn(klubba), let golv { return lage(v, gront: g, golv: golv) }
+                            klubba: String?, klubbberoende: Bool = false) -> Bandlage {
+        if let g = band(gront, klubbberoende: klubbberoende, klubba: klubba), let golv { return lage(v, gront: g, golv: golv) }
         return lage(v, baslinje: Baslinje.spann(baslinje), samre: samre, golv: golv)
     }
 
     /// Ett fel i katalogen (avstängt: inget läge).
     public static func lage(_ fel: Katalog.Fel, _ v: Double, baslinje: [Double] = [], klubba: String?) -> Bandlage {
         guard fel.aktiv else { return .ingen }
-        return lage(v, gront: fel.gront, golv: fel.golv, samre: fel.samre, baslinje: baslinje, klubba: klubba)
+        return lage(v, gront: fel.gront, golv: fel.golv, samre: fel.samre, baslinje: baslinje, klubba: klubba,
+                    klubbberoende: fel.klubbberoende)
     }
 
     public static func lage(_ post: Katalog.Mattpost, _ v: Double, baslinje: [Double] = [], klubba: String?) -> Bandlage {
-        lage(v, gront: post.gront, golv: post.golv, samre: post.samre, baslinje: baslinje, klubba: klubba)
+        lage(v, gront: post.gront, golv: post.golv, samre: post.samre, baslinje: baslinje, klubba: klubba,
+             klubbberoende: post.klubbberoende)
     }
 
     public static func lage(_ post: Katalog.Spridningspost, _ v: Double, baslinje: [Double] = [],
@@ -102,10 +112,11 @@ public struct Bandlage: Equatable, Sendable {
 }
 
 extension Katalog.Fel {
-    /// Felet som det visas i ett pass med klubban `klubba`: järnets band bara på järnpass,
-    /// annars utan band (egen baslinje där den finns). BESLUT B86
+    /// Felet som det visas i ett pass med klubban `klubba`: ett band som klubban flyttar
+    /// (`klubbberoende`) bara på järnpass, annars utan band (egen baslinje där den finns); de
+    /// andra banden gäller alla klubbor. BESLUT B86
     public func medKlubba(_ klubba: String?) -> Katalog.Fel {
-        guard !Bandlage.jarn(klubba), gront != nil else { return self }
+        guard gront != nil, Bandlage.band(gront, klubbberoende: klubbberoende, klubba: klubba) == nil else { return self }
         var f = self
         f.gront = nil
         f.grontDriver = nil
@@ -123,6 +134,7 @@ extension Katalog.Fel {
         f.positioner = k.positioner
         f.gront = k.gront
         f.grontDriver = nil
+        f.klubbberoende = false
         f.golv = k.golv
         f.kalla = k.kalla
         f.status = k.status
@@ -134,13 +146,23 @@ extension Katalog.Fel {
         return f
     }
 
+    /// Felet som det gäller i ett pass med klubban `klubba`: klubbans källa när den är markerad
+    /// (BESLUT B88) och sedan bandet efter klubban (BESLUT B86). Passets kort, granskningens rader
+    /// och analysen till Claude (`Passanalys`) bygger på samma, som `i_passet` i Python.
+    public func iPasset(klubba: String?, klubbaMarkerad: Bool) -> Katalog.Fel {
+        medKalla(klubbaMarkerad: klubbaMarkerad).medKlubba(klubba)
+    }
+
     /// Felet visas för spelaren: inte dom (b), utom när det övas (det Claude valt syns). BESLUT B86
     public func visas(ovas: Set<String>) -> Bool { visas || ovas.contains(id) }
 }
 
 extension Katalog.Mattpost {
-    /// Måttet som det visas i ett pass med klubban `klubba`: bandet bara på järnpass. BESLUT B86
-    public func band(_ klubba: String?) -> [Double?]? { Bandlage.jarn(klubba) ? gront : nil }
+    /// Måttet som det visas i ett pass med klubban `klubba`: ett band som klubban flyttar bara på
+    /// järnpass, de andra på alla klubbor. BESLUT B86
+    public func band(_ klubba: String?) -> [Double?]? {
+        Bandlage.band(gront, klubbberoende: klubbberoende, klubba: klubba)
+    }
 }
 
 extension Katalog {

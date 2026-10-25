@@ -238,11 +238,15 @@ public enum AttJobbaPaKontroll {
                 continue
             }
             if !k.aktiv { fel.append(Kontrollfel("\(p).fel", "avstangt")) }
-            for (f, v) in [("namn", k.namn), ("vy", k.vy), ("matt", k.matt)] where s[f] != .text(v) {
+            // Måttet och bandet som analysen bedömde felet på: katalogens, utom klubbans källa när
+            // klubban är markerad och ett band som klubban flyttar på andra klubbor (BESLUT B86, B88).
+            let kb = bed[fid]
+            let matt = kb?.matt ?? k.matt, spann = kb != nil ? kb!.spann : k.gront
+            for (f, v) in [("namn", k.namn), ("vy", k.vy), ("matt", matt)] where s[f] != .text(v) {
                 fel.append(Kontrollfel("\(p).\(f)", "katalogens"))
             }
-            if s["enhet"] != .text(Avrundning.enhet(k.matt)) { fel.append(Kontrollfel("\(p).enhet", "mattets")) }
-            if !(s["spann"] ?? .null).lika(.spann(k.gront)) { fel.append(Kontrollfel("\(p).spann", "katalogens")) }
+            if s["enhet"] != .text(Avrundning.enhet(matt)) { fel.append(Kontrollfel("\(p).enhet", "mattets")) }
+            if !(s["spann"] ?? .null).lika(.spann(spann)) { fel.append(Kontrollfel("\(p).spann", "katalogens")) }
             let fI = fas[k.fas] ?? fas.count
             if fI < forraFas { fel.append(Kontrollfel(p, "svingens_ordning")) }
             forraFas = max(forraFas, fI)
@@ -359,7 +363,9 @@ public enum AttJobbaPaKontroll {
                     }
                     if valdaText.contains(ffid) { fel.append(Kontrollfel("\(q).fel", "vald")) }
                     if f["namn"] != .text(kf.namn) { fel.append(Kontrollfel("\(q).namn", "katalogens")) }
-                    if f["enhet"] != .text(Avrundning.enhet(kf.matt)) { fel.append(Kontrollfel("\(q).enhet", "mattets")) }
+                    if f["enhet"] != .text(Avrundning.enhet(bed[ffid]?.matt ?? kf.matt)) {
+                        fel.append(Kontrollfel("\(q).enhet", "mattets"))
+                    }
                     if !(f["nu"] ?? .null).lika(.d(bed[ffid]?.visat)) {
                         fel.append(Kontrollfel("\(q).nu", "analysens_tal"))
                     }

@@ -1,6 +1,7 @@
 """Katalogen (katalog.json, BESLUT B6) och bedömningen (METOD M27)."""
 from __future__ import annotations
 
+import math
 import json
 import unittest
 
@@ -199,6 +200,10 @@ class Formen(unittest.TestCase):
         ('"tecken": "+ toward target · − away", "visas": false}', '"tecken": "+ toward target · − away", "visas": "nej"}',
          "matt hander_fore_adress_traff: visas ska vara"),
         ('"grans_harledd": true', '"grans_harledd": 1', "sway_topp: grans_harledd ska vara"),
+        ('"gront_driver": [11.2, null],\n   "klubbberoende": true,', '"gront_driver": [11.2, null],\n   "klubbberoende": false,',
+         "sway_gap: klubbberoende ska vara"),
+        ('"gront_driver": [-6.1, -2.1], "klubbberoende": true', '"klubbberoende": true',
+         "matt backen_sway_p3: klubbberoende ska vara"),
         ('"samre": "-",', "", "sway_topp: samre saknas"),
         ('"ovning":', '"ovn":', "sway_topp: ovning saknas"),
         ('"positioner": ["P4"],', "", "sway_topp: positioner saknas"),
@@ -302,6 +307,8 @@ class Laget(unittest.TestCase):
         self.assertEqual(K.lage(-4.4, g, 2), {"lage": "rod", "pil": "under"})
         self.assertEqual(K.lage(-100.0, [None, 0], 2), {"lage": "gron", "pil": None})  # öppen ände
         self.assertEqual(K.lage(2.0, None, 2), {"lage": "ingen", "pil": None})
+        self.assertEqual(K.lage(math.nan, [-2.5, None], 2), {"lage": "ingen", "pil": None})   # inget tal
+        self.assertEqual(K.lage_baslinje(math.inf, (0.0, 1.0), "+", 1), {"lage": "ingen", "pil": None})
 
     def test_egen_baslinje_far_bara_rott_at_samre_hallet(self) -> None:
         bas = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
@@ -321,9 +328,25 @@ class Laget(unittest.TestCase):
             self.assertTrue(K.jarn(kl), kl)
         for kl in ("dr", "Dr", "t3", "3W", "h4", "gw", "SW"):
             self.assertFalse(K.jarn(kl), kl)
-        sway = _fel("sway_topp")
+        # Ett band som klubban flyttar (research 6 §6) bara på järn; de andra på alla klubbor.
+        gap, sway = _fel("sway_gap"), _fel("sway_topp")
+        self.assertTrue(gap["klubbberoende"])
+        self.assertNotIn("klubbberoende", sway)
+        self.assertEqual(K.lage_for(gap, 2.0, klubba="j7"), {"lage": "rod", "pil": "under"})
+        self.assertEqual(K.lage_for(gap, 2.0, klubba="dr")["lage"], "ingen")       # samre "-" men ingen baslinje
         self.assertEqual(K.lage_for(sway, -10.0, klubba="j7"), {"lage": "rod", "pil": "under"})
-        self.assertEqual(K.lage_for(sway, -10.0, klubba="dr")["lage"], "ingen")     # samre "-" men ingen baslinje
+        self.assertEqual(K.lage_for(sway, -10.0, klubba="dr"), {"lage": "rod", "pil": "under"})
+        tempo = _fel("tempo")
+        self.assertEqual(K.lage_for(tempo, 2.8, klubba="dr"), {"lage": "gron", "pil": None})
+        p3 = next(m for m in K.las()["matt"] if m["matt"] == "backen_sway_p3")
+        self.assertEqual(K.band(p3, "j7"), [-4.0, 0.0])
+        self.assertIsNone(K.band(p3, "dr"))
+        lyft = next(m for m in K.las()["matt"] if m["matt"] == "brost_lyft_topp")
+        self.assertEqual(K.band(lyft, "dr"), [-4.0, 0.0])
+        klubbberoende = sorted({e.get("id") or e["matt"] for e in K.las()["fel"] + K.las()["matt"]
+                                if e.get("klubbberoende")})
+        self.assertEqual(klubbberoende, ["axellinje_lutning_adress", "backen_lyft_in_traff", "backen_lyft_min",
+                                         "backen_sway_p3", "backens_resa_framat", "brost_lyft_traff", "sway_gap"])
         self.assertEqual(K.lage_for(_fel("axellutning"), 99.0), {"lage": "ingen", "pil": None})
 
     def test_vad_sessionen_visar(self) -> None:
@@ -355,6 +378,24 @@ class Laget(unittest.TestCase):
         self.assertNotIn("klubba", k)
         self.assertEqual(K.lage_for(k, 10.5), {"lage": "rod", "pil": "over"})
         self.assertEqual(K.lage_for(K.kalla_for(_fel("sway_topp"), True), -3.0)["lage"], "gul")   # ingen klubbkälla
+
+    def test_i_passet_som_appen(self) -> None:
+        """BESLUT B86, B88: felet i ett pass, som appen och analysen till Claude ser det: klubbans
+        källa när något slag i vyn har klubbmåttet, och ett band som klubban flyttar bara på järn."""
+        ott = _fel("over_the_top")
+        utan = [{"vy": "dtl", "matt": {"handbana": 1.0}}, {"vy": "fo", "matt": {"skaft_plan_p6": 2.0}}]
+        med = utan + [{"vy": "dtl", "matt": {"handbana": 1.0, "skaft_plan_p6": 2.0}}]
+        self.assertFalse(K.markerad(ott, utan))            # klubbmåttet i fel vy räknas inte
+        self.assertTrue(K.markerad(ott, med))
+        self.assertFalse(K.markerad(_fel("sway_topp"), med))
+        self.assertEqual(K.i_passet(ott, "dr", True)["matt"], "skaft_plan_p6")
+        self.assertEqual(K.i_passet(ott, "dr", True)["gront"], [-5, 5])       # klubbans plan beror inte på klubban
+        self.assertEqual(K.i_passet(ott, "j7", False)["matt"], "handbana")
+        gap = K.i_passet(_fel("sway_gap"), "dr", False)
+        self.assertIsNone(gap["gront"])
+        self.assertNotIn("grans_harledd", gap)
+        self.assertEqual(K.i_passet(_fel("sway_gap"), "j7", False)["gront"], [6.9, None])
+        self.assertEqual(K.i_passet(_fel("sway_topp"), "dr", False)["gront"], [-2.5, None])
 
     def test_facit_for_swift_ar_pythons(self) -> None:
         """tools/tests/fixturer/bandlage.json är vad Python räknar nu (`katalog.py --swift`)."""

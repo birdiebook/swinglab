@@ -194,7 +194,13 @@ public struct Passanalys: Sendable {
             for g in Session.grupper { jamforelse[g] = Session.jamfor(nu: sammanf[g] ?? [:], forra: f.session[g] ?? [:]) }
         }
         var bed: [Rad] = []
-        for fel in katalog.fel {
+        for fel0 in katalog.fel {
+            // Samma källa och band som appen (BESLUT B86, B88): klubbans plan när klubban är
+            // markerad i enhetens slag, och ett band som klubban flyttar bara på järn. Som `_del`.
+            let markerad = fel0.klubba.map { k in
+                slag.contains { $0.vy.rawValue == fel0.vy && $0.matt[k.matt] != nil }
+            } ?? false
+            let fel = fel0.iPasset(klubba: klubba, klubbaMarkerad: markerad)
             let g = Self.grupp(fel.vy), m = fel.matt
             let vy = fel.vy == "bada" ? vyAlla : fel.vy
             let b_ = bas.compactMap { s -> Double? in s.vy.rawValue == vy ? s.matt[m] : nil }

@@ -214,12 +214,14 @@ public struct ClaudeUnderlag: Sendable {
             let foljd: [JSONVarde] = kand.filter { $0.foljdfel }.compactMap { x -> JSONVarde? in
                 guard let vag = x.orsaker.first(where: { $0.fel == fid })?.vag, let kx = K[x.fel] else { return nil }
                 return .o([("fel", .text(x.fel)), ("namn", .text(kx.namn)), ("vag", .texter(vag)),
-                           ("nu", .d(analys.rad(x.fel)?.visat)), ("enhet", .text(Avrundning.enhet(kx.matt)))])
+                           ("nu", .d(analys.rad(x.fel)?.visat)),
+                           ("enhet", .text(Avrundning.enhet(analys.rad(x.fel)?.matt ?? kx.matt)))])
             }
+            // Måttet och bandet är analysens (klubbans källa och klubbans band, BESLUT B86, B88).
             ut.append(.o([
-                ("fel", .text(fid)), ("namn", .text(k.namn)), ("vy", .text(k.vy)), ("matt", .text(k.matt)),
-                ("enhet", .text(Avrundning.enhet(k.matt))), ("nu", .d(b.visat)), ("grund", .t(b.grund)),
-                ("spann", .spann(k.gront)),
+                ("fel", .text(fid)), ("namn", .text(k.namn)), ("vy", .text(k.vy)), ("matt", .text(b.matt)),
+                ("enhet", .text(Avrundning.enhet(b.matt))), ("nu", .d(b.visat)), ("grund", .t(b.grund)),
+                ("spann", .spann(b.spann)),
                 ("markning", .t(markning)), ("klart_nar", kn), ("foljdfel", .lista(foljd)),
                 ("block", .o([("start", .text(Dag.iso(start))), ("vecka", .i(Dag.vecka(fran: start, till: dag)))])),
                 ("ovning_val", .lista(val)), ("steg_val", .texter(steg)), ("fysik_test", .texter(kedjor.test(fid))),

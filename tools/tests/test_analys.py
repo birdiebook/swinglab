@@ -171,6 +171,33 @@ class SpridningenOchSkiftet(unittest.TestCase):
                          {a["huvudklubba"]: True, a["delar"][0]["klubba"]: False})
 
 
+class SammaKallaSomAppen(unittest.TestCase):
+    """BESLUT B86, B88: analysen till Claude bygger på samma källa och band som appen."""
+
+    @staticmethod
+    def rader(kl: str, vy: str, m: dict, n: int = 5) -> list[dict]:
+        return [{"vy": vy, "serie": 1, "klubba": kl, "matt": dict(m), "forsta_serien": i < 5} for i in range(n)]
+
+    def rad(self, d: dict, fid: str) -> dict:
+        return next(b for b in d["bedomning"] if b["id"] == fid)
+
+    def test_klubbans_plan_och_klubbregeln(self) -> None:
+        dtl = {"handbana": 1.0, "backen_thrust_traff": 1.0, "tempo": 2.8}
+        fo = {"sway_gap_traff": 2.0, "backen_sway_topp": -3.0, "tempo": 2.8}
+        slag = (self.rader("j7", "dtl", dtl) + self.rader("j7", "dtl", dict(dtl, skaft_plan_p6=12.0), 3)
+                + self.rader("dr", "fo", fo))
+        a = A.analysera_rader("20261103-180000", slag, 1.80, skapad="")
+        dr = next(d for d in a["delar"] if d["klubba"] == "dr")
+        ott = self.rad(a, "over_the_top")                     # klubban markerad: klubbans plan
+        self.assertEqual((ott["matt"], ott["spann"], ott["enhet"]), ("skaft_plan_p6", [-5, 5], "°"))
+        self.assertEqual((ott["status"], ott["visat"]), ("rod", 12.0))
+        self.assertEqual(self.rad(dr, "over_the_top")["matt"], "handbana")      # inget markerat slag
+        self.assertIsNone(self.rad(dr, "sway_gap")["spann"])                   # klubban flyttar bandet
+        self.assertEqual(self.rad(dr, "sway_gap")["status"], "okand")
+        self.assertEqual(self.rad(dr, "sway_topp")["spann"], [-2.5, None])      # båda klubborna
+        self.assertEqual(self.rad(dr, "sway_topp")["status"], "gul")
+
+
 class Renheten(unittest.TestCase):
     def test_nan_blir_null(self) -> None:
         self.assertEqual(json.dumps(A.ren({"a": [math.nan, 1.0], "b": math.inf})), '{"a": [null, 1.0], "b": null}')

@@ -253,9 +253,10 @@ def mallar(analys: dict, ovningar: list[dict], katalog: dict, kedjor: dict) -> l
             steg = [AJP.STEG[0]]
         start = _datum(o["fel_start"]) if o is not None else dag
         foljd = [{"fel": x["fel"], "namn": K[x["fel"]]["namn"], "vag": x["orsaker"][fid], "nu": bed[x["fel"]]["visat"],
-                  "enhet": A.enhet(K[x["fel"]]["matt"])} for x in kand if x["foljdfel"] and fid in x["orsaker"]]
-        ut.append({"fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"], "enhet": A.enhet(k["matt"]),
-                   "nu": b["visat"], "grund": b["grund"], "spann": k["gront"], "markning": markning, "klart_nar": kn,
+                  "enhet": A.enhet(bed[x["fel"]]["matt"])} for x in kand if x["foljdfel"] and fid in x["orsaker"]]
+        # Måttet och bandet är analysens (klubbans källa och klubbans band, BESLUT B86, B88).
+        ut.append({"fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": b["matt"], "enhet": A.enhet(b["matt"]),
+                   "nu": b["visat"], "grund": b["grund"], "spann": b["spann"], "markning": markning, "klart_nar": kn,
                    "foljdfel": foljd, "block": {"start": start.isoformat(), "vecka": (dag - start).days // 7 + 1},
                    "ovning_val": val, "steg_val": steg,
                    "fysik_test": [x["test"] for x in kedjor["fysik"] if x["fel"] == fid]})
@@ -388,8 +389,8 @@ def _sak(katalog: dict, kedjor: dict, u: dict, fid: str, ordning: int, ov_id: st
     ov = _alternativ(fid, ov_id, katalog, kedjor)
     b = next(x for x in u["bedomning"] if x["id"] == fid)
     dag = _datum(u["pass"])
-    return {"ordning": ordning, "fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": k["matt"],
-            "enhet": A.enhet(k["matt"]), "nu": b["visat"], "spann": k["gront"], "markning": markning,
+    return {"ordning": ordning, "fel": fid, "namn": k["namn"], "vy": k["vy"], "matt": b["matt"],
+            "enhet": A.enhet(b["matt"]), "nu": b["visat"], "spann": b["spann"], "markning": markning,
             "ovning": {"id": ov_id, "text": ov["text"], "tanke": tanke, "kalla": ov["kalla"], "steg": steg},
             "klart_nar": klart_nar, "foljdfel": list(foljdfel), "typ": typ, "fysik": fysik,
             "block": {"start": block_start, "vecka": (dag - dt.date.fromisoformat(block_start)).days // 7 + 1}}

@@ -49,7 +49,7 @@ public enum Positionsmatt {
         var tagna = Set<String>()
         for f0 in k.fel where Vyfilter.visas(f0.vy, i: vy) && f0.visas(ovas: ovas) {
             let markerad = f0.klubba.map { varden[$0.matt] != nil } ?? false
-            let f = f0.medKalla(klubbaMarkerad: markerad).medKlubba(klubba)
+            let f = f0.iPasset(klubba: klubba, klubbaMarkerad: markerad)
             if f.matt != f0.matt { tagna.insert(f.matt) }
             guard f.positioner.contains(position) else { continue }
             var r = rad(f.matt, varden: varden, gront: f.gront, golv: f.golv, samre: f.samre, aktiv: f.aktiv,

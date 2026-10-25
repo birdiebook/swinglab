@@ -133,7 +133,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     /// (BESLUT B88) och järnets band bara på järnpass (BESLUT B86).
     public static func visat(_ fel: Katalog.Fel, nu: Pass) -> Katalog.Fel {
         let markerad = fel.klubba.map { !nu.varden($0.matt, fel.grupp).isEmpty } ?? false
-        return fel.medKalla(klubbaMarkerad: markerad).medKlubba(nu.klubba)
+        return fel.iPasset(klubba: nu.klubba, klubbaMarkerad: markerad)
     }
 
     /// Kortet med måttets namn utan position: kortets rubrik bär den ("FO · top", BESLUT B40).

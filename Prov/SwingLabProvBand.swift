@@ -4,7 +4,8 @@
 //   passet     en FO- och en DTL-session med 7i där korten får en grön prick, en gul ring och en
 //              röd pil (uppåt eller nedåt bredvid talet, åt sidan på spannet), och ett fel med
 //              egen baslinje ("Your usual") som blir rött åt det sämre hållet;
-//   driver     samma FO-värden med Dr: inget band och inget läge (järnets band bara på järn);
+//   driver     samma FO-värden med Dr: de band som klubban flyttar (resan och sway gap) visas inte,
+//              de andra (swayen, tempot, reverse spine) visas som på järn (BESLUT B86);
 //   granskning raderna vid P4 bakifrån utan dom (b)-måtten (händerna, knäet, huvudets lyft,
 //              flying elbow), med läget på raden, och over the top på klubbans plan vid P6 när
 //              klubban är markerad;
@@ -119,10 +120,17 @@ extension SwingLabProvVyer {
         try ritaBand(PassetVy(visning: v, vy: .fo), namn: "band-passet-fo", farger: [.gron, .gul, .rod])
         try ritaBand(PassetVy(visning: v, vy: .dtl), namn: "band-passet-dtl", farger: [.gron, .gul, .rod])
 
-        // Driver: järnets band visas inte, och utan baslinje inget läge.
+        // Driver: ett band som klubban flyttar visas inte (utan baslinje inget läge); de andra
+        // banden gäller båda klubborna (research 6 §6, BESLUT B86).
         let dr = Passvisning(katalog: k, pass: [bandpass("Dr", dag: 10, fo: fo, dtl: dtl)])
-        XCTAssertTrue(dr.kort.allSatisfy { $0.lage == .ingen }, "\(dr.kort.map { ($0.id, $0.lage.lage) })")
-        try ritaBand(PassetVy(visning: dr, vy: .fo), namn: "band-passet-driver", farger: [])
+        func drLage(_ id: String) -> Bandlage? { dr.kort.first { $0.id == id }?.lage }
+        XCTAssertEqual(drLage("backens_resa_framat"), .ingen)
+        XCTAssertEqual(drLage("sway_gap"), .ingen)
+        XCTAssertEqual(drLage("sway_topp"), Bandlage(.gron))
+        XCTAssertEqual(drLage("tempo"), Bandlage(.gron))
+        XCTAssertEqual(drLage("reverse_spine"), Bandlage(.gron))
+        print("PROV: driver \(dr.kort.map { "\($0.id)=\($0.lage.lage.rawValue)" })")
+        try ritaBand(PassetVy(visning: dr, vy: .fo), namn: "band-passet-driver", farger: [.gron])
     }
 
     func testBandetIGranskningen() throws {

@@ -77,6 +77,28 @@ class Grunden(unittest.TestCase):
         s["klart_nar"]["mal"] = 1
         self.assertIn("klart_nar: okänd nyckel mal", self.kolla(_doc(s)))
 
+    def test_matt_och_spann_ur_analysens_rad(self) -> None:
+        """BESLUT B86, B88: med klubban markerad bygger raden på klubbans plan, och på en driver
+        har ett band som klubban flyttar inget spann; svaret ska följa analysens rad."""
+        a = _analys({"over_the_top": "rod", "sway_gap": "okand"})
+        for b in a["bedomning"]:
+            if b["id"] == "over_the_top":
+                b.update(matt="skaft_plan_p6", spann=[-5, 5])
+            if b["id"] == "sway_gap":
+                b.update(matt="sway_gap_traff", spann=None)
+        a["kandidater"] = A.kandidater(a["bedomning"], KED)
+        klubban = _sak("over_the_top", matt="skaft_plan_p6", enhet=A.enhet("skaft_plan_p6"), spann=[-5, 5])
+        self.assertEqual(self.kolla(_doc(klubban), a), "")
+        fel = self.kolla(_doc(_sak("over_the_top")), a)
+        for f in ("saker[0].matt", "saker[0].enhet", "saker[0].spann"):
+            self.assertIn(f, fel)
+        utan = _analys({"sway_gap": "okand"})
+        for b in utan["bedomning"]:
+            if b["id"] == "sway_gap":
+                b.update(matt="sway_gap_traff", spann=None)
+        self.assertEqual(self.kolla(_doc(_sak("sway_gap", spann=None)), utan), "")
+        self.assertIn("saker[0].spann", self.kolla(_doc(_sak("sway_gap")), utan))
+
     def test_bara_katalogens_fel_och_text(self) -> None:
         self.assertIn("finns inte i katalogen", self.kolla(_doc(_sak("early_extension", fel="slice"))))
         self.assertIn("namn: ska vara katalogens", self.kolla(_doc(_sak("early_extension", namn="EE"))))
