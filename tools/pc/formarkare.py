@@ -49,7 +49,7 @@ PROV_ANDEL = 0.10          # METOD MF7: andel av varje källas bilder som hålls
 VAL_ANDEL = 0.10           # METOD MF7: andel för valet av vikter under träningen
 DELAR = ("train", "valid", "test")            # Roboflows mappnamn; test = provet
 TROSKEL = 0.30             # METOD MF7: förslag med lägre konfidens ritas inte
-UTSNITT_SKALA = 1.8        # METOD MF7: utsnittets sida = 1,8 × kroppens höjd i bild
+UTSNITT_SKALA = 2.0        # METOD MF7: utsnittets sida = 2,0 × kroppens höjd i bild
 RUTA_PX = 320              # px per ruta i förslagens kontaktark
 # Rutorna i kontaktarket, som andel av fasen mellan två tider (faser.py, METOD M4).
 FASER_ARK = (("adress", None), ("baksving 1/3", ("start", "topp", 1 / 3)),
@@ -224,17 +224,21 @@ def bygg(kallor: list[Path], ut: Path) -> dict:
 
 # ---------------------------------------------------------------------------- träna och prova
 
-def trana(mapp: Path, ut: Path, epoker: int, batch: int, ackum: int) -> dict:
+def trana(mapp: Path, ut: Path, epoker: int, batch: int, ackum: int, fortsatt: bool = False) -> dict:
     """RF-DETR Nano från COCO-vikterna (Apache 2.0) på mappen från `bygg`. Valet av vikter
-    görs på `valid`; provet (`test`) används inte. Svarar tiden."""
+    görs på `valid`; provet (`test`) används inte. Med `fortsatt` tas träningen upp från
+    <ut>/last.ckpt (efter ett avbrott, till exempel när WSL uppdateras). Svarar tiden."""
     from rfdetr import RFDETRNano
     ut = utanfor_repot(ut)
+    sist = ut / "last.ckpt"
+    fortsatt = bool(fortsatt and sist.exists())
     t0 = time.time()
     RFDETRNano().train(dataset_dir=str(Path(mapp).expanduser()), output_dir=str(ut), epochs=epoker,
                        batch_size=batch, grad_accum_steps=ackum, num_workers=2, seed=0,
-                       run_test=False, tensorboard=False, progress_bar=None)
+                       run_test=False, tensorboard=False, progress_bar=None,
+                       resume=str(sist) if fortsatt else None)
     r = {"sekunder": round(time.time() - t0), "epoker": epoker, "batch": batch, "ackum": ackum,
-         "modell": "RF-DETR Nano"}
+         "modell": "RF-DETR Nano", "fortsatt": fortsatt}
     (ut / "tid.json").write_text(json.dumps(r), encoding="utf-8")
     return r
 
@@ -327,18 +331,29 @@ def utsnitt(leder_rutor: list[list], bredd: int, hojd: int, skala: float = UTSNI
             min_konfidens: float = 0.3) -> tuple[int, int, int] | None:
     """Ett kvadratiskt utsnitt (x0, y0, sida) kring golfaren för hela svingen: mitten i
     ledernas gemensamma ruta, sidan `skala` × kroppens höjd (lägst till högst led), högst
-    bildens kortsida. None utan leder. METOD MF7"""
+    bildens långsida. Är sidan större än bilden åt ett håll ligger utsnittet utanför där (`skar`
+    fyller med svart), annars inom bilden. None utan leder. METOD MF7"""
     p = [(x, y) for leder in leder_rutor for j in leder if j is not None
          for x, y, c in [(j["x"], j["y"], j["c"]) if isinstance(j, dict) else j] if c >= min_konfidens]
     if not p:
         return None
     a = np.array(p, float)
     (x0, y0), (x1, y1) = a.min(0), a.max(0)
-    sida = int(min(min(bredd, hojd), round(skala * max(y1 - y0, x1 - x0))))
+    sida = int(min(max(bredd, hojd), round(skala * max(y1 - y0, x1 - x0))))
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    ux = int(np.clip(round(cx - sida / 2), 0, bredd - sida))
-    uy = int(np.clip(round(cy - sida / 2), 0, hojd - sida))
+    ux = int(np.clip(round(cx - sida / 2), min(0, bredd - sida), max(0, bredd - sida)))
+    uy = int(np.clip(round(cy - sida / 2), min(0, hojd - sida), max(0, hojd - sida)))
     return ux, uy, sida
+
+
+def skar(bild: np.ndarray, x0: int, y0: int, sida: int) -> np.ndarray:
+    """Utsnittet ur bilden, med svart där det ligger utanför."""
+    h, w = bild.shape[:2]
+    ut = np.zeros((sida, sida) + bild.shape[2:], bild.dtype)
+    ax, ay, bx, by = max(0, x0), max(0, y0), min(w, x0 + sida), min(h, y0 + sida)
+    if bx > ax and by > ay:
+        ut[ay - y0:by - y0, ax - x0:bx - x0] = bild[ay:by, ax:bx]
+    return ut
 
 
 def _rita(img: np.ndarray, rad: list[dict], text: str) -> np.ndarray:
@@ -407,7 +422,7 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TR
                 u = utsnitt(leder, w, h) or ((w - k) // 2, (h - k) // 2, k)
                 x0, y0, sida = u
                 lagen = [(n, tk, bilder[tk]) for n, tk, _ in lagen if tk in bilder]
-                skurna = [b[y0:y0 + sida, x0:x0 + sida] for _, _, (_, b) in lagen]
+                skurna = [skar(b, x0, y0, sida) for _, _, (_, b) in lagen]
                 det = detektioner(modell, skurna, troskel)
                 rutor_ark = []
                 for (namn, tk, (tr, _)), bild, rad in zip(lagen, skurna, det):
@@ -445,6 +460,7 @@ def main(argv=None) -> int:
     t.add_argument("--epoker", type=int, default=20)
     t.add_argument("--batch", type=int, default=8)
     t.add_argument("--ackum", type=int, default=2)
+    t.add_argument("--fortsatt", action="store_true", help="ta upp träningen från <ut>/last.ckpt")
     pr = sub.add_parser("prov")
     pr.add_argument("mapp", type=Path)
     pr.add_argument("--vikter", type=Path, required=True)
@@ -459,7 +475,7 @@ def main(argv=None) -> int:
         if a.steg == "bygg":
             r = bygg(a.kallor, a.ut)
         elif a.steg == "trana":
-            r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum)
+            r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum, a.fortsatt)
         elif a.steg == "prov":
             r = prova(a.mapp, a.vikter)
         else:

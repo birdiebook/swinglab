@@ -131,10 +131,19 @@ class Kontaktarket(unittest.TestCase):
     def test_utsnittet_kring_kroppen(self) -> None:
         leder = [[{"x": 500, "y": 400, "c": 0.9}, [520, 1400, 0.9], None, [0, 0, 0.1]]]
         x0, y0, sida = FM.utsnitt(leder, 1080, 1920)
-        self.assertEqual(sida, 1080)                  # 1,8 × 1000 px, högst kortsidan
-        self.assertEqual((x0, y0), (0, 360))
+        self.assertEqual(sida, 1920)                  # 2,0 × 1000 px, högst långsidan
+        self.assertEqual((x0, y0), (-450, 0))         # utanför i sidled, inom bilden på höjden
         x0, y0, sida = FM.utsnitt(leder, 1080, 1920, skala=0.5)
         self.assertEqual((x0, y0, sida), (260, 650, 500))
+        self.assertEqual(FM.utsnitt([[[50, 5, 0.9], [50, 15, 0.9]]], 100, 100, skala=5)[1], 0)
+        self.assertEqual(FM.utsnitt(leder, 1080, 1920, skala=1.8)[:2], (-390, 0))
+
+    def test_utsnittet_fylls_med_svart_utanfor(self) -> None:
+        b = np.full((4, 6, 3), 9, np.uint8)
+        u = FM.skar(b, -2, 1, 5)
+        self.assertEqual(u.shape, (5, 5, 3))
+        self.assertTrue((u[:3, 2:] == 9).all())
+        self.assertEqual(int(u[:, :2].sum()) + int(u[3:].sum()), 0)
         self.assertIsNone(FM.utsnitt([[None, [1, 1, 0.1]]], 100, 100))
 
 

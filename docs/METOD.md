@@ -3196,12 +3196,31 @@ räknas som märkning (B71).
   1/3 och 2/3, toppen, nedsvingen 1/4, 1/2, 3/4 och 9/10, träffen, träffen + **0,15 s** och
   finishen) ur svingens faser (M4), annars antagna faser (start −1,1 s, topp −0,28 s, träff
   0 s från klicket, märkta `antagna`). Rutan läses på e + δ med S3:s förskjutning (MF1).
-  Modellen ser ett kvadratiskt utsnitt kring golfaren, **1,8 ×** kroppens höjd i bild
-  (ledernas lägsta till högsta punkt, konfidens ≥ 0,3) och högst bildens kortsida, samma
-  för hela svingen; utan leder bildens mitt. Rutor under konfidens **0,30** ritas inte.
+  Modellen ser ett kvadratiskt utsnitt kring golfaren, **2,0 ×** kroppens höjd i bild
+  (ledernas lägsta till högsta punkt, konfidens ≥ 0,3) och högst bildens långsida, samma
+  för hela svingen, svart utanför bilden; utan leder bildens mitt. 1,8 med kortsidan som tak
+  skar klubban; mitten flyttad uppåt skar bollen framifrån; 2,4 och 2,8 gav färre klubbhuvuden
+  (186 och 188 mot 205), eftersom klubban blir liten i 384 px. Rutor under konfidens **0,30** ritas inte.
   JSON:en bredvid arket (`swinglab-forslag/1`, `kalla: "modell"`, `facit: false`) har
   rutorna i hela bildens px. **antagande** (lägena, 1,8 och 0,30: läsbart ark, hela klubban
   i bild vid toppen).
+- **Provet 2026-10-25** (mAP COCO 0,50:0,95, i parentes 0,50; provet hölls ut per scen):
+  | modell | golf-49wbh-provet (784) | golf-club-tracking-provet (1 147) |
+  |---|---|---|
+  | golf-49wbh, 30 epoker, ~72 min | 0,400 (0,703): klubba 0,554, huvud 0,245 | 0,038 (0,151) |
+  | båda, 15 epoker, 85 min | **0,414** (0,712): klubba 0,561, huvud 0,266 | **0,447** (0,780): klubba 0,543, huvud 0,352 |
+  Valets bästa mAP: 0,363 (epok 19) respektive 0,377 (epok 11); 9–20 ms per bild på 2080 Ti.
+  Modellen på båda dataseten är förmärkaren: golf-49wbh ensam ritar rutorna annorlunda än
+  golf-club-tracking och missar där. **mätt.**
+- **Provpasset 2026-10-24** (B92, aldrig i träningen): 28 klipp, 21 med golfare. I de 231
+  rutorna med golfare föreslogs klubba i 215 och klubbhuvud i 205; i de 7 klippen utan golfare
+  (Vision ser ingen kropp) inga rutor alls. Granskat med ögat på fyra ark: rätt plats i nästan
+  varje ruta; missar enstaka (baksvingen), och vid finishen hamnar huvudet ibland utanför
+  utsnittet. Ingen jämförelse mot handmärkning ännu (S7c). 112 s för passet. **mätt.**
+- **Läxa:** Windows Update startade om WSL (3.0.3.0) mitt i träningen 2026-10-25 13:23.
+  `trana --fortsatt` tar upp den från `last.ckpt`; kör kedjan så att den går att starta om.
+- **Nästa:** utsnittet centrerat på händerna i varje ruta (research 7 §4.2) i stället för
+  kroppens mitt, så att klubban ryms vid toppen och finishen utan att bli mindre.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 

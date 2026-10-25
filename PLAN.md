@@ -840,6 +840,11 @@ rådatan får inte spridas.
 NC-data och ingen AGPL. En detektor på golf-49wbh förmärker hans svingar och han rättar.
 Passet från 2026-10-24 (SwingLab) är provet. Träningen körs på PC:n (2080 Ti, WSL2).
 
+**S7-1 steg 1, förmärkaren (2026-10-25, gren `s7-1-formarkare`):** RF-DETR Nano på golf-49wbh och
+golf-club-tracking (CC BY 4.0) ger mAP 0,41–0,45 på provet per scen och föreslår klubba och
+klubbhuvud i nästan varje ruta i provpasset; `tools/pc/formarkare.py`, METOD MF7. Nästa: utsnittet
+kring händerna, sedan förslagen in i S7c så att Johannes bara rättar.
+
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget
 färdigt att ta: GolfPose har eget EULA, ClubheadDB är CC BY-NC och bara DTL.
