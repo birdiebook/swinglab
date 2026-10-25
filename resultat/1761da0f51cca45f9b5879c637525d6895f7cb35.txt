@@ -1,0 +1,7 @@
+1761da0f51cca45f9b5879c637525d6895f7cb35 s4g 2026-10-25T09:38:16Z run 40181410531
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/Visning/Bandlage.swift:122:11: error: cannot assign to property: 'matt' is a 'let' constant
+|           `- error: cannot assign to property: 'matt' is a 'let' constant
+error: fatalError
+
