@@ -1,0 +1,20 @@
+0ff2373c173dda7fcad0dcd2704d468f71f6b688 main 2026-10-25T09:50:02Z run 40182112289
+== swift-release
+GRÖNT: 365 test, 0 fel, 26 s i testerna, bygget 68 s
+Långsammast (av 365):
+      1.8 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      1.7 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.7 s  TreDTests.testFigurenSomPython
+      1.4 s  TreDTests.testTelefonensVagSomPython
+      1.4 s  KlubbSparTests.testBananSomPython
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      0.8 s  TreDTests.testFigurensFilTurOchRetur
+      0.8 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      0.8 s  KlubbSparTests.testFeletMotSanningen
+      0.7 s  TreDTests.testVinklarnaForEnVansterspelare
+      0.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.6 s  TreDTests.testKortet
+      0.6 s  TreDTests.testInreIFilenOchUppdateras
+      0.6 s  TreDTests.testUtanBrusSomPythonOchExakt
+
