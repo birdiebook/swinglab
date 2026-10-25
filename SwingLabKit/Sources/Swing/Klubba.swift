@@ -37,20 +37,25 @@ public struct KlubbMarkering: Codable, Equatable, Sendable {
     /// Hoselns källa när den är en annan: "godkand_forslag" = modellens förslag, godkänt med ett
     /// tryck (S7d, BESLUT B93). nil = `kalla`.
     public var hoselKalla: String?
-    /// Modellens förslag som visades i rutan när positionen sparades (S7d, BESLUT B93): det
-    /// godkända, eller det som Johannes rättade med ett tryck. nil = inget förslag visades.
+    /// Modellens förslag som visades i rutan när punkterna sattes (S7d, BESLUT B93): det
+    /// godkända, det som Johannes rättade med ett tryck, eller huvudets mitt som ledtråd. nil =
+    /// inget förslag visades.
     public var forslag: Forslag?
 
     /// Modellens förslag i rutan (`KlubbForslag`), sparat med markeringen.
     public struct Forslag: Codable, Equatable, Sendable {
         public var grepp: KlubbPunkt?
         public var hosel: KlubbPunkt?
+        /// Klubbhuvudets mitt, när den visades som ledtråd i stället för hoseln (BESLUT B93):
+        /// den godkänns aldrig, men ett tryck med den på skärmen är inte ett rent klick.
+        public var huvud: KlubbPunkt?
         /// "namn version".
         public var modell: String?
 
-        public init(grepp: KlubbPunkt?, hosel: KlubbPunkt?, modell: String?) {
+        public init(grepp: KlubbPunkt?, hosel: KlubbPunkt?, huvud: KlubbPunkt? = nil, modell: String?) {
             self.grepp = grepp
             self.hosel = hosel
+            self.huvud = huvud
             self.modell = modell
         }
     }
@@ -87,6 +92,9 @@ public enum Klubba {
     public static let kallaForslag = "godkand_forslag"
     /// Förslagets källa i filens `forslag` (S7d). BESLUT B93
     public static let kallaModell = "modell"
+    /// Huvudets mitt som visades i stället för hoseln, i filens `forslag.klubbhuvud` (S7d): en
+    /// ledtråd som aldrig godkänns. BESLUT B93
+    public static let kallaModellHuvud = "modell_huvud"
     /// Punkternas källor i formatet (`klubba.KALLOR_V2`).
     public static let kallor = [kalla, kallaRing, kallaForslag]
     /// Antagen osäkerhet per tryck, px i hela bilden (1 sd). METOD M46
@@ -550,9 +558,10 @@ public struct KlubbFil: Codable, Equatable, Sendable {
             // Modellens förslag som visades (S7d, BESLUT B93).
             let fg = r.forslag["grepp"].flatMap { $0.kalla == Klubba.kallaModell ? $0 : nil }
             let fh = r.forslag["klubbhuvud"].flatMap { $0.kalla == Klubba.kallaModell ? $0 : nil }
-            let forslag = fg == nil && fh == nil ? nil : KlubbMarkering.Forslag(
+            let fv = r.forslag["klubbhuvud"].flatMap { $0.kalla == Klubba.kallaModellHuvud ? $0 : nil }
+            let forslag = fg == nil && fh == nil && fv == nil ? nil : KlubbMarkering.Forslag(
                 grepp: fg.map { KlubbPunkt(x: $0.x, y: $0.y) }, hosel: fh.map { KlubbPunkt(x: $0.x, y: $0.y) },
-                modell: fg?.modell ?? fh?.modell)
+                huvud: fv.map { KlubbPunkt(x: $0.x, y: $0.y) }, modell: fg?.modell ?? fh?.modell ?? fv?.modell)
             ut[r.slag ?? "", default: []].append(KlubbMarkering(
                 position: r.val, t: t, grepp: hoppad ? nil : r.punkter.grepp?.punkt,
                 hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil, greppKalla: gk,
@@ -603,7 +612,12 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         var forslag: [String: Forslag] = [:]
         if let f = m.forslag, !hoppad {
             if let g = f.grepp { forslag["grepp"] = Forslag(x: g.x, y: g.y, kalla: Klubba.kallaModell, modell: f.modell) }
-            if let h = f.hosel { forslag["klubbhuvud"] = Forslag(x: h.x, y: h.y, kalla: Klubba.kallaModell, modell: f.modell) }
+            if let h = f.hosel {
+                forslag["klubbhuvud"] = Forslag(x: h.x, y: h.y, kalla: Klubba.kallaModell, modell: f.modell)
+            } else if let v = f.huvud {
+                // Huvudets mitt visades i stället för hoseln: en ledtråd, aldrig godkänd (B93).
+                forslag["klubbhuvud"] = Forslag(x: v.x, y: v.y, kalla: Klubba.kallaModellHuvud, modell: f.modell)
+            }
         }
         return Ruta(id: "\(vy.rawValue)-\(slag)-\(m.position)", fil: fil, vy: vy.rawValue, slag: slag, val: m.position,
                     t: m.t, tKlipp: tKlipp, forskjutningMs: nil, tRuta: nil, bredd: bredd, hojd: hojd, visad: visad,

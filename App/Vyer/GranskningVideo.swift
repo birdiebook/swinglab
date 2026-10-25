@@ -413,15 +413,18 @@ struct ShotReviewView: View {
         pause()
         let vy = pass.setup.view, hand = pass.setup.hand, langd = pass.heightM ?? ShotMeasuring.assumedHeightM
         let traff = shot.impact - shot.click.time
+        // Modellens förslag för slaget, när en fil är hämtad för passet och vyn (S7d, BESLUT B93).
+        let forslagFil = store.clubSuggestionFile(pass)
         Task {
-            // Svingen (för xTecken) läses utanför huvudtråden.
+            // Svingen (för xTecken) och förslagen (upp till 20 MB) läses utanför huvudtråden.
             let xTecken = await Task.detached(priority: .userInitiated) { () -> Double? in
                 (try? ShotMeasuring.sving(series, view: vy, hand: hand, heightM: langd, impact: traff))?.xTecken
             }.value
+            let forslag = await Task.detached(priority: .userInitiated) { () -> KlubbForslagFil? in
+                forslagFil.flatMap { Store.clubSuggestions(at: $0) }
+            }.value
             guard let xTecken, marking == nil, let pass = self.pass, let shot = self.shot else { return }
             let serie = pass.series.first { $0.nr == shot.series }
-            // Modellens förslag för slaget, när en fil är hämtad för passet och vyn (S7d, BESLUT B93).
-            let forslag = store.clubSuggestions(pass)
             marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
                                   crop: serie?.activeCrop, view: vy, xTecken: xTecken,
                                   suggestions: forslag?.rutor(slag: shot.id, bredd: review.width, hojd: review.height) ?? [],
@@ -445,7 +448,10 @@ struct ShotReviewView: View {
         guard let m = marking, !m.done, let review, let shot else { return }
         let k = review.index(nearestT: m.shownTime(measure: shot.measure, impact: shot.impact - shot.click.time)) ?? frame
         seek(k)
-        if zoom { marking?.startZoom(hands: ring(review, at: k), cmPerPx: shot.measure?.cmPerPx) }
+        if zoom {
+            let t = review.frames.indices.contains(k) ? review.frames[k].t : nil
+            marking?.startZoom(hands: ring(review, at: k), cmPerPx: shot.measure?.cmPerPx, t: t)
+        }
     }
 
     /// Appens gissning av greppet i rutan (BESLUT B47, B59): handledernas mitt, eller den som syns.
@@ -506,7 +512,7 @@ struct ShotReviewView: View {
         }
         lastTapChanged = false
         if m.zoom == m.crop {
-            m.startZoom(hands: ring(review), cmPerPx: shot.measure?.cmPerPx)
+            m.startZoom(hands: ring(review), cmPerPx: shot.measure?.cmPerPx, t: frameT(review))
         } else {
             m.showWhole()
         }

@@ -1941,7 +1941,9 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
     grepp ersätter ringen ur handlederna); ett tryck på ringen godkänner punkten, och ✓ under
     ytan godkänner allt som saknas med ett tryck, det vanliga fallet. Ett tryck någon annanstans
     eller ett drag rättar. Huvudets mitt visas som en streckad ruta men godkänns aldrig som
-    hoseln (MF8). Instruktionsraden och guiden är oförändrade (VISION: inga nya ord när ett
+    hoseln (MF8); ett tryck med den på skärmen sparas med den som `modell_huvud`, så att det
+    inte räknas som ett rent klick. ✓ visas bara när punkterna det godkänner syns, och
+    startzoomen visar förslagets skaft. Instruktionsraden och guiden är oförändrade (VISION: inga nya ord när ett
     tecken räcker).
   - **Källan:** en godkänd punkt har `kalla` `godkand_forslag` i `swinglab-klubba` (version 2
     och 3, ingen ny version), med förslaget i `forslag` (`kalla` `modell`); ett tryck när ett

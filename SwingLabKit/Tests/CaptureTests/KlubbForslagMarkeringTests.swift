@@ -118,8 +118,52 @@ final class KlubbForslagMarkeringTests: XCTestCase {
         XCTAssertTrue(m.tap(u: 700.0 / 1080, v: 1500.0 / 1920, t: -0.6))
         let p3 = try XCTUnwrap(m.marks["P3"])
         XCTAssertNil(p3.hoselKalla)
-        XCTAssertNil(p3.forslag, "inget grepp eller hosel föreslogs")
+        XCTAssertNil(p3.forslag?.hosel, "huvudets mitt blir aldrig hoseln")
+        XCTAssertEqual(p3.forslag?.huvud, KlubbPunkt(x: 700, y: 1500), "men trycket gjordes med ledtråden på skärmen")
+        let r3 = KlubbFil.ruta(p3, vy: .dtl, slag: "s01", fil: "x.zip", bredd: 1080, hojd: 1920, visad: [0, 0, 1080, 1920],
+                               tKlipp: nil)
+        XCTAssertEqual(r3.forslag["klubbhuvud"]?.kalla, Klubba.kallaModellHuvud)
+        if case let .klick(_, _, k)? = r3.punkter.klubbhuvud { XCTAssertEqual(k, Klubba.kalla) } else { XCTFail("hoseln") }
         XCTAssertEqual(m.result.filter(\.markerad).map(\.position), ["P3"])
+    }
+
+    /// En godkänd position som flyttas senare, när förslagsfilen bytts eller tagits bort, behåller
+    /// förslaget den godkände (annars säger PC:n nej till paketet, B93).
+    func testFlyttUtanFilenBehallerForslaget() throws {
+        var m = ny()
+        XCTAssertTrue(m.useSuggestion(t: -1.2, now: Self.nu))
+        let utan = ClubMarking(existing: m.result, width: 1080, height: 1920, crop: nil, view: .dtl, xTecken: 1)
+        var n = utan
+        n.go(to: "P1")
+        XCTAssertTrue(n.move(.hosel, u: 0.62, v: 0.72))
+        let p1 = try XCTUnwrap(n.marks["P1"])
+        XCTAssertEqual(p1.greppKalla, Klubba.kallaForslag)
+        XCTAssertNil(p1.hoselKalla, "flyttad: ett tryck")
+        XCTAssertEqual(p1.forslag?.grepp, KlubbPunkt(x: 540, y: 960), "förslaget följer med")
+        // Utan förslaget i markeringen blir en godkänd punkt ett tryck, aldrig godkänd utan förslag.
+        var gammal = try XCTUnwrap(m.marks["P1"])
+        gammal.forslag = nil
+        var o = ClubMarking(existing: [gammal], width: 1080, height: 1920, crop: nil, view: .dtl, xTecken: 1)
+        o.go(to: "P1")
+        XCTAssertTrue(o.move(.hosel, u: 0.62, v: 0.72))
+        XCTAssertNil(o.marks["P1"]?.greppKalla)
+    }
+
+    /// Startzoomen visar förslagets skaft, och ✓ godkänner bara punkter som syns (METOD MF8).
+    func testZoomenVisarForslagetOchBockenBaraDetSomSyns() throws {
+        var m = ny()
+        m.startZoom(hands: KlubbPunkt(x: 100, y: 100), cmPerPx: 0.1, t: -1.2)
+        for p in [KlubbPunkt(x: 540, y: 960), KlubbPunkt(x: 648, y: 1344)] {
+            let s = m.surfacePoint(p)
+            XCTAssertTrue((0...1).contains(s.u) && (0...1).contains(s.v), "\(p) syns")
+        }
+        XCTAssertGreaterThan(m.zoomFactor, 1)
+        XCTAssertTrue(m.canUseSuggestion(t: -1.2))
+        // Inzoomat kring något annat: hoseln syns inte, och ✓ visas inte.
+        m.startZoom(hands: KlubbPunkt(x: 100, y: 100), cmPerPx: 1.0)
+        XCTAssertFalse(m.canUseSuggestion(t: -1.2))
+        m.showWhole()
+        XCTAssertTrue(m.canUseSuggestion(t: -1.2))
     }
 
     /// Paketets klubba.json bär källan och förslaget, som PC:ns klubba.kontrollera kräver.

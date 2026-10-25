@@ -808,7 +808,14 @@ enum KlubbFixturer {
     "bredd": 1080,
     "fil": "swinglab-20261103-180000-dtl.zip",
     "forskjutning_ms": null,
-    "forslag": {},
+    "forslag": {
+     "klubbhuvud": {
+      "kalla": "modell_huvud",
+      "modell": "klubba-golf49 0.1.0",
+      "x": 589.4,
+      "y": 1109.1
+     }
+    },
     "hojd": 2880,
     "id": "dtl-s03-P5",
     "punkter": {

@@ -104,7 +104,10 @@ final class KlubbForslagTests: XCTestCase {
         XCTAssertNotNil(m[2].forslag?.hosel)
         XCTAssertNotEqual(m[2].forslag?.hosel, m[2].hosel)
         XCTAssertNil(m[3].forslag)
-        for i in 0..<4 {
+        XCTAssertEqual(m[4].forslag?.huvud, KlubbPunkt(x: 589.4, y: 1109.1), "huvudets mitt som ledtråd (modell_huvud)")
+        XCTAssertNil(m[4].forslag?.hosel)
+        XCTAssertNil(m[4].hoselKalla)
+        for i in 0..<5 {
             let r = fil.rutor[i]
             XCTAssertEqual(KlubbFil.ruta(m[i], vy: .dtl, slag: "s03", fil: r.fil, bredd: r.bredd, hojd: r.hojd,
                                          visad: r.visad, tKlipp: nil), r, "rutor[\(i)]")
