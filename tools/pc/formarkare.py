@@ -665,22 +665,51 @@ TRAFF_MARGINAL = 0.5       # METOD MF7: hoseln räknas som träffad inom huvudet
 KONF_KLASSER = (0.1, 0.3, 0.5)   # METOD MF7: förslagen redovisas i konfidensklasserna 0,1–0,3, 0,3–0,5 och ≥ 0,5
 
 
-def bedom(huvud: dict | None, punkter: dict) -> dict | None:
+def grepp_punkt(rad: list[dict], x0: float, y0: float, sx: float, sy: float,
+                min_konfidens: float = 0.05) -> dict | None:
+    """Greppet ur händerna: mitten av modellens säkraste ruta för händerna, flyttad med utsnittets
+    hörn och skalad som `huvud_punkt`; None utan händer (modellen saknar klassen eller ser dem
+    inte). Mot Johannes grepp ligger den 3–4 % av skaftet bort, mot Visions handleders 10–11 %.
+    METOD MF7"""
+    kand = [r for r in rad if r["klass"] == "hander" and r["konfidens"] >= min_konfidens]
+    if not kand:
+        return None
+    r = max(kand, key=lambda r: r["konfidens"])
+    bx, by, bw, bh = r["bbox"]
+    return {"x": (bx + bw / 2 + x0) * sx, "y": (by + bh / 2 + y0) * sy, "konfidens": float(r["konfidens"])}
+
+
+def _riktning(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+
+
+def bedom(huvud: dict | None, punkter: dict, grepp: dict | None = None) -> dict | None:
     """En märkt ruta mot modellens säkraste huvud där (i samma px): {"konfidens", "traff"
     (hoseln inom huvudets ruta vidgad TRAFF_MARGINAL), "avstand" (huvudets mitt → hoseln i andel
-    av skaftets längd, greppet → hoseln)}. None när rutan saknar greppet eller hoseln. Utan huvud:
-    konfidens 0 och ingen träff. En punkt som inte syns (`{"syns_inte": true}`) saknas. METOD MF7"""
+    av skaftets längd, greppet → hoseln)}, och med modellens `grepp` (`grepp_punkt`) också
+    "grepp_fel" (i andel av skaftet) och, med huvudet, "vinkel" (skaftets riktning greppet → huvudet
+    mot Johannes greppet → hoseln, i grader). None när rutan saknar greppet eller hoseln. Utan
+    huvud: konfidens 0 och ingen träff. En punkt som inte syns (`{"syns_inte": true}`) saknas.
+    METOD MF7"""
     g, h = punkter.get("grepp"), punkter.get("klubbhuvud")
     if not (g and "x" in g and h and "x" in h):
         return None
     skaft = math.hypot(g["x"] - h["x"], g["y"] - h["y"])
-    if huvud is None or skaft <= 0:
-        return {"konfidens": 0.0, "traff": False, "avstand": None}
-    bx, by, bw, bh = huvud.get("box") or [huvud["x"], huvud["y"], 0.0, 0.0]
-    m = TRAFF_MARGINAL * max(bw, bh)
-    traff = bx - m <= h["x"] <= bx + bw + m and by - m <= h["y"] <= by + bh + m
-    return {"konfidens": float(huvud["konfidens"]), "traff": bool(traff),
-            "avstand": math.hypot(huvud["x"] - h["x"], huvud["y"] - h["y"]) / skaft}
+    if skaft <= 0:
+        return None
+    ut: dict = {"konfidens": 0.0, "traff": False, "avstand": None}
+    if huvud is not None:
+        bx, by, bw, bh = huvud.get("box") or [huvud["x"], huvud["y"], 0.0, 0.0]
+        m = TRAFF_MARGINAL * max(bw, bh)
+        ut = {"konfidens": float(huvud["konfidens"]),
+              "traff": bool(bx - m <= h["x"] <= bx + bw + m and by - m <= h["y"] <= by + bh + m),
+              "avstand": math.hypot(huvud["x"] - h["x"], huvud["y"] - h["y"]) / skaft}
+    if grepp is not None:
+        ut["grepp_fel"] = math.hypot(grepp["x"] - g["x"], grepp["y"] - g["y"]) / skaft
+        if huvud is not None:
+            d = _riktning((grepp["x"], grepp["y"]), (huvud["x"], huvud["y"])) - _riktning((g["x"], g["y"]), (h["x"], h["y"]))
+            ut["vinkel"] = abs((d + 180) % 360 - 180)
+    return ut
 
 
 def sammanfatta(rader: list[dict]) -> dict:
@@ -703,6 +732,15 @@ def sammanfatta(rader: list[dict]) -> dict:
     if a:
         ut["avstand_median"] = round(float(np.median(a)), 3)
         ut["avstand_p90"] = round(float(np.quantile(a, 0.9)), 3)
+    g = [r["grepp_fel"] for r in rader if r.get("grepp_fel") is not None]
+    if g:
+        ut["grepp_fel_median"] = round(float(np.median(g)), 3)
+        ut["grepp_fel_p90"] = round(float(np.quantile(g, 0.9)), 3)
+    v = [r["vinkel"] for r in rader if r.get("vinkel") is not None]
+    if v:
+        ut["vinkel_median"] = round(float(np.median(v)), 2)
+        ut["vinkel_p90"] = round(float(np.quantile(v, 0.9)), 2)
+        ut["vinkel_max"] = round(float(max(v)), 2)
     return ut
 
 
@@ -731,7 +769,7 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
                 x0, y0 = (w - k) // 2, (h - k) // 2
                 rad = detektioner(modell, [skar(bild, x0, y0, k)], 0.05)[0]
                 b = bedom(huvud_punkt(rad, x0, y0, r["bredd"] / w, r["hojd"] / h, r["bredd"], r["hojd"], 0.05),
-                          r["punkter"])
+                          r["punkter"], grepp_punkt(rad, x0, y0, r["bredd"] / w, r["hojd"] / h))
                 if b is not None:
                     rader.append({**b, "vy": f"{r['vy']} (hela bilden)", "val": r["val"], "id": r["id"]})
             continue
@@ -765,7 +803,8 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
                     x0, y0, sida = utsnitt(leder, kropp, w, h)
                     rad = detektioner(modell, [skar(bilder[r["t_ruta"]][1], x0, y0, sida)], 0.05)[0]
                     sx, sy = r["bredd"] / w, r["hojd"] / h     # märkningens px (hela den upprätta bilden)
-                    b = bedom(huvud_punkt(rad, x0, y0, sx, sy, r["bredd"], r["hojd"], 0.05), r["punkter"])
+                    b = bedom(huvud_punkt(rad, x0, y0, sx, sy, r["bredd"], r["hojd"], 0.05), r["punkter"],
+                              grepp_punkt(rad, x0, y0, sx, sy))
                     if b is not None:
                         rader.append({**b, "vy": r["vy"], "val": r["val"], "id": r["id"]})
     ut = {"alla": sammanfatta(rader)}
@@ -774,7 +813,8 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
     for val in sorted({r["val"] for r in rader}):
         ut[f"lage {val}"] = sammanfatta([r for r in rader if r["val"] == val])
     ut["rader"] = [{"id": r["id"], "konfidens": round(r["konfidens"], 3), "traff": r["traff"],
-                    "avstand": None if r["avstand"] is None else round(r["avstand"], 3)} for r in rader]
+                    "avstand": None if r["avstand"] is None else round(r["avstand"], 3),
+                    "vinkel": None if r.get("vinkel") is None else round(r["vinkel"], 2)} for r in rader]
     return ut
 
 

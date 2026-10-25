@@ -3286,9 +3286,21 @@ räknas som märkning (B71).
   greppet i median framifrån (10 % bakifrån, p90 29 %), och skaftets vinkel fel med 3,9° i
   median framifrån (p90 6,1°) och 2,7° bakifrån (p90 3,6°, max 10°). Handlederna ligger mot
   underarmen, inte på skaftet. **mätt.**
-- **Nästa:** greppet ur händerna och klubbans ruta (händernas läge lagt på skaftets linje,
-  kalibrerat på oktobers rutor, mätt på provpasset), och modellen tränad på Johannes märkta
-  rutor, bakifrån först.
+- **Modellen med händer** (Nano på golf-club-tracking med `klasser klubba,klubbhuvud,hander`,
+  15 epoker, 60 min): mAP på dess prov 0,468 (0,808): klubba 0,566, klubbhuvud 0,354, händer
+  **0,482** (0,874). **mätt.**
+- **Greppet ur händerna** (`grepp_punkt`): mitten av modellens säkraste ruta för händerna. Mot
+  Johannes grepp i provpasset: **4,0 %** av skaftet i median framifrån (p90 6,5 %) och 3,3 %
+  bakifrån (p90 11 %), mot handledernas 10–11 %. Skaftets vinkel **helt automatiskt** (greppet ur
+  händerna → huvudets mitt, mot hans greppet → hoseln): framifrån **0,8°** i median (p90 2,0°,
+  max 3,4°, 40 rutor), bakifrån 2,1° (p90 7,7°, 11 rutor) med en grov miss där skaftet pekar mot
+  kameran (133 px) och huvudet hamnade på fel sida om händerna. Att lägga händerna på klubbrutans
+  diagonal och kalibrera längs skaftet på oktobers rutor (k = 0,02 av diagonalen) gav inget:
+  händernas mitt sitter redan rätt. Samma modell gav klubbhuvudet konfidens ≥ 0,5 i 48 av 51
+  rutor, mot 24 för modellen på båda dataseten. **mätt** (n är litet: 40 och 11).
+- **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
+  förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
+  Johannes märkta rutor, bakifrån först.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 import tempfile
 import unittest
@@ -219,6 +220,20 @@ class MotMarkeringen(unittest.TestCase):
         huvud["box"] = [115.0, 290.0, 20.0, 20.0]
         self.assertFalse(FM.bedom(huvud, pk)["traff"])   # 15 px utanför
         self.assertEqual(FM.bedom(None, pk), {"konfidens": 0.0, "traff": False, "avstand": None})
+
+    def test_greppet_ur_handerna_och_skaftets_vinkel(self) -> None:
+        rad = [{"klass": "hander", "konfidens": 0.3, "bbox": [0, 0, 10, 10]},
+               {"klass": "hander", "konfidens": 0.8, "bbox": [90, -10, 20, 20]},
+               {"klass": "klubbhuvud", "konfidens": 0.9, "bbox": [0, 0, 5, 5]}]
+        g = FM.grepp_punkt(rad, 0, 0, 1, 1)
+        self.assertEqual((g["x"], g["y"], g["konfidens"]), (100.0, 0.0, 0.8))
+        self.assertIsNone(FM.grepp_punkt([{"klass": "klubba", "konfidens": 0.9, "bbox": [0, 0, 1, 1]}], 0, 0, 1, 1))
+        pk = {"grepp": {"x": 100.0, "y": 0.0}, "klubbhuvud": {"x": 100.0, "y": 300.0}}
+        huvud = {"x": 100.0 + 300 * math.tan(math.radians(2)), "y": 300.0, "konfidens": 0.6, "box": [95, 295, 20, 10]}
+        b = FM.bedom(huvud, pk, {"x": 100.0, "y": 15.0, "konfidens": 0.8})
+        self.assertAlmostEqual(b["grepp_fel"], 0.05)
+        self.assertAlmostEqual(b["vinkel"], math.degrees(math.atan2(300 * math.tan(math.radians(2)), 285)), places=6)
+        self.assertNotIn("vinkel", FM.bedom(None, pk, {"x": 100.0, "y": 15.0, "konfidens": 0.8}))
         self.assertIsNone(FM.bedom(huvud, {"grepp": pk["grepp"], "klubbhuvud": None}))
         self.assertIsNone(FM.bedom(huvud, {"grepp": pk["grepp"], "klubbhuvud": {"syns_inte": True}}))
 

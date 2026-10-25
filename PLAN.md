@@ -846,7 +846,8 @@ klubbhuvud i nästan varje ruta i provpasset; `tools/pc/formarkare.py`, METOD MF
 ligger kring händerna och förslagen prövas över tiden. Förslagsfilen för S7d (`swinglab-klubba-forslag/1`, bara
 `huvud`) finns för provpasset. Mot Johannes märkning (91 rutor, båda vyerna) satt 48 av 48
 förslag med konfidens 0,3–0,5 rätt, så gränsen är 0,3 (B95): 85 % av rutorna framifrån och 92 %
-bakifrån har ett förslag (MF7). Oktobers 41 slag med järn 7
+bakifrån har ett förslag (MF7). Greppet ur en modell med händerna ger skaftets vinkel helt
+automatiskt inom 0,8° i median framifrån (p90 2,0°) och 2,1° bakifrån (MF7). Oktobers 41 slag med järn 7
 (Kamera-appen) ligger i Golf SG:s `data/handled/video/2026-10-17` för märkningen.
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
