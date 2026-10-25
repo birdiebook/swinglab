@@ -1454,6 +1454,12 @@ värden i `CaptureTests`.
   storlek per minut i MB (10⁶ byte, `byte / längd · 60`), längden och det högsta
   värmetrycket under serien. **räkning**; storleken per minut mäts på telefonen
   i S2c (S2_SPEC §2.6 antog några hundra MB i 1080p 240 HEVC).
+- **Domen** (S4h, BESLUT B94, `Receipt.dom`): varje rad som inte är vit blir en varning med vad
+  man gör, röd före gul och annars i radernas ordning: frekvensen ("Not slow motion: 30 fps. Film
+  in Slo-mo at 240 fps", "120 fps, not 240: film in Slo-mo at 240 fps"), de tappade rutorna
+  ("… close other apps"), inga klick ("… check the microphone") och värmen ("… pause soon"). Utan
+  varning en mening med frekvensen och klicken, "240 fps · 2 swings heard". Raderna ovan står
+  under "Details". Ljusprovets kort har ingen dom. **räkning.**
 - **Värmen** (`systemPressureState.level`, raden "Värme" i kvittot och i
   vyn): nominal och fair vita, serious gul,
   critical och shutdown röda. I inspelningen står värmen i kugghjulet och varnar från

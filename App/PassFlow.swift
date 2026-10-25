@@ -182,7 +182,7 @@ struct ReceiptCard: View {
             if let dom = Receipt.dom(rows) {
                 if dom.bra {
                     Text(verbatim: dom.text)
-                        .font(.system(size: 17, weight: .medium).monospacedDigit())
+                        .typsnitt(17, .medium, siffror: true)
                         .foregroundStyle(Theme.text)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, 4)
@@ -190,11 +190,11 @@ struct ReceiptCard: View {
                     ForEach(dom.varningar, id: \.self) { v in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 14, weight: .semibold))
+                                .typsnitt(14, .semibold)
                                 .foregroundStyle(Theme.flag)
                                 .accessibilityHidden(true)
                             Text(verbatim: v)
-                                .font(.system(size: 16, weight: .medium))
+                                .typsnitt(16, .medium)
                                 .foregroundStyle(Theme.text)
                                 .fixedSize(horizontal: false, vertical: true)
                         }

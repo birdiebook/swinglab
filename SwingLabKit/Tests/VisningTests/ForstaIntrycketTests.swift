@@ -85,6 +85,28 @@ final class ForstaIntrycketTests: XCTestCase {
         XCTAssertFalse(f.fler.contains { $0.id == "chicken_wing" })
     }
 
+    /// Ett grönt mått som övas står överst och bland de gröna; ett (b)-mått som övas syns också
+    /// (BESLUT B86), och ett rött står kvar bland korten fast Focus tar toppen.
+    func testGrontOchDomBSomOvas() throws {
+        let v = try visning(ovas: ["sway_topp", "flying_elbow"])
+        let f = v.lista(i: .fo), d = v.lista(i: .dtl)
+        XCTAssertEqual(f.topp?.kort.map(\.id), ["sway_topp"])
+        XCTAssertEqual(f.kort.first { $0.id == "sway_topp" }?.lage.lage, .gron)
+        XCTAssertEqual(Lageordning.grupp(f.kort.first { $0.id == "sway_topp" }!.lage), 2)
+        XCTAssertEqual(f.kort.first?.id, "sway_gap")                     // rött först också med Focus
+        XCTAssertTrue(d.kort.contains { $0.id == "flying_elbow" }, "\(d.kort.map(\.id))")
+        XCTAssertFalse(d.fler.contains { $0.id == "flying_elbow" })
+        XCTAssertEqual(d.topp?.kort.map(\.id), ["flying_elbow"])
+    }
+
+    func testTomtPass() {
+        let l = Passlista([])
+        XCTAssertNil(l.topp)
+        XCTAssertTrue(l.kort.isEmpty && l.fler.isEmpty)
+        XCTAssertNil(l.flerRad)
+        XCTAssertNil(l.toppUpplasning)
+    }
+
     func testAlltGrontGerIngenTopp() {
         func kort(_ id: String, _ l: Bandlage) -> Mattkort {
             var k = Mattkort(id: id, matt: id, namn: id, rubrik: "", vy: .fo, markning: nil, varde: "1.0", enhet: "cm",

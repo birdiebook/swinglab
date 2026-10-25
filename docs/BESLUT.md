@@ -142,6 +142,10 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   stället för att lägga till text.
 - **Undantag (B87, 2026-10-25):** läget mot bandet har tre färger, grönt, gult och rött,
   som en prick, en ring och en pil bredvid talet och på spannet. Inga värdeord ändå.
+- **Undantag (B94, 2026-10-25):** raden under spannet säger bra-området, "Good: −2.5 to 0 cm",
+  och bandets nyckel säger "Good range" (research 8 punkt 4, Johannes beställning). Ordet står
+  bara om gränsen, aldrig om spelarens värde. Kvittot och Claude-felet är meningar med vad man
+  gör, och Delete har systemets röda.
 
 ## B14 — Vridningen i två lägen: trend utan markörer, per sving med markörer
 *2026-10-22 · gäller · Johannes beslut efter felbudgeten (docs/S6_FELBUDGET.md)*
@@ -1826,7 +1830,8 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Accenten (B31) fungerar fortfarande:** det du övar på har kortets rubrik, radens namn och
   kvartilerna i isblått. Har måttet ett läge bär markören läget i stället för accenten; utan läge
   är markören isblå som förut.
-- **Inga ord som bra eller dåligt (B13):** skärmen visar bara formen och färgen. VoiceOver läser
+- **Inga ord som bra eller dåligt (B13):** skärmen visar bara formen och färgen. Undantaget
+  (B94): raden under spannet och nyckeln säger "Good" om bandets gränser, inte om värdet. VoiceOver läser
   läget som "in range", "just outside range", "above range"/"below range" och "above/below your
   usual".
 - **Ersätter:** B45:s gula spann per fel (`gult` i katalogen; analysen räknar det nu ur bandet
@@ -2004,8 +2009,8 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
     förslag syns säger instruktionsraden "Line right? Tap ✓". **Ordningen P1, P3 … P2, P6, P8
     behålls** (B58): förslaget för P2, P6 och P8 bygger på positionerna runt dem.
   - **Konsekvens och HIG:** Delete i systemets röda destruktiva stil (svepet och frågan), och en
-    vägrad radering säger varför och vad man gör ("being sent to the PC", "still recording or
-    importing"). Filtret Alla · DTL · FO i samma ordning som det parade passets DTL · FO · 3D.
+    vägrad radering säger varför och vad man gör ("being packed for sharing", "open for
+    recording or import"). Filtret Alla · DTL · FO i samma ordning som det parade passets DTL · FO · 3D.
     Längden i cm i passet som på Me. 3D-kortets antal är svingarna i 3D; provets bilder satte en
     3D-fixtur med tio svingar på pass med fyra och åtta, och ritar nu fixturen med passets antal.
 - **Bortvalt:** att ta bort felsökningsdatan helt (den behövs när något är fel, ett tryck bort
@@ -2013,8 +2018,10 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   dolda räcker först); en nyckel som visas av sig själv första gången (ett tillstånd till att
   spara, och nyckeln är ett tryck bort på varje band); P1–P10 i svingens ordning i märkningen
   (B58:s skäl gäller); namn i varje flik i positionsraden (tio flikar på 390 pt ryms inte).
-- **Undantag från design/README regel 4 och 5:** raden under bandet säger "Good" och kvittot
-  och Claude-felet är meningar (Johannes beställning). Regel 11 i design/README.
+- **Undantag från design/README regel 4, 5 och 6 (och B13, B87):** raden under bandet och
+  nyckeln säger "Good" om bandets gränser, aldrig om spelarens värde; kvittot och Claude-felet är
+  meningar (Johannes beställning, research 8 punkt 1 och 4); Delete har systemets röda (regel 12).
+  Regel 4, 5, 11 och 12 i design/README.
 - **Kostnad:** en dold rad till att öppna för den som vill se allt; meningarna i kvittot är
   engelska och bara för de varningar som finns (en ny varning kräver en ny text).
 - **Omprövas:** när Johannes läst ett pass på telefonen med S4h (PLAN S4h, Klart när), och när

@@ -100,7 +100,9 @@ public enum Receipt {
         for (i, r) in rows.enumerated() where r.light != .good {
             let t: String?
             switch r.kind {
-            case .rate?: t = r.light == .tooDark ? Texter.domInteSlowmotion(fps) : Texter.domLagFps(fps)
+            case .rate?:
+                let onskad = Int(FormatChoice.wantedRate)
+                t = r.light == .tooDark ? Texter.domInteSlowmotion(fps, onskad: onskad) : Texter.domLagFps(fps, onskad: onskad)
             case .dropped?: t = Texter.domTappade(r.value)
             case .clicks?: t = Texter.domIngenHord
             case .heat?: t = Texter.domVarm

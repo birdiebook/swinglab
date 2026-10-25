@@ -20,7 +20,8 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    två linjer).
 4. **Inga värdeord.** Förändring visas som tecken och tal ("+1.2 cm vs Jan 6",
    på engelska, BESLUT B30),
-   och läget som en markör i spannet. Ingen totalpoäng.
+   och läget som en markör i spannet. Ingen totalpoäng. **Undantag (B94):** raden under spannet
+   och bandets nyckel säger "Good" om bandets gränser ("Good: −2.5 to 0 cm"), aldrig om värdet.
 5. **Ingen beskrivande text.** Bara etiketter, tal, enheter och det som måste
    läsas för att använda appen: övningens namn, tanken och "klart när" som ett
    villkor i tal. Märkningarna är små symboler med en kort etikett: Your usual (egen

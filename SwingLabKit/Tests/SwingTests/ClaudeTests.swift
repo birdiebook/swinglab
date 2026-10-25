@@ -150,7 +150,8 @@ final class ClaudeTests: XCTestCase {
         XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[1].klart_nar.grans", "grans_tal")), "the done-when rule has the wrong form")
         XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].ovning.text", "for_lang")), "the drill is too long")
         XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].fel", "inte_flaggat")), "the fault does not match this session")
-        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("pass", "ej_i_analysen")), "this session has no measures yet")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("pass", "inte_analysens")), "it is for another session")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("pass", "pass_form")), "its session id has the wrong form")
         // En okänd nyckel är Claudes text: den står aldrig i meningen.
         XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].ovning.hemligt", "okand_nyckel")),
                        "the drill has an unknown field")

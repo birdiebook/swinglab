@@ -104,6 +104,8 @@ struct PassetVy: View {
 struct PassToppVy: View {
     let topp: Passlista.Topp
     var upplasning = ""
+    /// Lägets symbol växer med texten (research 8 punkt 10).
+    @ScaledMetric(relativeTo: .body) private var symbol: CGFloat = 12
 
     private var focus: Bool {
         if case .focus = topp { return true }
@@ -124,8 +126,8 @@ struct PassToppVy: View {
                         Text(verbatim: Tal.medEnhet(k.varde, k.varde == "—" ? "" : k.enhet))
                             .typsnitt(17, .medium, siffror: true)
                             .foregroundStyle(Theme.text)
-                        LageSymbol(lage: k.lage, storlek: 12)
-                            .frame(width: 12)
+                        LageSymbol(lage: k.lage, storlek: symbol)
+                            .frame(width: symbol)
                     }
                 }
             }

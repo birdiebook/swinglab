@@ -527,8 +527,8 @@ public enum Texter {
         case ("svaret", "inte_json"): return "its code block could not be read"
         case ("svaret", "inte_att_jobba_pa"): return "it has no Focus file"
         case ("svaret", _): return "it is too long"
-        case ("pass", "ej_i_analysen"): return "this session has no measures yet"
-        case ("pass", _): return "it is for another session"
+        case ("pass", "inte_analysens"): return "it is for another session"
+        case ("pass", _): return "its session id has the wrong form"
         default: return "\(kontrollfelDel(f.falt)) \(kontrollfelVad(f.kod))"
         }
     }
@@ -606,15 +606,23 @@ public enum Texter {
     /// Kvittots dom (Receipt.dom): en mening, eller varningarna med vad man gör.
     public static func domHord(_ n: Int) -> String { n == 1 ? "1 swing heard" : "\(n) swings heard" }
     public static func domFps(_ fps: String) -> String { "\(fps) fps" }
-    public static func domInteSlowmotion(_ fps: String) -> String { "Not slow motion: \(fps) fps" }
-    public static func domLagFps(_ fps: String) -> String { "\(fps) fps, not 240" }
+    /// Fel bildfrekvens med vad man gör: filma i Slo-mo med 240 (iPhones Slo-mo är 120 tills
+    /// det ändras i Inställningar, så det gäller främst en importerad film).
+    public static func domInteSlowmotion(_ fps: String, onskad: Int) -> String {
+        "Not slow motion: \(fps) fps. Film in Slo-mo at \(onskad) fps"
+    }
+    public static func domLagFps(_ fps: String, onskad: Int) -> String {
+        "\(fps) fps, not \(onskad): film in Slo-mo at \(onskad) fps"
+    }
     public static func domTappade(_ andel: String) -> String { "The phone dropped \(andel) of the frames: close other apps" }
     public static let domIngenHord = "No swings heard: check the microphone"
     public static let domVarm = "The phone is hot: pause soon"
 
     /// Raderingen vägras: varför och vad man gör (BESLUT B64).
-    public static let iBrukExport = "The session is being sent to the PC. Try again when it is done."
-    public static let iBrukFlode = "The session is still recording or importing. Close it first."
+    /// `Store.exporting`: paketet skrivs (Share, till PC:n eller den andra telefonens bunt).
+    public static let iBrukExport = "The session is being packed for sharing. Try again when it is done."
+    /// `Store.inFlow`: passet är öppet i inspelningen eller importen.
+    public static let iBrukFlode = "The session is open for recording or import. Close it first."
 
     /// Tecknen för stämmer och stämmer inte (kamerorna i 3D, märkningens klara positioner).
     public static let bock = "\u{2713}"

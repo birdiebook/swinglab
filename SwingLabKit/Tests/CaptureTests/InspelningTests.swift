@@ -417,7 +417,10 @@ final class InspelningTests: XCTestCase {
         XCTAssertEqual(Receipt.dom(Receipt.rows(s))?.varningar, ["No swings heard: check the microphone"])
         // 120 bilder/s är gult, inte slowmotion rött; den uppmätta klockan står inte i meningen.
         let rader = [ReceiptRow("fps", "120 (119.6)", .marginal, kind: .rate), ReceiptRow("Clicks", "1", kind: .clicks)]
-        XCTAssertEqual(Receipt.dom(rader)?.text, "120 fps, not 240")
+        XCTAssertEqual(Receipt.dom(rader)?.text, "120 fps, not 240: film in Slo-mo at 240 fps")
+        // Inte slowmotion: rött, med vad man gör.
+        XCTAssertEqual(Receipt.dom([ReceiptRow("fps", "30", .tooDark, kind: .rate), ReceiptRow("Clicks", "1", kind: .clicks)])?.text,
+                       "Not slow motion: 30 fps. Film in Slo-mo at 240 fps")
         XCTAssertEqual(Receipt.dom([ReceiptRow("fps", "240", kind: .rate), ReceiptRow("Clicks", "1", kind: .clicks)])?.text,
                        "240 fps\u{00A0}· 1 swing heard")
         // Ljusprovets rader har ingen dom: kortet visar dem som förut.
