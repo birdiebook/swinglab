@@ -130,7 +130,7 @@ final class KlubbaTests: XCTestCase {
         XCTAssertEqual(swiftFil, pyFil)
         // En ruta byggd ur markeringen blir samma rad som Pythons.
         XCTAssertEqual(m[0].greppKalla, Klubba.kallaRing, "ringen ur handlederna, bekräftad")
-        XCTAssertNil(m[1].greppKalla)
+        XCTAssertNil(m[3].greppKalla, "ett fritt tryck (m[1] och m[2] är förslag, S7d)")
         let r0 = KlubbFil.ruta(m[0], vy: .dtl, slag: "s03", fil: f.fil.rutor[0].fil, bredd: f.fil.rutor[0].bredd,
                                hojd: f.fil.rutor[0].hojd, visad: f.fil.rutor[0].visad, tKlipp: nil)
         XCTAssertEqual(r0, f.fil.rutor[0])
