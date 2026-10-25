@@ -232,7 +232,7 @@ public struct Katalog: Decodable, Sendable {
         public let namn: String
         /// "dtl", "fo" eller "bada" (alla svingar ihop).
         public let vy: String
-        public let matt: String
+        public internal(set) var matt: String
         public let fas: String
         /// [min, max], nil i en ände = öppen. nil = egen baslinje. Järnets band (BESLUT B86).
         public internal(set) var gront: [Double?]?
