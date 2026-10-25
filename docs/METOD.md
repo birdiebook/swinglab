@@ -3248,8 +3248,19 @@ räknas som märkning (B71).
   kroppen. Bakifrån 14 % (≥ 0,5 10 %, ≥ 0,3 91 %): rutorna sitter rätt i arket men under 0,5.
   FO 5 504 och DTL 176 rutor i filerna, båda OK mot paketet. 157 s för passet (klippet läses en
   gång). **mätt.**
-- **Nästa:** modellen på Johannes märkta rutor (bakifrån först), och gränsen 0,5 prövad mot
-  märkningen (MF8).
+- **Mot Johannes märkning** (`formarkare.py facit`): varje märkt ruta (`t_ruta`) körs genom
+  modellen med rutans utsnitt, och det säkraste huvudet (konfidens ≥ 0,05) **träffar** när hoseln
+  ligger inom huvudets ruta vidgad **0,5 ×** rutans största sida. Avståndet huvudets mitt →
+  hoseln räknas i andel av skaftets längd (greppet → hoseln). **antagande** (0,5).
+- **Provpasset mot märkningen 2026-10-25** (40 rutor framifrån i 8 svingar: adress, topp, tidig
+  nedsving och 16 jämna; bakifrån saknas): **40 av 40 träffar**, 22 med konfidens ≥ 0,5 och **18
+  av 18 med 0,3–0,5** (toppen 7 av 8 där). Huvudets mitt ligger **3,9 %** av skaftet från hoseln
+  i median (p90 5,9 %; adressen 2,5 %, nedsvingen 5,2 %), alltså cirka 12 px på ett skaft om
+  300 px: över punktmodellens mål (2 %, research 7 §4.2), som stöder att huvudet aldrig godtas som
+  hoseln (B93). 18 av 18 ger med regeln om tre minst cirka 83 % träffar i klassen 0,3–0,5 (95 %).
+  **mätt.**
+- **Nästa:** gränsen 0,5 i MF8 är strängare än provet kräver framifrån; bakifrån märks och mäts
+  innan den ändras. Modellen på Johannes märkta rutor, bakifrån först.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 

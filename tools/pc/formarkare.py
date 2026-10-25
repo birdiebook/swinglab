@@ -8,6 +8,7 @@ Förslaget är aldrig facit: bara det Johannes klickat räknas som märkning (B7
     python tools/pc/formarkare.py trana ~/swinglab-s7/trana --ut ~/swinglab-s7/vikter
     python tools/pc/formarkare.py prov ~/swinglab-s7/trana --vikter <vikter.pth>
     python tools/pc/formarkare.py forslag <paket.zip> [fler] --vikter <vikter.pth> --ut ~/swinglab-s7/forslag
+    python tools/pc/formarkare.py facit <paket.zip> [fler] --markering <klubba.json> --vikter <vikter.pth>
 
 `bygg` läser bara mappar i COCO-format (Roboflows export) och lägger varje bild i träning,
 val eller prov **per scen**: bilder vars miniatyrer nästan är lika (samma video, samma
@@ -644,6 +645,105 @@ def modell_info(vikter: Path) -> tuple[str, list[dict]]:
     return f"{vikter.parent.name.removeprefix('vikter-')}-{datum}", data
 
 
+# ---------------------------------------------------------------------------- mot Johannes märkning
+
+TRAFF_MARGINAL = 0.5       # METOD MF7: hoseln räknas som träffad inom huvudets ruta vidgad 0,5 × rutans största sida
+KONF_KLASSER = (0.1, 0.3, 0.5)   # METOD MF7: förslagen redovisas i konfidensklasserna 0,1–0,3, 0,3–0,5 och ≥ 0,5
+
+
+def bedom(huvud: dict | None, punkter: dict) -> dict | None:
+    """En märkt ruta mot modellens säkraste huvud där (i samma px): {"konfidens", "traff"
+    (hoseln inom huvudets ruta vidgad TRAFF_MARGINAL), "avstand" (huvudets mitt → hoseln i andel
+    av skaftets längd, greppet → hoseln)}. None när rutan saknar greppet eller hoseln. Utan huvud:
+    konfidens 0 och ingen träff. METOD MF7"""
+    g, h = punkter.get("grepp"), punkter.get("klubbhuvud")
+    if not g or not h:
+        return None
+    skaft = math.hypot(g["x"] - h["x"], g["y"] - h["y"])
+    if huvud is None or skaft <= 0:
+        return {"konfidens": 0.0, "traff": False, "avstand": None}
+    bx, by, bw, bh = huvud.get("box") or [huvud["x"], huvud["y"], 0.0, 0.0]
+    m = TRAFF_MARGINAL * max(bw, bh)
+    traff = bx - m <= h["x"] <= bx + bw + m and by - m <= h["y"] <= by + bh + m
+    return {"konfidens": float(huvud["konfidens"]), "traff": bool(traff),
+            "avstand": math.hypot(huvud["x"] - h["x"], huvud["y"] - h["y"]) / skaft}
+
+
+def sammanfatta(rader: list[dict]) -> dict:
+    """Träffarna per konfidensklass, och avståndet till hoseln (median och p90 i andel av skaftet)
+    bland träffarna. METOD MF7"""
+    def klass(k: float) -> str:
+        if k >= KONF_KLASSER[2]:
+            return f"≥{KONF_KLASSER[2]}"
+        if k >= KONF_KLASSER[1]:
+            return f"{KONF_KLASSER[1]}–{KONF_KLASSER[2]}"
+        if k >= KONF_KLASSER[0]:
+            return f"{KONF_KLASSER[0]}–{KONF_KLASSER[1]}"
+        return f"<{KONF_KLASSER[0]}"
+    ut: dict = {"rutor": len(rader), "klasser": {}}
+    for r in rader:
+        k = ut["klasser"].setdefault(klass(r["konfidens"]), {"rutor": 0, "traff": 0})
+        k["rutor"] += 1
+        k["traff"] += r["traff"]
+    a = sorted(r["avstand"] for r in rader if r["traff"] and r["avstand"] is not None)
+    if a:
+        ut["avstand_median"] = round(float(np.median(a)), 3)
+        ut["avstand_p90"] = round(float(np.quantile(a, 0.9)), 3)
+    return ut
+
+
+def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dict:
+    """Modellen mot Johannes märkning (`swinglab-klubba`, markera_klubba.py eller telefonen): för
+    varje märkt ruta läses klippets ruta (`t_ruta`), utsnittet kring händerna körs genom modellen
+    och det säkraste huvudet prövas mot hoseln (`bedom`). Svarar sammanfattningen per vy och per
+    läge. Provpasset (B92) får mätas så här men aldrig tränas på. METOD MF7"""
+    from . import klipp as KL
+    from . import paket as P
+    mk = json.loads(Path(markering).read_text(encoding="utf-8"))
+    modell = ladda(vikter)
+    rader: list[dict] = []
+    for pf in paket_filer:
+        p = P.las(pf)
+        mina = [r for r in mk["rutor"] if r.get("fil") == p.fil and r.get("status") == "markerad"]
+        with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(pf) as z:
+            for sid in sorted({r["slag"] for r in mina}):
+                s = next((x for x in p.slag if x.id == sid), None)
+                if s is None or not (s.klipp and s.lederna):
+                    continue
+                klipp = Path(tmp) / f"{sid}{Path(s.klipp).suffix}"
+                klipp.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
+                lw, lh = s.lederna["width"], s.lederna["height"]
+                rr = [r for r in mina if r["slag"] == sid]
+                bilder = KL.ramar_vid(klipp, [r["t_ruta"] for r in rr], lw, lh, 0.001)
+                if not bilder:
+                    continue
+                h, w = next(iter(bilder.values()))[1].shape[:2]
+                skala = w / lw
+                vision = {round(float(f["t"]), 6): f["joints"] for f in s.lederna["frames"]}
+                skalad = lambda jj: [None if j is None else (lambda x, y, c: [x * skala, y * skala, c])(*_xyc(j))
+                                     for j in jj]
+                t0, t1 = min(r["t"] for r in rr) - 1.5, max(r["t"] for r in rr) + 1.5
+                kropp = kroppen([skalad(j) for t, j in vision.items() if t0 <= t <= t1])
+                if kropp is None:
+                    continue
+                for r in rr:
+                    if r["t_ruta"] not in bilder:
+                        continue
+                    leder = skalad(vision[min(vision, key=lambda t: abs(t - r["t"]))])
+                    x0, y0, sida = utsnitt(leder, kropp, w, h)
+                    rad = detektioner(modell, [skar(bilder[r["t_ruta"]][1], x0, y0, sida)], 0.05)[0]
+                    sx, sy = r["bredd"] / w, r["hojd"] / h     # märkningens px (hela den upprätta bilden)
+                    b = bedom(huvud_punkt(rad, x0, y0, sx, sy, r["bredd"], r["hojd"], 0.05), r["punkter"])
+                    if b is not None:
+                        rader.append({**b, "vy": r["vy"], "val": r["val"], "id": r["id"]})
+    ut = {"alla": sammanfatta(rader)}
+    for vy in sorted({r["vy"] for r in rader}):
+        ut[vy] = sammanfatta([r for r in rader if r["vy"] == vy])
+    for val in sorted({r["val"] for r in rader}):
+        ut[f"lage {val}"] = sammanfatta([r for r in rader if r["val"] == val])
+    return ut
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="steg", required=True)
@@ -660,6 +760,10 @@ def main(argv=None) -> int:
     pr = sub.add_parser("prov")
     pr.add_argument("mapp", type=Path)
     pr.add_argument("--vikter", type=Path, required=True)
+    fa = sub.add_parser("facit")
+    fa.add_argument("paket", nargs="+", type=Path)
+    fa.add_argument("--markering", type=Path, required=True, help="swinglab-<pass>-klubba.json")
+    fa.add_argument("--vikter", type=Path, required=True)
     f = sub.add_parser("forslag")
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
@@ -673,6 +777,8 @@ def main(argv=None) -> int:
             r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum, a.fortsatt)
         elif a.steg == "prov":
             r = prova(a.mapp, a.vikter)
+        elif a.steg == "facit":
+            r = mot_markering(a.paket, a.markering, a.vikter)
         else:
             r = forslag(a.paket, a.vikter, a.ut, a.s3)
     except FormFel as e:

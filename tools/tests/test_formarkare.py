@@ -183,6 +183,29 @@ class OverTiden(unittest.TestCase):
         self.assertIsNone(FM.over_tiden(p, 100.0)[0][1])
 
 
+class MotMarkeringen(unittest.TestCase):
+    """Modellens huvud mot Johannes hosel (METOD MF7)."""
+
+    def test_traff_inom_vidgad_ruta_och_avstand_i_skaftets_langd(self) -> None:
+        pk = {"grepp": {"x": 100.0, "y": 0.0}, "klubbhuvud": {"x": 100.0, "y": 300.0}}
+        huvud = {"x": 110.0, "y": 300.0, "konfidens": 0.4, "box": [104.0, 290.0, 20.0, 20.0]}
+        b = FM.bedom(huvud, pk)
+        self.assertTrue(b["traff"])                       # 4 px utanför, marginalen är 10
+        self.assertAlmostEqual(b["avstand"], 10 / 300)
+        huvud["box"] = [115.0, 290.0, 20.0, 20.0]
+        self.assertFalse(FM.bedom(huvud, pk)["traff"])   # 15 px utanför
+        self.assertEqual(FM.bedom(None, pk), {"konfidens": 0.0, "traff": False, "avstand": None})
+        self.assertIsNone(FM.bedom(huvud, {"grepp": pk["grepp"], "klubbhuvud": None}))
+
+    def test_klasserna_och_avstandet_bland_traffarna(self) -> None:
+        rader = [{"konfidens": 0.6, "traff": True, "avstand": 0.02}, {"konfidens": 0.35, "traff": True, "avstand": 0.04},
+                 {"konfidens": 0.35, "traff": False, "avstand": 0.5}, {"konfidens": 0.0, "traff": False, "avstand": None}]
+        s = FM.sammanfatta(rader)
+        self.assertEqual(s["klasser"], {"≥0.5": {"rutor": 1, "traff": 1}, "0.3–0.5": {"rutor": 2, "traff": 1},
+                                        "<0.1": {"rutor": 1, "traff": 0}})
+        self.assertEqual(s["avstand_median"], 0.03)
+
+
 class Forslagsfilen(unittest.TestCase):
     """S7d:s format (METOD MF8, BESLUT B93): huvudets mitt, aldrig hoseln eller greppet."""
 
