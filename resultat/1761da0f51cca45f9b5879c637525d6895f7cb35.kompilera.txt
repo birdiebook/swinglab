@@ -1,0 +1,22 @@
+1761da0f51cca45f9b5879c637525d6895f7cb35 s4g 2026-10-25T09:38:30Z run 40181410546 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Visning/Bandlage.swift:122:11: error: cannot assign to property: 'matt' is a 'let' constant
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Visning/Bandlage.swift:122:11: error: cannot assign to property: 'matt' is a 'let' constant
+
+/Users/runner/work/swinglab/swinglab/SwingLabKit/Sources/Swing/Visning/Bandlage.swift:122:11: error: cannot assign to property: 'matt' is a 'let' constant
+** TEST FAILED **
+== provets mätningar (påhittad film)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+ERROR: setUpClass (test_appens_paket.AppensParadePaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket-parat/facit.json'
+FAILED (errors=2)
