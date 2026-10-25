@@ -1717,10 +1717,13 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 
 - **Valt:** skärmen under inspelningen visar bara Close (eller Continue), statusen, kugghjulet,
   inspelningsknappen, en varning när den kräver handling och lutningen när den är över 2°. Under
-  serien bara REC-pillen ("REC 0:42 · 3 swings") och stoppknappen. Kugghjulet öppnar bladet
-  "Recording" (medium) med This phone, Other phone, Frame rate, Tilt, Swings heard on both,
-  Storage, Thermal, Microphone, Guide lines och Light test; rader som inte gäller visas inte.
-  Värmen under critical, frekvensen när den är rätt och parningens restfel flyttar dit.
+  serien bara REC-pillen med tiden ("REC 0:42") och stoppknappen. Kugghjulet öppnar bladet
+  "Recording" (medium) med This phone, Other phone, Frame rate, Tilt, Swings so far ("~3"),
+  Swings heard on both ("· uncertain" när parningen är osäker), Storage, Thermal, Microphone,
+  Guide lines och Light test; rader som inte gäller visas inte. Värmen under critical,
+  frekvensen när den är rätt och parningens restfel flyttar dit. "Tilt too large for 3D" bara
+  med två telefoner. "Other phone stopped recording" först när följaren bekräftat att den spelar
+  in i serien (granskningen 2026-10-25).
   Hjälplinjerna går att stänga av, sparat per användare (`installningar.json`).
 - **Färgerna, ett undantag från B13 regel 6 bara för inspelningens status:** grönt **#30D158**
   för "Connected", rött för inspelningen (pillen **#D70015**, knappens fält **#FF3B30** i den vita
@@ -1737,6 +1740,9 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   inte inspelningens status, så det är svartvitt; att räkna svingarna med en egen ljudutgång
   (`AVCaptureAudioDataOutput` bredvid filutgången): nivån ur filens egen ljudkanal rör inte
   inspelningen.
-- **Kostnad:** tre nya färger på en skärm, och svingarnas tal under serien är en uppskattning
-  som kan skilja från seriens klick (MS32).
-- **Omprövas:** efter första passet med den nya skärmen på telefonerna (PLAN S2j, Klart när).
+- **Kostnad:** tre nya färger på en skärm. Svingarnas tal är en skattning som kan skilja från
+  seriens klick (MS32), så det står i kugghjulet med "~" och flyttar till REC-pillen (skissens
+  "REC 0:42 · 3 swings") först när det är kalibrerat på telefonerna. En följare som aldrig
+  startar ger ingen varning under serien.
+- **Omprövas:** efter första passet med den nya skärmen på telefonerna (PLAN S2j, Klart när),
+  och svingarnas plats när räknaren är kalibrerad.

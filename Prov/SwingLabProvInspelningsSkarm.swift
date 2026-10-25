@@ -36,7 +36,7 @@ extension SwingLabProvVyer {
 
         // Lead: skissens fyra lägen, och söker och tappad.
         try skarm(InspelningsLager(status: .kopplad, varning: nil), "insp-lead-kopplad", farger: [.rod, .gron])
-        try skarm(InspelningsLager(status: .spelarIn(sekunder: 42, svingar: 3), varning: .andraStoppade),
+        try skarm(InspelningsLager(status: .spelarIn(sekunder: 42), varning: .andraStoppade),
                   "insp-lead-spelar-in", farger: [.rod, .gul])
         try skarm(InspelningsLager(status: .kopplad, varning: nil, lutning: sex), "insp-lead-lutning", farger: [.rod, .gron])
         try skarm(InspelningsLager(status: .kopplad, varning: .sammaVy(.dtl, kanByta: true)), "insp-lead-varning",
@@ -46,20 +46,23 @@ extension SwingLabProvVyer {
 
         // Ensam: ingen statuspill, REC under serien, lutningen och en varning.
         try skarm(InspelningsLager(status: .ingen, varning: nil), "insp-ensam-redo", farger: [.rod])
-        try skarm(InspelningsLager(status: .spelarIn(sekunder: 75, svingar: 1), varning: nil), "insp-ensam-spelar-in",
+        try skarm(InspelningsLager(status: .spelarIn(sekunder: 75), varning: nil), "insp-ensam-spelar-in",
                   farger: [.rod])
         try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: sex), "insp-ensam-lutning", farger: [.rod])
         try skarm(InspelningsLager(status: .ingen, varning: .bildfrekvens(120)), "insp-ensam-varning", farger: [.rod, .gul])
 
-        // Över 45°: också "Tilt too large for 3D".
+        // Över 45°: med två telefoner också "Tilt too large for 3D"; ensam bara talet (B85).
         let p = 50.0 * .pi / 180
         let framat = try XCTUnwrap(Lutning(gravity: [0, -cos(p), -sin(p)]))
-        try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: framat), "insp-ensam-lutning-for-stor", farger: [.rod])
+        try skarm(InspelningsLager(status: .kopplad, varning: nil, lutning: framat), "insp-lead-lutning-for-stor",
+                  farger: [.rod, .gron])
+        try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: framat, lutning3D: false),
+                  "insp-ensam-lutning-for-stor", farger: [.rod])
 
         // Dynamisk text: pillen och varningen bryts i stället för att kortas.
         try skarm(InspelningsLager(status: .kopplad, varning: .sammaVy(.dtl, kanByta: true)), "insp-lead-varning-stor",
                   farger: [.rod, .gron, .gul], textstorlek: .accessibility3)
-        try skarm(InspelningsLager(status: .spelarIn(sekunder: 42, svingar: 3), varning: .andraStoppade),
+        try skarm(InspelningsLager(status: .spelarIn(sekunder: 42), varning: .andraStoppade),
                   "insp-lead-spelar-in-stor", farger: [.rod, .gul], textstorlek: .accessibility3)
         try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: sex), "insp-ensam-lutning-stor", farger: [.rod],
                   textstorlek: .accessibility3)
@@ -67,10 +70,11 @@ extension SwingLabProvVyer {
 
     func testInspelningensKugghjul() throws {
         let lead = InspelningsInstallningar.rader(
-            roll: .lead, vy: .dtl, andraVy: .fo, fps: 240, lutning: provLutning(0.8), horda: (par: 6, av: 6, rest: 0.0012),
-            minuter: 40, tryck: .nominal, mikrofon: .inbyggd)
-        XCTAssertEqual(lead.map(\.varde), ["Lead\u{00A0}\u{00B7} DTL", "Follow\u{00A0}\u{00B7} FO", "240 fps", "0.8°",
-                                           "6 of 6\u{00A0}\u{00B7} 1.2 ms", "about 40 min", "Normal", "Built-in"])
+            roll: .lead, vy: .dtl, andraVy: .fo, fps: 240, lutning: provLutning(0.8), svingar: 3,
+            horda: (par: 6, av: 6, rest: 0.0012, osaker: true), minuter: 40, tryck: .nominal, mikrofon: .inbyggd)
+        XCTAssertEqual(lead.map(\.varde), ["Lead\u{00A0}\u{00B7} DTL", "Follow\u{00A0}\u{00B7} FO", "240 fps", "0.8°", "~3",
+                                           "6 of 6\u{00A0}\u{00B7} 1.2 ms\u{00A0}\u{00B7} uncertain", "about 40 min",
+                                           "Normal", "Built-in"])
         let ensam = InspelningsInstallningar.rader(
             roll: .solo, vy: .fo, andraVy: nil, fps: 240, lutning: provLutning(0.8), horda: nil,
             minuter: 40, tryck: .fair, mikrofon: .inbyggd)

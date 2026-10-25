@@ -3,7 +3,7 @@ import Swing
 import Capture
 
 // Inspelningens skärm (PLAN S2j, BESLUT B85, METOD MS32): ovanpå kamerans bild bara det som
-// kräver ställningstagande. Överst Close, statusen och kugghjulet (under serien bara REC-pillen),
+// kräver ställningstagande. Överst Close, statusen och kugghjulet (under serien bara REC-pillen med tiden),
 // en varning i taget, lutningen när den är för stor, och inspelningsknappen nere i mitten.
 // Resten står i kugghjulets blad. Värden in, så att provet kan rita lägena utan kamera.
 // Heldragna svarta rutor med vit text, så att texten syns mot all video.
@@ -13,6 +13,8 @@ struct InspelningsLager: View {
     let varning: InspelningsVarning?
     /// Lutningen när den visas (LutningsVisare); nil = inget mitt på skärmen.
     var lutning: Lutning? = nil
+    /// Två telefoner: lutningen över 45° säger också "Tilt too large for 3D". Ensam bara talet.
+    var lutning3D = true
     var stangEtikett: LocalizedStringKey = "Close"
     var stangAktiv = true
     var kanSpelaIn = true
@@ -31,7 +33,7 @@ struct InspelningsLager: View {
 
     var body: some View {
         ZStack {
-            if let lutning { LutningVy(lutning: lutning) }
+            if let lutning { LutningVy(lutning: lutning, for3D: lutning3D) }
             VStack(spacing: 12) {
                 topp
                 if let varning {
@@ -119,7 +121,7 @@ struct InspelningsLager: View {
 }
 
 /// Statusen överst i mitten: "● Connected" i grönt, "Searching" i grått, "Other phone lost" med
-/// den gula ikonen, och under serien den röda pillen "● REC 0:42 · 3 swings". VoiceOver läser den
+/// den gula ikonen, och under serien den röda pillen "● REC 0:42". VoiceOver läser den
 /// som text som ändras ofta.
 struct StatusPill: View {
     let status: InspelningsStatus
@@ -345,8 +347,8 @@ struct InspelningsInstallningar: View {
     }
 
     /// Raderna som gäller, i skissens ordning. METOD MS32
-    static func rader(roll: LinkRole, vy: Vy, andraVy: Vy?, fps: Double, lutning: Lutning?,
-                      horda: (par: Int, av: Int, rest: Double?)?, minuter: Int?, tryck: Pressure,
+    static func rader(roll: LinkRole, vy: Vy, andraVy: Vy?, fps: Double, lutning: Lutning?, svingar: Int? = nil,
+                      horda: (par: Int, av: Int, rest: Double?, osaker: Bool)?, minuter: Int?, tryck: Pressure,
                       mikrofon: Mikrofon?) -> [Rad] {
         func rollNamn(_ r: LinkRole) -> String? {
             switch r {
@@ -364,9 +366,12 @@ struct InspelningsInstallningar: View {
         if let lutning {
             ut.append(Rad(etikett: "Tilt", varde: Taltext.decimal(abs(lutning.sida), digits: 1) + "°"))
         }
+        // Svingräknarens skattning i senaste eller pågående serie, tills den är kalibrerad (MS32).
+        if let svingar { ut.append(Rad(etikett: "Swings so far", varde: Texter.inspSvingarHittills(svingar))) }
         if roll == .lead, let h = horda {
             ut.append(Rad(etikett: "Swings heard on both",
-                          varde: Texter.inspHorda(h.par, av: h.av, ms: h.rest.map { Taltext.decimal($0 * 1000, digits: 1) })))
+                          varde: Texter.inspHorda(h.par, av: h.av, ms: h.rest.map { Taltext.decimal($0 * 1000, digits: 1) },
+                                                  osaker: h.osaker)))
         }
         if let minuter { ut.append(Rad(etikett: "Storage", varde: Texter.inspMinuter(minuter))) }
         ut.append(Rad(etikett: "Thermal", varde: Receipt.pressureName(tryck).capitalized))

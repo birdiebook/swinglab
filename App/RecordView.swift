@@ -62,6 +62,7 @@ struct RecordView: View {
                 status: status,
                 varning: InspelningsVarning.av(fakta),
                 lutning: visaLutning ? lutning : nil,
+                lutning3D: pass.setup.role != .solo,
                 stangEtikett: pass.series.isEmpty ? LocalizedStringKey("Close") : LocalizedStringKey("Continue"),
                 stangAktiv: !(camera.phase == .recording || camera.phase == .probing || working),
                 kanSpelaIn: (camera.phase == .ready || camera.phase == .recording) && !working,
@@ -151,7 +152,7 @@ struct RecordView: View {
     private var status: InspelningsStatus {
         let sek = serieStart.map { nu.timeIntervalSince($0) } ?? 0
         return InspelningsStatus.av(roll: pass.setup.role, inspelar: camera.phase == .recording, sekunder: sek,
-                                    svingar: antalSvingar, andra: andra, natAv: link?.blocked ?? false)
+                                    andra: andra, natAv: link?.blocked ?? false)
     }
 
     private var fakta: Inspelningsfakta {
@@ -173,13 +174,14 @@ struct RecordView: View {
     private var installningsrader: [InspelningsInstallningar.Rad] {
         let peer = link?.peers.first
         let parad = link?.peers.first { $0.pairs != nil }
-        let horda = parad.map { p in (par: p.pairs ?? 0, av: p.leadClicks ?? p.pairs ?? 0, rest: p.residual) }
+        let horda = parad.map { p in (par: p.pairs ?? 0, av: p.leadClicks ?? p.pairs ?? 0, rest: p.residual,
+                                      osaker: p.uncertain) }
         let mb = pass.series.last { $0.source == .recording }?.megabytesPerMinute
         let mik: InspelningsInstallningar.Mikrofon? = camera.audioDenied ? .av
             : camera.microphone == nil ? nil : (camera.micWarning ? .extern : .inbyggd)
         return InspelningsInstallningar.rader(
             roll: pass.setup.role, vy: pass.setup.view, andraVy: peer?.view, fps: camera.frameRate,
-            lutning: lutning, horda: horda, minuter: Lagringstid.minuter(ledigt: ledigt, mbPerMinut: mb),
+            lutning: lutning, svingar: antalSvingar, horda: horda, minuter: Lagringstid.minuter(ledigt: ledigt, mbPerMinut: mb),
             tryck: camera.pressure, mikrofon: mik)
     }
 
@@ -207,7 +209,7 @@ struct RecordView: View {
                 }
             }
             let stoppade = r.vakt.uppdatera(roll: pass.setup.role, egenInspelar: inspelar && !stopparSerie,
-                                            tid: t.timeIntervalSinceReferenceDate, andra: andra)
+                                            andra: andra)
             if stoppade != andraStoppade { andraStoppade = stoppade }
             if t.timeIntervalSince(r.ledigtLast) >= 5 {
                 r.ledigtLast = t

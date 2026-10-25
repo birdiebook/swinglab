@@ -1552,6 +1552,17 @@
         }
       }
     },
+    "Swings so far": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swings so far"
+          }
+        }
+      }
+    },
     "The audio could not be read.": {
       "extractionState": "manual",
       "localizations": {

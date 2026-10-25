@@ -11,22 +11,23 @@ final class InspelningslageTests: XCTestCase {
     // MARK: Statusen
 
     func testStatusen() {
-        XCTAssertEqual(InspelningsStatus.av(roll: .solo, inspelar: false, sekunder: 0, svingar: nil, andra: [], natAv: false), .ingen)
-        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, svingar: nil, andra: [], natAv: false), .soker)
-        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, svingar: nil, andra: [fo], natAv: false), .kopplad)
-        XCTAssertEqual(InspelningsStatus.av(roll: .follow, inspelar: false, sekunder: 0, svingar: nil,
+        XCTAssertEqual(InspelningsStatus.av(roll: .solo, inspelar: false, sekunder: 0, andra: [], natAv: false), .ingen)
+        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, andra: [], natAv: false), .soker)
+        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, andra: [fo], natAv: false), .kopplad)
+        XCTAssertEqual(InspelningsStatus.av(roll: .follow, inspelar: false, sekunder: 0,
                                             andra: [AndraTelefonen(vy: .dtl, kopplad: true, inspelar: false)], natAv: false), .kopplad)
         var tappad = fo
         tappad.kopplad = false
-        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, svingar: nil, andra: [fo, tappad], natAv: false), .tappad)
+        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, andra: [fo, tappad], natAv: false), .tappad)
         // Lokalt nätverk av: ingen pill, varningen säger det.
-        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, svingar: nil, andra: [], natAv: true), .ingen)
+        XCTAssertEqual(InspelningsStatus.av(roll: .lead, inspelar: false, sekunder: 0, andra: [], natAv: true), .ingen)
         // Under serien: REC med tiden nedåt avrundad, också ensam.
-        let rec = InspelningsStatus.av(roll: .solo, inspelar: true, sekunder: 42.9, svingar: 3, andra: [], natAv: false)
-        XCTAssertEqual(rec, .spelarIn(sekunder: 42, svingar: 3))
-        XCTAssertEqual(rec.text, "REC 0:42\u{00A0}\u{00B7} 3 swings")
-        XCTAssertEqual(InspelningsStatus.spelarIn(sekunder: 5, svingar: nil).text, "REC 0:05")
-        XCTAssertEqual(InspelningsStatus.spelarIn(sekunder: 61, svingar: 1).text, "REC 1:01\u{00A0}\u{00B7} 1 swing")
+        // Bara tiden: svingarnas skattning står i kugghjulet (MS32).
+        let rec = InspelningsStatus.av(roll: .solo, inspelar: true, sekunder: 42.9, andra: [], natAv: false)
+        XCTAssertEqual(rec, .spelarIn(sekunder: 42))
+        XCTAssertEqual(rec.text, "REC 0:42")
+        XCTAssertEqual(InspelningsStatus.spelarIn(sekunder: 61).text, "REC 1:01")
+        XCTAssertEqual(Texter.inspSvingarHittills(3), "~3")
         XCTAssertNil(InspelningsStatus.ingen.text)
         XCTAssertEqual(InspelningsStatus.tappad.text, "Other phone lost")
         XCTAssertEqual(InspelningsStatus.kopplad.text, "Connected")
@@ -175,26 +176,39 @@ final class InspelningslageTests: XCTestCase {
         let spelar = AndraTelefonen(vy: .fo, kopplad: true, inspelar: true)
         let stilla = AndraTelefonen(vy: .fo, kopplad: true, inspelar: false)
         // Före serien: aldrig.
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: false, tid: 0, andra: [stilla]))
-        // Följaren startar en stund efter: ingen varning inom marginalen.
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 10, andra: [stilla]))
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 11.5, andra: [stilla]))
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 12, andra: [spelar]))
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 40, andra: [spelar]))
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: false, andra: [stilla]))
+        // Följaren startar en stund efter: ingen varning före bekräftelsen.
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [stilla]))
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [spelar]))
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [spelar]))
         // Slutade mitt i: varning direkt.
-        XCTAssertTrue(v.uppdatera(roll: .lead, egenInspelar: true, tid: 41, andra: [stilla]))
+        XCTAssertTrue(v.uppdatera(roll: .lead, egenInspelar: true, andra: [stilla]))
         // Tappad: den egna varningen, inte den här.
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 42,
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true,
                                    andra: [AndraTelefonen(vy: .fo, kopplad: false, inspelar: false)]))
-        // Ny serie: börjar om.
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: false, tid: 50, andra: [stilla]))
-        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, tid: 60, andra: [stilla]))
-        // Startade aldrig: varning efter marginalen.
-        XCTAssertTrue(v.uppdatera(roll: .lead, egenInspelar: true, tid: 63, andra: [stilla]))
+        // Stopp tryckt (appen ger egenInspelar falskt direkt): följaren som blir klar först larmar inte.
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: false, andra: [stilla]))
         // Följaren vet inte om den styrande spelar in.
         var f = AndraStoppadeVakt()
-        XCTAssertFalse(f.uppdatera(roll: .follow, egenInspelar: true, tid: 0, andra: [stilla]))
-        XCTAssertFalse(f.uppdatera(roll: .follow, egenInspelar: true, tid: 30, andra: [stilla]))
+        XCTAssertFalse(f.uppdatera(roll: .follow, egenInspelar: true, andra: [spelar]))
+        XCTAssertFalse(f.uppdatera(roll: .follow, egenInspelar: true, andra: [stilla]))
+    }
+
+    func testAndraStoppadeBaraEfterBekraftelseIDennaSerie() {
+        var v = AndraStoppadeVakt()
+        let spelar = AndraTelefonen(vy: .fo, kopplad: true, inspelar: true)
+        let stilla = AndraTelefonen(vy: .fo, kopplad: true, inspelar: false)
+        // Serie 1: bekräftad och stoppad.
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [spelar]))
+        XCTAssertTrue(v.uppdatera(roll: .lead, egenInspelar: true, andra: [stilla]))
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: false, andra: [stilla]))
+        // Serie 2: följaren läser sin förra serie och startar sent. Ingen varning hur länge det än
+        // dröjer, för bekräftelsen i serie 1 gäller inte här.
+        for _ in 0..<200 {
+            XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [stilla]))
+        }
+        XCTAssertFalse(v.uppdatera(roll: .lead, egenInspelar: true, andra: [spelar]))
+        XCTAssertTrue(v.uppdatera(roll: .lead, egenInspelar: true, andra: [stilla]))
     }
 
     // MARK: Svingarna under serien
@@ -248,6 +262,8 @@ final class InspelningslageTests: XCTestCase {
         XCTAssertEqual(Lagringstid.minuter(ledigt: 1_000_000_000, mbPerMinut: nil), 0)
         XCTAssertEqual(Texter.inspMinuter(40), "about 40 min")
         XCTAssertEqual(Texter.inspHorda(6, av: 6, ms: "1.2"), "6 of 6\u{00A0}\u{00B7} 1.2 ms")
+        XCTAssertEqual(Texter.inspHorda(6, av: 6, ms: "1.2", osaker: true),
+                       "6 of 6\u{00A0}\u{00B7} 1.2 ms\u{00A0}\u{00B7} uncertain")
         XCTAssertEqual(Texter.inspTelefon(roll: "Lead", vy: .dtl), "Lead\u{00A0}\u{00B7} DTL")
         XCTAssertEqual(Texter.inspTelefon(roll: nil, vy: .fo), "FO")
     }

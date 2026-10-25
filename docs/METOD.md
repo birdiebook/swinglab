@@ -2024,7 +2024,7 @@ Logiken i `Capture/Inspelningslage.swift`, appen ger bara värdena (`App/RecordV
 `App/Vyer/InspelningsLager.swift`). Det som syns är det som kräver ställningstagande; resten
 står i kugghjulet (BESLUT B85).
 
-- **Statusen** överst: under serien "REC m:ss · n swings" (sekunderna nedåt avrundade, från
+- **Statusen** överst: under serien "REC m:ss", bara tiden (sekunderna nedåt avrundade, från
   att vyn såg kameran börja); annars, med två telefoner, "Searching" utan andra telefon,
   "Other phone lost" när någon andra telefon inte är kopplad, och "Connected" när alla är det.
   Ensam, eller med lokalt nätverk av (varningen säger det), syns ingen pill. **räkning.**
@@ -2037,21 +2037,28 @@ står i kugghjulet (BESLUT B85).
   "External microphone" (risk R9: Bluetooth-ljudet kan komma hundratals ms sent) och en
   frekvens under 240 ("120 fps, not 240", MS1). Ordningen är **antagande**: det som stoppar
   datan nu först, det som går att rätta efteråt sist.
-- **Den andra telefonen slutade:** den styrande varnar när en kopplad följare har setts spela in
-  i serien och slutat, eller inte har börjat **3 s** efter den egna starten (följaren startar
-  kameran efter kommandot). Vakten tystnar så fort stopp är tryckt, inte när den egna filen är
-  klar: följaren får stoppet över kopplingen och kan bli klar med sin fil före den styrande.
-  **antagande** (startens tid på telefonen, oprövad).
+- **Den andra telefonen slutade:** den styrande varnar bara när en kopplad följare har bekräftat
+  att den spelar in i den här serien (setts spela in efter den egna starten) och sedan slutat.
+  Före bekräftelsen varnar den inte, hur länge starten än dröjer (följaren kan läsa sin förra
+  serie först); en tappad koppling säger "Other phone lost". Vakten tystnar så fort stopp är
+  tryckt, inte när den egna filen är klar: följaren får stoppet över kopplingen och kan bli klar
+  med sin fil före den styrande. **räkning**; kvar: en följare som aldrig startar ger ingen
+  varning under serien (syns först i kvittot och parningen).
 - **Svingarna under serien:** ljudkanalens `peakHoldLevel` (dB) i den inspelade filens koppling
   (`AVCaptureAudioChannel`), läst **20** gånger i sekunden. En topp minst **20 dB** över medianen
   av topparna de senaste **3 s** räknas, högst en per **1 s**, och nästa först när toppen fallit
   under gränsen − **6 dB**; inget räknas under första **0,5 s** (baslinjen). 20 dB är klickets
-  25 × RMS-medianen (28 dB i amplitud, MS4) minus ungefär toppens marginal över medlet i brus. Bara för
-  pillen: seriens klick hittas i filen (MS4), och ett tal som skiljer är inget fel. **antagande**
-  (kalibreras på telefonen, oprövad); utan ljud (mikrofonen av) visas bara tiden.
+  25 × RMS-medianen (28 dB i amplitud, MS4) minus ungefär toppens marginal över medlet i brus.
+  Talet är en skattning: prat efter tystnad kan räknas, och om `peakHoldLevel` inte håller toppen
+  mellan läsningarna missas klick. Därför står det **inte i REC-pillen** utan i kugghjulet som
+  "Swings so far" med "~" ("~3", senaste eller pågående serie), så att det kan jämföras med
+  verkligheten på telefonerna. Det visas i pillen igen när det är kalibrerat på telefonerna.
+  Seriens klick hittas i filen (MS4), och ett tal som skiljer är inget fel. **antagande**
+  (kalibreras på telefonen, oprövad); utan ljud (mikrofonen av) saknas raden.
 - **Lutningen** mitt på skärmen, för alla roller: på när |lutningen åt sidan| > **2,0°**, av
   när den är < **1,5°** (hysteres, så att den inte blinkar vid gränsen), och alltid över **45°**
-  från lodlinjen ("Tilt too large for 3D", MS17, MS19). Talet i hela grader. **Varför 2°:**
+  från lodlinjen; raden "Tilt too large for 3D" (MS17, MS19) bara med två telefoner, ensam bara
+  talet och "Level the phone". Talet i hela grader. **Varför 2°:**
   framifrån går rullningen **1:1** in i skaftets vinkel, toppen och skaftlutningen (M49:
   rullad 1° ger +1,0° och −1,0°), och de har egen baslinje, så en lutning som skiljer mellan
   pass syns som en ändring i svingen; 2° är ungefär klubbmåttens osäkerhet per tryck (M49:
@@ -2059,8 +2066,9 @@ står i kugghjulet (BESLUT B85).
   MK3) antar att ingen telefon lutar. Kugghjulet visar lutningen med en decimal. **antagande**
   (gränsen), **räkning** (1:1 ur M49).
 - **Kugghjulet:** This phone (roll och vy), Other phone (bara med två telefoner), Frame rate,
-  Tilt (med prov), Swings heard on both (den styrande med en parning: par av den styrandes klick
-  i senaste serien och median |rest| i ms, MS10), Storage (ungefär minuter till golvet 2 GB:
+  Tilt (med prov), Swings so far (svingräknarens skattning, "~3", ovan), Swings heard on both
+  (den styrande med en parning: par av den styrandes klick i senaste serien och median |rest| i
+  ms, MS10, och "· uncertain" när parningen är osäker), Storage (ungefär minuter till golvet 2 GB:
   (ledigt − 2 GB) / storleken per minut i passets senaste egna serie, annars **480 MB/min**),
   Thermal, Microphone och Guide lines (på som standard, sparat i `installningar.json`). Rader
   som inte gäller visas inte. 480 MB/min är **tillverkare**: Apples kamerainställningar anger

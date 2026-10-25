@@ -145,6 +145,8 @@ struct AnnanTelefonRad: View {
 /// 3D". Svartvitt. Inspelningen visar den bara när lutningen är för stor (`LutningsVisare`).
 struct LutningVy: View {
     let lutning: Lutning?
+    /// Raden "Tilt too large for 3D" över 45°: bara med två telefoner (B85).
+    var for3D = true
 
     var body: some View {
         if let l = lutning {
@@ -170,7 +172,7 @@ struct LutningVy: View {
                             .typsnitt(28, .bold, siffror: true)
                         Text(verbatim: Texter.inspLutning)
                             .typsnitt(15, .semibold)
-                        if l.forStorFor3D {
+                        if l.forStorFor3D, for3D {
                             Text(verbatim: Texter.lutningForStor)
                                 .typsnitt(13, .semibold)
                         }

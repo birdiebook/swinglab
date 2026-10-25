@@ -270,10 +270,10 @@ public enum Texter {
     public static let inspSoker = "Searching"
     public static let inspKopplad = "Connected"
     public static let inspTappad = "Other phone lost"
-    /// "REC 0:42 · 3 swings", eller bara "REC 0:42" när svingarna inte hörs.
-    public static func inspRec(_ tid: String, svingar n: Int?) -> String {
-        "REC \(tid)" + (n.map { skilje + svingar($0) } ?? "")
-    }
+    /// "REC 0:42": bara tiden, tills svingräknaren är kalibrerad (METOD MS32).
+    public static func inspRec(_ tid: String) -> String { "REC \(tid)" }
+    /// Svingarna hittills i kugghjulet, en skattning: "~3".
+    public static func inspSvingarHittills(_ n: Int) -> String { "~\(n)" }
     /// Varningarna, en i taget.
     public static let inspAndraStoppade = "Other phone stopped recording"
     public static let inspNatAv = "Local network off"
@@ -288,10 +288,12 @@ public enum Texter {
     public static func inspTelefon(roll: String?, vy: Vy) -> String { (roll.map { $0 + skilje } ?? "") + vyKort(vy) }
     public static let inspRollStyr = "Lead"
     public static let inspRollFolj = "Follow"
-    /// "6 of 6 · 1.2 ms": par av den styrandes klick, och median |rest|.
-    public static func inspHorda(_ par: Int, av: Int, ms: String?) -> String {
-        "\(par) of \(av)" + (ms.map { skilje + $0 + " ms" } ?? "")
+    /// "6 of 6 · 1.2 ms": par av den styrandes klick, och median |rest|; "· uncertain" när
+    /// parningen är osäker (MS10).
+    public static func inspHorda(_ par: Int, av: Int, ms: String?, osaker: Bool = false) -> String {
+        "\(par) of \(av)" + (ms.map { skilje + $0 + " ms" } ?? "") + (osaker ? skilje + inspOsaker : "")
     }
+    public static let inspOsaker = "uncertain"
     /// "about 40 min"
     public static func inspMinuter(_ n: Int) -> String { "about \(n) min" }
     public static func inspFps(_ n: Int) -> String { "\(n) fps" }

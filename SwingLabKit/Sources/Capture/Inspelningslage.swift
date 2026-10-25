@@ -28,14 +28,15 @@ public enum InspelningsStatus: Equatable, Sendable {
     case soker
     case kopplad
     case tappad
-    /// Serien spelas in: sekunder sedan start och svingarna hörda hittills (nil = okänt).
-    case spelarIn(sekunder: Int, svingar: Int?)
+    /// Serien spelas in: sekunder sedan start. Svingarnas skattning står i kugghjulet tills den är
+    /// kalibrerad på telefonerna (MS32).
+    case spelarIn(sekunder: Int)
 
-    public static func av(roll: LinkRole, inspelar: Bool, sekunder: Double, svingar: Int?,
+    public static func av(roll: LinkRole, inspelar: Bool, sekunder: Double,
                           andra: [AndraTelefonen], natAv: Bool) -> InspelningsStatus {
         if inspelar {
             let s = sekunder.isFinite ? max(0, Int(sekunder.rounded(.down))) : 0
-            return .spelarIn(sekunder: s, svingar: svingar)
+            return .spelarIn(sekunder: s)
         }
         guard roll != .solo, !natAv else { return .ingen }
         if andra.isEmpty { return .soker }
@@ -43,14 +44,14 @@ public enum InspelningsStatus: Equatable, Sendable {
         return andra.contains { !$0.kopplad } ? .tappad : .kopplad
     }
 
-    /// Texten i pillen ("Connected", "REC 0:42 · 3 swings"); nil = ingen pill.
+    /// Texten i pillen ("Connected", "REC 0:42"); nil = ingen pill.
     public var text: String? {
         switch self {
         case .ingen: return nil
         case .soker: return Texter.inspSoker
         case .kopplad: return Texter.inspKopplad
         case .tappad: return Texter.inspTappad
-        case let .spelarIn(s, n): return Texter.inspRec(Taltext.duration(Double(s)), svingar: n)
+        case let .spelarIn(s): return Texter.inspRec(Taltext.duration(Double(s)))
         }
     }
 }
@@ -176,38 +177,34 @@ public struct LutningsVisare: Equatable, Sendable {
     public static func text(_ l: Lutning) -> String { "\(Int(abs(l.sida).rounded()))°" }
 }
 
-/// Den styrande ser att den andra telefonen slutade spela in mitt i serien: den har setts spela
-/// in och slutat, eller har inte börjat efter `marginal` sekunder (följaren behöver en stund för
-/// att starta kameran). Följaren vet inte om den styrande spelar in och varnar aldrig. `egenInspelar`
-/// är falskt så fort stopp är tryckt: den styrandes fas står kvar i inspelning tills filen är klar,
-/// och en följare som blir klar först får inte ge falsklarm. METOD MS32
+/// Den styrande ser att den andra telefonen slutade spela in mitt i serien: bara efter att följaren
+/// har bekräftat att den spelar in i den här serien, och sedan slutat. Före bekräftelsen varnar den
+/// inte: en start som dröjer (följaren läser sin förra serie) är ingen stoppad telefon. Följaren
+/// vet inte om den styrande spelar in och varnar aldrig. `egenInspelar` är falskt så fort stopp är
+/// tryckt: den styrandes fas står kvar i inspelning tills filen är klar, och en följare som blir
+/// klar först får inte ge falsklarm. METOD MS32
 public struct AndraStoppadeVakt: Equatable, Sendable {
-    public static let marginal = 3.0
-
-    var start: Double?
     var sett = false
 
     public init() {}
 
-    public mutating func uppdatera(roll: LinkRole, egenInspelar: Bool, tid: Double, andra: [AndraTelefonen]) -> Bool {
+    public mutating func uppdatera(roll: LinkRole, egenInspelar: Bool, andra: [AndraTelefonen]) -> Bool {
         guard roll == .lead, egenInspelar else {
-            start = nil
             sett = false
             return false
         }
-        if start == nil { start = tid }
         let kopplade = andra.filter(\.kopplad)
         guard !kopplade.isEmpty else { return false }            // tappad: en egen varning
         if kopplade.contains(where: \.inspelar) { sett = true }
-        guard kopplade.contains(where: { !$0.inspelar }) else { return false }
-        return sett || tid - (start ?? tid) >= Self.marginal
+        guard sett else { return false }                         // inte bekräftad än
+        return kopplade.contains { !$0.inspelar }
     }
 }
 
 /// Svingarna under serien, ur ljudkanalens nivå (`AVCaptureAudioChannel`: toppen och medlet i
 /// dB, läst 20 gånger i sekunden): en topp minst `over` dB över medianen av topparna de senaste
 /// `fonster` sekunderna är ett klick, högst ett per `minstaAvstand`, och nästa räknas först när
-/// toppen fallit `aterstall` dB under gränsen. Bara för pillen; seriens klick hittas i filen
+/// toppen fallit `aterstall` dB under gränsen. En skattning i kugghjulet ("~3"); seriens klick hittas i filen
 /// (MS4). METOD MS32
 public struct LevandeSvingar: Equatable, Sendable {
     public static let over = 20.0

@@ -199,17 +199,20 @@ Johannes godkände en skiss med fyra skärmar (kopplad, spelar in, lutningen, ku
    kugghjulet till höger och den röda inspelningsknappen nere i mitten (en röd cirkel i en vit
    ring, som iPhones kameraapp). Ensam telefon: ingen statuspill; Lead som söker: "Searching" i
    grått; tappad: "Other phone lost" med gul ikon; följaren visar "Connected" när den är kopplad.
-2. **Spelar in:** den röda pillen "● REC 0:42 · 3 swings" (tiden och svingarna hittills i serien)
-   och stoppknappen som en röd kvadrat i ringen.
+2. **Spelar in:** den röda pillen "● REC 0:42" och stoppknappen som en röd kvadrat i ringen.
+   Svingarna hittills står i kugghjulet som "~3" tills räknaren är kalibrerad (skissen hade dem i
+   pillen; granskningen 2026-10-25, MS32).
 3. **Varningar** bara när de kräver handling, en i taget, i en svart ruta med gul ikon: den andra
    telefonen slutade spela in, tappad under serien, "Both phones are DTL" med "Switch to FO" (S6g),
    lokalt nätverk av, värmen från critical, under 4 GB ledigt, mikrofonen av, en extern mikrofon
    och fel bildfrekvens. Information flyttar till kugghjulet: värmen under critical, frekvensen
    när den är rätt och parningens restfel.
 4. **Lutningen** mitt på skärmen bara när |lutningen| > 2° (av under 1,5°): ett stort tal, "Level
-   the phone" och horisontlinjen; över 45° också "Tilt too large for 3D" (S6c-2). För alla roller.
+   the phone" och horisontlinjen; över 45° med två telefoner också "Tilt too large for 3D"
+   (S6c-2). För alla roller.
 5. **Kugghjulet:** bladet "Recording" (medium) med This phone, Other phone, Frame rate, Tilt,
-   Swings heard on both, Storage, Thermal, Microphone och Guide lines (sparat per användare), och
+   Swings so far, Swings heard on both, Storage, Thermal, Microphone och Guide lines (sparat per
+   användare), och
    Light test längst ned. Rader som inte gäller visas inte.
 
 Formen: grönt och rött bara för inspelningens status (BESLUT B85, undantag i design/README.md),
@@ -227,11 +230,12 @@ reglaget), `LutningVy` i ny form och `RecordView` som ger värdena. `LinkLabels`
 `Prov/SwingLabProvInspelningsSkarm.swift` ritar lägena för Lead och ensam och kugghjulets blad
 (bilderna `insp-*`), också med största textstorlekarna, och prövar färgerna mot B85.
 
-**Oprövat på telefonerna:** svingräknaren (`peakHoldLevel`, MS32), när följaren hinner starta
-(marginalen 3 s), lutningen live och VoiceOver.
+**Oprövat på telefonerna:** svingräknaren (`peakHoldLevel`, MS32), när följaren hinner starta,
+lutningen live och VoiceOver.
 
 **Klart när:** Johannes har spelat in ett pass med två telefoner och ett ensam och (1) sett
-"Connected", "Searching" och "Other phone lost" och REC-pillen med tiden och svingarna, (2) sett
+"Connected", "Searching" och "Other phone lost" och REC-pillen med tiden, och jämfört "Swings so
+far" i kugghjulet med svingarna han slog, (2) sett
 varningen när följaren stoppades för hand och när båda stod på samma vy, (3) sett lutningen komma
 över 2° och försvinna under 1,5° utan att blinka, (4) öppnat kugghjulet och läst raderna, stängt
 av hjälplinjerna och fått dem avstängda nästa gång, och kört Light test därifrån.
