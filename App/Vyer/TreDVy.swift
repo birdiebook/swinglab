@@ -139,61 +139,56 @@ struct AnnanTelefonRad: View {
     }
 }
 
-/// Uppställningens lutning (B39, MS17, MS19): en tunn horisontlinje genom bildens mitt, vriden
-/// med lutningen åt sidan, och talet i grader. Över 45° från lodlinjen: "Tilt too large for 3D".
-/// Svartvitt och utan värdeord. Utan prov (simulatorn) ritas inget.
+/// Lutningen mitt på skärmen (B39, B85, MS17, MS19, MS32): en vit horisontlinje genom bildens
+/// mitt, vriden med lutningen åt sidan, bildens vågräta streckad, och under den en svart ruta med
+/// talet i hela grader och "Level the phone"; över 45° från lodlinjen också "Tilt too large for
+/// 3D". Svartvitt. Inspelningen visar den bara när lutningen är för stor (`LutningsVisare`).
 struct LutningVy: View {
     let lutning: Lutning?
 
     var body: some View {
         if let l = lutning {
-            ZStack {
-                Canvas { c, s in
-                    let v = l.sida * .pi / 180
-                    let r = s.width * 0.36
-                    let m = CGPoint(x: s.width / 2, y: s.height / 2)
-                    let d = CGPoint(x: cos(v) * r, y: sin(v) * r)
-                    c.linje(CGPoint(x: m.x - d.x, y: m.y - d.y), CGPoint(x: m.x + d.x, y: m.y + d.y),
-                            Theme.text.opacity(0.85), 1)
-                    // Bildens vågräta som korta streck vid sidorna: avståndet till linjen är lutningen.
-                    c.linje(CGPoint(x: m.x - r - 14, y: m.y), CGPoint(x: m.x - r - 4, y: m.y), Theme.secondary, 1)
-                    c.linje(CGPoint(x: m.x + r + 4, y: m.y), CGPoint(x: m.x + r + 14, y: m.y), Theme.secondary, 1)
-                }
-                VStack(spacing: 4) {
-                    Text(verbatim: Tal.medEnhet(Tal.tal(abs(l.sida), decimaler: 1), "°"))
-                        .typsnitt(15, .medium, siffror: true)
-                        .foregroundStyle(Theme.text)
-                    if l.forStorFor3D {
-                        Text(verbatim: Texter.lutningForStor)
-                            .typsnitt(13, .semibold)
-                            .foregroundStyle(Theme.text)
+            GeometryReader { geo in
+                let m = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                ZStack {
+                    Canvas { c, s in
+                        let v = l.sida * .pi / 180
+                        let r = s.width * 0.42
+                        let d = CGPoint(x: cos(v) * r, y: sin(v) * r)
+                        // Bildens vågräta, streckad: avståndet till linjen är lutningen.
+                        var h = Path()
+                        h.move(to: CGPoint(x: m.x - r, y: m.y))
+                        h.addLine(to: CGPoint(x: m.x + r, y: m.y))
+                        c.stroke(h, with: .color(Theme.text.opacity(0.7)), style: StrokeStyle(lineWidth: 2, dash: [6, 6]))
+                        var p = Path()
+                        p.move(to: CGPoint(x: m.x - d.x, y: m.y - d.y))
+                        p.addLine(to: CGPoint(x: m.x + d.x, y: m.y + d.y))
+                        c.stroke(p, with: .color(Theme.text), lineWidth: 3)
                     }
+                    VStack(spacing: 2) {
+                        Text(verbatim: LutningsVisare.text(l))
+                            .typsnitt(28, .bold, siffror: true)
+                        Text(verbatim: Texter.inspLutning)
+                            .typsnitt(15, .semibold)
+                        if l.forStorFor3D {
+                            Text(verbatim: Texter.lutningForStor)
+                                .typsnitt(13, .semibold)
+                        }
+                    }
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Theme.ground, in: .rect(cornerRadius: 12))
+                    .frame(maxWidth: geo.size.width - 64)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits([.isStaticText, .updatesFrequently])
+                    .padding(.top, m.y + 28)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Theme.ground.opacity(0.6), in: .rect(cornerRadius: 2))
-                .offset(y: 36)
             }
             .allowsHitTesting(false)
-            .accessibilityElement(children: .combine)
         }
-    }
-}
-
-/// Lutningen ur telefonens rörelse medan inspelningen är öppen (`GravityRecorder`, 10 gånger i
-/// sekunden). METOD MS19
-struct LevandeLutning: View {
-    @State private var lutning: Lutning?
-
-    var body: some View {
-        LutningVy(lutning: lutning)
-            .task {
-                GravityRecorder.shared.startLive()
-                defer { GravityRecorder.shared.stopLive() }
-                while !Task.isCancelled {
-                    if let g = GravityRecorder.shared.latest { lutning = Lutning(gravity: [g.x, g.y, g.z]) }
-                    try? await Task.sleep(for: .milliseconds(100))
-                }
-            }
     }
 }

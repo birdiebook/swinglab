@@ -17,6 +17,13 @@ enum Theme {
     static let acc = Color(hex: 0x6FD3F7)
     /// Bara varningar i uppställningen.
     static let flag = Color(hex: 0xB98A4A)
+    /// Inspelningens status (BESLUT B85, undantaget från B13 regel 6), bara på inspelningens
+    /// skärm: grönt för "Connected", rött för REC-pillen och inspelningsknappens fält, och gult
+    /// för varningens ikon.
+    static let live = Color(hex: 0x30D158)
+    static let rec = Color(hex: 0xD70015)
+    static let recKnapp = Color(hex: 0xFF3B30)
+    static let varning = Color(hex: 0xF5B54A)
 
     /// Stora tal: tabellsiffror, så att de inte hoppar när de ändras.
     static func number(_ size: CGFloat, weight: Font.Weight = .medium) -> Font {

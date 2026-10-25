@@ -396,6 +396,8 @@ final class PhoneLink {
         let connected: Bool
         let recording: Bool
         var pairs: Int? = nil
+        /// Den styrandes klick i samma serie: "6 of 6" i inspelningens kugghjul (S2j, METOD MS32).
+        var leadClicks: Int? = nil
         var residual: Double? = nil
         var uncertain = false
         /// Den andra telefonen begär eller skickar klipp ("video1", S6g, BESLUT B80).
@@ -745,7 +747,7 @@ final class PhoneLink {
                 .map { f in
                     let e = leader.latestPair(device: f.hello.device)
                     return Peer(id: f.hello.device, view: f.hello.view, connected: f.peer != nil, recording: f.recording,
-                                pairs: e?.pairCount, residual: e?.medianAbsResidual, uncertain: e?.uncertain ?? false,
+                                pairs: e?.pairCount, leadClicks: e?.leadClicks, residual: e?.medianAbsResidual, uncertain: e?.uncertain ?? false,
                                 video: f.hello.kanVideo)
                 }
                 .sorted { ($0.view.rawValue, $0.id) < ($1.view.rawValue, $1.id) }

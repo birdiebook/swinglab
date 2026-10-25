@@ -78,17 +78,6 @@
         }
       }
     },
-    "%lld fps": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld fps"
-          }
-        }
-      }
-    },
     "%lld of %lld": {
       "extractionState": "manual",
       "localizations": {
@@ -331,17 +320,6 @@
         }
       }
     },
-    "Connected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connected"
-          }
-        }
-      }
-    },
     "Continue": {
       "extractionState": "manual",
       "localizations": {
@@ -507,17 +485,6 @@
         }
       }
     },
-    "External microphone": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "External microphone"
-          }
-        }
-      }
-    },
     "FO": {
       "extractionState": "manual",
       "localizations": {
@@ -595,6 +562,17 @@
         }
       }
     },
+    "Frame rate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frame rate"
+          }
+        }
+      }
+    },
     "Full access to Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -624,6 +602,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Guide"
+          }
+        }
+      }
+    },
+    "Guide lines": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide lines"
           }
         }
       }
@@ -837,28 +826,6 @@
         }
       }
     },
-    "Local network off": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local network off"
-          }
-        }
-      }
-    },
-    "Lost": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lost"
-          }
-        }
-      }
-    },
     "Mark club": {
       "extractionState": "manual",
       "localizations": {
@@ -892,13 +859,13 @@
         }
       }
     },
-    "Microphone off": {
+    "Microphone": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Microphone off"
+            "value": "Microphone"
           }
         }
       }
@@ -1086,6 +1053,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Orientation suspect"
+          }
+        }
+      }
+    },
+    "Other phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other phone"
           }
         }
       }
@@ -1332,17 +1310,6 @@
         }
       }
     },
-    "Searching": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searching"
-          }
-        }
-      }
-    },
     "Send to PC": {
       "extractionState": "manual",
       "localizations": {
@@ -1405,6 +1372,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sets"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         }
       }
@@ -1530,6 +1508,17 @@
         }
       }
     },
+    "Storage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage"
+          }
+        }
+      }
+    },
     "Swing": {
       "extractionState": "manual",
       "localizations": {
@@ -1548,6 +1537,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Swing thought"
+          }
+        }
+      }
+    },
+    "Swings heard on both": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swings heard on both"
           }
         }
       }
@@ -1746,6 +1746,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "The video is not on this phone"
+          }
+        }
+      }
+    },
+    "Thermal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thermal"
+          }
+        }
+      }
+    },
+    "This phone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This phone"
+          }
+        }
+      }
+    },
+    "Tilt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilt"
           }
         }
       }

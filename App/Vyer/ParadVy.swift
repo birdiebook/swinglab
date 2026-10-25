@@ -171,38 +171,3 @@ struct SessionRadRubrik: View {
         }
     }
 }
-
-/// Uppställningens varning när båda telefonerna har samma vy (BESLUT B83): i signalfärgen, som
-/// uppställningens andra varningar, och en knapp som byter den här telefonens vy innan första
-/// serien. Värden in, så att provet kan rita den.
-struct SammaVyVarning: View {
-    let vy: Vy
-    /// Byt den här telefonens vy; nil när passet redan har serier.
-    var onByt: (() -> Void)? = nil
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(verbatim: Texter.sammaVy(vy))
-                .typsnitt(15, .semibold)
-                .foregroundStyle(Theme.flag)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            if let onByt {
-                Button(action: onByt) {
-                    Text(verbatim: Texter.bytVy(Vyvakt.annan(vy)))
-                        .typsnitt(15, .semibold)
-                        .foregroundStyle(Theme.ground)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 36)
-                        .background(Theme.text, in: .rect(cornerRadius: 4))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
-        .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
-        .padding(.horizontal, 20)
-        .accessibilityElement(children: .combine)
-    }
-}

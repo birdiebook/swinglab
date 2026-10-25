@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -188,6 +188,68 @@ passet, och raden per serie i passet öppnar den igen. Paketets `fonster` och
 `utsnitt` i `docs/FORMAT.md` och `tools/pc/paket.py`. METOD MS13, BESLUT B34.
 Simulatorprovet: `Prov/SwingLabProvRedigering.swift` (bilderna `redigerare-hel`,
 `redigerare`, `redigering-slag`, `redigering-traff`).
+
+## S2j — Tydligare inspelning: bara det som ska tas ställning till (Johannes 2026-10-25)
+
+**Beställningen:** informationen under inspelningen ska bli tydligare. Det som syns är bara det
+som är relevant att ta ställning till under inspelningen; resten ligger bakom ett kugghjul.
+Johannes godkände en skiss med fyra skärmar (kopplad, spelar in, lutningen, kugghjulet).
+
+1. **Kopplad och redo:** Close till vänster, statusen "● Connected" (grön på svart) i mitten,
+   kugghjulet till höger och den röda inspelningsknappen nere i mitten (en röd cirkel i en vit
+   ring, som iPhones kameraapp). Ensam telefon: ingen statuspill; Lead som söker: "Searching" i
+   grått; tappad: "Other phone lost" med gul ikon; följaren visar "Connected" när den är kopplad.
+2. **Spelar in:** den röda pillen "● REC 0:42 · 3 swings" (tiden och svingarna hittills i serien)
+   och stoppknappen som en röd kvadrat i ringen.
+3. **Varningar** bara när de kräver handling, en i taget, i en svart ruta med gul ikon: den andra
+   telefonen slutade spela in, tappad under serien, "Both phones are DTL" med "Switch to FO" (S6g),
+   lokalt nätverk av, värmen från critical, under 4 GB ledigt, mikrofonen av, en extern mikrofon
+   och fel bildfrekvens. Information flyttar till kugghjulet: värmen under critical, frekvensen
+   när den är rätt och parningens restfel.
+4. **Lutningen** mitt på skärmen bara när |lutningen| > 2° (av under 1,5°): ett stort tal, "Level
+   the phone" och horisontlinjen; över 45° också "Tilt too large for 3D" (S6c-2). För alla roller.
+5. **Kugghjulet:** bladet "Recording" (medium) med This phone, Other phone, Frame rate, Tilt,
+   Swings heard on both, Storage, Thermal, Microphone och Guide lines (sparat per användare), och
+   Light test längst ned. Rader som inte gäller visas inte.
+
+Formen: grönt och rött bara för inspelningens status (BESLUT B85, undantag i design/README.md),
+heldragna svarta rutor med vit text, rundade hörn som i skissen, engelska, inga värdeord (B13),
+VoiceOver (statusen som text som ändras ofta, varningen läses upp när den kommer) och Dynamisk
+text.
+
+**Byggt (grenen `s2j`, BESLUT B85, METOD MS32):** SwingLabKit `Capture/Inspelningslage.swift`
+(`InspelningsStatus`, `InspelningsVarning` med ordningen, `LutningsVisare` med hysteresen,
+`AndraStoppadeVakt`, `LevandeSvingar` ur ljudkanalens nivå, `Lagringstid`) med
+`InspelningslageTests`, texterna i `Texter`, och `AppSettings.guideLines`; appen
+`App/Vyer/InspelningsLager.swift` (lagret, pillen, varningsrutan, knappen, kugghjulets blad och
+reglaget), `LutningVy` i ny form och `RecordView` som ger värdena. `LinkLabels`,
+`LevandeLutning` och `SammaVyVarning` är borta. Simulatorprovet
+`Prov/SwingLabProvInspelningsSkarm.swift` ritar lägena för Lead och ensam och kugghjulets blad
+(bilderna `insp-*`), också med största textstorlekarna, och prövar färgerna mot B85.
+
+**Oprövat på telefonerna:** svingräknaren (`peakHoldLevel`, MS32), när följaren hinner starta
+(marginalen 3 s), lutningen live och VoiceOver.
+
+**Klart när:** Johannes har spelat in ett pass med två telefoner och ett ensam och (1) sett
+"Connected", "Searching" och "Other phone lost" och REC-pillen med tiden och svingarna, (2) sett
+varningen när följaren stoppades för hand och när båda stod på samma vy, (3) sett lutningen komma
+över 2° och försvinna under 1,5° utan att blinka, (4) öppnat kugghjulet och läst raderna, stängt
+av hjälplinjerna och fått dem avstängda nästa gång, och kört Light test därifrån.
+
+## S2k — Den andra telefonens bild live (Johannes ja 2026-10-25, byggs efter S2j)
+
+Follow skickar en liten förhandsbild till Lead över PhoneLink (direkt wifi, inte internet), cirka
+360p i 10–15 bilder/s, kodad med H.264 eller JPEG.
+
+- **På Lead:** en liten ruta i hörnet när telefonerna är kopplade. Ett tryck gör bilden stor med
+  hjälplinjerna, så att Johannes kan rikta in den andra telefonen utan att gå dit.
+- **Under inspelning:** strömmen pausas eller sänks till ett par bilder i sekunden, så att den inte
+  stjäl kraft från inspelningen i 240 bilder/s eller värmer telefonen.
+- **Dataregeln:** bilden går bara mellan de två parade telefonerna (B61) och sparas inte.
+
+**Klart när:** Lead visar Follows bild med under 0,3 s fördröjning på riktiga telefoner,
+inspelningens bildfrekvens påverkas inte, och det termiska trycket stiger inte märkbart under en
+uppställning på 5 minuter.
 
 ## S3 — Facit: Vision mot MediaPipe
 

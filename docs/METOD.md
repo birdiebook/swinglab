@@ -1444,8 +1444,9 @@ värden i `CaptureTests`.
   värmetrycket under serien. **räkning**; storleken per minut mäts på telefonen
   i S2c (S2_SPEC §2.6 antog några hundra MB i 1080p 240 HEVC).
 - **Värmen** (`systemPressureState.level`, raden "Värme" i kvittot och i
-  vyn): nominal och fair vita, serious gul
-  och en varning i vyn, critical och shutdown röda. Apple: systemet kan sänka
+  vyn): nominal och fair vita, serious gul,
+  critical och shutdown röda. I inspelningen står värmen i kugghjulet och varnar från
+  critical (S2j, MS32). Apple: systemet kan sänka
   kvaliteten under tryck och avbryter sessionen vid shutdown. **tillverkare +
   antagande** (gränsen för varningen).
 - **Disken:** under **4 GB** ledigt (`volumeAvailableCapacityForImportantUsage`)
@@ -1874,6 +1875,8 @@ värden i `CaptureTests`.
   åt sidan, atan2(uppåt x, −uppåt y), eftersom den gör kamerornas vågräta fel (MK3); framåt och
   bakåt spelar ingen roll där. "Tilt too large for 3D" när vinkeln mellan uppåt och bildens
   överkant är över **45°** (MS17: då skrivs inget fält). Ett prov utanför 0,5–1,5 g visas inte.
+  Sedan S2j visas linjen och talet mitt på skärmen bara när lutningen är för stor, för alla roller
+  (MS32), och med en decimal i kugghjulet.
   **standard** (ramarna), **räkning.**
 - **Vad som provas var.** Linux: bunten, bitarna, tappen och kvittenserna (`OverforingTests`),
   lutningen (`LutningTests`), faserna och telefonens väg mot Pythons tal (`TreDTelefonTests`),
@@ -2014,6 +2017,57 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   klick, ett avbrott, "Get full video", originalen, synken som vita rutor på samma träff, de två
   paketen som PC:n läser, raden "3D" (S6d:s figur) i 3D-fliken i Leads parade pass, och bilderna. Telefonen: AWDL, tiden och storleken på riktiga klipp,
   bakgrunden.
+
+## MS32 — Inspelningens skärm: statusen, varningarna och lutningen (S2j)
+
+Logiken i `Capture/Inspelningslage.swift`, appen ger bara värdena (`App/RecordView.swift`,
+`App/Vyer/InspelningsLager.swift`). Det som syns är det som kräver ställningstagande; resten
+står i kugghjulet (BESLUT B85).
+
+- **Statusen** överst: under serien "REC m:ss · n swings" (sekunderna nedåt avrundade, från
+  att vyn såg kameran börja); annars, med två telefoner, "Searching" utan andra telefon,
+  "Other phone lost" när någon andra telefon inte är kopplad, och "Connected" när alla är det.
+  Ensam, eller med lokalt nätverk av (varningen säger det), syns ingen pill. **räkning.**
+- **Varningarna**, en i taget, i den här ordningen: kamerans eller lagringens fel i ord (som
+  förut), "Other phone stopped recording" (bara den styrande: följarna rapporterar om de spelar
+  in, inte tvärtom), "Other phone lost" under serien (utanför serien säger pillen det), "Both
+  phones are DTL" med "Switch to FO" före första serien (B83), "Local network off", värmen från
+  **critical** (Apple: systemet sänker kvaliteten; vid shutdown avbryts sessionen; MS11 varnade
+  från serious), under **4 GB** ledigt (`PassStorage.canStart`, MS11), "Microphone off",
+  "External microphone" (risk R9: Bluetooth-ljudet kan komma hundratals ms sent) och en
+  frekvens under 240 ("120 fps, not 240", MS1). Ordningen är **antagande**: det som stoppar
+  datan nu först, det som går att rätta efteråt sist.
+- **Den andra telefonen slutade:** den styrande varnar när en kopplad följare har setts spela in
+  i serien och slutat, eller inte har börjat **3 s** efter den egna starten (följaren startar
+  kameran efter kommandot). **antagande** (startens tid på telefonen, oprövad).
+- **Svingarna under serien:** ljudkanalens `peakHoldLevel` (dB) i den inspelade filens koppling
+  (`AVCaptureAudioChannel`), läst **20** gånger i sekunden. En topp minst **20 dB** över medianen
+  av topparna de senaste **3 s** räknas, högst en per **1 s**, och nästa först när toppen fallit
+  under gränsen − **6 dB**; inget räknas under första **0,5 s** (baslinjen). 20 dB är klickets
+  25 × energins median (28 dB, MS4) minus ungefär toppens marginal över medlet i brus. Bara för
+  pillen: seriens klick hittas i filen (MS4), och ett tal som skiljer är inget fel. **antagande**
+  (kalibreras på telefonen, oprövad); utan ljud (mikrofonen av) visas bara tiden.
+- **Lutningen** mitt på skärmen, för alla roller: på när |lutningen åt sidan| > **2,0°**, av
+  när den är < **1,5°** (hysteres, så att den inte blinkar vid gränsen), och alltid över **45°**
+  från lodlinjen ("Tilt too large for 3D", MS17, MS19). Talet i hela grader. **Varför 2°:**
+  framifrån går rullningen **1:1** in i skaftets vinkel, toppen och skaftlutningen (M49:
+  rullad 1° ger +1,0° och −1,0°), och de har egen baslinje, så en lutning som skiljer mellan
+  pass syns som en ändring i svingen; 2° är ungefär klubbmåttens osäkerhet per tryck (M49:
+  0,8–1,1°) gånger två. För 3D rättar lodlinjen lutningen (MS17), men kamerornas vågräta (reserven,
+  MK3) antar att ingen telefon lutar. Kugghjulet visar lutningen med en decimal. **antagande**
+  (gränsen), **räkning** (1:1 ur M49).
+- **Kugghjulet:** This phone (roll och vy), Other phone (bara med två telefoner), Frame rate,
+  Tilt (med prov), Swings heard on both (den styrande med en parning: par av den styrandes klick
+  i senaste serien och median |rest| i ms, MS10), Storage (ungefär minuter till golvet 2 GB:
+  (ledigt − 2 GB) / storleken per minut i passets senaste egna serie, annars **480 MB/min**),
+  Thermal, Microphone och Guide lines (på som standard, sparat i `installningar.json`). Rader
+  som inte gäller visas inte. 480 MB/min är **tillverkare**: Apples kamerainställningar anger
+  ungefär så för 1080p 240 bilder/s i HEVC; appens egen fil kan skilja (ej mätt).
+- **Vad som provas var.** Linux (`InspelningslageTests`): statusen, varningarnas ordning och
+  text, värmens gräns, bytet bara före serien, lutningens hysteres med brus runt 2°, vakten för
+  den andra telefonen, räknaren och lagringen. Simulatorn (`SwingLabProvInspelningsSkarm`): de
+  fyra lägena och kugghjulets blad för Lead och ensam, och största textstorleken, ritade på en grå
+  videoyta. Telefonen: räknaren, `peakHoldLevel`, följarens starttid och lutningen live.
 
 ## MT1 — Paketet till svingar
 

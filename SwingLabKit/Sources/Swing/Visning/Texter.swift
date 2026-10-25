@@ -264,6 +264,41 @@ public enum Texter {
     /// Raden i passet när den andra telefonens slag har samma vy.
     public static let sammaVyIPasset = "Both phones filmed the same view: no 3D"
 
+    // MARK: inspelningens skärm (PLAN S2j, BESLUT B85, METOD MS32)
+
+    /// Statuspillen.
+    public static let inspSoker = "Searching"
+    public static let inspKopplad = "Connected"
+    public static let inspTappad = "Other phone lost"
+    /// "REC 0:42 · 3 swings", eller bara "REC 0:42" när svingarna inte hörs.
+    public static func inspRec(_ tid: String, svingar n: Int?) -> String {
+        "REC \(tid)" + (n.map { skilje + svingar($0) } ?? "")
+    }
+    /// Varningarna, en i taget.
+    public static let inspAndraStoppade = "Other phone stopped recording"
+    public static let inspNatAv = "Local network off"
+    public static let inspLagring = "Less than 4 GB free"
+    public static let inspMikrofonAv = "Microphone off"
+    public static let inspExternMikrofon = "External microphone"
+    /// "120 fps, not 240"
+    public static func inspBildfrekvens(_ n: Int, onskad: Int) -> String { "\(n) fps, not \(onskad)" }
+    /// Lutningen mitt på skärmen.
+    public static let inspLutning = "Level the phone"
+    /// Kugghjulets värden.
+    public static func inspTelefon(roll: String?, vy: Vy) -> String { (roll.map { $0 + skilje } ?? "") + vyKort(vy) }
+    public static let inspRollStyr = "Lead"
+    public static let inspRollFolj = "Follow"
+    /// "6 of 6 · 1.2 ms": par av den styrandes klick, och median |rest|.
+    public static func inspHorda(_ par: Int, av: Int, ms: String?) -> String {
+        "\(par) of \(av)" + (ms.map { skilje + $0 + " ms" } ?? "")
+    }
+    /// "about 40 min"
+    public static func inspMinuter(_ n: Int) -> String { "about \(n) min" }
+    public static func inspFps(_ n: Int) -> String { "\(n) fps" }
+    public static let inspMikInbyggd = "Built-in"
+    public static let inspMikExtern = "External"
+    public static let inspMikAv = "Off"
+
     /// Raden i ord för VoiceOver: "Face on, Sat, Jan 9, 18:05, 7i, 8 swings, paired".
     public static func sessionsrad(vy: String, dag: String, klocka: String, klubba: String, svingar: Int?,
                                    parad: Bool) -> String {

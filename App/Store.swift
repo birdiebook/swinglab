@@ -595,6 +595,12 @@ final class Store {
         saveSettings()
     }
 
+    /// Hjälplinjerna i inspelningen på eller av (S2j, BESLUT B85).
+    func setGuideLines(_ pa: Bool) {
+        settings.guideLines = pa
+        saveSettings()
+    }
+
     /// Guiden till klubbans märkning har visats (S7c, BESLUT B59).
     func setClubGuideSeen() {
         guard settings.clubGuideSeen != true else { return }

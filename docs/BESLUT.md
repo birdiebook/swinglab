@@ -1711,3 +1711,32 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Kostnad:** ett klipp vars klick inte hörs synkas på parningen och märks; en följare som aldrig
   kopplas till en ny app behåller sin inspelning i en vecka.
 - **Omprövas:** när riktiga HEVC-klipp visat hur passthrough börjar (PLAN S6g, oprövat).
+
+## B85 — Inspelningens skärm: bara det som kräver ställningstagande, resten bakom kugghjulet
+*2026-10-25 · gäller · Johannes beställning och godkända skiss · PLAN.md S2j · METOD MS32*
+
+- **Valt:** skärmen under inspelningen visar bara Close (eller Continue), statusen, kugghjulet,
+  inspelningsknappen, en varning när den kräver handling och lutningen när den är över 2°. Under
+  serien bara REC-pillen ("REC 0:42 · 3 swings") och stoppknappen. Kugghjulet öppnar bladet
+  "Recording" (medium) med This phone, Other phone, Frame rate, Tilt, Swings heard on both,
+  Storage, Thermal, Microphone, Guide lines och Light test; rader som inte gäller visas inte.
+  Värmen under critical, frekvensen när den är rätt och parningens restfel flyttar dit.
+  Hjälplinjerna går att stänga av, sparat per användare (`installningar.json`).
+- **Färgerna, ett undantag från B13 regel 6 bara för inspelningens status:** grönt **#30D158**
+  för "Connected", rött för inspelningen (pillen **#D70015**, knappens fält **#FF3B30** i den vita
+  ringen, som iPhones kameraapp) och varningens ikon i gult **#F5B54A**. Rutorna är heldragna
+  svarta (#000) med vit text, så att texten syns mot all video, och har skissens rundade hörn
+  (pillerna halvrunda, rutorna 12 pt), också det bara här. Statusens text är etiketter, inga
+  värdeord (B13); lutningens rad "Level the phone" är det enda som säger vad man ska göra, och
+  bara när talet är för stort.
+- **Ersätter:** inspelningens etiketter för kopplingen (`LinkLabels`, B22: parningen syns nu i
+  kugghjulet), varningarna i signalfärgen (B83:s varning är nu den svarta rutan) och lutningen
+  som tunn linje hela tiden (B62: nu bara över 2°, för alla roller).
+- **Bortvalt:** att visa allt hela tiden (det som varnade blev brus); en egen inställningsskärm
+  (ett blad håller kameran synlig); grönt på reglaget för hjälplinjerna (iOS standard): det är
+  inte inspelningens status, så det är svartvitt; att räkna svingarna med en egen ljudutgång
+  (`AVCaptureAudioDataOutput` bredvid filutgången): nivån ur filens egen ljudkanal rör inte
+  inspelningen.
+- **Kostnad:** tre nya färger på en skärm, och svingarnas tal under serien är en uppskattning
+  som kan skilja från seriens klick (MS32).
+- **Omprövas:** efter första passet med den nya skärmen på telefonerna (PLAN S2j, Klart när).

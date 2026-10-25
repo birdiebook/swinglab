@@ -281,8 +281,8 @@ extension SwingLabProvVyer {
             }
         }
 
-        // 6. Varningen för samma vy i uppställningen (signalfärgen, som uppställningens varningar).
-        try spara(SammaVyVarning(vy: .dtl, onByt: {}).padding(.vertical, 16).frame(width: Self.bredd)
+        // 6. Varningen för samma vy i inspelningen (S2j: inspelningens varningsruta, BESLUT B85).
+        try spara(VarningsRuta(varning: .sammaVy(.dtl, kanByta: true), onByt: {}).padding(.vertical, 16).frame(width: Self.bredd)
                     .background(Theme.ground), "samma-vy")
         XCTAssertTrue(Vyvakt.sammaVy(egen: .dtl, andra: [.dtl]))
     }

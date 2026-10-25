@@ -2,9 +2,10 @@ import SwiftUI
 import Swing
 import Capture
 
-/// Inspelningen (S2_SPEC §2, §12 S2c): förhandsbilden med hjälplinjerna, frekvensen,
-/// ljusprovet, start och stopp, och kvittot efter varje serie. Grunden är Airtimes
-/// RecordView. Lite text (BESLUT B13): etiketter och tal, signalfärgen bara för varningar.
+/// Inspelningen (S2_SPEC §2, §12 S2c): förhandsbilden med hjälplinjerna, start och stopp, och
+/// kvittot efter varje serie. Grunden är Airtimes RecordView. Skärmen ovanpå (S2j, BESLUT B85):
+/// bara statusen, en varning som kräver handling och lutningen när den är för stor; frekvensen,
+/// värmen, parningen, lagringen och ljusprovet bakom kugghjulet (`InspelningsLager`).
 struct RecordView: View {
     @Binding var pass: PassState
     var onClose: () -> Void
@@ -27,46 +28,63 @@ struct RecordView: View {
     /// Continue i kvittot: passet öppnas när kvittot har stängts.
     @State private var continueAfterReceipt = false
 
+    /// Inspelningens skärm (S2j, BESLUT B85): kugghjulets blad, lutningen och räknarna.
+    @State private var visaInstallningar = false
+    @State private var lutning: Lutning?
+    @State private var visaLutning = false
+    @State private var andraStoppade = false
+    @State private var antalSvingar: Int?
+    @State private var serieStart: Date?
+    @State private var nu = Date()
+    @State private var ledigt: Int64?
+    @State private var raknare = Raknare()
+
+    /// Räknarna som uppdateras 20 gånger i sekunden utan att rita om vyn; bara det som syns
+    /// läggs i vyns tillstånd när det ändras. METOD MS32
+    @MainActor final class Raknare {
+        var visare = LutningsVisare()
+        var vakt = AndraStoppadeVakt()
+        var svingar = LevandeSvingar()
+        var ledigtLast = Date.distantPast
+    }
+
     var body: some View {
         ZStack {
             Theme.ground.ignoresSafeArea()
             CameraPreview(session: camera.session).ignoresSafeArea()
-            GuideLines().allowsHitTesting(false).accessibilityHidden(true)
-            // Två telefoner (S6c-2, BESLUT B62): telefonens lutning åt sidan, för 3D.
-            if pass.setup.role != .solo { LevandeLutning().ignoresSafeArea() }
-
-            VStack(spacing: 10) {
-                topBar
-                if let link {
-                    LinkLabels(link: link)
-                    // Samma vy på båda telefonerna (S6g, BESLUT B83): sagt direkt när de kopplas,
-                    // och den här telefonen kan byta innan första serien.
-                    if Vyvakt.sammaVy(egen: pass.setup.view, andra: link.peers.filter(\.connected).map(\.view)) {
-                        SammaVyVarning(vy: pass.setup.view, onByt: pass.series.isEmpty && camera.phase != .recording
-                                       ? { bytVy() } : nil)
-                    }
-                }
-                warnings
-                Spacer()
-                if let light {
-                    ReceiptCard(rows: Receipt.rows(light)).padding(.horizontal, 20)
-                }
-                if let problem = camera.problem ?? store.problem {
-                    Text(problem)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.flag)
-                        .padding(.horizontal, 20)
-                }
-                controls
+            if store.settings.visaHjalplinjer {
+                GuideLines().allowsHitTesting(false).accessibilityHidden(true)
             }
+            InspelningsLager(
+                status: status,
+                varning: InspelningsVarning.av(fakta),
+                lutning: visaLutning ? lutning : nil,
+                stangEtikett: pass.series.isEmpty ? LocalizedStringKey("Close") : LocalizedStringKey("Continue"),
+                stangAktiv: !(camera.phase == .recording || camera.phase == .probing || working),
+                kanSpelaIn: (camera.phase == .ready || camera.phase == .recording) && !working,
+                arbetar: working || camera.phase == .metering || camera.phase == .probing || camera.phase == .starting,
+                ljusprov: light.map { Receipt.rows($0) },
+                onStang: stang,
+                onInstallningar: { visaInstallningar = true },
+                onKnapp: toggle,
+                onByt: bytVy)
         }
         .preferredColorScheme(.dark)
         .task {
             startLink()
             await camera.start()
         }
+        .task { await levande() }
         .onChange(of: camera.phase) { _, phase in
             link?.report(recording: phase == .recording, freeBytes: store.availableBytes(), pressure: camera.pressure)
+            if phase == .recording {
+                serieStart = Date()
+                nu = Date()
+                raknare.svingar = LevandeSvingar()
+                antalSvingar = nil
+            } else {
+                serieStart = nil
+            }
             startPendingIfReady()
         }
         .onDisappear {
@@ -87,6 +105,22 @@ struct RecordView: View {
             camera.finished = nil
             Task { await analyze(f) }
         }
+        .sheet(isPresented: $visaInstallningar) {
+            ScrollView {
+                InspelningsInstallningar(
+                    rader: installningsrader,
+                    hjalplinjer: Binding(get: { store.settings.visaHjalplinjer }, set: { store.setGuideLines($0) }),
+                    ljusprovAktivt: camera.phase == .ready && !working,
+                    onLjusprov: {
+                        visaInstallningar = false
+                        Task { await lightProbe() }
+                    },
+                    onKlar: { visaInstallningar = false })
+            }
+            .background(Theme.surface, ignoresSafeAreaEdges: .all)
+            .presentationDetents([.medium, .large])
+            .preferredColorScheme(.dark)
+        }
         .sheet(isPresented: Binding(get: { receipt != nil }, set: { if !$0 { receipt = nil } }),
                onDismiss: {
                    guard continueAfterReceipt else { return }
@@ -103,89 +137,91 @@ struct RecordView: View {
         }
     }
 
-    private var topBar: some View {
-        HStack {
-            // Med en serie i passet leder knappen vidare till slagen, annars stänger den.
-            Button(pass.series.isEmpty ? LocalizedStringKey("Close") : LocalizedStringKey("Continue")) {
-                if pass.series.isEmpty {
-                    camera.stop()
-                    onClose()
-                } else {
-                    finish()
-                }
-            }
-            .disabled(camera.phase == .recording || camera.phase == .probing || working)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(Theme.text)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 44)
-            .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
-            Spacer()
-            if camera.frameRate > 0 {
-                HStack(spacing: 8) {
-                    if camera.phase == .recording {
-                        Circle().fill(Theme.text).frame(width: 8, height: 8)
-                    }
-                    Text("\(Int(camera.frameRate)) fps").font(Theme.number(17))
-                }
-                .foregroundStyle(camera.reachesWanted ? Theme.text : Theme.flag)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 44)
-                .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
+    // MARK: Skärmen (S2j, BESLUT B85, METOD MS32)
+
+    /// Den andra telefonen eller telefonerna, som skärmens logik ser dem.
+    private var andra: [AndraTelefonen] {
+        (link?.peers ?? []).map { AndraTelefonen(vy: $0.view, kopplad: $0.connected, inspelar: $0.recording) }
     }
 
-    @ViewBuilder private var warnings: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if camera.pressure.warns {
-                Text(verbatim: "\(Receipt.pressureLabel): \(Receipt.pressureName(camera.pressure))")
-            }
-            if camera.micWarning {
-                Text("External microphone")
-            }
-            if camera.audioDenied {
-                Text("Microphone off")
-            }
-        }
-        .font(.system(size: 13, weight: .semibold))
-        .foregroundStyle(Theme.flag)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
+    private var status: InspelningsStatus {
+        let sek = serieStart.map { nu.timeIntervalSince($0) } ?? 0
+        return InspelningsStatus.av(roll: pass.setup.role, inspelar: camera.phase == .recording, sekunder: sek,
+                                    svingar: antalSvingar, andra: andra, natAv: link?.blocked ?? false)
     }
 
-    private var controls: some View {
-        HStack {
-            Button("Light test") { Task { await lightProbe() } }
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.text)
-                .frame(minWidth: 96, minHeight: 44)
-                .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
-                .disabled(camera.phase != .ready || working)
-            Spacer()
-            Button { toggle() } label: {
-                ZStack {
-                    Circle().stroke(Theme.text, lineWidth: 4).frame(width: 80, height: 80)
-                    RoundedRectangle(cornerRadius: camera.phase == .recording ? 4 : 30)
-                        .fill(Theme.text)
-                        .frame(width: camera.phase == .recording ? 28 : 60, height: camera.phase == .recording ? 28 : 60)
+    private var fakta: Inspelningsfakta {
+        var f = Inspelningsfakta(roll: pass.setup.role, vy: pass.setup.view, inspelar: camera.phase == .recording)
+        f.problem = camera.problem ?? store.problem
+        f.andra = andra
+        f.andraStoppade = andraStoppade
+        f.natAv = link?.blocked ?? false
+        f.kanByta = pass.series.isEmpty
+        f.tryck = camera.pressure
+        f.ledigaByte = ledigt
+        f.mikrofonAv = camera.audioDenied
+        f.externMikrofon = camera.micWarning
+        f.bildfrekvens = camera.frameRate
+        f.narOnskad = camera.reachesWanted
+        return f
+    }
+
+    private var installningsrader: [InspelningsInstallningar.Rad] {
+        let peer = link?.peers.first
+        let parad = link?.peers.first { $0.pairs != nil }
+        let horda = parad.map { p in (par: p.pairs ?? 0, av: p.leadClicks ?? p.pairs ?? 0, rest: p.residual) }
+        let mb = pass.series.last { $0.source == .recording }?.megabytesPerMinute
+        let mik: InspelningsInstallningar.Mikrofon? = camera.audioDenied ? .av
+            : camera.microphone == nil ? nil : (camera.micWarning ? .extern : .inbyggd)
+        return InspelningsInstallningar.rader(
+            roll: pass.setup.role, vy: pass.setup.view, andraVy: peer?.view, fps: camera.frameRate,
+            lutning: lutning, horda: horda, minuter: Lagringstid.minuter(ledigt: ledigt, mbPerMinut: mb),
+            tryck: camera.pressure, mikrofon: mik)
+    }
+
+    /// Lutningen, svingarna, vakten för den andra telefonen och disken medan vyn är öppen: 20 gånger
+    /// i sekunden, och vyns tillstånd bara när det som syns ändras.
+    private func levande() async {
+        GravityRecorder.shared.startLive()
+        defer { GravityRecorder.shared.stopLive() }
+        let r = raknare
+        while !Task.isCancelled {
+            let t = Date()
+            if let g = GravityRecorder.shared.latest, let l = Lutning(gravity: [g.x, g.y, g.z]) {
+                let visas = r.visare.uppdatera(l)
+                if visas != visaLutning { visaLutning = visas }
+                if lutning == nil || abs(l.sida - (lutning?.sida ?? 0)) >= 0.1 || l.forStorFor3D != lutning?.forStorFor3D {
+                    lutning = l
                 }
             }
-            .disabled(!(camera.phase == .ready || camera.phase == .recording) || working)
-            .opacity(camera.phase == .ready || camera.phase == .recording ? 1 : 0.4)
-            .accessibilityLabel(camera.phase == .recording ? Text("Stop") : Text("Record"))
-            Spacer()
-            ZStack {
-                if working || camera.phase == .metering || camera.phase == .probing || camera.phase == .starting {
-                    ProgressView().tint(Theme.text)
+            let inspelar = camera.phase == .recording
+            if inspelar, let start = serieStart {
+                if Int(t.timeIntervalSince(start)) != Int(nu.timeIntervalSince(start)) { nu = t }
+                if let topp = camera.ljudtopp() {
+                    r.svingar.prov(tid: t.timeIntervalSince(start), topp: topp)
+                    if antalSvingar != r.svingar.antal { antalSvingar = r.svingar.antal }
                 }
             }
-            .frame(minWidth: 96, minHeight: 44)
+            let stoppade = r.vakt.uppdatera(roll: pass.setup.role, egenInspelar: inspelar,
+                                            tid: t.timeIntervalSinceReferenceDate, andra: andra)
+            if stoppade != andraStoppade { andraStoppade = stoppade }
+            if t.timeIntervalSince(r.ledigtLast) >= 5 {
+                r.ledigtLast = t
+                let b = store.availableBytes()
+                if b != ledigt { ledigt = b }
+            }
+            try? await Task.sleep(for: .milliseconds(50))
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 24)
+    }
+
+    /// Close utan serier, annars Continue till slagen.
+    private func stang() {
+        if pass.series.isEmpty {
+            camera.stop()
+            onClose()
+        } else {
+            finish()
+        }
     }
 
     /// Vidare till passet: kameran stannar och slagen öppnas.
@@ -362,46 +398,6 @@ struct ReceiptSheet: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
-    }
-}
-
-/// Två telefoner (S2g): rollen och den andra telefonens läge som etiketter, ingen
-/// förklarande text (BESLUT B13). En tappad telefon i signalfärgen (S2_SPEC §7.4).
-struct LinkLabels: View {
-    let link: PhoneLink
-
-    var body: some View {
-        HStack {
-            HStack(spacing: 10) {
-                Text(link.role == .lead ? LocalizedStringKey("Lead") : "Follow")
-                    .foregroundStyle(Theme.text)
-                if link.blocked {
-                    Text("Local network off").foregroundStyle(Theme.flag)
-                } else if link.peers.isEmpty {
-                    Text("Searching").foregroundStyle(Theme.secondary)
-                }
-                ForEach(link.peers) { p in
-                    HStack(spacing: 6) {
-                        Text(verbatim: p.view == .dtl ? "DTL" : "FO")
-                        Text(p.connected ? (p.recording ? LocalizedStringKey("Recording") : "Connected") : "Lost")
-                            .foregroundStyle(p.connected ? Theme.text : Theme.flag)
-                        // Senaste parningen: antal par · median |rest| (METOD MS10), osäker i signalfärgen.
-                        if let n = p.pairs {
-                            Text(verbatim: "\(n) · \(Taltext.decimal((p.residual ?? 0) * 1000, digits: 1)) ms")
-                                .font(Theme.number(13, weight: .semibold))
-                                .foregroundStyle(p.uncertain ? Theme.flag : Theme.text)
-                        }
-                    }
-                }
-            }
-            .font(.system(size: 13, weight: .semibold))
-            .padding(.horizontal, 14)
-            .frame(minHeight: 32)
-            .background(.black.opacity(0.6), in: .rect(cornerRadius: 4))
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 20)
-        .accessibilityElement(children: .combine)
     }
 }
 

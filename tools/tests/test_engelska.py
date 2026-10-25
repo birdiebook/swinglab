@@ -113,6 +113,8 @@ INTE_TEXT = {
     # Figuren i 3D (S6d, BESLUT B72, B73): filnamnens kontroll, den nya mappen under skrivning,
     # symbolerna, enheten och vyernas nycklar.
     "/", ".", ".\\(…)-", ", ", "chevron.up", "chevron.down", "rotate.3d", "px", "fo", "dtl",
+    # Inspelningens skärm (S2j, BESLUT B85): kugghjulet och varningens ikon.
+    "gearshape", "exclamationmark.triangle",
 }
 
 

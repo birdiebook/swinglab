@@ -28,6 +28,10 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.
+   **Undantag (BESLUT B85):** inspelningens status har egna färger, grönt för
+   "Connected", rött för inspelningen (pillen och knappens fält, som iPhones
+   kameraapp) och gult för varningens ikon, och dess svarta rutor och piller har
+   rundade hörn (12 pt, pillerna halvrunda). Bara på inspelningens skärm.
 7. **Typografi:** system-ui (SF Pro), tabellsiffror, stora tal med enheten liten
    och grå bredvid.
 8. **Primärknappen** är ett vitt fält med svart text, överallt.
@@ -66,6 +70,10 @@ Måtten: Sway, Hip shift, Thrust, Chest bend, Side bend, Sway gap. Klubborna skr
 | `--text` | `#FFFFFF` | text, tal, markören för nu |
 | `--flag` | `#B98A4A` | bara varningar i uppställningen |
 | `--acc` | `#6FD3F7` | bara det du övar på (regel 10) |
+| `--live` | `#30D158` | bara inspelningens status "Connected" (B85) |
+| `--rec` | `#D70015` | bara REC-pillen under inspelningen (B85) |
+| `--rec-knapp` | `#FF3B30` | bara inspelningsknappens fält i den vita ringen (B85) |
+| `--varning` | `#F5B54A` | bara varningens ikon i inspelningen (B85) |
 
 ## Öppna val
 

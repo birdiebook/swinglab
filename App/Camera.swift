@@ -399,6 +399,15 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate {
         })
     }
 
+    /// Ljudkanalens topp i dB i den inspelade filens koppling, för svingarna i REC-pillen under
+    /// serien (S2j). Rör inte inspelningen: ingen egen ljudutgång (BESLUT B85). METOD MS32
+    @MainActor
+    func ljudtopp() -> Double? {
+        guard phase == .recording, let ch = output.connection(with: .audio)?.audioChannels.first else { return nil }
+        let v = Double(ch.peakHoldLevel)
+        return v.isFinite ? v : nil
+    }
+
     /// AirPods eller annan Bluetooth-mikrofon: ljudet kan komma hundratals ms sent (risk R9).
     @MainActor
     private func checkMicrophone() {

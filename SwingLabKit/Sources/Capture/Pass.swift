@@ -488,6 +488,11 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var clubGuideSeen: Bool?
     /// Spåren som granskningen visar (S4f, BESLUT B70): `SparPunkt` råvärden; nil = inga.
     public var trails: [String]?
+    /// Hjälplinjerna i inspelningen (S2j, BESLUT B85); nil = på. Saknas före S2j.
+    public var guideLines: Bool?
+
+    /// Hjälplinjerna visas (standard på).
+    public var visaHjalplinjer: Bool { guideLines ?? true }
 
     public init(keepOriginals: Bool = PassStorage.keepOriginalsByDefault, heightM: Double? = nil, hand: Hand? = nil,
                 clubs: [String]? = nil) {
