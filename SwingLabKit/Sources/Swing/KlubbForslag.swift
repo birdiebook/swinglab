@@ -91,7 +91,7 @@ public struct KlubbForslagFil: Equatable, Sendable {
     public var modellNamn: String
     public var modellVersion: String
     /// Datasetens namn och licens, för namnangivelsen (B92).
-    public var data: [(namn: String, licens: String)] { dataset.map { ($0.0, $0.1) } }
+    public var data: [(namn: String, licens: String)] { dataset.map { ($0.first ?? "", $0.count > 1 ? $0[1] : "") } }
     var dataset: [[String]]
     public var bredd: Int
     public var hojd: Int

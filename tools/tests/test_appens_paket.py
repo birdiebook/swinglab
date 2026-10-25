@@ -114,6 +114,12 @@ class AppensPaket(unittest.TestCase):
             self.assertEqual(d["format"], KL.FORMAT)
             for s in p.slag:
                 self.assertEqual([m["position"] for m in s.klubba_markeringar], self.facit["slag"][s.id]["klubba"])
+            # S7d (BESLUT B93): P4 godkänt ur modellens förslag, P5 ett rättat förslag.
+            rutor = {r["val"]: r for r in d["rutor"]}
+            self.assertEqual([KL.ursprung(rutor["P4"], n) for n in ("grepp", "klubbhuvud")], ["godkand_forslag"] * 2)
+            self.assertEqual(rutor["P4"]["forslag"]["klubbhuvud"]["kalla"], KL.KALLA_MODELL)
+            self.assertEqual(KL.ursprung(rutor["P5"], "klubbhuvud"), "rattat_forslag")
+            self.assertEqual(KL.ursprung(rutor["P1"], "klubbhuvud"), "klick")
             # t_klipp bara när rutan ligger i klippet (FORMAT.md), aldrig utan klipp.
             slag = {x.id: x for x in p.slag}
             klipp = [(r["t_klipp"], slag[r["slag"]]) for r in d["rutor"]]

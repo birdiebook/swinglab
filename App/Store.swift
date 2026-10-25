@@ -762,6 +762,44 @@ final class Store {
         return r.focus
     }
 
+    // MARK: Modellens förslag till klubbmarkeringen (S7d)
+
+    var suggestionFolder: URL { root.appending(path: KlubbForslagFil.mapp, directoryHint: .isDirectory) }
+
+    /// Hämtar modellens förslag ur Filer (S7d, BESLUT B93, METOD MF8): läses inom den säkra
+    /// åtkomsten, kontrolleras av SwingLabKit (formen, och mot passet: det finns, vyn är dess och
+    /// slagen finns) och sparas som `KlubbForslag/<pass>-<vy>.json`; en ny fil ersätter den gamla.
+    /// Felet nämner fältet, aldrig värdet.
+    @discardableResult
+    func importClubSuggestions(from url: URL) throws -> KlubbForslagFil {
+        let skyddad = url.startAccessingSecurityScopedResource()
+        defer { if skyddad { url.stopAccessingSecurityScopedResource() } }
+        let storlek = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard storlek <= KlubbForslagFil.maxBytes else { throw FormatFel(Texter.forslagFel(Texter.forStor)) }
+        return try importClubSuggestions(Data(contentsOf: url))
+    }
+
+    @discardableResult
+    func importClubSuggestions(_ data: Data) throws -> KlubbForslagFil {
+        let f = try KlubbForslagFil.las(data)
+        guard let p = load(f.pass), let namn = KlubbForslagFil.filnamn(pass: f.pass, vy: f.vy) else {
+            throw FormatFel(Texter.forslagFel(Texter.ingetPass))
+        }
+        if let fel = f.motPass(id: p.id, vy: p.setup.view, slag: Set(p.shots.map(\.id))).first {
+            throw FormatFel(Texter.forslagFel(fel))
+        }
+        try FileManager.default.createDirectory(at: suggestionFolder, withIntermediateDirectories: true)
+        try data.write(to: suggestionFolder.appending(path: namn), options: .atomic)
+        return f
+    }
+
+    /// Passets förslag i dess vy, eller nil (ingen fil, eller en som inte längre går igenom).
+    func clubSuggestions(_ pass: PassState) -> KlubbForslagFil? {
+        guard let namn = KlubbForslagFil.filnamn(pass: pass.id, vy: pass.setup.view),
+              let data = try? Data(contentsOf: suggestionFolder.appending(path: namn)) else { return nil }
+        return try? KlubbForslagFil.las(data)
+    }
+
     /// Den senaste sparade filen (högst pass-id), tolkad, eller nil.
     func latestFocus() -> AttJobbaPa? {
         let namn = (try? FileManager.default.contentsOfDirectory(atPath: focusFolder.path)) ?? []

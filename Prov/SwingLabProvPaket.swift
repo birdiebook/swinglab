@@ -102,7 +102,21 @@ final class SwingLabProvPaket: XCTestCase {
             let g = KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
             let hosel = KlubbPunkt(x: min(Double(j.width), max(0, g.x + langd * cos(vinkel * .pi / 180))),
                                    y: min(Double(j.height), max(0, g.y - langd * sin(vinkel * .pi / 180))))
-            return KlubbMarkering(position: p, t: f.t, grepp: g, hosel: hosel)
+            // S7d (BESLUT B93): P4 är modellens förslag godkänt, P5 ett rättat förslag (ett tryck
+            // bredvid hoseln som föreslogs), så att PC:n prövar källorna i appens egna byte.
+            let modell = "prov-modell 0.0.1"
+            switch p {
+            case "P4":
+                return KlubbMarkering(position: p, t: f.t, grepp: g, hosel: hosel, greppKalla: Klubba.kallaForslag,
+                                      hoselKalla: Klubba.kallaForslag,
+                                      forslag: KlubbMarkering.Forslag(grepp: g, hosel: hosel, modell: modell))
+            case "P5":
+                return KlubbMarkering(position: p, t: f.t, grepp: g, hosel: hosel,
+                                      forslag: KlubbMarkering.Forslag(grepp: nil, hosel: KlubbPunkt(x: hosel.x + 6, y: hosel.y - 4),
+                                                                      modell: modell))
+            default:
+                return KlubbMarkering(position: p, t: f.t, grepp: g, hosel: hosel)
+            }
         }
         ut.append(KlubbMarkering(position: "P8", t: 0.2, grepp: nil, hosel: nil, hoppad: true))
         return ut

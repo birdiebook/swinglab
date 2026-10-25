@@ -81,6 +81,9 @@ struct ShotReviewView: View {
                     ClubMarkContent(surface: { CroppedPlayerSurface(player: player, crop: $0) },
                                     loupe: { LoupeImage(image: loupeImage?.frame == frame ? loupeImage?.image : nil, crop: $0) },
                                     marking: m, time: timeText(review, shot), ring: ring(review),
+                                    suggestion: frameT(review).flatMap { m.shownSuggestion(t: $0) },
+                                    canUse: frameT(review).map { m.canUseSuggestion(t: $0) } ?? false,
+                                    onUse: useSuggestion,
                                     stickStep: stickStep, stick: stickPoints,
                                     onTap: tapped, onMove: { g, u, v in change { $0.move(g, u: u, v: v) } },
                                     onPan: { du, dv in marking?.pan(du: du, dv: dv) },
@@ -417,8 +420,12 @@ struct ShotReviewView: View {
             }.value
             guard let xTecken, marking == nil, let pass = self.pass, let shot = self.shot else { return }
             let serie = pass.series.first { $0.nr == shot.series }
+            // Modellens förslag för slaget, när en fil är hämtad för passet och vyn (S7d, BESLUT B93).
+            let forslag = store.clubSuggestions(pass)
             marking = ClubMarking(existing: shot.klubba, width: review.width, height: review.height,
-                                  crop: serie?.activeCrop, view: vy, xTecken: xTecken)
+                                  crop: serie?.activeCrop, view: vy, xTecken: xTecken,
+                                  suggestions: forslag?.rutor(slag: shot.id, bredd: review.width, hojd: review.height) ?? [],
+                                  suggestionModel: forslag?.modell ?? "")
             stickStep = pass.asksForRiktpinne(series: shot.series)
             stickPoints = []
             guidePage = store.settings.clubGuideSeen == true ? nil : 0
@@ -453,6 +460,18 @@ struct ShotReviewView: View {
         }
         guard !h.isEmpty else { return nil }
         return KlubbPunkt(x: h.map(\.x).reduce(0, +) / Double(h.count), y: h.map(\.y).reduce(0, +) / Double(h.count))
+    }
+
+    /// Den visade rutans Visions-tid, s relativt klicket.
+    private func frameT(_ r: ShotReview) -> Double? {
+        r.frames.indices.contains(frame) ? r.frames[frame].t : nil
+    }
+
+    /// ✓: modellens förslag i rutan godkänt med ett tryck (S7d, BESLUT B93).
+    private func useSuggestion() {
+        guard let review, let t = frameT(review) else { return }
+        change { $0.useSuggestion(t: t) }
+        lastTapChanged = false
     }
 
     /// Ett tryck: riktpinnens ände i det steget, annars nästa punkt i rutan.

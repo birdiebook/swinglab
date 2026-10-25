@@ -75,8 +75,10 @@ struct Flikar: View {
     @State private var raderaFel: String?
     /// Räknas upp när listan ska läsas om (ett flöde stängdes, appen kom tillbaka).
     @State private var omlasning = 0
-    /// Filer för `att_jobba_pa.json` (S2_SPEC §8.5).
+    /// Filer för `att_jobba_pa.json` (S2_SPEC §8.5), och för modellens förslag till
+    /// klubbmarkeringen (S7d, BESLUT B93), var för sig.
     @State private var importingFocus = false
+    @State private var importingSuggestions = false
     /// Svaret efter hämtningen: sparad, eller felet (fältet, aldrig värdet).
     @State private var focusResult: String?
     @State private var focusFailed = false
@@ -103,9 +105,15 @@ struct Flikar: View {
                     JagVy(heightM: store.settings.heightM, hand: store.settings.hand ?? .hoger, clubs: store.settings.bag,
                           onHeight: { store.setHeight($0) }, onHand: { store.setHand($0) },
                           onClub: { store.toggleClub($0) }, onImportFocus: { importingFocus = true },
+                          onImportSuggestions: { importingSuggestions = true },
                           importResult: focusResult, importFailed: focusFailed)
                 }
                 .background(Theme.ground, ignoresSafeAreaEdges: .all)
+                // En egen väljare på Me (två fileImporter på samma vy krockar).
+                .fileImporter(isPresented: $importingSuggestions, allowedContentTypes: [.json],
+                              allowsMultipleSelection: false) { r in
+                    importSuggestions(r)
+                }
             }
         }
         .tint(Theme.text)
@@ -155,6 +163,20 @@ struct Flikar: View {
         }
         .fileImporter(isPresented: $importingFocus, allowedContentTypes: [.json], allowsMultipleSelection: false) { r in
             importFocus(r)
+        }
+    }
+
+    /// Modellens förslag till klubbmarkeringen (S7d, BESLUT B93): kontrolleras och sparas per
+    /// pass och vy (`Store.importClubSuggestions`); felet nämner fältet, aldrig värdet.
+    private func importSuggestions(_ r: Result<[URL], Error>) {
+        guard case .success(let urls) = r, let url = urls.first else { return }
+        do {
+            try store.importClubSuggestions(from: url)
+            focusResult = String(localized: "Suggestions saved")
+            focusFailed = false
+        } catch {
+            focusResult = (error as? FormatFel)?.description ?? String(localized: "The file could not be read.")
+            focusFailed = true
         }
     }
 

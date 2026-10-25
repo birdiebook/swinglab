@@ -105,6 +105,8 @@ INTE_TEXT = {
     # Klubbans märkning (S7c, BESLUT B59): punkternas nummer på ytan, gissningen "1?", och
     # positionen med SwingLabKits namn för VoiceOver.
     "1", "2", "1?", "\\(…), \\(…)",
+    # Modellens förslag (S7d, BESLUT B93): förslagets "2?" och tecknet för att godkänna det.
+    "2?", "checkmark",
 
     # Spåren i granskningen (S4f, BESLUT B70): symbolen före valet.
     "point.topleft.down.curvedto.point.bottomright.up",
