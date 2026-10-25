@@ -147,5 +147,56 @@ class Kontaktarket(unittest.TestCase):
         self.assertIsNone(FM.utsnitt([[None, [1, 1, 0.1]]], 100, 100))
 
 
+class Forslagsfilen(unittest.TestCase):
+    """S7d:s format (METOD MF8, BESLUT B93): huvudets mitt, aldrig hoseln eller greppet."""
+
+    def test_huvudets_mitt_flyttad_och_skalad_till_ledernas_px(self) -> None:
+        rad = [{"klass": "klubba", "konfidens": 0.9, "bbox": [0, 0, 50, 200]},
+               {"klass": "klubbhuvud", "konfidens": 0.6, "bbox": [10, 20, 10, 10]},
+               {"klass": "klubbhuvud", "konfidens": 0.8, "bbox": [40, 60, 20, 10]}]
+        q = FM.huvud_punkt(rad, 100, 200, 0.5, 0.5, 1080, 1920)
+        # Den säkraste rutan: (140, 260)–(160, 270) i klippet, halverat till ledernas px.
+        self.assertEqual(q, {"x": 75.0, "y": 132.5, "konfidens": 0.8, "box": [70.0, 130.0, 10.0, 5.0]})
+
+    def test_under_grans_och_bara_klubba_ger_ingen_punkt(self) -> None:
+        self.assertIsNone(FM.huvud_punkt([{"klass": "klubbhuvud", "konfidens": 0.49, "bbox": [0, 0, 5, 5]}],
+                                         0, 0, 1, 1, 100, 100))
+        self.assertIsNone(FM.huvud_punkt([{"klass": "klubba", "konfidens": 0.99, "bbox": [0, 0, 5, 5]}],
+                                         0, 0, 1, 1, 100, 100))
+
+    def test_mitten_utanfor_bilden_ger_ingen_punkt_och_boxen_beskars(self) -> None:
+        rad = [{"klass": "klubbhuvud", "konfidens": 0.9, "bbox": [0, 0, 10, 10]}]
+        self.assertIsNone(FM.huvud_punkt(rad, -20, 0, 1, 1, 100, 100))
+        q = FM.huvud_punkt(rad, -4, 95, 1, 1, 100, 100)
+        self.assertEqual((q["x"], q["y"]), (1.0, 100.0))
+        self.assertEqual(q["box"], [0.0, 95.0, 6.0, 5.0])
+
+    def test_filen_ar_giltig_med_bara_huvud(self) -> None:
+        from pc import klubba_forslag as KF
+        d = KF.ny("20261024-142435", "fo", FM.MODELL_NAMN, "alla-2026-10-25",
+                  [{"namn": "golf-49wbh", "licens": "CC BY 4.0"}], 1080, 1920)
+        q = FM.huvud_punkt([{"klass": "klubbhuvud", "konfidens": 0.7, "bbox": [500, 900, 40, 30]}],
+                           0, 0, 1, 1, 1080, 1920)
+        KF.lagg_till(d, "s06", -0.25, {"huvud": q}, ruta=400, t_klipp=2.2)
+        self.assertEqual(KF.kontrollera(d), [])
+        self.assertEqual(set(KF.visade(d["slag"][0]["rutor"][0])), {"huvud"})
+
+    def test_modellens_data_ur_traningsmappen(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            mapp, vikter = Path(tmp) / "trana", Path(tmp) / "vikter-alla"
+            mapp.mkdir()
+            vikter.mkdir()
+            (mapp / "delning.json").write_text(json.dumps({"kallor": {"golf-49wbh": {}, "golf-club-tracking": {}}}))
+            (vikter / "training_config.json").write_text(json.dumps({"train_config": {"dataset_dir": str(mapp)}}))
+            (vikter / "best.pth").write_bytes(b"x")
+            version, data = FM.modell_info(vikter / "best.pth")
+            self.assertTrue(version.startswith("alla-"))
+            self.assertEqual([(x["namn"], x["licens"]) for x in data],
+                             [("golf-49wbh", "CC BY 4.0"), ("golf-club-tracking", "CC BY 4.0")])
+            (mapp / "delning.json").write_text(json.dumps({"kallor": {"okant": {}}}))
+            with self.assertRaises(FM.FormFel):
+                FM.modell_info(vikter / "best.pth")
+
+
 if __name__ == "__main__":
     unittest.main()

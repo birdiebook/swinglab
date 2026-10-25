@@ -843,7 +843,8 @@ Passet från 2026-10-24 (SwingLab) är provet. Träningen körs på PC:n (2080 T
 **S7-1 steg 1, förmärkaren (2026-10-25, gren `s7-1-formarkare`):** RF-DETR Nano på golf-49wbh och
 golf-club-tracking (CC BY 4.0) ger mAP 0,41–0,45 på provet per scen och föreslår klubba och
 klubbhuvud i nästan varje ruta i provpasset; `tools/pc/formarkare.py`, METOD MF7. Nästa: utsnittet
-kring händerna, sedan förslagen in i S7c så att Johannes bara rättar.
+kring händerna. Förslagsfilen för S7d (`swinglab-klubba-forslag/1`, bara `huvud`) finns för
+provpasset; vid MF8:s gräns 0,5 har 7–25 % av rutorna ett förslag, vid 0,3 69–88 % (MF7).
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget

@@ -3201,9 +3201,7 @@ räknas som märkning (B71).
   för hela svingen, svart utanför bilden; utan leder bildens mitt. 1,8 med kortsidan som tak
   skar klubban; mitten flyttad uppåt skar bollen framifrån; 2,4 och 2,8 gav färre klubbhuvuden
   (186 och 188 mot 205), eftersom klubban blir liten i 384 px. Rutor under konfidens **0,30** ritas inte.
-  JSON:en bredvid arket (`swinglab-forslag/1`, `kalla: "modell"`, `facit: false`) har
-  rutorna i hela bildens px. **antagande** (lägena, 1,8 och 0,30: läsbart ark, hela klubban
-  i bild vid toppen).
+  **antagande** (lägena, 2,0 och 0,30: läsbart ark, hela klubban i bild vid toppen).
 - **Provet 2026-10-25** (mAP COCO 0,50:0,95, i parentes 0,50; provet hölls ut per scen):
   | modell | golf-49wbh-provet (784) | golf-club-tracking-provet (1 147) |
   |---|---|---|
@@ -3219,6 +3217,20 @@ räknas som märkning (B71).
   utsnittet. Ingen jämförelse mot handmärkning ännu (S7c). 112 s för passet. **mätt.**
 - **Läxa:** Windows Update startade om WSL (3.0.3.0) mitt i träningen 2026-10-25 13:23.
   `trana --fortsatt` tar upp den från `last.ckpt`; kör kedjan så att den går att starta om.
+- **Förslagsfilen** (`swinglab-klubba-forslag/1`, FORMAT.md, MF8, BESLUT B93): en per pass och
+  vy, `swinglab-<pass>-<vy>-forslag.json`. Varje ruta i klippet vars Visions-ruta
+  (`klubba_forslag.vision_t`, MF1) ligger från adressen till finishen körs genom modellen med
+  svingens utsnitt; `t` är Visions tid. Bara punkten `huvud`: den säkraste rutan för
+  klubbhuvudet, mitten som x och y och rutan som `box`, i ledernas `width` × `height`. Aldrig
+  `hosel` (huvudets mitt ligger 3–5 cm från hoseln) och aldrig `grepp` (klubbans ruta har inget
+  entydigt hörn för händerna); de kommer med punktmodellen. Bara konfidens ≥ **0,5** (MF8:s
+  gräns) skrivs. `modell.data` är träningens källor ur `delning.json` med licens och adress.
+  Filen kontrolleras mot paketet (`klubba_forslag.mot_paket`) innan den skrivs ut. **räkning.**
+- **Provpassets fil** (2026-10-25): FO 19 slag, 2 768 rutor med huvud; DTL 2 slag, 132; båda OK
+  i `klubba_forslag.py --paket`. 329 s för passet. Täckningen är låg vid 0,5 men hög vid 0,3:
+  FO s24 25 % mot 88 % av rutorna, FO s13 19 % mot 69 %, DTL s02 7 % mot 86 % (adressen 0 av 58
+  mot 58 av 58). Modellens konfidens ligger lägre än MF8 antog; gränsen prövas mot Johannes
+  märkning (MF8, omprövas). **mätt.**
 - **Nästa:** utsnittet centrerat på händerna i varje ruta (research 7 §4.2) i stället för
   kroppens mitt, så att klubban ryms vid toppen och finishen utan att bli mindre.
 

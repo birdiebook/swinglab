@@ -15,6 +15,10 @@ uppställning) hamnar i samma del, så att provet inte mäter grannrutor ur trä
 paket är inte COCO och kan inte komma in i träningen den vägen; passet från 2026-10-24 är
 provpasset (B92) och körs bara med `forslag`.
 
+`forslag` gör ett kontaktark per sving och förslagsfilen `swinglab-<pass>-<vy>-forslag.json`
+(`swinglab-klubba-forslag/1`, docs/FORMAT.md, S7d) som Johannes delar till telefonen. Kontrollera
+den före delningen: `python tools/pc/klubba_forslag.py <fil> --paket <zip>` (MF8).
+
 Modellen är RF-DETR Nano (Apache 2.0, `pip install "rfdetr[train]"`), aldrig Ultralytics
 (AGPL, B92). Den körs i WSL2 på 2080 Ti:n. Allt som skrivs (bilder, vikter, förslag) ska
 ligga utanför repot och utanför /mnt (CLAUDE.md, Dataregeln); verktyget vägrar annars.
@@ -24,6 +28,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 import tempfile
 import time
@@ -377,15 +382,19 @@ def _etikett(img: np.ndarray, text: str) -> np.ndarray:
 def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TROSKEL,
             s3: Path | None = None) -> list[dict]:
     """Ett kontaktark per sving (<ut>/<pass>/<vy>-<slag>.jpg) med modellens rutor i 11 lägen
-    från adress till finish, och förslagen som JSON bredvid (källa "modell", aldrig facit).
-    Klippets ruta läses med S3:s förskjutning när `s3` (eller ~/swinglab-s3/<pass>/s3.json)
-    har den för slaget, annars utan (METOD MF1)."""
+    från adress till finish, och förslagsfilen `swinglab-<pass>-<vy>-forslag.json`
+    (`swinglab-klubba-forslag/1`, docs/FORMAT.md) med klubbhuvudets mitt för varje Visions-ruta
+    i svingarna, kontrollerad mot paketet. Förslaget är aldrig facit (B92). Klippets ruta läses
+    med S3:s förskjutning när `s3` (eller ~/swinglab-s3/<pass>/s3.json) har den för slaget,
+    annars utan (METOD MF1)."""
     import cv2
     from . import analys as A
     from . import klipp as KL
+    from . import klubba_forslag as KF
     from . import paket as P
     from . import s3_facit as S3F
     ut = utanfor_repot(ut)
+    version, data = modell_info(vikter)
     modell = ladda(vikter)
     resultat = []
     for pf in paket_filer:
@@ -394,6 +403,11 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TR
         rader = {r["id"]: r for r in A.mat_paket(p, p.langd_m or 1.8) if "faser" in r}
         mapp = ut / p.pass_id
         mapp.mkdir(parents=True, exist_ok=True)
+        forsta = next((s for s in p.slag if s.lederna), None)
+        if forsta is None:
+            continue
+        fil_d = KF.ny(p.pass_id, p.vy, MODELL_NAMN, version, data, forsta.lederna["width"],
+                      forsta.lederna["height"], paket=p.fil)
         with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(pf) as z:
             for s in p.slag:
                 if not (s.klipp and s.lederna and s.klick_i_klipp_s is not None):
@@ -433,19 +447,125 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TR
                 namn_ark = f"{p.vy}-{s.id}"
                 cv2.imwrite(str(mapp / f"{namn_ark}.jpg"), cv2.cvtColor(ark, cv2.COLOR_RGB2BGR),
                             [cv2.IMWRITE_JPEG_QUALITY, 88])
-                d = {"format": "swinglab-forslag/1", "kalla": "modell", "facit": False, "pass": p.pass_id,
-                     "vy": p.vy, "slag": s.id, "utsnitt": list(u), "troskel": troskel,
-                     "faser": "uppmatta" if s.id in rader else "antagna",
-                     "forskjutning_ms": fsk.get((p.fil, s.id)),
-                     "rutor": [{"lage": n, "t_klipp": round(tr, 4),
-                                "forslag": [{**r, "bbox": [round(r["bbox"][0] + x0, 1), round(r["bbox"][1] + y0, 1),
-                                                           round(r["bbox"][2], 1), round(r["bbox"][3], 1)],
-                                             "konfidens": round(r["konfidens"], 3)} for r in rad]}
-                               for (n, _, (tr, _)), rad in zip(lagen, det)]}
-                (mapp / f"{namn_ark}.json").write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
                 hittat = {k: sum(1 for rad in det if any(r["klass"] == k for r in rad)) for k in KLASSER}
-                resultat.append({"ark": str(mapp / f"{namn_ark}.jpg"), "rutor": len(det), **hittat})
+                rad_ut = {"ark": str(mapp / f"{namn_ark}.jpg"), "rutor": len(det), **hittat,
+                          "faser": "uppmatta" if s.id in rader else "antagna"}
+                # Förslagsfilen: varje Visions-ruta från adressen till finishen (METOD MF7, MF8).
+                if (lw, lh) != (fil_d["bredd"], fil_d["hojd"]):
+                    rad_ut["forslag"] = "annan bildstorlek än passets första slag: inte i filen"
+                else:
+                    fran, till = tider_ark(faser)[0][1], tider_ark(faser)[-1][1]
+                    n_rutor = n_huvud = 0
+                    for t, t_cv, nr, rad in _svingens_detektioner(modell, klipp, s, fsk.get((p.fil, s.id), 0.0),
+                                                                    fran, till, lw, lh, u, troskel):
+                        n_rutor += 1
+                        q = huvud_punkt(rad, x0, y0, lw / w, lh / h, lw, lh)
+                        if q is not None:
+                            KF.lagg_till(fil_d, s.id, t, {"huvud": q}, ruta=nr, t_klipp=t_cv)
+                            n_huvud += 1
+                    rad_ut["forslag"] = {"rutor": n_rutor, "huvud": n_huvud}
+                resultat.append(rad_ut)
+        if fil_d["slag"]:
+            fil = mapp / f"swinglab-{p.pass_id}-{p.vy}-forslag.json"
+            KF.skriv(fil, fil_d)
+            fel = KF.mot_paket(KF.las(fil), p)
+            if fel:
+                raise FormFel(f"{fil.name}: " + "; ".join(fel))
+            resultat.append({"forslagsfil": str(fil), "slag": len(fil_d["slag"]),
+                             "rutor": sum(len(x["rutor"]) for x in fil_d["slag"])})
     return resultat
+
+
+def _svingens_detektioner(modell, klipp: Path, s, forskjutning_ms: float, fran: float, till: float,
+                          lw: int, lh: int, u: tuple[int, int, int], troskel: float, batch: int = 16):
+    """(Visions t, OpenCV:s t, rutans nummer i klippet, modellens rutor i utsnittet) för varje
+    ruta i klippet vars Visions-ruta (`klubba_forslag.vision_t`, MF1) ligger i [fran, till].
+    Rutorna läses en i taget, så att en sving om 600 rutor inte ligger i minnet."""
+    from . import klipp as KL
+    from . import klubba_forslag as KF
+    from . import paket as P
+    x0, y0, sida = u
+    vantar: list = []
+    senast = -math.inf
+
+    def kor():
+        det = detektioner(modell, [b for *_, b in vantar], troskel)
+        ut = [(t, tcv, nr, rad) for (t, tcv, nr, _), rad in zip(vantar, det)]
+        vantar.clear()
+        return ut
+
+    for nr, (t_cv, bild) in enumerate(KL.ramar(klipp, lw, lh)):
+        if t_cv - forskjutning_ms / 1000.0 - s.klick_i_klipp_s > till + KF.RUTA_TOL:
+            break
+        if not P.i_klippet(s, t_cv):
+            continue
+        t = KF.vision_t(s, t_cv, forskjutning_ms)
+        # Två rutor i filen får inte ligga närmare än 2 · RUTA_TOL (METOD MF8).
+        if t is None or t < fran or t > till or t - senast < 2 * KF.RUTA_TOL:
+            continue
+        senast = t
+        vantar.append((t, t_cv, nr, skar(bild, x0, y0, sida)))
+        if len(vantar) >= batch:
+            yield from kor()
+    if vantar:
+        yield from kor()
+
+
+def huvud_punkt(rad: list[dict], x0: float, y0: float, sx: float, sy: float, bredd: int, hojd: int,
+                min_konfidens: float | None = None) -> dict | None:
+    """Klubbhuvudets punkt `huvud` i förslagsfilen ur modellens rutor i utsnittet: den säkraste
+    rutan för klubbhuvudet med konfidens ≥ MF8:s gräns, flyttad med utsnittets hörn (x0, y0) till
+    klippets px och skalad (sx, sy) till ledernas px; punkten är rutans mitt och `box` rutan,
+    beskuren till bilden. Aldrig `hosel` (huvudets mitt ligger 3–5 cm från hoseln) och aldrig
+    `grepp` (klubbans ruta har inget entydigt hörn för händerna). None utan en sådan ruta eller
+    med mitten utanför bilden. METOD MF7, BESLUT B93"""
+    from . import klubba_forslag as KF
+    grans = KF.VISA_KONFIDENS if min_konfidens is None else min_konfidens
+    kand = [r for r in rad if r["klass"] == "klubbhuvud" and r["konfidens"] >= grans]
+    if not kand:
+        return None
+    r = max(kand, key=lambda r: r["konfidens"])
+    bx, by, bw, bh = r["bbox"]
+    a = ((bx + x0) * sx, (by + y0) * sy)
+    b = ((bx + bw + x0) * sx, (by + bh + y0) * sy)
+    cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    if not (0 <= cx <= bredd and 0 <= cy <= hojd):
+        return None
+    ax, ay = max(0.0, a[0]), max(0.0, a[1])
+    ex, ey = min(float(bredd), b[0]), min(float(hojd), b[1])
+    q = {"x": round(cx, 1), "y": round(cy, 1), "konfidens": round(float(r["konfidens"]), 3)}
+    if ex - ax >= 0.1 and ey - ay >= 0.1:
+        q["box"] = [round(ax, 1), round(ay, 1), round(ex - ax, 1), round(ey - ay, 1)]
+    return q
+
+
+# Datasetens namnangivelse i förslagsfilen och i appens "About" (CC BY 4.0, BESLUT B92).
+DATASET = {"golf-49wbh": ("CC BY 4.0", "https://universe.roboflow.com/lvs-rd/golf-49wbh"),
+           "golf-club-tracking": ("CC BY 4.0", "https://universe.roboflow.com/club-head-tracking/golf-club-tracking"),
+           "azb-dc": ("CC BY 4.0", "https://universe.roboflow.com/club-head/azb-dc")}
+MODELL_NAMN = "rfdetr-nano-klubba"
+
+
+def modell_info(vikter: Path) -> tuple[str, list[dict]]:
+    """(version, data) för förslagsfilen ur vikternas mapp: versionen är mappens namn och
+    vikternas datum, datat källorna i träningsmappens delning.json med licens och adress."""
+    vikter = Path(vikter).expanduser()
+    datum = datetime.fromtimestamp(vikter.stat().st_mtime).strftime("%Y-%m-%d")
+    kallor: list[str] = []
+    try:
+        cfg = json.loads((vikter.parent / "training_config.json").read_text(encoding="utf-8"))
+        mapp = Path((cfg.get("train_config") or cfg)["dataset_dir"])
+        kallor = list(json.loads((mapp / "delning.json").read_text(encoding="utf-8"))["kallor"])
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        pass
+    if not kallor:
+        raise FormFel(f"{vikter.parent}: träningens källor går inte att läsa (training_config.json, delning.json)")
+    data = []
+    for k in kallor:
+        if k not in DATASET:
+            raise FormFel(f"{k}: licensen är inte känd (DATASET i formarkare.py)")
+        data.append({"namn": k, "licens": DATASET[k][0], "kalla": DATASET[k][1]})
+    return f"{vikter.parent.name.removeprefix('vikter-')}-{datum}", data
 
 
 def main(argv=None) -> int:
