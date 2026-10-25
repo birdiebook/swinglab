@@ -83,7 +83,7 @@ class Matchningen(unittest.TestCase):
         r = KF.rutor(KF.pahittad(), "s01")
         self.assertEqual(set(KF.visade(r[0])), {"grepp", "hosel", "huvud"})
         self.assertNotIn("skaft_mitt", KF.visade(r[2]), "skaftets mitt visas inte")
-        self.assertNotIn("hosel", KF.visade(r[3]), "konfidensen 0,42 visas inte (MF8)")
+        self.assertNotIn("hosel", KF.visade(r[3]), "konfidensen 0,22 visas inte (MF8)")
         self.assertEqual(set(KF.visade(r[5])), {"huvud"})
         self.assertEqual(KF.visade(r[0])["hosel"]["box"], [580.0, 960.0, 60.0, 40.0])
 

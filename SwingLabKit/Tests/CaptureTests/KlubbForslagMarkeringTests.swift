@@ -16,7 +16,7 @@ final class KlubbForslagMarkeringTests: XCTestCase {
     static let rutor = [
         KlubbForslagFil.Ruta(t: -1.2, grepp: P(x: 540, y: 960, konfidens: 0.9, box: nil),
                              hosel: P(x: 648, y: 1344, konfidens: 0.8, box: nil), huvud: nil, skaftMitt: nil),
-        KlubbForslagFil.Ruta(t: -0.6, grepp: P(x: 540, y: 960, konfidens: 0.3, box: nil), hosel: nil,
+        KlubbForslagFil.Ruta(t: -0.6, grepp: P(x: 540, y: 960, konfidens: 0.2, box: nil), hosel: nil,
                              huvud: P(x: 700, y: 1500, konfidens: 0.9, box: [660, 1480, 80, 40]), skaftMitt: nil),
     ]
 
@@ -109,7 +109,7 @@ final class KlubbForslagMarkeringTests: XCTestCase {
         XCTAssertEqual(m.position, "P3")
         XCTAssertNil(m.shownSuggestion(t: -0.9))
         let lag = try XCTUnwrap(m.shownSuggestion(t: -0.6))
-        XCTAssertNil(lag.grepp, "konfidensen 0,3 visas inte")
+        XCTAssertNil(lag.grepp, "konfidensen 0,2 visas inte")
         XCTAssertEqual(lag.huvud, KlubbPunkt(x: 700, y: 1500))
         XCTAssertEqual(lag.huvudBox, [660, 1480, 80, 40])
         XCTAssertFalse(m.canUseSuggestion(t: -0.6), "huvudets mitt godkänns aldrig som hoseln")

@@ -844,8 +844,9 @@ Passet från 2026-10-24 (SwingLab) är provet. Träningen körs på PC:n (2080 T
 golf-club-tracking (CC BY 4.0) ger mAP 0,41–0,45 på provet per scen och föreslår klubba och
 klubbhuvud i nästan varje ruta i provpasset; `tools/pc/formarkare.py`, METOD MF7. Utsnittet
 ligger kring händerna och förslagen prövas över tiden. Förslagsfilen för S7d (`swinglab-klubba-forslag/1`, bara
-`huvud`) finns för provpasset: 52 % av rutorna framifrån och 14 % bakifrån har ett förslag vid
-MF8:s gräns 0,5, fast modellen ser huvudet i 83–91 % vid 0,3 (MF7). Oktobers 41 slag med järn 7
+`huvud`) finns för provpasset. Mot Johannes märkning (91 rutor, båda vyerna) satt 48 av 48
+förslag med konfidens 0,3–0,5 rätt, så gränsen är 0,3 (B95): 85 % av rutorna framifrån och 92 %
+bakifrån har ett förslag (MF7). Oktobers 41 slag med järn 7
 (Kamera-appen) ligger i Golf SG:s `data/handled/video/2026-10-17` för märkningen.
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor

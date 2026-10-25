@@ -511,7 +511,7 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, s3: Path | None = N
                 resultat.append({"slag": namn_ark, "faser": "uppmatta" if s.id in rader else "antagna",
                                  "rutor": len(rutor),
                                  "huvud_03": sum(1 for q in raa if q is not None and q["konfidens"] >= TROSKEL),
-                                 "huvud_05": sum(1 for q in raa if q is not None and q["konfidens"] >= KF.VISA_KONFIDENS),
+                                 "huvud_visas": sum(1 for q in raa if q is not None and q["konfidens"] >= KF.VISA_KONFIDENS),
                                  "i_filen": sum(1 for q in punkter if q is not None), **filtret})
         if fil_d["slag"]:
             fil = mapp / f"swinglab-{p.pass_id}-{p.vy}-forslag.json"

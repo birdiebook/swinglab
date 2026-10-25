@@ -378,7 +378,7 @@ public struct ClubMarking: Equatable, Sendable {
     // MARK: modellens förslag (S7d)
 
     /// Modellens förslag i rutan med tiden `t` (METOD MF8: rutan i filen inom 2 ms, punkterna med
-    /// konfidens ≥ 0,5); nil utan förslag. BESLUT B93
+    /// konfidens ≥ `KlubbForslagFil.visaKonfidens`); nil utan förslag. BESLUT B93
     public func suggestion(at t: Double) -> KlubbForslag? {
         guard let i = KlubbForslagFil.ruta(suggestions, t: t) else { return nil }
         let f = suggestions[i].visat(modell: suggestionModel)

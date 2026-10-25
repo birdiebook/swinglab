@@ -3227,8 +3227,9 @@ räknas som märkning (B71).
   rutans utsnitt; `t` är Visions tid. Bara punkten `huvud`: den säkraste rutan för
   klubbhuvudet, mitten som x och y och rutan som `box`, i ledernas `width` × `height`. Aldrig
   `hosel` (huvudets mitt ligger 3–5 cm från hoseln) och aldrig `grepp` (klubbans ruta har inget
-  entydigt hörn för händerna); de kommer med punktmodellen. Bara konfidens ≥ **0,5** (MF8:s
-  gräns) skrivs, efter prövningen över tiden nedan. `modell.data` är träningens källor ur `delning.json` med licens och adress.
+  entydigt hörn för händerna); de kommer med punktmodellen. Bara konfidens ≥ MF8:s gräns
+  (0,5 till 2026-10-25, sedan 0,3, B95) skrivs, efter prövningen över tiden nedan.
+  `modell.data` är träningens källor ur `delning.json` med licens och adress.
   Filen kontrolleras mot paketet (`klubba_forslag.mot_paket`) innan den skrivs ut. **räkning.**
 - **Provpassets fil** (2026-10-25): FO 19 slag, 2 768 rutor med huvud; DTL 2 slag, 132; båda OK
   i `klubba_forslag.py --paket`. 329 s för passet. Täckningen är låg vid 0,5 men hög vid 0,3:
@@ -3273,8 +3274,10 @@ räknas som märkning (B71).
   med ≥ 0,5 och 1 av 1 under 0,3. Med regeln om tre är träffarna i klassen 0,3–0,5 minst cirka
   94 % (95 %). MF8:s gräns 0,5 döljer alltså förslag som sitter rätt; under 0,3 finns för få
   rutor för att säga något. **mätt.**
-- **Nästa:** gränsen i MF8 (Python och Swift) på Johannes beslut, och modellen tränad på hans
-  märkta rutor, bakifrån först.
+- **Gränsen sänkt till 0,3** (B95, MF8) efter provet ovan. Provpassets filer med 0,3: framifrån
+  har **85 %** av rutorna en punkt (lyfta 167, strukna 40), bakifrån **92 %**; FO 8 963 och DTL
+  751 rutor, båda OK mot paketet. **mätt.**
+- **Nästa:** modellen tränad på Johannes märkta rutor, bakifrån först.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 
@@ -3290,10 +3293,11 @@ Samma regler i `tools/pc/klubba_forslag.py` och SwingLabKits `KlubbForslagFil` o
   t_opencv − δ/1000 − klick_i_klipp_s` med S3:s δ (MF1), avrundat till närmaste
   Visions-ruta inom en halv ruta; utan δ kan rutan bli grannen när δ ligger nära 2 ms.
   **räkning.**
-- **Konfidensen:** en punkt visas bara när modellens konfidens är minst **0,5**. **antagande**
-  (en detektors vanliga gräns; ett felaktigt förslag kostar bara ett tryck att rätta, och
-  ett som inte visas ett tryck att sätta). Omprövas när provpasset (B92) ger modellens
-  konfidens mot Johannes märkning.
+- **Konfidensen:** en punkt visas bara när modellens konfidens är minst **0,3** (BESLUT B95).
+  Mot Johannes märkning 2026-10-25 träffade modellens klubbhuvud hoseln i 48 av 48 rutor med
+  konfidens 0,3–0,5 och 31 av 31 med ≥ 0,5, framifrån och bakifrån (MF7); under 0,3 fanns för
+  få rutor. **mätt** (träffarna), **antagande** (att greppet och hoseln från punktmodellen
+  följer samma gräns; prövas när den finns).
 - **Punkterna:** bara greppet och hoseln kan godkännas. Klubbhuvudets mitt (en detektors
   ruta) ligger en halv huvudlängd från hoseln, cirka 3–5 cm, och skulle ge ett fel i
   skaftets vinkel av samma storlek som handlederna (M45, cirka 4°); den visas därför bara

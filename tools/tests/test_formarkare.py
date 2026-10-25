@@ -159,7 +159,7 @@ class OverTiden(unittest.TestCase):
 
     def test_osaker_pa_linjen_lyfts_till_den_svagare_grannen(self) -> None:
         p = [self._p(0, 0, 0.8), self._p(10, 0, 0.3), self._p(20, 1, 0.1), self._p(30, 0, 0.6)]
-        ut, n = FM.over_tiden(p, 100.0)
+        ut, n = FM.over_tiden(p, 100.0, grans=0.5)
         self.assertEqual([None if q is None else q["konfidens"] for q in ut], [0.8, 0.6, None, 0.6])
         self.assertEqual(n, {"lyfta": 1, "strukna": 0})        # 0,1 är under GRANNAR_MIN
 
@@ -171,7 +171,7 @@ class OverTiden(unittest.TestCase):
 
     def test_utan_granne_at_bada_hall_galler_modellens_egen(self) -> None:
         p = [self._p(0, 0, 0.4), self._p(10, 0, 0.7), None, None, None, None, self._p(60, 0, 0.45)]
-        ut, n = FM.over_tiden(p, 100.0)
+        ut, n = FM.over_tiden(p, 100.0, grans=0.5)
         self.assertEqual([q is not None for q in ut], [False, True, False, False, False, False, False])
         self.assertEqual(n, {"lyfta": 0, "strukna": 0})
 
@@ -219,8 +219,9 @@ class Forslagsfilen(unittest.TestCase):
         self.assertEqual(q, {"x": 75.0, "y": 132.5, "konfidens": 0.8, "box": [70.0, 130.0, 10.0, 5.0]})
 
     def test_under_grans_och_bara_klubba_ger_ingen_punkt(self) -> None:
-        self.assertIsNone(FM.huvud_punkt([{"klass": "klubbhuvud", "konfidens": 0.49, "bbox": [0, 0, 5, 5]}],
-                                         0, 0, 1, 1, 100, 100))
+        from pc.klubba_forslag import VISA_KONFIDENS
+        self.assertIsNone(FM.huvud_punkt([{"klass": "klubbhuvud", "konfidens": VISA_KONFIDENS - 0.01,
+                                           "bbox": [0, 0, 5, 5]}], 0, 0, 1, 1, 100, 100))
         self.assertIsNone(FM.huvud_punkt([{"klass": "klubba", "konfidens": 0.99, "bbox": [0, 0, 5, 5]}],
                                          0, 0, 1, 1, 100, 100))
 

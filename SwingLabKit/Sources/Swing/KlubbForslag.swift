@@ -36,7 +36,7 @@ public struct KlubbForslagFil: Equatable, Sendable {
     /// En ruta i filen hör till den visade när tiderna skiljer högst så, s. METOD MF8
     public static let rutaTol = 0.002
     /// En punkt med lägre konfidens visas inte. METOD MF8
-    public static let visaKonfidens = 0.5
+    public static let visaKonfidens = 0.3
     /// Större än så tas inte emot, byte. METOD MF8
     public static let maxBytes = 20_000_000
     static let maxFel = 30

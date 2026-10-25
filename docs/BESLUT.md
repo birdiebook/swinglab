@@ -1970,8 +1970,8 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Kostnad:** PC:n måste räkna Visions tid för varje ruta (MF8, med S3:s δ), och filen blir
   stor med förslag för varje ruta (upp till 20 MB). En äldre PC-kod läser inte en fil med
   `godkand_forslag`.
-- **Omprövas:** när Johannes märkt ett pass med förslag (gränsen 0,5, om ✓ förstås, om huvudets
-  ruta hjälper), och när modellen ger hoseln direkt (S7-1).
+- **Omprövas:** när Johannes märkt ett pass med förslag (om ✓ förstås, om huvudets ruta
+  hjälper; gränsen är prövad i B95), och när modellen ger hoseln direkt (S7-1).
 
 ## B94 — Första intrycket: det viktiga först, felsökningen ett tryck bort, och bara mått med dom
 *2026-10-25 · prövas · Johannes beslut 2026-10-25 (punkterna 1, 2, 3, 4, 8 och 9 i research 8) · PLAN.md S4h · METOD M63, MS11*
@@ -2026,3 +2026,23 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   engelska och bara för de varningar som finns (en ny varning kräver en ny text).
 - **Omprövas:** när Johannes läst ett pass på telefonen med S4h (PLAN S4h, Klart när), och när
   punkterna 5–7 i research 8 är beslutade.
+
+## B95 — Förslagen visas från konfidens 0,3, inte 0,5
+*2026-10-25 · gäller · Johannes ja 2026-10-25 · PLAN.md S7 · METOD MF7, MF8 · ersätter gränsen i B93*
+
+- **Varför:** modellen (RF-DETR Nano, B92) är försiktig i sin konfidens. Vid 0,5 hade bara 52 %
+  av rutorna framifrån och 14 % bakifrån ett förslag i provpassets fil, fast den hittar
+  klubbhuvudet i 83–91 % vid 0,3. Johannes märkte 2026-10-25 40 rutor framifrån och 11 bakifrån
+  ur provpasset och 32 bakifrån ur oktobers järn 7: modellens huvud träffade hoseln i **48 av
+  48** rutor med konfidens 0,3–0,5 och 31 av 31 med ≥ 0,5 (MF7).
+- **Valt:** `VISA_KONFIDENS` i `klubba_forslag.py` och `KlubbForslagFil.visaKonfidens` i
+  SwingLabKit är **0,3** (B12, samma fixtur). Förslagsfilen skriver punkter från 0,3, och
+  telefonen visar dem. Ett förslag är fortfarande aldrig en markering (B71, B92): bara det
+  Johannes godkänner eller klickar räknas.
+- **Bortvalt:** 0,5 (döljer förslag som sitter rätt; varje dolt förslag kostar ett tryck), en
+  gräns under 0,3 (för få märkta rutor där, 1 av 1), och olika gränser per vy (provet skiljer
+  dem inte åt).
+- **Kostnad:** ett fel förslag i klassen 0,3–0,5 kostar ett tryck att rätta; med 48 av 48 är
+  felen minst sällsyntare än cirka 6 % (regeln om tre, 95 %).
+- **Omprövas:** när punktmodellen ger greppet och hoseln (S7-1), och när fler märkta rutor finns
+  under 0,3 eller i nya miljöer (ljus, klubbor).

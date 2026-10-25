@@ -874,7 +874,7 @@ samma fel (B12).
 i huvudet, samma punkt som `klubbhuvud` i `swinglab-klubba`; `huvud` = klubbhuvudets mitt (en
 detektors ruta, som i golf-49wbh), som telefonen bara visar som ledtråd och **aldrig godtar som
 hoseln**; `skaft_mitt` = mitt mellan greppet och hoseln, som telefonen inte visar. Bara `grepp`
-och `hosel` kan godkännas. Telefonen visar en punkt med `konfidens` ≥ 0,5 (MF8). Ett tryck
+och `hosel` kan godkännas. Telefonen visar en punkt med `konfidens` ≥ 0,3 (MF8, B95). Ett tryck
 med bara huvudets mitt på skärmen sparas som `klick` med huvudets mitt i `forslag.klubbhuvud`
 (`kalla` `modell_huvud`), så att `samla_klubba.py --utan-forslag` lämnar också det utanför.
 

@@ -42,7 +42,7 @@ PUNKTER = ("grepp", "hosel", "huvud", "skaft_mitt")   # BESLUT B93: hosel = B44:
 GODKANNBARA = ("grepp", "hosel")          # BESLUT B93: bara de blir en markering när de godkänns
 VISAS = ("grepp", "hosel", "huvud")       # BESLUT B93: huvudets mitt visas som ledtråd, godkänns aldrig
 RUTA_TOL = 0.002          # METOD MF8: en ruta i filen hör till den visade när tiderna skiljer högst så, s
-VISA_KONFIDENS = 0.5      # METOD MF8: en punkt med lägre konfidens visas inte på telefonen
+VISA_KONFIDENS = 0.3      # METOD MF8: en punkt med lägre konfidens visas inte på telefonen (B95)
 MAX_FEL = 30
 MAX_BYTES = 20_000_000    # METOD MF8: större än så tas inte emot (cirka 400 rutor × 40 slag)
 PASS_ID = re.compile(r"[0-9]{8}-[0-9]{6}")      # fullmatch: inga andra siffror, inget radslut
@@ -357,7 +357,7 @@ def pahittad() -> dict:
         g = (512.0 + 3 * k, 640.0 - 2 * k)
         h = (600.0 + 5 * k, 980.0 + 4 * k)
         punkter = {"grepp": {"x": g[0], "y": g[1], "konfidens": 0.9 - 0.05 * k},
-                   "hosel": {"x": h[0], "y": h[1], "konfidens": 0.8 if k != 3 else 0.42,
+                   "hosel": {"x": h[0], "y": h[1], "konfidens": 0.8 if k != 3 else 0.22,
                              "box": [h[0] - 20, h[1] - 20, 60.0, 40.0]},
                    "huvud": {"x": h[0] + 25, "y": h[1] + 8, "konfidens": 0.85,
                              "box": [h[0] - 10, h[1] - 12, 70.0, 42.0]}}
