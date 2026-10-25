@@ -689,6 +689,12 @@ avgör om 3D får egna gränser.
 Sportsbox-måtten som kräver S7 (club-hand gap, skaftets fart, wrist och release
 factor, P2/P6/P8): [docs/research/4_sportsbox_matt.md](docs/research/4_sportsbox_matt.md).
 
+**Underlaget 2026-10-25:** [docs/research/7_klubban.md](docs/research/7_klubban.md): öppna
+dataset och modeller med licens, den egna märkningen, vägvalet (keypoints top-down på
+2080 Ti:n) och förslaget till S7-1 (`skaft_plan_p6` bakifrån och `skaft_arm_p6` framifrån utan
+tryck), med frågor till Johannes. GolfPose licens (läst) tillåter modeller i appen; bara
+rådatan får inte spridas.
+
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget
 färdigt att ta: GolfPose har eget EULA, ClubheadDB är CC BY-NC och bara DTL.
