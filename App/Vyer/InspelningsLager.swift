@@ -51,35 +51,53 @@ struct InspelningsLager: View {
         if inspelar {
             StatusPill(status: status).padding(.horizontal, 16)
         } else {
-            HStack(spacing: 8) {
-                Button(action: onStang) {
-                    Text(stangEtikett)
-                        .typsnitt(15, .semibold)
-                        .foregroundStyle(Theme.text)
-                        .padding(.horizontal, 16)
-                        .frame(minHeight: 44)
-                        .background(Theme.ground, in: .capsule)
+            // En rad som i skissen; med stor text pillen under knapparna i stället för att bryta dem.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    stang.frame(maxWidth: .infinity, alignment: .leading)
+                    if status.text != nil { StatusPill(status: status).fixedSize() }
+                    kugge.frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .buttonStyle(.plain)
-                .disabled(!stangAktiv)
-                .opacity(stangAktiv ? 1 : 0.4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if status.text != nil {
-                    StatusPill(status: status).layoutPriority(1)
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        stang
+                        Spacer(minLength: 8)
+                        kugge
+                    }
+                    if status.text != nil { StatusPill(status: status) }
                 }
-                Button(action: onInstallningar) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundStyle(Theme.text)
-                        .frame(width: 44, height: 44)
-                        .background(Theme.ground, in: .circle)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Settings"))
-                .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 16)
         }
+    }
+
+    private var stang: some View {
+        Button(action: onStang) {
+            Text(stangEtikett)
+                .typsnitt(15, .semibold)
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(Theme.text)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 44)
+                .background(Theme.ground, in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .disabled(!stangAktiv)
+        .opacity(stangAktiv ? 1 : 0.4)
+    }
+
+    private var kugge: some View {
+        Button(action: onInstallningar) {
+            Image(systemName: "gearshape")
+                .typsnitt(20)
+                .foregroundStyle(Theme.text)
+                .padding(10)
+                .frame(minWidth: 44, minHeight: 44)
+                .background(Theme.ground, in: .circle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Settings"))
     }
 
     private var knappRad: some View {
@@ -105,6 +123,8 @@ struct InspelningsLager: View {
 /// som text som ändras ofta.
 struct StatusPill: View {
     let status: InspelningsStatus
+    /// Punkten växer med texten (Dynamisk text).
+    @ScaledMetric(relativeTo: .body) private var punkt: CGFloat = 12
 
     var body: some View {
         if let text = status.text {
@@ -130,13 +150,13 @@ struct StatusPill: View {
         switch status {
         case .tappad:
             Image(systemName: "exclamationmark.triangle").foregroundStyle(Theme.varning)
-                .font(.system(size: 15, weight: .bold))
+                .typsnitt(15, .bold)
         case .spelarIn:
-            Circle().fill(Theme.text).frame(width: 12, height: 12)
+            Circle().fill(Theme.text).frame(width: punkt, height: punkt)
         case .kopplad:
-            Circle().fill(Theme.live).frame(width: 12, height: 12)
+            Circle().fill(Theme.live).frame(width: punkt, height: punkt)
         case .soker, .ingen:
-            Circle().fill(Theme.secondary).frame(width: 12, height: 12)
+            Circle().fill(Theme.secondary).frame(width: punkt, height: punkt)
         }
     }
 
@@ -161,27 +181,15 @@ struct VarningsRuta: View {
     var onByt: (() -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Theme.varning)
-                .accessibilityHidden(true)
-            Text(verbatim: varning.text)
-                .typsnitt(15, .bold)
-                .foregroundStyle(Theme.text)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isStaticText)
-            Spacer(minLength: 8)
-            if let onByt, let vy = varning.bytTill {
-                Button(action: onByt) {
-                    Text(verbatim: Texter.bytVy(vy))
-                        .typsnitt(15, .semibold)
-                        .foregroundStyle(Theme.ground)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 36)
-                        .background(Theme.text, in: .rect(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                rad
+                Spacer(minLength: 8)
+                knapp
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                rad
+                knapp
             }
         }
         .padding(.horizontal, 14)
@@ -192,6 +200,36 @@ struct VarningsRuta: View {
         .accessibilityElement(children: .contain)
         .onChange(of: varning.text, initial: true) { _, text in
             AccessibilityNotification.Announcement(text).post()
+        }
+    }
+
+    private var rad: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle")
+                .typsnitt(17, .bold)
+                .foregroundStyle(Theme.varning)
+                .accessibilityHidden(true)
+            Text(verbatim: varning.text)
+                .typsnitt(15, .bold)
+                .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isStaticText)
+        }
+    }
+
+    @ViewBuilder private var knapp: some View {
+        if let onByt, let vy = varning.bytTill {
+            Button(action: onByt) {
+                Text(verbatim: Texter.bytVy(vy))
+                    .typsnitt(15, .semibold)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(Theme.ground)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 36)
+                    .background(Theme.text, in: .rect(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -237,14 +275,16 @@ struct InspelningsInstallningar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("Recording").typsnitt(20, .bold).foregroundStyle(Theme.text)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer()
-                Button(action: onKlar) {
-                    Text("Done").typsnitt(17, .semibold).foregroundStyle(Theme.text).frame(minHeight: 44)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    rubrik
+                    Spacer()
+                    klar
                 }
-                .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 4) {
+                    rubrik
+                    klar
+                }
             }
             .padding(.bottom, 8)
             ForEach(rader.indices, id: \.self) { i in
@@ -271,6 +311,19 @@ struct InspelningsInstallningar: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
+    }
+
+    private var rubrik: some View {
+        Text("Recording").typsnitt(20, .bold).foregroundStyle(Theme.text)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var klar: some View {
+        Button(action: onKlar) {
+            Text("Done").typsnitt(17, .semibold).foregroundStyle(Theme.text).frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
     }
 
     private func rad(_ r: Rad) -> some View {
