@@ -200,8 +200,9 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   Båda vyerna. Saknas starten, eller är den osäker (M40), saknas tempot och baksvingens
   tid; nedsvingens tid (`nedsving_s` = träff − topp) räknas ändå, eftersom den inte
   beror på starten (S1e).
-- **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), utanför gult,
-  aldrig rött. **tillverkare, läst i original** (research 5c §5). Blast definierar
+- **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), gult inom golvet 0,2 och rött
+  längre bort (M62, BESLUT B87; förut aldrig rött). **tillverkare, läst i original**
+  (research 5c §5). Blast definierar
   inte toppen; vår är händernas högsta punkt och ligger ≈ 9 ms tidigt (M4), så tempot
   är troligen något lågt mot Blast. Gränsen behålls (BESLUT B45), med låg prioritet:
   **kvoten skiljer inte nivåer.** Grober 2006 (läst i original): proffs 2,5–3,5 med
@@ -211,7 +212,10 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   båda vyerna (S1e), och tempokortet i passet visar baksvingens och nedsvingens
   sekunder. Tour med driver: Sportsbox 0,26 s, Blast 0,23–0,32 s, AMM ≈ 0,25 s
   (tillverkare, läst i original, research 5a, 5c); kortare nedsving med högre fart
-  (Madrid 2020, kunde inte läsas). Ingen gräns: egen baslinje. Tiden räknas från
+  (Madrid 2020, kunde inte läsas). Sedan S4g bandet **0,23–0,32 s** (Blast tour, båda
+  klubborna; research 6 beslut 8, BESLUT B86) med golvet 0,02 s (M62): de flesta amatörer
+  ligger över, eftersom tiden följer farten, och bandet säger hur långt det är till tour-fart.
+  Tiden räknas från
   den uppmätta toppen (≈ 9 ms tidig, M4) till klicket, också när starten saknas.
 - **Bakifrån (DTL)** syns takeawayn knappt (den går mot kameran), och händernas start
   (M4) kom sent eller saknades (utredningen 2026-10-23: ett importerat DTL-pass utan
@@ -324,12 +328,15 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   inte linjen i bild: tour vid träff 32°/22° (driver/järn), PGA 24,1–37,5° med driver
   (läst i original, research 5a). Mears 2016: 2D underskattar sidböjningen vid träff
   med 8,7 ± 2,9° (läst i original). Ingen gräns.
-- **Finishen** (S1e): `sidbojning_finish` står i katalogens `matt` vid P10, framifrån:
-  i finishen vetter bröstet mot målet, och bakåtlutningen bort från målet ligger i
-  bildens plan. GolfTEC Shoulder Bend i finish: tour 32°, hcp 5–0 20,6°, 31+ 3,2°
-  (tillverkare, läst i original, bild; research 5c §1), det mått som skiljer grupperna
-  mest. GolfTEC mäter med sensorer i 3D, inte linjen höftmitt → axelmitt i bild, så
-  talen tas inte in: egen baslinje.
+- **Finishen** (S1e): `sidbojning_finish` står i katalogens `matt` vid P10, framifrån.
+  **Rättat 2026-10-25 (research 6 §4.1):** bröstet vetter *inte* mot målet i finishen.
+  Sportsbox tour ger bröstets vridning i finishen 161° med driver och 154° med järn (0° =
+  parallellt med fotlinjen, 90° = mot målet), alltså 64–71° förbi målet. En bakåtlutning i
+  bröstets eget plan syns framifrån med faktorn cos(64–71°) ≈ 0,33–0,44 (räkning): Sportsbox
+  −35° med järn blir ≈ 13–17° i bild, och sidböjningen blandas in. GolfTEC Shoulder Bend i
+  finish (tour 32°, hcp 5–0 20,6°, 31+ 3,2°; tillverkare, läst i original, bild; research 5c
+  §1) går därför inte att föra över. Måttet räknas och finns i exporten men visas inte för
+  spelaren (dom b, BESLUT B86).
 
 ## M15 — Bäckenets sway (FO)
 
@@ -475,8 +482,9 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
 
 - Varje fel i `katalog.json` (BESLUT B6) pekar på ett mått i en vy, och passets
   median bedöms.
-- **Med gräns:** inom `gront` = grönt; annars inom `gult` = gult, utanför =
-  rött. Utan `gult` är allt utanför grönt gult (tempot). Gränserna är slutna.
+- **Med gräns:** inom `gront` = grönt; annars högst måttets `golv` utanför gränsen = gult,
+  längre bort = rött (M62, BESLUT B87; förut ett eget `gult` per fel, och tempot aldrig
+  rött). Gränserna är slutna.
 - **Utan gräns (egen baslinje):** z = (passets median − baslinjens median) /
   baslinjens robusta sd (M26), där baslinjen är måttets värden ur tidigare pass
   i samma vy, med samma klubba och längd; ett pass med flera klubbor bedöms per klubba
@@ -487,6 +495,9 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   Gränsen används ändå, märkt. Efter research 5 är alla lästa utom flying elbows
   (BESLUT B45). Ett fel med `aktiv: false` bedöms inte
   (axellutningen, M17).
+- **Det spelaren ser** är läget i M62: bandet (grönt, gult, rött med pil) och den egna
+  baslinjen ("Your usual", rött bara åt det sämre hållet). z-gränserna 1 och 2 ovan gäller
+  analysen till Claude, inte appens färger.
 
 ## M28 — P-positionerna
 
@@ -2826,6 +2837,53 @@ men tre av fyra rutor är interpolerade och felet där når en tredjedel av skaf
 som Johannes märker för hand (S7a:s märkning, utan att se banan), ligger de spårade rutorna
 inom **5 %** av skaftet i median och **10 %** i p95, högst **5 %** av dem har grova fel, och
 högst **60 %** av rutorna mellan ankarna är interpolerade. **antagande** (gränserna).
+
+## M62 — Läget mot bandet: grönt, gult, rött och pilen (S4g)
+
+Banden ur research 6 (`docs/research/6_ranges.md`, BESLUT B86) och färgerna (BESLUT B87).
+Samma regler i Python (`katalog.lage`, `lage_baslinje`, `lage_for`, `visade`, `kalla_for`) och
+Swift (`Bandlage`, `Katalog.visade(i:)`, `Fel.medKalla`, `Fel.medKlubba`), prövat mot
+`tools/tests/fixturer/bandlage.json` (`python3 tools/pc/katalog.py --swift`, BESLUT B12).
+
+- **Bandet** (`gront`): **grönt** innanför; **gult** utanför men högst måttets **golv** från
+  gränsen (`golv`: kan vara mätfel); **rött** längre bort, med en pil åt det håll värdet ligger
+  (`over` = större än bandet, `under` = mindre). Gränserna är slutna (10⁻⁹ för flyttalen). En
+  öppen ände är öppen: `[−2,5, null]` har ingen övre gräns. Analysen till Claude bär det gula
+  som `gult` = bandet vidgat med golvet (`katalog.gult`, `Fel.gult`), och `bedom_varde` ger
+  samma grönt, gult och rött (M27).
+- **Golvet per mått** (katalogens `golv`): **2 cm** för sträckor och **5°** för vinklar (research
+  5 §1.8: en gräns finare än ≈ 2 cm eller ≈ 5° säger inget, antagande). För **tid**: nedsvingens
+  tid **0,02 s** (toppen ≈ 9–13 ms tidig med sd upp till 9 ms, M4, och klicket ± 7 ms: summan
+  ≈ 20 ms; antagande). För **tempot** **0,2** (0,02 s på en nedsving om ≈ 0,27 s ger ≈ 7 % av
+  kvoten ≈ 3, alltså ≈ 0,2; M5 anger att toppen ensam sänker tempot ≈ 0,1; antagande). För
+  **handens fart** **0,5 m/s** (M35: med 2 px brus +2 % ≈ 0,15 m/s på ≈ 7 m/s, men suddet är
+  oprövat, B11; antagande). För **spridningen mellan slagen** **1°** (den robusta sd:n ur 8–30
+  slag varierar ≈ σ/√(2n), 25–10 %, alltså 0,3–0,8° på en spridning om 2–3°; antagande).
+- **Den egna baslinjen** (medianen ± en robust sd ur tidigare pass, M27) får aldrig grönt eller
+  gult: ramen heter "Your usual". Bara när måttets sämre håll är känt (`samre`) och värdet
+  ligger **mer än golvet utanför ramens ände** åt det hållet blir det rött med pil, annars inget
+  läge. Ramens ände, inte medianen: en stor egen spridning ska inte ge rött inne i ramen.
+- **Klubban** (BESLUT B86): katalogens band är järnets (`gront`), och driverns står i
+  `gront_driver` utan att användas. Bandet visas bara på **järnpass**: järnen 4–9 och PW, som id
+  (`j7`, `pw`) eller etikett (`7i`, `PW`); en okänd klubba räknas som järn, standarden. På andra
+  klubbor visas inget band, och läget är den egna baslinjens. Analysen till Claude (M27, MT3)
+  bär järnets band för alla klubbor, som förut, och underlaget säger klubban.
+- **Läget räknas på det visade talet** (avrundat som PC:n, `Avrundning`), så att färgen stämmer
+  med siffran: "4.3" är grönt mot bandet ≤ 4,3.
+- **Vad sessionen visar** (BESLUT B86): katalogens `visas: false` är dom (b): måttet visas inte
+  i passet eller granskningen, men finns kvar i exporten, paketet och underlaget till Claude
+  (S5b). Ett fel som övas (Att jobba på) visas ändå, så att det Claude valt syns. Dom (c) är
+  borttagna ur katalogen; måtten räknas fortfarande (MATVERSION oförändrad), eftersom
+  research 6 bara gällde vad som visas.
+- **Felets källa med klubban** (BESLUT B88): ett fel med `klubba` (over the top) bygger på
+  klubbmåttet (`skaft_plan_p6`, M47) när klubban är markerad: i passet när något slag i vyn har
+  måttet, i granskningen på slaget som har det. Då tar felet klubbmåttets positioner, band,
+  golv, källa och infoblad, och klubbmåttet får inget eget kort eller egen rad. Annars händernas
+  bana (M13). Klubbans plan: mål 0, bandet ±5° (bredden ett antagande: inte finare än golvet,
+  research 6 rad 38), golvet 5°.
+- **Formen** (design/README.md): grönt är en fylld prick, gult en ring och rött en fylld
+  triangel som pekar åt värdet (upp eller ner bredvid talet, höger eller vänster på spannets
+  axel), så att läget går att läsa utan färg.
 
 ---
 

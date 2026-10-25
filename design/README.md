@@ -24,7 +24,7 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
 5. **Ingen beskrivande text.** Bara etiketter, tal, enheter och det som måste
    läsas för att använda appen: övningens namn, tanken och "klart när" som ett
    villkor i tal. Märkningarna är små symboler med en kort etikett: B10 (gräns
-   ej läst i original), own (egen baslinje), off (avstängt mått).
+   ej läst i original), Your usual (egen baslinje, B87), off (avstängt mått).
 6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.
@@ -44,6 +44,14 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
     kort i Passet, sin rad på Idag, sin linje i Utveckling, sin uppmätta linje i
     Granskningen och i kedjan. Bara tunna linjer, markören och en etikett,
     aldrig ytor, knappar eller bakgrunder. Aldrig som dom över bra eller dåligt.
+11. **Läget mot bandet (BESLUT B87, undantag från regel 4 och 6).** Ett mått med band
+    får en symbol bredvid talet och samma symbol som markör på spannet: en **fylld grön
+    prick** innanför (`#30D158`), en **gul ring** utanför men inom måttets brusgolv, alltså
+    kanske mätfel (`#FFD60A`), och en **röd fylld triangel** som pekar åt värdet, upp eller
+    ner bredvid talet och höger eller vänster på spannet (`#FF3B30`). Formen bär betydelsen
+    också utan färg. Den egna baslinjen är ramen "Your usual" utan färg, utom den röda
+    triangeln när värdet ligger mer än golvet åt måttets sämre håll. Inga ord. Accenten
+    (regel 10) står kvar på rubriken, namnet och kvartilerna; markören bär läget när det finns.
 
 ## Språket (BESLUT B30, B33)
 

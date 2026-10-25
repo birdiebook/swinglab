@@ -140,6 +140,8 @@ Status: **gäller** · **prövas** · **väntar** (Johannes beslut).
   billig AI"), bättre/sämre-ord och förklarande text.
 - **Regeln:** kräver en skärm en förklaring är designen fel. Gör om den i
   stället för att lägga till text.
+- **Undantag (B87, 2026-10-25):** läget mot bandet har tre färger, grönt, gult och rött,
+  som en prick, en ring och en pil bredvid talet och på spannet. Inga värdeord ändå.
 
 ## B14 — Vridningen i två lägen: trend utan markörer, per sving med markörer
 *2026-10-22 · gäller · Johannes beslut efter felbudgeten (docs/S6_FELBUDGET.md)*
@@ -874,7 +876,7 @@ steg. De **prövas** tills verktygen körts på riktiga paket.
   förslag för skaftet och huvudet.
 
 ## B45 — Gränserna ur research 5: bara där källan mäter samma sak
-*2026-10-23 · gäller · ledarens beställning (S1e)*
+*2026-10-23 · gäller, gränserna och färgerna ändrade av B86 och B87 (2026-10-25) · ledarens beställning (S1e)*
 
 - **Regeln:** en gräns tas in bara när källan har samma definition, nollpunkt och
   tecken som SwingLabs mått i 2D. Annars gäller egen baslinje (METOD M27), och skälet
@@ -1746,6 +1748,103 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   startar ger ingen varning under serien.
 - **Omprövas:** efter första passet med den nya skärmen på telefonerna (PLAN S2j, Klart när),
   och svingarnas plats när räknaren är kalibrerad.
+
+## B86 — Banden ur research 6, preliminärt: Johannes kan ändra per mått
+*2026-10-25 · preliminärt · Johannes beslut 2026-10-25 · PLAN.md S4g · METOD M62, M14 · research 6*
+
+- **Valt:** alla rekommendationer i research 6 gäller **preliminärt**, och besluten per mått
+  kan läsas på Johannes beslutssida (research 6, tabellen i §3 med en rad per mått). De
+  omprövas när Johannes ändrar ett mått; då ändras katalogen och den här raden. De åtta
+  besluten i research 6:s sammanfattning, med förslagen:
+  1. **Tour ± golv:** där källan bara ger ett medel är bandet Sportsbox tour-medel med järn ±
+     golvet (2 cm, 5°), märkt `grans_harledd` (antagande ur källan). Ensidigt där mer är
+     proffsens håll (sway gap).
+  2. **Järnets band som standard** (`gront`); driverns står i `gront_driver` och används inte
+     än. Bandet visas bara på järnpass (4–9 och PW) tills klubban styr bandet; på andra klubbor
+     visas inget band, bara den egna baslinjen där den finns. Det gäller också band som inte
+     beror på klubban (sway, tempo, early extension och definitionernas): ordet var "på andra
+     klubbor visas inget band".
+  3. **Domarna:** (a) behåll; (b) `visas: false`: visas inte i sessionen (passet och
+     granskningen) men finns i exporten, paketet och underlaget till Claude (S5b); (c) bort ur
+     katalogen och visningen (åtta rader: höftfällningen vid topp och träff, genomsvingens tid i
+     båda vyerna, huvudet över höfterna i finishen, främre knäets sway vid topp och träff och
+     bakre knäets vid träff). Måtten räknas ändå, så att paketet och MATVERSION är oförändrade.
+  4. **Band ur definitionen:** reverse spine ≥ 0°, over the top ≤ 0 cm, skaftet vid toppen ≥ 0°
+     och skaftlutningen vid träff ≥ 0° (felets eget tecken; tränare eller antagande), och mål 0
+     för skaftets riktning vid toppen (±10°) och klubbans plan vid P6 (±5°), bredden ett
+     antagande.
+  5. **Early extension** −2,3…+4,3 cm: Sportsbox ideal, båda ändarna (förut öppet nedåt).
+  6. **3D visar ingen bedömning:** banden i `tre_d` blir 30–46° (bäckenets vridning) och
+     30–45° (höfterna vid träff) som riktmärken (B14), utan färg.
+  7. **Sidböjningen i finishen** till (b), och M14:s mening om bröstet mot målet rättad.
+  8. **Nedsvingens tid** 0,23–0,32 s (Blast tour).
+  Med egen baslinje och känd riktning (dom a): tappad hållning, chicken wing, böjd främre arm
+  och casting (sämre uppåt), handens fart (sämre nedåt) och spridningen mellan slagen (sämre
+  uppåt). Huvudet mot bollen har ingen riktning (beloppet), så det får ingen färg.
+- **Ett fel som övas visas** även när det är dom (b) (flying elbow kan väljas av Claude):
+  annars syns inte det Johannes ska öva på.
+- **Analysen till Claude** bär järnets band för alla klubbor, som förut, och klubban står i
+  underlaget; den egna baslinjens z-gränser (M27) gäller fortfarande där.
+- **Bortvalt:** två lägen (innanför och utanför), PLAN S4g:s första skiss: gult behövs för det
+  som kan vara mätfel (B87). Att ta bort beräkningen av dom (c): måtten och paketet skulle
+  ändras utan att något visat att de är fel att räkna. Driverns band nu: katalogen har ingen
+  klubba än (B45).
+- **Kostnad:** 16 band är tour ± golv och säger inget om spridningen bland proffsen
+  (thrustens SD 3,6 cm mot golvet 2 cm), och de flesta amatörer ligger utanför nedsvingens band.
+  En driver visar inga band alls tills klubban styr bandet.
+- **Omprövas:** per mått när Johannes ändrar ett beslut, när klubban förs in i katalogen
+  (driverns band), och när riktiga pass visar var Johannes ligger.
+
+## B87 — Tre färger mot bandet: grön prick, gul ring, röd pil
+*2026-10-25 · gäller · Johannes beslut 2026-10-25 · METOD M62 · design/README.md regel 11*
+
+- **Valt, som Sportsbox:** **grönt** innanför bandet; **gult** utanför men inom måttets brusgolv
+  från gränsen (2 cm, 5°, eller måttets golv i METOD M62: nedsvingen 0,02 s, tempot 0,2, handens
+  fart 0,5 m/s, spridningen 1°), alltså "kan vara mätfel"; **rött med en liten pil** åt det håll
+  värdet ligger, utanför med mer än golvet. Den egna baslinjen ("Your usual") får ingen färg, utom
+  rött med pil när måttets sämre håll är känt och värdet ligger mer än golvet utanför ramen åt
+  det hållet.
+- **Formen bär betydelsen också utan färg:** grönt är en **fylld prick**, gult en **ring** (en
+  ring läses som "ofullständig", och den skiljer sig från både pricken och pilen i form, inte bara
+  i fyllnad som en halvfylld prick, som är svår att se i 10 pt) och rött en **fylld triangel** som
+  pekar åt värdet: upp eller ner bredvid talet, höger eller vänster på spannets axel (där större
+  ligger till höger). Symbolen står bredvid talet i passets kort och granskningens rader, och
+  spannets markör tar samma form och färg.
+- **Färgerna:** iOS systemfärger i mörkt läge, läsbara på svart: grönt **#30D158** och rött
+  **#FF3B30**, samma nyanser som inspelningens skärm (B85, grenen s2j), och gult **#FFD60A**
+  (systemets gula). Ett undantag från B13 regel 6 bara för läget mot bandet.
+- **Accenten (B31) fungerar fortfarande:** det du övar på har kortets rubrik, radens namn och
+  kvartilerna i isblått. Har måttet ett läge bär markören läget i stället för accenten; utan läge
+  är markören isblå som förut.
+- **Inga ord som bra eller dåligt (B13):** skärmen visar bara formen och färgen. VoiceOver läser
+  läget som "in range", "just outside range", "above range"/"below range" och "above/below your
+  usual".
+- **Ersätter:** B45:s gula spann per fel (`gult` i katalogen; analysen räknar det nu ur bandet
+  och golvet) och regeln att tempot aldrig blir rött.
+- **Bortvalt:** två lägen (innanför och utanför; ett mätfel skulle bli rött), färg utan form
+  (färgblinda), en halvfylld prick för gult (för lik den fyllda i liten storlek).
+- **Kostnad:** tre färger i passet och granskningen, och en markör som inte längre bär accenten
+  när den har ett läge.
+- **Omprövas:** efter första passet på telefonen med banden (PLAN S4g, Klart när).
+
+## B88 — Over the top bygger på klubbans plan när klubban är markerad
+*2026-10-25 · gäller · Johannes beslut 2026-10-25 · METOD M62, M47, M13*
+
+- **Valt:** felet `over_the_top` har en källa ur klubban (`klubba` i katalogen): `skaft_plan_p6`
+  (klubbhuvudet över adressens skaftplan vid P6 = brant). Är klubban markerad i passet (något slag
+  i vyn har måttet) bygger kortet på det, och i granskningen raden på slaget som har det; annars
+  händernas bana som förut (M13). Bandet: mål 0, ±5° (bredden ett antagande, research 6 rad 38),
+  golvet 5°, källan märkt B10 (P-systemet är inte läst i original). Klubbmåttet får då inget eget
+  kort eller egen rad.
+- **Lätt att byta källa:** valet är en funktion av om klubbmåttet finns (`kalla_for` i Python,
+  `Fel.medKalla` i Swift). När S7 spårar klubban automatiskt finns måttet på fler slag, och
+  ingenting annat ändras.
+- **Analysen till Claude** bygger fortfarande på händernas bana: den ska bära samma tal som
+  passets rader, och klubbens mått finns bara på markerade slag.
+- **Bortvalt:** att visa båda korten (samma fel två gånger), och att byta hela passet till
+  klubbans plan när bara ett slag är markerat i granskningen.
+- **Omprövas:** när S7 ger klubban på alla slag (då kan analysen också byta), och när riktiga pass
+  visar var klubbans plan ligger.
 
 ## B92 — Klubbmodellen ska kunna användas av andra: ingen NC-data och ingen AGPL i träningen
 *2026-10-25 · gäller · Johannes svar på research 7 §5 · PLAN.md S7 · [research 7](research/7_klubban.md)*

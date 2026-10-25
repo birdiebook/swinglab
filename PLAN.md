@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k · S3 · S4 · S4e nu · S4f nu · S4g · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -367,17 +367,32 @@ längre, inte heller Progress med 3D (`utveckling-3d`).
 svingar, öppnat en FO- och en DTL-session och bara sett deras mått, raderat en session med svep
 och fråga, och hittat längden och Import focus i Me.
 
-## S4g — Ranges (Johannes 2026-10-24, inte nu)
+## S4g — Ranges (Johannes 2026-10-24, beslut 2026-10-25)
 
-Johannes ord: ranges ska vara tydliga, alltså vad som är bra, bara innanför och utanför range.
-Det ersätter grönt, gult och rött med två lägen när den byggs. Inget är byggt; etappen formas
-med Johannes innan den startas (spannet, `Spann`, gränserna i katalogen och den egna baslinjen,
-METOD M27).
+Johannes ord: ranges ska vara tydliga, alltså vad som är bra. Ett mått som visas ska kunna
+säga bra eller dåligt (VISION). Underlaget: [docs/research/6_ranges.md](docs/research/6_ranges.md)
+(2026-10-25), ett band per mått där källan mäter samma sak och domar för måtten utan källa.
+Johannes beslut 2026-10-25: alla rekommendationer i research 6 gäller preliminärt (BESLUT B86),
+tre färger som Sportsbox (B87) och over the top på klubbans plan när klubban är markerad (B88).
 
-Underlaget: [docs/research/6_ranges.md](docs/research/6_ranges.md) (2026-10-25), ett band per mått
-där källan mäter samma sak, domar för måtten utan källa och besluten som väntar på Johannes.
+**Byggt (grenen `s4g`, BESLUT B86–B88, METOD M62, M14 rättad).** Katalogen: research 6:s band, med källa
+(järn i `gront`, driverns i `gront_driver` utan att användas), `golv` per fel och mått i stället
+för `gult`, `samre` med golv för egen baslinje med känd riktning, `visas: false` för dom (b) (28
+mått och felen flying elbow och axellutningen), dom (c) borttagna (åtta mått, beräkningen kvar),
+`klubba` för over the top och 3D:s riktmärken 30–46° och 30–45° utan bedömning. Logiken i Python
+(`katalog.lage`, `lage_baslinje`, `lage_for`, `jarn`, `visas`, `visade`, `kalla_for`, facit
+`tools/tests/fixturer/bandlage.json`) och Swift (`Bandlage`, `Katalog.visade(i:)`,
+`Fel.medKalla`, `Fel.medKlubba`), prövat i `test_katalog.Laget` och `BandlageTests`. Appen: en
+grön prick, en gul ring eller en röd pil bredvid talet i passets kort och granskningens rader,
+och samma form som markör på spannet (`App/Vyer/Bandet.swift`), järnets band bara på järnpass,
+den egna baslinjen märkt "Your usual". Simulatorprovet: `Prov/SwingLabProvBand.swift` (bilderna
+`band-passet-fo`, `band-passet-dtl`, `band-passet-driver`, `band-granskning-p4` utan (b)-måtten och
+`band-granskning-p6-klubba`).
 
-**Klart när:** bestäms med Johannes.
+**Klart när:** proven i Python och Swift ger samma läge för varje post i katalogen, simulatorn
+ritar grönt, gult och rött och en granskning utan (b)-måtten, och Johannes har läst ett järnpass på
+telefonen och direkt sett vad som är innanför, nära och utanför, och ändrat de mått han inte håller
+med om (B86 omprövas per mått).
 
 ## S5 — PC-länken och Claude
 

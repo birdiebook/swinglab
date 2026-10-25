@@ -105,8 +105,9 @@ där varje fel har:
 | `vy` | text | `"dtl"`, `"fo"` eller `"bada"` (måttet över alla svingar, tempot). |
 | `matt` | text | Måttets namn; måste finnas i vyn. |
 | `fas` | text | Var i svingen felet syns (`adress`, `topp`, `nedsving`, `traff`, `efter_traff`, `hela`). Bara för visningen. |
-| `gront` | `[min, max]` eller `null` | Grönt spann; `null` i en ände = öppen. `null` = **egen baslinje**. |
-| `gult` | `[min, max]` eller `null` | Gult spann runt det gröna. `null` med en grön gräns = allt utanför grönt är gult. |
+| `gront` | `[min, max]` eller `null` | Bandet (grönt) för järn; `null` i en ände = öppen. `null` = **egen baslinje**. Visas bara på järnpass (BESLUT B86). |
+| `gront_driver` | `[min, max]` | Valfri. Driverns band ur samma källa; används inte än (BESLUT B86). Kräver `gront`. |
+| `golv` | tal > 0 | Måttets brusgolv: gult inom det utanför bandet, rött längre bort; för den egna baslinjen rött åt `samre` utanför ramen med mer än golvet (METOD M62, BESLUT B87). Ersätter `gult` (2026-10-25): analysen räknar det gula ur bandet och golvet. |
 | `kalla` | text | URL till källan för definitionen eller gränsen. |
 | `status` | text | Gränsens status: `tillverkare`, `forskning`, `tranare` eller `antagande` (egen baslinje är `antagande`). |
 | `kontrollerad` | bool | `false` tills källan i `kalla` lästs i original (BESLUT B10; research 5, BESLUT B45). |
@@ -116,7 +117,9 @@ där varje fel har:
 | `ovning` | text | Övningen, på engelska (BESLUT B30). |
 | `tanke` | text | Tanken under svingen, med extern fokus (research 3), på engelska. |
 | `positioner` | lista | P-positionerna där granskningen visar felets mått (BESLUT B32): `"P1"` … `"P10"` (P2, P6 och P8 för klubbans mått, S7a), utan dubbletter och i svingens ordning. `[]` = felets eget mått visas inte vid en position (tempot; resan till träffen, vars del fram till P5 står i `matt` med `fel`). |
-| `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp och early_extension, BESLUT B45); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
+| `grans_harledd` | bool | Valfri. `true` = gränsen är ett antagande härlett ur källan (sway_topp, tour ± golv och felens tecken, BESLUT B45, B86); infobladets källa säger då "Assumption from manufacturer". Kräver `gront`. |
+| `visas` | bool | Valfri, `true` utan fältet. `false` = dom (b): visas inte i sessionen (utom när felet övas), men finns i exporten, paketet och underlaget till Claude (BESLUT B86). |
+| `klubba` | objekt | Valfri. Felets källa när klubban är markerad (over the top, BESLUT B88): `matt` (ett av klubbans mått i vyn), `positioner`, `gront`, `golv`, `kalla`, `status`, `kontrollerad`, `grans_harledd`, `vad`, `varfor`, `tecken`. |
 | `vad` | text | Infobladet (BESLUT B41): en mening på engelska, vad som mäts och mellan vilka punkter. |
 | `varfor` | text | Infobladet: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
 | `tecken` | text | Infobladet: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
@@ -124,7 +127,7 @@ där varje fel har:
 
 `matt` är måtten som granskningen visar vid en position utan att de är fel
 (BESLUT B32, METOD M29), t.ex. sway hittills vid P3. Varje post har `matt`, `vy`
-och `positioner`, och valfritt `fel` och `status`; inga andra fält:
+och `positioner`, och valfritt `fel` och `status` och bandets fält; inga andra fält:
 
 | Fält | Typ | Betydelse |
 |---|---|---|
@@ -135,13 +138,19 @@ och `positioner`, och valfritt `fel` och `status`; inga andra fält:
 | `varfor` | text | Som felens: en mening på engelska, varför det spelar roll, med felets namn när det finns. |
 | `tecken` | text | Som felens: tecknet på engelska, som koden räknar det ("+ toward ball · − away"). |
 | `fel` | text | Valfri. Katalogens id för felet som måttet hör till (sway hittills vid P3 → `sway_topp`), så att accenten för det du övar på (BESLUT B31) följer med. |
-| `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna och genomsvingens tid, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "own". Utan fältet: egen baslinje. |
+| `status` | text | Valfri. `"oprovad"` = måttet är oprövat på telefonen (farterna, METOD M35–M37, BESLUT B11); granskningen märker det "untested" i stället för "Your usual". Utan fältet: egen baslinje eller bandet. |
+| `gront` | `[min, max]` | Valfri. Bandet för järn ur research 6 (BESLUT B86, METOD M62); kräver `golv`, `kalla`, `kalla_status` och `kontrollerad`. Utan fältet: egen baslinje. |
+| `gront_driver` | `[min, max]` | Valfri. Driverns band, används inte än. Kräver `gront`. |
+| `golv` | tal > 0 | Måttets brusgolv (METOD M62). Krävs med `gront` eller `samre`. |
+| `samre` | `"+"` eller `"-"` | Valfri. Det sämre hållet för den egna baslinjen: rött åt det hållet (dom a, BESLUT B86). |
+| `kalla`, `kalla_status`, `kontrollerad`, `grans_harledd` | text, text, bool, `true` | Bandets källa, som felens `kalla`, `status`, `kontrollerad` och `grans_harledd`. |
+| `visas` | bool | Valfri. `false` = dom (b): visas inte för spelaren (BESLUT B86). |
 
 `spridning` är passets spridning mellan slagen för ett mått, ett tal per pass: den
 robusta sd:n ur passets svingar i vyn, och inget tal under 8 slag (METOD M44, BESLUT
-B46). Passet visar den som ett kort och Progress som ett mått över passen. Varje post har exakt `matt`, `vy`
+B46). Passet visar den som ett kort och Progress som ett mått över passen. Varje post har `matt`, `vy`
 (`"dtl"` eller `"fo"`, måttet måste finnas i vyn, en gång), `vad`, `varfor` och
-`tecken` (som felens).
+`tecken` (som felens), och valfritt `samre` och `golv` (rött åt det sämre hållet, METOD M62).
 
 Klubbans mått (S7a, BESLUT B47) står i `matt` utan `fel`; passet visar de specifika
 (inte `skaft_vinkel`) som kort med medianen och n över de markerade svingarna, när
