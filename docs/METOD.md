@@ -3298,6 +3298,12 @@ räknas som märkning (B71).
   diagonal och kalibrera längs skaftet på oktobers rutor (k = 0,02 av diagonalen) gav inget:
   händernas mitt sitter redan rätt. Samma modell gav klubbhuvudet konfidens ≥ 0,5 i 48 av 51
   rutor, mot 24 för modellen på båda dataseten. **mätt** (n är litet: 40 och 11).
+- **RF-DETR Small i 512 px** (båda dataseten, 12 epoker, batch 4 med 4 i ackumulering, 110 min;
+  valet bäst i sista epoken, så fler epoker hade hjälpt): provet 0,502 (0,814) mot Nanos 0,437;
+  golf-49wbh 0,449 (huvud 0,300), golf-club-tracking 0,524 (huvud 0,432). 14 ms per bild. Mot
+  Johannes märkning (80 rutor med hosel): **80 av 80** träffar, 68 med konfidens ≥ 0,5 (Nano på
+  båda dataseten 31, Nano med händer 74 med 78 träffar). Storleken ger alltså mest säkrare
+  konfidens; träffarna och huvudets avstånd till hoseln (4 %) är desamma. **mätt.**
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.
