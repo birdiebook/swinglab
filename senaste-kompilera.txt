@@ -1,33 +1,33 @@
-e9b953dc74b78af59a3971908b5ea77456cadd61 main 2026-10-25T12:11:24Z run 40190695781 kompilera
-Xcode 26.6 · 77AA4492-C787-4EEE-A772-05D4B3E9ECCD iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+d48beb8f0c480e0651ac39be43799bcbd6991621 s2j-lutning 2026-10-25T12:13:06Z run 40190971315 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 53 test, 0 fel, 201 s i testerna
+GRÖNT: 53 test, 0 fel, 211 s i testerna
 Långsammast (av 53):
-     51.9 s  SwingLabProvInspelning.testFilmenMedAAC
-     21.3 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
-     17.5 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
+     47.4 s  SwingLabProvPaket.testSteg8PaketetTillPC
+     22.2 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
+     16.1 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
      13.0 s  SwingLabProvForhandsbild.testBildenFranFoljarenTillDenStyrande
+     11.9 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
       9.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
+      8.4 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.5 s  SwingLabProvVyer.testSessionerOchMe
-      6.0 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
-      5.7 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
-      5.3 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      3.9 s  SwingLabProvKlubba.testMarkeraKlubban
-      3.7 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      3.5 s  SwingLabProvInspelning.testFilmenMedLPCM
+      6.8 s  SwingLabProvSlag.testImportenTillPassetOchAnalysen
+      6.2 s  SwingLabProvVyer.testSessionerOchMe
+      5.2 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
+      4.9 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      4.2 s  SwingLabProvKlubba.testMarkeraKlubban
+      3.8 s  SwingLabProvSlag.testSteg7VisionPaKlippet
       3.5 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
-      3.2 s  SwingLabProvSpar.testClubIBadaVyerna
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
 PROV: String Catalog 193 texter i en.lproj
-PROV: förhandsbild kodning median 10.3 ms, max 104.0 ms (simulatorn)
-PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: förhandsbild kodning median 8.6 ms, max 102.5 ms (simulatorn)
+PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 11 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
 PROV: skrev andra-bild-mottagen.png
 PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
 PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
@@ -83,11 +83,11 @@ PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad 2.50×, P4
 PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Clubhead to plane +36.9 (DTL · P6)"]
 PROV: skrev klubba-passet.png
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.057 ms, osäkerhet 0.258 ms, 30 prov
+PROV: link klocka θ 0.038 ms, osäkerhet 0.196 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.1 MB, topp 60.7 MB (+1.6 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 59.8 MB, topp 60.0 MB (+0.2 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495132 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -116,12 +116,12 @@ PROV: skrev klubba-bana-p10.png
 PROV: klubbhuvudets bana bakifrån: 279 rutor, 206 interpolerade
 PROV: skrev klubba-bana-dtl.png
 PROV: spårets rutor: markören 255 i CropRect(x: 0.7037037037037037, y: 0.08333333333333333, width: 0.2222222222222222, height: 0.16666666666666669), bakgrunden 128
-PROV: TreD 4 slag på 0.56 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD 4 slag på 0.42 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: TreD egen bunt ett slag 55724 byte
 PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
 PROV: TreD överföring 11 slag, bunten 607867 byte (55260 per slag) i 4 bitar, 2.1 s med ett tapp om 2 s
 PROV: TreD överföring utan tapp 0.03 s på loopback
-PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.24 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
+PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.21 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
 PROV: TreD tillbaka till följaren, tre_d.json 9096 byte
 PROV: granskningen P4 ["brost_lyft_topp=gron", "huvud_mot_bollen_topp=ingen", "skaft_riktning_topp=gul"]
 PROV: skrev band-granskning-p4.png (780×326 px)
@@ -185,8 +185,8 @@ PROV: sessions ["Down the line Sun, Nov 15 · 12:00 PW, 7i -", "Face on Sat, No
 PROV: skrev sessions.png ur ett fönster (1170×2532 px)
 PROV: FO-sessionen 7 kort, DTL-sessionen 7 kort; P7 FO ["sway_gap_traff", "brost_lyft_traff", "handfart_max", "backen_lyft_in_traff", "nedsving_s", "hoftlinje_lutning_traff"], DTL ["backen_thrust_traff", "brost_bojning_tapp", "brost_lyft_traff", "huvud_mot_bollen_traff", "backen_lyft_in_traff", "nedsving_s"]
 == den andra telefonens bild (S2k, METOD MS35)
-PROV: förhandsbild kodning median 10.3 ms, max 104.0 ms (simulatorn)
-PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: förhandsbild kodning median 8.6 ms, max 102.5 ms (simulatorn)
+PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 11 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
 PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
