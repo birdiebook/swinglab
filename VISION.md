@@ -15,6 +15,12 @@ De två drar åt olika håll, och **balansgången mellan dem är det viktiga**. 
 varje val: blir det enklare utan att analysen blir grundare? Går det inte, välj
 en form där djupet ligger ett tryck bort i stället för att tas bort.
 
+**Ett mått som visas ska kunna säga bra eller dåligt** (Johannes 2026-10-25).
+Om vi inte kan säga vad som är bra för ett mått, och det därför inte hjälper
+spelaren att bli bättre, förvirrar det mer än det hjälper. Då visas det inte
+för spelaren. Det kan ligga kvar som underlag för tolkningen, eller tas bort.
+Djup är det som hjälper, inte antalet siffror.
+
 ## Riktningen
 
 - **Analys på Sportsbox-nivå** ur slowmotion från iPhone, down the line och
