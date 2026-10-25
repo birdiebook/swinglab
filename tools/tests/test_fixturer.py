@@ -115,7 +115,8 @@ class Fixturerna(unittest.TestCase):
         _lika(self, s["sammanfattning"], {"nu": sn, "forra": sf}, "sammanfattning")
         _lika(self, s["jamforelse"], {g: S.jamfor(sn[g], sf[g]) for g in sn}, "jamforelse")
         _lika(self, s["bedomning"], K.bedom(K.las(), s["nu"], s["forra"]), "bedomning")
-        self.assertEqual({b["status"] for b in s["bedomning"]} >= {"gul", "gron", "av", "okand"}, True)
+        # Sedan research 6 (BESLUT B86) har resan och sway gap band: kvittot är gult, grönt, rött och av.
+        self.assertEqual({b["status"] for b in s["bedomning"]} >= {"gul", "gron", "rod", "av"}, True)
 
 
 if __name__ == "__main__":
