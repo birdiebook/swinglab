@@ -34,9 +34,30 @@ public struct KlubbMarkering: Codable, Equatable, Sendable {
     public var greppKalla: String?
     /// När markeringen sattes eller ändrades (paketets `andrad`). nil = okänt (före granskningen).
     public var andrad: Date?
+    /// Hoselns källa när den är en annan: "godkand_forslag" = modellens förslag, godkänt med ett
+    /// tryck (S7d, BESLUT B93). nil = `kalla`.
+    public var hoselKalla: String?
+    /// Modellens förslag som visades i rutan när positionen sparades (S7d, BESLUT B93): det
+    /// godkända, eller det som Johannes rättade med ett tryck. nil = inget förslag visades.
+    public var forslag: Forslag?
+
+    /// Modellens förslag i rutan (`KlubbForslag`), sparat med markeringen.
+    public struct Forslag: Codable, Equatable, Sendable {
+        public var grepp: KlubbPunkt?
+        public var hosel: KlubbPunkt?
+        /// "namn version".
+        public var modell: String?
+
+        public init(grepp: KlubbPunkt?, hosel: KlubbPunkt?, modell: String?) {
+            self.grepp = grepp
+            self.hosel = hosel
+            self.modell = modell
+        }
+    }
 
     public init(position: String, t: Double, grepp: KlubbPunkt?, hosel: KlubbPunkt?, hoppad: Bool? = nil,
-                kalla: String = Klubba.kalla, greppKalla: String? = nil, andrad: Date? = nil) {
+                kalla: String = Klubba.kalla, greppKalla: String? = nil, andrad: Date? = nil,
+                hoselKalla: String? = nil, forslag: Forslag? = nil) {
         self.position = position
         self.t = t
         self.grepp = grepp
@@ -45,6 +66,8 @@ public struct KlubbMarkering: Codable, Equatable, Sendable {
         self.kalla = kalla
         self.greppKalla = greppKalla
         self.andrad = andrad
+        self.hoselKalla = hoselKalla
+        self.forslag = forslag
     }
 
     /// Både greppet och hoseln är satta och positionen är inte hoppad.
@@ -60,8 +83,12 @@ public enum Klubba {
     public static let kalla = "klick"
     /// Greppet ur ringen vid handlederna, bekräftat med ett tryck på den. BESLUT B47
     public static let kallaRing = "handlederna_bekraftad"
-    /// Punkternas källor i formatet (`klubba.KALLOR`).
-    public static let kallor = [kalla, kallaRing]
+    /// Modellens förslag, godkänt med ett tryck (S7d). BESLUT B93
+    public static let kallaForslag = "godkand_forslag"
+    /// Förslagets källa i filens `forslag` (S7d). BESLUT B93
+    public static let kallaModell = "modell"
+    /// Punkternas källor i formatet (`klubba.KALLOR_V2`).
+    public static let kallor = [kalla, kallaRing, kallaForslag]
     /// Antagen osäkerhet per tryck, px i hela bilden (1 sd). METOD M46
     public static let tryckPx = 3.0
     /// Ett mått vars skattade osäkerhet ur trycken är större saknas, grader. METOD M46
@@ -379,6 +406,15 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         public var x: Double
         public var y: Double
         public var kalla: String
+        /// Modellens namn och version när `kalla` är "modell" (S7d, BESLUT B93).
+        public var modell: String?
+
+        public init(x: Double, y: Double, kalla: String, modell: String? = nil) {
+            self.x = x
+            self.y = y
+            self.kalla = kalla
+            self.modell = modell
+        }
     }
 
     public struct Ruta: Codable, Equatable, Sendable {
@@ -508,11 +544,19 @@ public struct KlubbFil: Codable, Equatable, Sendable {
         for r in rutor where Klubba.positioner.contains(r.val) {
             guard let t = r.t else { continue }
             let hoppad = r.status == "hoppad"
-            var gk: String? = nil
+            var gk: String? = nil, hk: String? = nil
             if case let .klick(_, _, k)? = r.punkter.grepp, k != Klubba.kalla { gk = k }
+            if case let .klick(_, _, k)? = r.punkter.klubbhuvud, k != Klubba.kalla { hk = k }
+            // Modellens förslag som visades (S7d, BESLUT B93).
+            let fg = r.forslag["grepp"].flatMap { $0.kalla == Klubba.kallaModell ? $0 : nil }
+            let fh = r.forslag["klubbhuvud"].flatMap { $0.kalla == Klubba.kallaModell ? $0 : nil }
+            let forslag = fg == nil && fh == nil ? nil : KlubbMarkering.Forslag(
+                grepp: fg.map { KlubbPunkt(x: $0.x, y: $0.y) }, hosel: fh.map { KlubbPunkt(x: $0.x, y: $0.y) },
+                modell: fg?.modell ?? fh?.modell)
             ut[r.slag ?? "", default: []].append(KlubbMarkering(
                 position: r.val, t: t, grepp: hoppad ? nil : r.punkter.grepp?.punkt,
-                hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil, greppKalla: gk))
+                hosel: hoppad ? nil : r.punkter.klubbhuvud?.punkt, hoppad: hoppad ? true : nil, greppKalla: gk,
+                hoselKalla: hk, forslag: forslag))
         }
         return ut
     }
@@ -555,10 +599,17 @@ public struct KlubbFil: Codable, Equatable, Sendable {
                             visad: [Int], tKlipp: Double?) -> Ruta {
         func p(_ q: KlubbPunkt?, _ kalla: String) -> Punkt? { q.map { .klick(x: $0.x, y: $0.y, kalla: kalla) } }
         let hoppad = m.hoppad == true
+        // Modellens förslag som visades (S7d, BESLUT B93): `kalla` "modell", namnet i `modell`.
+        var forslag: [String: Forslag] = [:]
+        if let f = m.forslag, !hoppad {
+            if let g = f.grepp { forslag["grepp"] = Forslag(x: g.x, y: g.y, kalla: Klubba.kallaModell, modell: f.modell) }
+            if let h = f.hosel { forslag["klubbhuvud"] = Forslag(x: h.x, y: h.y, kalla: Klubba.kallaModell, modell: f.modell) }
+        }
         return Ruta(id: "\(vy.rawValue)-\(slag)-\(m.position)", fil: fil, vy: vy.rawValue, slag: slag, val: m.position,
                     t: m.t, tKlipp: tKlipp, forskjutningMs: nil, tRuta: nil, bredd: bredd, hojd: hojd, visad: visad,
                     status: hoppad ? "hoppad" : (m.markerad ? "markerad" : "omarkerad"),
                     punkter: Punkter(grepp: hoppad ? nil : p(m.grepp, m.greppKalla ?? m.kalla), skaftMitt: nil,
-                                     klubbhuvud: hoppad ? nil : p(m.hosel, m.kalla)))
+                                     klubbhuvud: hoppad ? nil : p(m.hosel, m.hoselKalla ?? m.kalla)),
+                    forslag: forslag)
     }
 }

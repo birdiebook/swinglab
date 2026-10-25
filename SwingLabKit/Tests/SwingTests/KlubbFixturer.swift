@@ -680,17 +680,30 @@ enum KlubbFixturer {
     "bredd": 1080,
     "fil": "swinglab-20261103-180000-dtl.zip",
     "forskjutning_ms": null,
-    "forslag": {},
-    "hojd": 2880,
-    "id": "dtl-s03-P2",
-    "punkter": {
+    "forslag": {
      "grepp": {
-      "kalla": "klick",
+      "kalla": "modell",
+      "modell": "klubba-golf49 0.1.0",
       "x": 608.0,
       "y": 1392.5
      },
      "klubbhuvud": {
-      "kalla": "klick",
+      "kalla": "modell",
+      "modell": "klubba-golf49 0.1.0",
+      "x": 640.8,
+      "y": 1415.4
+     }
+    },
+    "hojd": 2880,
+    "id": "dtl-s03-P2",
+    "punkter": {
+     "grepp": {
+      "kalla": "godkand_forslag",
+      "x": 608.0,
+      "y": 1392.5
+     },
+     "klubbhuvud": {
+      "kalla": "godkand_forslag",
       "x": 640.8,
       "y": 1415.4
      },
@@ -714,12 +727,25 @@ enum KlubbFixturer {
     "bredd": 1080,
     "fil": "swinglab-20261103-180000-dtl.zip",
     "forskjutning_ms": null,
-    "forslag": {},
+    "forslag": {
+     "grepp": {
+      "kalla": "modell",
+      "modell": "klubba-golf49 0.1.0",
+      "x": 566.3,
+      "y": 1248.6
+     },
+     "klubbhuvud": {
+      "kalla": "modell",
+      "modell": "klubba-golf49 0.1.0",
+      "x": 554.3,
+      "y": 1091.9
+     }
+    },
     "hojd": 2880,
     "id": "dtl-s03-P3",
     "punkter": {
      "grepp": {
-      "kalla": "klick",
+      "kalla": "godkand_forslag",
       "x": 566.3,
       "y": 1248.6
      },

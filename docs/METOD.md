@@ -3137,3 +3137,38 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
   **50 MB**). Då kan ingen annan sida i webbläsaren skriva filen. Sparningarna går under
   ett lås till ett unikt temporärt namn och byts in, och sidan skickar dem en i taget.
   **räkning.**
+
+## MF8 — Modellens förslag i klubbmarkeringen (S7d)
+
+Filen `swinglab-klubba-forslag/1` (FORMAT.md, BESLUT B93) och hur telefonen visar den.
+Samma regler i `tools/pc/klubba_forslag.py` och SwingLabKits `KlubbForslagFil` och
+`ClubMarking` (B12, prövat med samma fixtur och samma fel).
+
+- **Rutan:** ett förslag hör till den visade rutan när filens `t` (Visions tid relativt
+  klicket) ligger högst **2 ms** från rutans; finns flera tas den närmaste, den tidigare i
+  filen vid lika avstånd. 2 ms är under en halv ruta vid 240 bilder/s (2,08 ms), så att
+  grannrutan aldrig tas, och samma gräns som MF1:s tidsparning. Två rutor i samma slag får
+  inte ligga närmare än 4 ms (då vore valet tvetydigt). **räkning.** Från OpenCV:s tid: `t =
+  t_opencv − δ/1000 − klick_i_klipp_s` med S3:s δ (MF1), avrundat till närmaste
+  Visions-ruta inom en halv ruta; utan δ kan rutan bli grannen när δ ligger nära 2 ms.
+  **räkning.**
+- **Konfidensen:** en punkt visas bara när modellens konfidens är minst **0,5**. **antagande**
+  (en detektors vanliga gräns; ett felaktigt förslag kostar bara ett tryck att rätta, och
+  ett som inte visas ett tryck att sätta). Omprövas när provpasset (B92) ger modellens
+  konfidens mot Johannes märkning.
+- **Punkterna:** bara greppet och hoseln kan godkännas. Klubbhuvudets mitt (en detektors
+  ruta) ligger en halv huvudlängd från hoseln, cirka 3–5 cm, och skulle ge ett fel i
+  skaftets vinkel av samma storlek som handlederna (M45, cirka 4°); den visas därför bara
+  som ledtråd, en streckad ruta, och ett tryck där är ett klick. Skaftets mitt visas inte
+  (telefonen märker två punkter, B47). **antagande** (huvudets längd: järn 7 cirka 7–8 cm).
+- **Godkänna:** ett tryck inom `grabRadius` (5 % av ytans bredd, M45) från den streckade
+  ringen godtar förslagets punkt, inte tryckets; för hoseln bara när trycket ligger närmare
+  förslaget än greppet. ✓ godtar alla punkter som saknas på positionen med ett tryck och
+  sparar positionen. Ett godkänt förslag som flyttas blir ett tryck (`klick`). **räkning.**
+- **Källan:** en godkänd punkt sparas med `godkand_forslag` och förslaget i `forslag` med
+  `kalla` `modell` (och modellens namn); ett tryck när ett förslag visades sparas som
+  `klick` med förslaget bredvid (ett **rättat** förslag, `klubba.ursprung`). Ett förslag
+  som inte godkänts eller rättats sparas aldrig, inte heller på en hoppad position.
+  **räkning.**
+- **Storleken:** högst **20 MB** (cirka 400 rutor per slag i 40 slag med fyra punkter); filer
+  med förslag för varje ruta är normalfallet. **antagande.**

@@ -818,9 +818,75 @@ rutor som markerade. En läsare av version 2 säger nej till version 3.
 | `bredd`, `hojd` | hela den upprätta bilden i px |
 | `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
 | `status` | `omarkerad`, `markerad` (alla tre punkterna satta; i version 2 räcker `grepp` och `klubbhuvud`) eller `hoppad` |
-| `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla"}` i hela bildens pixlar, eller `{"syns_inte": true}`. `kalla` är `klick` (ett tryck) eller, i version 2, `handlederna_bekraftad` för greppet: ringen ur handlederna som Johannes bekräftade med ett tryck (B47), så att träningsdatan kan skilja den från ett fritt tryck |
-| `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`); de blir aldrig en punkt av sig själva |
+| `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla"}` i hela bildens pixlar, eller `{"syns_inte": true}`. `kalla` är `klick` (ett tryck) eller, i version 2 och 3, `handlederna_bekraftad` för greppet: ringen ur handlederna som Johannes bekräftade med ett tryck (B47), så att träningsdatan kan skilja den från ett fritt tryck, eller `godkand_forslag` (S7d, B93): modellens förslag som Johannes godkände med ett tryck; då står förslaget i `forslag` med samma punkt och `kalla` `modell` |
+| `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`, eller `modell` för modellens förslag, S7d, med modellens namn och version i `modell`); de blir aldrig en punkt av sig själva. En punkt med `kalla` `klick` och ett förslag med `kalla` `modell` är ett **rättat** förslag (`klubba.ursprung`: `klick`, `handlederna_bekraftad`, `godkand_forslag` eller `rattat_forslag`) |
 
 **Punkterna** (B44): **grepp** = skaftet mitt mellan händerna; **skaftets mitt** = mitt
 mellan greppet och hoseln; **klubbhuvud** = GolfPose hosel, där skaftet går in i huvudet
 (research 2 §3, ej läst i original). Felen nämner rutans plats och fältet, aldrig värdet.
+
+## Klubbans förslag: `swinglab-klubba-forslag/1` (utanför repot)
+
+Modellens förmärkning för klubbmarkeringen (S7d, BESLUT B93, METOD MF8). PC:n kör detektorn
+(S7, B92) på ett pass och skriver **en fil per pass och vy**, gärna
+`swinglab-<pass>-<vy>-forslag.json`. Johannes delar den till telefonen (Filer, "Import club
+suggestions" under Me), som kontrollerar den och sparar den som
+`KlubbForslag/<pass>-<vy>.json` i appens mapp; en ny fil för samma pass och vy ersätter den
+gamla. I markeringen (S7c) visas förslaget för rutan som streckade ringar "1?" och "2?".
+**Ett förslag blir aldrig en markering av sig självt** (B92, som B71): bara en punkt som
+Johannes godkänt med ett tryck (`godkand_forslag` i `swinglab-klubba`) eller klickat räknas.
+Ägaren och kontrollen på PC:n är `tools/pc/klubba_forslag.py` (`python
+tools/pc/klubba_forslag.py <fil> --paket <zip>`), och SwingLabKits `KlubbForslagFil` ger
+samma fel (B12).
+
+```json
+{"format": "swinglab-klubba-forslag/1", "pass": "20261024-171500", "vy": "dtl",
+ "paket": "swinglab-20261024-171500-dtl.zip", "skapad": "2026-10-25T21:15:00+02:00",
+ "modell": {"namn": "klubba-golf49", "version": "0.1.0",
+            "data": [{"namn": "golf-49wbh", "licens": "CC BY 4.0", "kalla": "https://universe.roboflow.com/"}]},
+ "bredd": 1080, "hojd": 1920,
+ "slag": [{"id": "s01", "rutor": [
+   {"t": -0.3125, "ruta": 520, "t_klipp": 2.1875,
+    "punkter": {"grepp": {"x": 512.0, "y": 640.0, "konfidens": 0.9},
+                "hosel": {"x": 600.0, "y": 980.0, "konfidens": 0.8, "box": [580.0, 960.0, 60.0, 40.0]},
+                "huvud": {"x": 625.0, "y": 988.0, "konfidens": 0.85, "box": [590.0, 968.0, 70.0, 42.0]}}},
+   {"t": -0.2917, "ruta": 525, "t_klipp": 2.2083,
+    "punkter": {"huvud": {"x": 650.0, "y": 1008.0, "konfidens": 0.85, "box": [615.0, 988.0, 70.0, 42.0]}}}]}]}
+```
+
+| Fält | Krav och betydelse |
+|---|---|
+| `format` | `"swinglab-klubba-forslag/1"` |
+| `pass` | passet, `yyyyMMdd-HHmmss`, som paketets `manifest.json` |
+| `vy` | `"dtl"` eller `"fo"`, paketets vy |
+| `paket` | valfri: paketets namn (spårbarhet), eller `null` |
+| `skapad` | när filen skrevs, ISO 8601 |
+| `modell.namn`, `modell.version` | modellens namn och version, text (inte tomma) |
+| `modell.data[]` | minst ett dataset modellen tränats på: `namn`, `licens` (text, för namnangivelsen i appens "About", B92) och valfri `kalla` (adressen) |
+| `bredd`, `hojd` | hela den upprätta bildens storlek i px, som slagets `slag/sNN.json` (`width`, `height`); positiva heltal. Telefonen använder bara förslag för ett slag med samma storlek |
+| `slag[]` | minst ett: `id` (paketets `s01` …, unikt) och `rutor[]` (minst en) |
+| `rutor[].t` | **Visions tid**, s relativt slagets klick: en av slagets `frames[].t` i `slag/sNN.json` (samma klocka som `t` i `swinglab-klubba`). Två rutor i samma slag får inte ligga närmare än 2 · 2 ms |
+| `rutor[].ruta`, `rutor[].t_klipp` | valfria, för PC:ns spårbarhet: rutans nummer i klippet (heltal ≥ 0) och OpenCV:s tid i klippet (s ≥ 0). Telefonen läser dem inte |
+| `rutor[].punkter` | minst en av `grepp`, `hosel`, `huvud` och `skaft_mitt`; en punkt som saknas eller är `null` har modellen inte gett |
+| punkt | `{"x", "y", "konfidens", "box"?}`: hela den upprätta bildens pixlar med y nedåt (som lederna), inom bilden; `konfidens` 0–1; `box` valfri `[x, y, b, h]` i px med `b`, `h` > 0 |
+
+**Punkterna** (B44, B93): `grepp` = skaftet mitt mellan händerna; `hosel` = där skaftet går in
+i huvudet, samma punkt som `klubbhuvud` i `swinglab-klubba`; `huvud` = klubbhuvudets mitt (en
+detektors ruta, som i golf-49wbh), som telefonen bara visar som ledtråd och **aldrig godtar som
+hoseln**; `skaft_mitt` = mitt mellan greppet och hoseln, som telefonen inte visar. Bara `grepp`
+och `hosel` kan godkännas. Telefonen visar en punkt med `konfidens` ≥ 0,5 (MF8).
+
+**Tiden.** Telefonen tar rutan i filen vars `t` ligger närmast den visade rutans Visions-tid och
+högst 2 ms därifrån (`klubba_forslag.ruta_for`, `KlubbForslagFil.ruta`, MF8); finns ingen visas
+inget förslag. För en ruta som OpenCV läst ur paketets klipp: `t = t_opencv − forskjutning_ms/1000 −
+klick_i_klipp_s` (MF1, S3:s δ ur `s3.json`), avrundat till den närmaste av slagets Visions-tider
+(`klubba_forslag.vision_t`). Utan δ kan rutan bli grannen. Förslag för alla rutor i svingen är
+bäst: då har varje ruta som Johannes stegar till ett.
+
+**Formen är öppen** för nya fält (en nyare PC kan lägga till utan att en äldre telefon säger
+nej); `klubba_forslag.py` skriver ut okända fält så att en felstavning syns. Filen är högst 20 MB.
+**Felen** nämner fältet, aldrig värdet, på engelska som telefonen visar dem:
+`slag[0].rutor[3].punkter.hosel.konfidens: invalid`, `pass is missing`,
+`slag[1].rutor[0].punkter.hosel: outside the image`, `slag[0].rutor[2].t: duplicate`,
+`slag[0].rutor[0].punkter: no point`, och mot passet `pass: no such session`, `vy: does not match
+the session`, `slag[2].id: no such shot`.

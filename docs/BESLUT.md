@@ -1917,3 +1917,47 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Provpasset:** svingarna från 2026-10-24, inspelade i SwingLab, hålls utanför träningen.
 - **Omprövas:** om golf-49wbh visar sig ha bilder med oklar rätt, eller om GolfPose-datat
   kommer med villkor som binder vikterna.
+
+## B93 — Modellens förslag i klubbmarkeringen: en fil per pass och vy, godkänn med ett tryck
+*2026-10-25 · prövas · PLAN.md S7d · METOD MF8 · Johannes 2026-10-25 (förmärkningen, B92)*
+
+- **Varför:** en detektor tränad på golf-49wbh (B92) ska förmärka Johannes svingar, så att han
+  rättar i stället för att märka från noll. Märkningen sker på telefonen (S7c), där P6 blir
+  hans egen ruta (research 7 §2), så förslagen måste dit.
+- **Valt:**
+  - **Formatet** `swinglab-klubba-forslag/1` (FORMAT.md): en JSON per pass och vy med modellens
+    namn, version och datasetens licens (namnangivelsen), bildens storlek, och per slag och
+    ruta Visions tid och punkterna `grepp`, `hosel`, `huvud` (klubbhuvudets mitt) och
+    `skaft_mitt`, var och en med konfidens och valfri box. Tiden är Visions, som i
+    `swinglab-klubba`, så att telefonen och PC:n talar om samma ruta (MF8). Formen är öppen
+    för nya fält, så att en nyare PC inte stoppar en äldre telefon. Ägaren är
+    `tools/pc/klubba_forslag.py` (kontrollen, också mot paketet), och SwingLabKits
+    `KlubbForslagFil` ger samma fel (B12).
+  - **Importen:** under Me, "Import club suggestions", som "Import focus" (B28): filen ur Filer
+    kontrolleras (formen, passet finns, vyn är passets, slagen finns) och sparas som
+    `KlubbForslag/<pass>-<vy>.json`; en ny fil ersätter den gamla. Felet visar fältet, aldrig
+    värdet.
+  - **I markeringen:** förslaget för rutan visas som streckade ringar "1?" och "2?" (modellens
+    grepp ersätter ringen ur handlederna); ett tryck på ringen godkänner punkten, och ✓ under
+    ytan godkänner allt som saknas med ett tryck, det vanliga fallet. Ett tryck någon annanstans
+    eller ett drag rättar. Huvudets mitt visas som en streckad ruta men godkänns aldrig som
+    hoseln (MF8). Instruktionsraden och guiden är oförändrade (VISION: inga nya ord när ett
+    tecken räcker).
+  - **Källan:** en godkänd punkt har `kalla` `godkand_forslag` i `swinglab-klubba` (version 2
+    och 3, ingen ny version), med förslaget i `forslag` (`kalla` `modell`); ett tryck när ett
+    förslag visades är `klick` med förslaget bredvid, alltså rättat. `klubba.ursprung` skiljer
+    klick, ringen, godkänt och rättat, och `samla_klubba.py` räknar dem per pass och kan lämna
+    förslagen utanför (`--utan-forslag`), så att proven i research 7 §4.2 kan hållas fria från
+    modellens påverkan. Godkända punkter räknas i klubbmåtten som klick (B92: Johannes har
+    godkänt dem).
+- **Bortvalt:** att godta huvudets mitt som hoseln (3–5 cm fel, som handlederna i B44), en
+  "Use"-knapp med text (✓ räcker, VISION), att visa förslaget utan tryck som markering (B71,
+  B92), en ny formatversion för källan (läsarna är våra egna och uppdateras samtidigt; en äldre
+  PC säger nej till filen och visar fältet), att öppna filen direkt ur dela-menyn (kräver en
+  dokumenttyp i appen; Filer räcker som för `att_jobba_pa.json`), och rutans nummer i klippet
+  som nyckel (telefonens rutor är Visions, och klippets nummer beror på redigeringen).
+- **Kostnad:** PC:n måste räkna Visions tid för varje ruta (MF8, med S3:s δ), och filen blir
+  stor med förslag för varje ruta (upp till 20 MB). En äldre PC-kod läser inte en fil med
+  `godkand_forslag`.
+- **Omprövas:** när Johannes märkt ett pass med förslag (gränsen 0,5, om ✓ förstås, om huvudets
+  ruta hjälper), och när modellen ger hoseln direkt (S7-1).
