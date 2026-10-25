@@ -314,6 +314,11 @@ provet är gjort.
 
 ## 5. Frågor till Johannes
 
+**Johannes svar 2026-10-25 (BESLUT B92):** förmärkning med en detektor tränad på golf-49wbh,
+ja (fråga 3). Svingarna från 2026-10-24 är inspelade i SwingLab och blir provpasset (fråga 2).
+WSL2 och `nvidia-smi` kontrolleras på PC:n (fråga 1). Modellen ska kunna användas av andra, så
+ingen NC-data och ingen AGPL (fråga 9). Övriga frågor står öppna.
+
 1. **GPU:** 2080 Ti har 11 GB enligt specifikationen; du skrev 12 GB. Vad säger
    `nvidia-smi`? Går WSL2 med CUDA på datorn? coremltools har inget Windows-hjul, och mmcv
    är krångligt på Windows.

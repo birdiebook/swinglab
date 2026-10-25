@@ -1746,3 +1746,23 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   startar ger ingen varning under serien.
 - **Omprövas:** efter första passet med den nya skärmen på telefonerna (PLAN S2j, Klart när),
   och svingarnas plats när räknaren är kalibrerad.
+
+## B92 — Klubbmodellen ska kunna användas av andra: ingen NC-data och ingen AGPL i träningen
+*2026-10-25 · gäller · Johannes svar på research 7 §5 · PLAN.md S7 · [research 7](research/7_klubban.md)*
+
+- **Valt:** modellen för klubban (S7-1, S7-2) ska kunna användas av andra än Johannes
+  (Johannes 2026-10-25). Därför tränas den bara på data och med kod vars licens tillåter det:
+  Johannes egna svingar, CC BY 4.0-dataset (golf-49wbh med flera, namnangivelse i appens
+  "About") och GolfPose om datat fås (EULA:n tillåter modeller i produkter). Ramverk med
+  Apache-, BSD- eller MIT-licens (PyTorch, RTMPose, YOLOX, RF-DETR), aldrig Ultralytics (AGPL).
+- **Förmärkning:** en detektor för klubbhuvudet tränas först på golf-49wbh och förmärker
+  Johannes svingar, så att han rättar i stället för att märka från noll (Johannes ja
+  2026-10-25). Förmärkningen är aldrig facit: bara det Johannes klickat räknas som märkning
+  (som B71).
+- **Bortvalt:** ClubheadDB och GolfDB (CC BY-NC) i träningen, och även som prov, så att inget
+  NC-material behöver redovisas. Create ML (kräver Mac).
+- **Träningen** sker på Johannes PC (RTX 2080 Ti, WSL2 för coremltools). Klipp, utsnitt och
+  vikter ligger utanför repot (dataregeln); en påhittad modell används i simulatorprovet.
+- **Provpasset:** svingarna från 2026-10-24, inspelade i SwingLab, hålls utanför träningen.
+- **Omprövas:** om golf-49wbh visar sig ha bilder med oklar rätt, eller om GolfPose-datat
+  kommer med villkor som binder vikterna.

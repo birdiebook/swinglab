@@ -761,6 +761,10 @@ dataset och modeller med licens, den egna märkningen, vägvalet (keypoints top-
 tryck), med frågor till Johannes. GolfPose licens (läst) tillåter modeller i appen; bara
 rådatan får inte spridas.
 
+**Johannes svar 2026-10-25 (BESLUT B92):** modellen ska kunna användas av andra, så ingen
+NC-data och ingen AGPL. En detektor på golf-49wbh förmärker hans svingar och han rättar.
+Passet från 2026-10-24 (SwingLab) är provet. Träningen körs på PC:n (2080 Ti, WSL2).
+
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget
 färdigt att ta: GolfPose har eget EULA, ClubheadDB är CC BY-NC och bara DTL.
