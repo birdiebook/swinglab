@@ -1,19 +1,19 @@
-2f3aa43491909e4cc442bb6322c9755385ad70f7 main 2026-10-25T11:55:45Z run 40190685154
+d48beb8f0c480e0651ac39be43799bcbd6991621 s2j-lutning 2026-10-25T11:59:52Z run 40190971314
 == swift-release
-GRÖNT: 387 test, 0 fel, 41 s i testerna, bygget 118 s
-Långsammast (av 387):
+GRÖNT: 389 test, 0 fel, 38 s i testerna, bygget 114 s
+Långsammast (av 389):
       3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
       3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      3.0 s  TreDTests.testFigurenSomPython
+      2.9 s  TreDTests.testFigurenSomPython
       2.4 s  TreDTests.testTelefonensVagSomPython
       2.3 s  KlubbSparTests.testBananSomPython
+      1.5 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.2 s  TreDTests.testFigurensFilTurOchRetur
+      1.4 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.3 s  TreDTests.testFigurensFilTurOchRetur
       1.2 s  TreDTests.testVinklarnaForEnVansterspelare
-      1.2 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.2 s  TreDTests.testKortet
       1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.1 s  TreDTests.testKortet
       1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
       1.1 s  TreDTests.testInreIFilenOchUppdateras
       1.1 s  KlubbSparTests.testFeletMotSanningen
