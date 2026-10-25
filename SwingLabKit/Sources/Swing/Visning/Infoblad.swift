@@ -33,10 +33,18 @@ public struct Infoblad: Equatable, Sendable, Identifiable {
                                       varden: Self.webbplatser(fel.kalla), harledd: fel.gransHarledd))
     }
 
-    /// Ett mått i katalogens `matt`: egen baslinje, farterna oprövade.
+    /// Ett mått i katalogens `matt`: bandets källa (BESLUT B86), annars egen baslinje; farterna
+    /// oprövade.
     public init(_ post: Katalog.Mattpost, namn: String) {
-        self.init(namn: namn, vad: post.vad, varfor: post.varfor, tecken: post.tecken,
-                  kalla: Texter.kallaMatt(oprovad: post.status == "oprovad"))
+        let kalla: String
+        if post.gront != nil, let s = post.kallaStatus {
+            kalla = Texter.kalla(status: s, kontrollerad: post.kontrollerad ?? false, gransFinns: true,
+                                 varden: Self.webbplatser(post.kalla ?? ""), harledd: post.gransHarledd)
+                + (post.status == "oprovad" ? ", \(Texter.oprovadKalla)" : "")
+        } else {
+            kalla = Texter.kallaMatt(oprovad: post.status == "oprovad")
+        }
+        self.init(namn: namn, vad: post.vad, varfor: post.varfor, tecken: post.tecken, kalla: kalla)
     }
 
     /// Spridningen mellan slagen (METOD M44): egen baslinje, ett tal per pass.

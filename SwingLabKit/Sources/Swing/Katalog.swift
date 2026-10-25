@@ -88,11 +88,15 @@ public struct Katalog: Decodable, Sendable {
         public let vad: String
         public let varfor: String
         public let tecken: String
-        /// Fält utöver de fem; kontrollen fäller dem, som Python.
+        /// Det sämre hållet och golvet: rött åt det hållet utanför den egna baslinjen (METOD M62).
+        public let samre: String?
+        public let golv: Double?
+        /// Fält utöver de sju; kontrollen fäller dem, som Python.
         let andraFalt: [String]
+        let falt: Set<String>
 
         enum CodingKeys: String, CodingKey, CaseIterable {
-            case matt, vy, vad, varfor, tecken
+            case matt, vy, vad, varfor, tecken, samre, golv
         }
 
         public init(from decoder: Decoder) throws {
@@ -102,6 +106,9 @@ public struct Katalog: Decodable, Sendable {
             vad = try c.decode(String.self, forKey: .vad)
             varfor = try c.decode(String.self, forKey: .varfor)
             tecken = try c.decode(String.self, forKey: .tecken)
+            samre = try? c.decodeIfPresent(String.self, forKey: .samre)
+            golv = try? c.decodeIfPresent(Double.self, forKey: .golv)
+            falt = Set(try decoder.container(keyedBy: Mattpost.Nyckel.self).allKeys.map { $0.stringValue })
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
             andraFalt = try decoder.container(keyedBy: Mattpost.Nyckel.self).allKeys.map { $0.stringValue }
                 .filter { !kanda.contains($0) }
@@ -126,13 +133,38 @@ public struct Katalog: Decodable, Sendable {
         public let vad: String
         public let varfor: String
         public let tecken: String
-        /// Fält utöver matt, vy, positioner, infobladets, fel och status; kontrollen fäller dem,
-        /// och ett av infobladets fält som saknas, som Python.
+        /// Bandet med källa (research 6, BESLUT B86): järnets, och driverns som inte används än.
+        /// nil = egen baslinje. METOD M62
+        public let gront: [Double?]?
+        public let grontDriver: [Double?]?
+        /// Måttets brusgolv: gult inom det utanför bandet, rött längre bort (BESLUT B87).
+        public let golv: Double?
+        /// Det sämre hållet för den egna baslinjen ("+" eller "-"): rött åt det hållet (METOD M62).
+        public let samre: String?
+        /// Bandets källa: adresserna, statusen (som felens `status`), läst i original och härledd.
+        public let kalla: String?
+        public let kallaStatus: String?
+        public let kontrollerad: Bool?
+        public let gransHarledd: Bool
+        /// false = dom (b): visas inte för spelaren, men finns i exporten och underlaget (B86).
+        public let visas: Bool
+        /// Fält utöver de kända; kontrollen fäller dem, och ett av infobladets fält som saknas,
+        /// som Python.
         let andraFalt: [String]
         let saknasInfo: Bool
+        /// Fälten som står i posten, och de som inte gick att läsa som sin typ (kontrollen).
+        let falt: Set<String>
+        let felTyp: [String]
 
         enum CodingKeys: String, CodingKey, CaseIterable {
             case matt, vy, positioner, fel, status, vad, varfor, tecken
+            case gront
+            case grontDriver = "gront_driver"
+            case golv, samre, kalla
+            case kallaStatus = "kalla_status"
+            case kontrollerad
+            case gransHarledd = "grans_harledd"
+            case visas
         }
 
         struct Nyckel: CodingKey {
@@ -156,9 +188,29 @@ public struct Katalog: Decodable, Sendable {
             varfor = w ?? ""
             tecken = t ?? ""
             saknasInfo = v == nil || w == nil || t == nil
+            var felTyp: [String] = []
+            func las<T: Decodable>(_ typ: T.Type, _ n: CodingKeys) -> T? {
+                guard c.contains(n) else { return nil }
+                if let x = try? c.decodeNil(forKey: n), x { felTyp.append(n.rawValue); return nil }
+                guard let x = try? c.decode(typ, forKey: n) else { felTyp.append(n.rawValue); return nil }
+                return x
+            }
+            gront = las([Double?].self, .gront)
+            grontDriver = las([Double?].self, .grontDriver)
+            golv = las(Double.self, .golv)
+            samre = las(String.self, .samre)
+            kalla = las(String.self, .kalla)
+            kallaStatus = las(String.self, .kallaStatus)
+            kontrollerad = las(Bool.self, .kontrollerad)
+            let harledd = las(Bool.self, .gransHarledd)
+            gransHarledd = harledd ?? false
+            if harledd == false { felTyp.append(CodingKeys.gransHarledd.rawValue) }      // bara true, som Python
+            visas = las(Bool.self, .visas) ?? true
+            self.felTyp = felTyp
             let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
-            andraFalt = try decoder.container(keyedBy: Nyckel.self).allKeys.map { $0.stringValue }
-                .filter { !kanda.contains($0) }
+            let alla = try decoder.container(keyedBy: Nyckel.self).allKeys.map { $0.stringValue }
+            falt = Set(alla)
+            andraFalt = alla.filter { !kanda.contains($0) }
         }
     }
 
@@ -182,42 +234,59 @@ public struct Katalog: Decodable, Sendable {
         public let vy: String
         public let matt: String
         public let fas: String
-        /// [min, max], nil i en ände = öppen. nil = egen baslinje.
-        public let gront: [Double?]?
-        public let gult: [Double?]?
-        public let kalla: String
-        public let status: String
+        /// [min, max], nil i en ände = öppen. nil = egen baslinje. Järnets band (BESLUT B86).
+        public internal(set) var gront: [Double?]?
+        /// Driverns band, som inte används än (BESLUT B86).
+        public internal(set) var grontDriver: [Double?]?
+        /// Måttets brusgolv: gult inom det utanför bandet, rött längre bort (BESLUT B87, METOD M62).
+        public internal(set) var golv: Double
+        public internal(set) var kalla: String
+        public internal(set) var status: String
         /// false tills källan lästs i original (BESLUT B10).
-        public let kontrollerad: Bool
+        public internal(set) var kontrollerad: Bool
         public let aktiv: Bool
         /// "+" eller "-": åt vilket håll måttet blir sämre. nil = båda.
-        public let samre: String?
+        public internal(set) var samre: String?
         /// Övningens stabila id (historiken jämför på det, inte på texten).
         public let ovningId: String
         public let ovning: String
         public let tanke: String
         public let notering: String?
         /// P-positionerna där granskningen visar felets mått (BESLUT B32); tom = hela svingen.
-        public let positioner: [String]
+        public internal(set) var positioner: [String]
         /// Infobladet (BESLUT B41): vad som mäts, varför det spelar roll och tecknet, på engelska.
-        public let vad: String
-        public let varfor: String
-        public let tecken: String
+        public internal(set) var vad: String
+        public internal(set) var varfor: String
+        public internal(set) var tecken: String
         /// Gränsen är ett antagande härlett ur källan (sway_topp, METOD M15); bladets källa
         /// säger då "Assumption from manufacturer". Valfritt, false utan fältet. BESLUT B41
-        public let gransHarledd: Bool
+        public internal(set) var gransHarledd: Bool
+        /// false = dom (b): visas inte i sessionen för spelaren (BESLUT B86). Valfritt, true utan fältet.
+        public let visas: Bool
+        /// Felets källa när klubban är markerad i passet (over the top, BESLUT B88), eller nil.
+        public let klubba: Klubbkalla?
+        /// Fälten utöver de kända (kontrollen fäller dem, som Python).
+        let andraFalt: [String]
 
-        enum CodingKeys: String, CodingKey {
-            case id, namn, vy, matt, fas, gront, gult, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
-            case positioner, vad, varfor, tecken
+        /// Det gula spannet: bandet vidgat med golvet åt båda hållen, nil utan band. Analysen
+        /// och underlaget till Claude bär det som `gult` (METOD M62, `katalog.gult`).
+        public var gult: [Double?]? {
+            guard let g = gront, g.count == 2 else { return nil }
+            return [g[0].map { $0 - golv }, g[1].map { $0 + golv }]
+        }
+
+        enum CodingKeys: String, CodingKey, CaseIterable {
+            case id, namn, vy, matt, fas, gront, golv, kalla, status, kontrollerad, aktiv, samre, ovning, tanke, notering
+            case positioner, vad, varfor, tecken, visas, klubba
+            case grontDriver = "gront_driver"
             case gransHarledd = "grans_harledd"
             case ovningId = "ovning_id"
         }
 
         public init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            // gront, gult och samre ska stå med även när de är null, som i Python.
-            for nyckel in [CodingKeys.gront, .gult, .samre] where !c.contains(nyckel) {
+            // gront och samre ska stå med även när de är null, som i Python.
+            for nyckel in [CodingKeys.gront, .samre] where !c.contains(nyckel) {
                 throw DecodingError.keyNotFound(nyckel, DecodingError.Context(codingPath: c.codingPath,
                                                                               debugDescription: "saknas"))
             }
@@ -227,7 +296,8 @@ public struct Katalog: Decodable, Sendable {
             matt = try c.decode(String.self, forKey: .matt)
             fas = try c.decode(String.self, forKey: .fas)
             gront = try c.decodeIfPresent([Double?].self, forKey: .gront)
-            gult = try c.decodeIfPresent([Double?].self, forKey: .gult)
+            grontDriver = try c.decodeIfPresent([Double?].self, forKey: .grontDriver)
+            golv = try c.decode(Double.self, forKey: .golv)
             kalla = try c.decode(String.self, forKey: .kalla)
             status = try c.decode(String.self, forKey: .status)
             kontrollerad = try c.decode(Bool.self, forKey: .kontrollerad)
@@ -242,6 +312,32 @@ public struct Katalog: Decodable, Sendable {
             varfor = try c.decode(String.self, forKey: .varfor)
             tecken = try c.decode(String.self, forKey: .tecken)
             gransHarledd = try c.decodeIfPresent(Bool.self, forKey: .gransHarledd) ?? false
+            visas = try c.decodeIfPresent(Bool.self, forKey: .visas) ?? true
+            klubba = try c.decodeIfPresent(Klubbkalla.self, forKey: .klubba)
+            let kanda = Set(CodingKeys.allCases.map { $0.rawValue })
+            andraFalt = try decoder.container(keyedBy: Mattpost.Nyckel.self).allKeys.map { $0.stringValue }
+                .filter { !kanda.contains($0) }
+        }
+    }
+
+    /// Felets källa när klubban är markerad i passet (BESLUT B88): ett av klubbans mått, dess
+    /// positioner, band, golv, källa och infoblad. Som `klubba` i tools/pc/katalog.py.
+    public struct Klubbkalla: Decodable, Sendable {
+        public let matt: String
+        public let positioner: [String]
+        public let gront: [Double?]
+        public let golv: Double
+        public let kalla: String
+        public let status: String
+        public let kontrollerad: Bool
+        public let gransHarledd: Bool
+        public let vad: String
+        public let varfor: String
+        public let tecken: String
+
+        enum CodingKeys: String, CodingKey {
+            case matt, positioner, gront, golv, kalla, status, kontrollerad, vad, varfor, tecken
+            case gransHarledd = "grans_harledd"
         }
     }
 
@@ -279,10 +375,13 @@ public struct Katalog: Decodable, Sendable {
             if let s = e.samre, s != "+" && s != "-" {
                 fel.append("\(e.id): samre ska vara \"+\", \"-\" eller null")
             }
-            for (namn, spann) in [("gront", e.gront), ("gult", e.gult)] {
+            for f in e.andraFalt.sorted() { fel.append("\(e.id): okänt fält \(f)") }
+            for (namn, spann) in [("gront", e.gront), ("gront_driver", e.grontDriver)] {
                 if let s = spann, s.count != 2 { fel.append("\(e.id): \(namn) ska vara [min, max] eller null") }
             }
-            if e.gront == nil && e.gult != nil { fel.append("\(e.id): gult utan gront") }
+            if !(e.golv > 0) { fel.append("\(e.id): golv ska vara ett positivt tal") }
+            if e.gront == nil && e.grontDriver != nil { fel.append("\(e.id): gront_driver utan gront") }
+            if let kl = e.klubba { fel += klubbansFel(e, kl) }
             if e.gransHarledd && e.gront == nil {
                 fel.append("\(e.id): grans_harledd ska vara true/false och kräver gront")
             }
@@ -300,6 +399,8 @@ public struct Katalog: Decodable, Sendable {
             fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
             if let s = e.status, s != "oprovad" { fel.append("\(namn): status ska vara oprovad") }
             if let f = e.fel, !felen.contains(f) { fel.append("\(namn): fel ska vara ett fel i katalogen") }
+            fel += bandetsFel(namn, falt: e.falt, felTyp: e.felTyp, gront: e.gront, grontDriver: e.grontDriver,
+                              golv: e.golv, samre: e.samre, kallaStatus: e.kallaStatus)
             if let vy = Vy(rawValue: e.vy) {
                 // Klubbans mått ur markeringarna (METOD M46–M49) står också här.
                 if !(Matt.namn(vy) + Klubba.katalognamn(vy)).contains(e.matt) {
@@ -317,10 +418,12 @@ public struct Katalog: Decodable, Sendable {
         for e in k.spridning {
             let namn = "spridning \(e.matt)"
             if !e.andraFalt.isEmpty {
-                fel.append("\(namn): ska ha matt, vy, vad, varfor och tecken")
+                fel.append("\(namn): ska ha matt, vy, vad, varfor och tecken, och får ha samre och golv")
                 continue
             }
             fel += info(namn, vad: e.vad, varfor: e.varfor, tecken: e.tecken)
+            fel += bandetsFel(namn, falt: e.falt, felTyp: [], gront: nil, grontDriver: nil, golv: e.golv, samre: e.samre,
+                              kallaStatus: nil)
             if let vy = Vy(rawValue: e.vy) {
                 if !Matt.namn(vy).contains(e.matt) { fel.append("\(namn): måttet finns inte i vyn") }
             } else {
@@ -330,6 +433,53 @@ public struct Katalog: Decodable, Sendable {
             spridda.insert("\(e.vy)/\(e.matt)")
         }
         fel += kontrolleraTreD(k.treD)
+        return fel
+    }
+
+    /// Ett mått med band eller riktning (BESLUT B86, METOD M62), som `_band_fel` i Python: gront
+    /// kräver golv och källan, samre kräver golv, grans_harledd och gront_driver kräver gront.
+    static func bandetsFel(_ namn: String, falt: Set<String>, felTyp: [String], gront: [Double?]?,
+                           grontDriver: [Double?]?, golv: Double?, samre: String?, kallaStatus: String?) -> [String] {
+        var fel: [String] = []
+        for (n, g) in [("gront", gront), ("gront_driver", grontDriver)] where falt.contains(n) {
+            if felTyp.contains(n) || g?.count != 2 { fel.append("\(namn): \(n) ska vara [min, max]") }
+        }
+        if falt.contains("gront"), !["golv", "kalla", "kalla_status", "kontrollerad"].allSatisfy(falt.contains) {
+            fel.append("\(namn): gront kräver golv, kalla, kalla_status, kontrollerad")
+        }
+        if falt.contains("samre"), samre != "+" && samre != "-" { fel.append("\(namn): samre ska vara \"+\" eller \"-\"") }
+        if (falt.contains("gront") || falt.contains("samre")) && !falt.contains("golv") {
+            fel.append("\(namn): gront och samre kräver golv")
+        }
+        if falt.contains("golv"), !((golv ?? 0) > 0) { fel.append("\(namn): golv ska vara ett positivt tal") }
+        if falt.contains("golv"), !falt.contains("gront") && !falt.contains("samre") {
+            fel.append("\(namn): golv kräver gront eller samre")
+        }
+        if falt.contains("kalla_status"), !statusar.contains(kallaStatus ?? "") {
+            fel.append("\(namn): kalla_status ska vara en av \(statusar.joined(separator: ", "))")
+        }
+        if felTyp.contains("kontrollerad") { fel.append("\(namn): kontrollerad ska vara true/false") }
+        if falt.contains("grans_harledd"), felTyp.contains("grans_harledd") || !falt.contains("gront") {
+            fel.append("\(namn): grans_harledd ska vara true och kräver gront")
+        }
+        if falt.contains("gront_driver"), !falt.contains("gront") { fel.append("\(namn): gront_driver kräver gront") }
+        if felTyp.contains("visas") { fel.append("\(namn): visas ska vara true/false") }
+        return fel
+    }
+
+    /// Felets källa med klubban (BESLUT B88), som `_klubba_fel` i Python.
+    static func klubbansFel(_ e: Fel, _ k: Klubbkalla) -> [String] {
+        var fel: [String] = []
+        if Vy(rawValue: e.vy).map({ !Klubba.katalognamn($0).contains(k.matt) }) ?? true {
+            fel.append("\(e.id): klubbans mått finns inte i vyn")
+        }
+        if !positionernaOK(k.positioner, tom: false, klubba: true) { fel.append("\(e.id): klubbans \(positionerFel)") }
+        if k.gront.count != 2 { fel.append("\(e.id): klubbans gront ska vara [min, max]") }
+        if !(k.golv > 0) { fel.append("\(e.id): klubbans golv ska vara ett positivt tal") }
+        if !statusar.contains(k.status) {
+            fel.append("\(e.id): klubbans status ska vara en av \(statusar.joined(separator: ", "))")
+        }
+        fel += info("\(e.id) klubba", vad: k.vad, varfor: k.varfor, tecken: k.tecken)
         return fel
     }
 
@@ -431,10 +581,6 @@ public enum Bedomare {
     /// Inom 2 = gult, längre bort åt det sämre hållet = rött. METOD M27
     public static let gulZ = 2.0
 
-    static func inom(_ v: Double, _ spann: [Double?]) -> Bool {
-        let lo = spann[0], hi = spann[1]
-        return (lo == nil || v >= lo!) && (hi == nil || v <= hi!)
-    }
 
     /// Ett fel bedömt för ett värde (passets median) mot gränsen eller baslinjen.
     public static func bedom(_ fel: Katalog.Fel, varde: Double?, baslinje: [Double]) -> Bedomning {
@@ -444,9 +590,12 @@ public enum Bedomare {
         guard fel.aktiv else { return ut(.av) }
         guard let v = varde else { return ut(.okand) }
         if let gront = fel.gront {
-            if inom(v, gront) { return ut(.gron, "grans") }
-            if let gult = fel.gult { return ut(inom(v, gult) ? .gul : .rod, "grans") }
-            return ut(.gul, "grans")
+            // Gult inom golvet utanför bandet, rött längre bort (METOD M62, BESLUT B87).
+            switch Bandlage.lage(v, gront: gront, golv: fel.golv).lage {
+            case .gron: return ut(.gron, "grans")
+            case .gul: return ut(.gul, "grans")
+            case .rod, .ingen: return ut(.rod, "grans")
+            }
         }
         guard baslinje.count >= minBaslinje else { return ut(.okand) }
         let s = baslinje.sorted()

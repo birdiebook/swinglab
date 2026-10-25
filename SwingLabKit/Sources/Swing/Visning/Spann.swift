@@ -72,6 +72,12 @@ public struct Spann: Equatable, Sendable {
     /// Katalogens gräns som den står (nil i en ände = öppen), nil utan gräns.
     public let grans: (fran: Double?, till: Double?)?
 
+    /// Zonen är den egna baslinjen (ramen "Your usual"), inte en gräns.
+    public var arBaslinje: Bool {
+        if case .baslinje? = zon { return true }
+        return false
+    }
+
     /// Spannet i ord för VoiceOver: "target from 0 cm, last −3.6 cm".
     public var upplasning: String {
         func t(_ v: Double) -> String { Tal.medEnhet(Tal.axel(v, decimaler: Swift.max(decimaler, 1)), enhet) }

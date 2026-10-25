@@ -416,7 +416,7 @@ def _del(pass_id: str, slag: list[dict], kl, langd_m, tidigare: list[dict], kata
         rad = dict(b)
         rad.update(namn=fel["namn"], vy=fel["vy"], matt=m, fas=fel["fas"], enhet=enhet(m),
                    visat=avrunda(m, b["varde"]), n=sn["n"] if sn else 0,
-                   spann=fel["gront"], gult=fel["gult"], kontrollerad=fel["kontrollerad"],
+                   spann=fel["gront"], gult=KAT.gult(fel), kontrollerad=fel["kontrollerad"],
                    kalla_status=fel["status"], samre=fel["samre"],
                    forsta_serien=avrunda(m, fs["median"]) if fs else None,
                    klart_nar=klart_nar(fel, b, sn, b_), baslinje=baslinjen(fel, b_))

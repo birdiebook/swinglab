@@ -37,9 +37,12 @@ public enum Markning: String, Sendable {
         return fel.kontrollerad ? nil : .b10
     }
 
-    /// Ett mått i katalogens `matt`: egen baslinje, eller oprövat. METOD M29, M35–M37
-    public static func fran(_ post: Katalog.Mattpost) -> Markning {
-        post.status == "oprovad" ? .oprovad : .egen
+    /// Ett mått i katalogens `matt`: oprövat, bandet (ej läst i original: B10) eller egen
+    /// baslinje. Bandet bara på järnpass (`klubba`, BESLUT B86). METOD M29, M35–M37, M62
+    public static func fran(_ post: Katalog.Mattpost, klubba: String? = nil) -> Markning? {
+        if post.status == "oprovad" { return .oprovad }
+        if post.band(klubba) != nil { return post.kontrollerad == true ? nil : .b10 }
+        return .egen
     }
 }
 
@@ -74,6 +77,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public var info: Infoblad? = nil
     /// Tempot saknas för att starten är osäker bakifrån: VoiceOver säger det (METOD M40).
     public var ejMatt = false
+    /// Läget mot bandet eller den egna baslinjen: prick, ring eller pil (METOD M62, BESLUT B87).
+    public var lage: Bandlage = .ingen
 
     public init(id: String, matt: String, namn: String, rubrik: String, vy: Vy?, markning: Markning?,
                 varde: String, enhet: String, skillnad: String?, spann: Spann?, geometri: Geometri?) {
@@ -94,6 +99,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public var upplasning: String {
         var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet == ": 1" ? "" : enhet))"]
         if ejMatt { d.append(Texter.ejMatt) }
+        if let l = lage.upplasning(baslinje: spann?.arBaslinje ?? false) { d.append(l) }
         if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
         if let k = skillnad { d.append(k) }
         if let m = markning { d.append(m.upplasning) }
@@ -114,7 +120,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     /// äldst först; det sista är förra passet. Baslinjen är alla svingar i dem (M27).
     public static func kort(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
         var k = kortUtanBlad(fel, nu: nu, tidigare: tidigare)
-        k.info = Infoblad(fel, namn: k.namn)
+        k.info = Infoblad(visat(fel, nu: nu), namn: k.namn)
         if k.startOsaker(nu), let b = k.info {                     // METOD M40
             k.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
                               kalla: "\(b.kalla), \(Texter.startOsakerKalla)")
@@ -123,8 +129,28 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         return k
     }
 
+    /// Felet som det visas i passet `nu`: klubbans källa när klubban är markerad i passet
+    /// (BESLUT B88) och järnets band bara på järnpass (BESLUT B86).
+    public static func visat(_ fel: Katalog.Fel, nu: Pass) -> Katalog.Fel {
+        let markerad = fel.klubba.map { !nu.varden($0.matt, fel.grupp).isEmpty } ?? false
+        return fel.medKalla(klubbaMarkerad: markerad).medKlubba(nu.klubba)
+    }
+
     /// Kortet med måttets namn utan position: kortets rubrik bär den ("FO · top", BESLUT B40).
-    static func kortUtanBlad(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
+    static func kortUtanBlad(_ fel0: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
+        let fel = visat(fel0, nu: nu)
+        var k = kortUtanLage(fel, nu: nu, tidigare: tidigare)
+        // Läget på det visade (avrundade) talet, så att färgen stämmer med talet. METOD M62
+        let fa = nu.varden(fel.matt, fel.grupp)
+        let v = fel.aktiv ? (nu.sammanfattning(fel.matt, fel.grupp)?.median
+            ?? (fa.isEmpty ? nil : Session.percentil(fa.sorted(), 0.5))) : nil
+        if let v, let a = Avrundning.avrunda(fel.matt, v) {
+            k.lage = Bandlage.lage(fel, a, baslinje: tidigare.flatMap { $0.varden(fel.matt, fel.grupp) }, klubba: nil)
+        }
+        return k
+    }
+
+    static func kortUtanLage(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
         let e = Etiketter.etikett(fel.matt)
         let grupp = fel.grupp
         let markning = Markning.fran(fel)
@@ -202,6 +228,8 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
             k = Mattkort(id: post.id, matt: post.matt, namn: namn, rubrik: rubrik(post), vy: Vy(rawValue: post.vy),
                          markning: .egen, varde: Tal.tal(Avrundning.avrunda(post.matt, v), decimaler: e.decimaler),
                          enhet: e.enhet, skillnad: skillnad, spann: spann, geometri: nil)
+            k.lage = Bandlage.lage(post, Avrundning.avrunda(post.matt, v) ?? v,
+                                   baslinje: tidigare.compactMap { $0.spridning(post.matt, post.vy) }, klubba: nu.klubba)
         } else {
             k = Mattkort(id: post.id, matt: post.matt, namn: namn, rubrik: rubrik(post), vy: Vy(rawValue: post.vy),
                          markning: .egen, varde: "—", enhet: e.enhet, skillnad: nil, spann: nil, geometri: nil)
@@ -227,22 +255,25 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
             let a = Avrundning.avrunda(post.matt, med)!, b = Avrundning.avrunda(post.matt, f)!
             skillnad = Texter.mot(Tal.medEnhet(Tal.tecken(a - b, decimaler: e.decimaler), e.enhet), Tal.datum(d))
         }
-        let bas = Baslinje.spann(tidigare.flatMap { $0.varden(post.matt, post.vy) })
-        let spann = Spann(nu: med, spridning: nil, forra: f, gront: nil, baslinje: bas, decimaler: e.decimaler,
-                          enhet: e.enhet)
+        let tidigareV = tidigare.flatMap { $0.varden(post.matt, post.vy) }
+        let bas = Baslinje.spann(tidigareV)
+        let spann = Spann(nu: med, spridning: nil, forra: f, gront: post.band(nu.klubba), baslinje: bas,
+                          decimaler: e.decimaler, enhet: e.enhet)
         let rubrik = ([Etiketter.vy(post.vy)] + (e.fas.isEmpty ? [] : [e.fas]) + [Texter.n(v.count)])
             .joined(separator: " · ")
         var k = Mattkort(id: "\(post.matt)_\(post.vy)", matt: post.matt, namn: e.namn, rubrik: rubrik,
-                         vy: Vy(rawValue: post.vy), markning: .egen,
+                         vy: Vy(rawValue: post.vy), markning: Markning.fran(post, klubba: nu.klubba),
                          varde: text(Avrundning.avrunda(post.matt, med), e), enhet: e.enhet, skillnad: skillnad,
                          spann: spann, geometri: nil)
+        k.lage = Bandlage.lage(post, Avrundning.avrunda(post.matt, med) ?? med, baslinje: tidigareV, klubba: nu.klubba)
         k.info = Infoblad(post, namn: e.namn)
         return k
     }
 
     /// Passets kort i katalogens ordning: felen, spridningen mellan slagen (METOD M44), klubbens
     /// mått när slag är markerade (S7a) och de avstängda sist. `ovas` = felen i Att jobba på
-    /// (BESLUT B31).
+    /// (BESLUT B31). Dom (b) visas inte (`visas: false`, BESLUT B86) utom ett fel som övas, och ett
+    /// klubbmått som ett fel redan bygger på (over the top, BESLUT B88) får inget eget kort.
     public static func passet(_ katalog: Katalog, nu: Pass, tidigare: [Pass], ovas: Set<String> = []) -> [Mattkort] {
         func fel(_ f: [Katalog.Fel]) -> [Mattkort] {
             f.map { f -> Mattkort in
@@ -251,11 +282,19 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
                 return k
             }
         }
-        return fel(katalog.fel.filter { $0.aktiv })
+        let synliga = katalog.fel.filter { $0.visas(ovas: ovas) }
+        let tagna = Set(synliga.compactMap { f -> String? in
+            let v = visat(f, nu: nu)
+            return v.matt != f.matt ? v.matt : nil
+        })
+        return fel(synliga.filter { $0.aktiv })
             + katalog.spridning.map { kort($0, nu: nu, tidigare: tidigare) }
-            + katalog.matt.filter { m in Vy(rawValue: m.vy).map { Klubba.specifika($0).contains(m.matt) } ?? false }
+            + katalog.matt.filter { m in
+                m.visas && !tagna.contains(m.matt)
+                    && (Vy(rawValue: m.vy).map { Klubba.specifika($0).contains(m.matt) } ?? false)
+            }
                 .compactMap { kort(klubba: $0, nu: nu, tidigare: tidigare) }
-            + fel(katalog.fel.filter { !$0.aktiv })
+            + fel(synliga.filter { !$0.aktiv })
     }
 }
 

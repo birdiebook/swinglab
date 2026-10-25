@@ -354,12 +354,13 @@ def _vardera(rng: random.Random, medel: float, spr: float) -> float:
     return round(medel + rng.gauss(0, spr), 6)
 
 
-# Måtten per vy med medel och spridning för ett påhittat pass (cm, grader, kvot).
-MATT_FO = {"backen_sway_topp": (-5.0, 1.2), "backen_resa_framat": (6.0, 1.5), "sway_gap_traff": (9.0, 1.5),
+# Måtten per vy med medel och spridning för ett påhittat pass (cm, grader, kvot). Resan framåt och
+# händernas bana ligger innanför research 6:s band (BESLUT B86), som felen utan gräns gjorde förut.
+MATT_FO = {"backen_sway_topp": (-5.0, 1.2), "backen_resa_framat": (12.0, 1.5), "sway_gap_traff": (9.0, 1.5),
            "sidbojning_topp": (2.0, 1.5), "framre_armbage_efter_traff": (12.0, 4.0),
            "framre_armbage_topp": (8.0, 3.0), "axellinje_lutning_traff": (30.0, 2.0), "tempo": (2.9, 0.15)}
 MATT_DTL = {"backen_thrust_traff": (3.0, 1.5), "brost_bojning_tapp": (4.0, 1.5), "bakre_armbage_topp": (95.0, 6.0),
-            "handbana": (2.0, 2.0), "brost_bojning_adress": (40.0, 1.5), "brost_bojning_traff": (36.0, 2.0),
+            "handbana": (-2.0, 2.0), "brost_bojning_adress": (40.0, 1.5), "brost_bojning_traff": (36.0, 2.0),
             "tempo": (2.9, 0.15)}
 
 
@@ -713,7 +714,9 @@ def facit_svar(namn: str, historik: dict) -> list[tuple[str, str]]:
                ("annat_block_sist", _svar_text(fil, rapport) + "\n```json\n{\"pass\": 1}\n```\n")]
         ut += [(n, x if isinstance(x, str) else _svar_text(x, rapport)) for n, x in mutationer(fil, u)]
     elif namn == "forsta":
-        s = _sak_ur_katalogen(katalog, kedjor, u, "reverse_spine")
+        # Ett fel utan gräns och utan baslinje är okänt i första passet (reverse spine har ett
+        # band sedan BESLUT B86).
+        s = _sak_ur_katalogen(katalog, kedjor, u, "chicken_wing")
         ut.append(("okant_med_flaggade", _svar_text(dict(d["fil"], saker=[s]))))
     elif namn == "byt":
         s = _sak_ur_katalogen(katalog, kedjor, u, "early_extension", ov_id="stol_bakom")

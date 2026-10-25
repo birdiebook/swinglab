@@ -80,12 +80,14 @@ final class VisningTests: XCTestCase {
     func testUpplasningen() throws {
         let v = Passvisning(katalog: try katalog(), pass: Demo.pass)
         let sway = try XCTUnwrap(v.kort.first { $0.id == "sway_topp" })
-        XCTAssertEqual(sway.upplasning, "Hip sway −3.0 cm, target from −2.5 cm, last −3.6 cm, +0.6 cm vs Jan 6")
+        // Läget i ord efter talet (METOD M62): −3.0 ligger inom golvet utanför −2.5.
+        XCTAssertEqual(sway.upplasning,
+                       "Hip sway −3.0 cm, just outside range, target from −2.5 cm, last −3.6 cm, +0.6 cm vs Jan 6")
         let tempo = try XCTUnwrap(v.kort.first { $0.id == "tempo" })
-        XCTAssertTrue(tempo.upplasning.hasPrefix("Swing tempo 2.90, target 2.5 to 3.1"), tempo.upplasning)
+        XCTAssertTrue(tempo.upplasning.hasPrefix("Swing tempo 2.90, in range, target 2.5 to 3.1"), tempo.upplasning)
         let tapp = try XCTUnwrap(v.kort.first { $0.id == "tappad_hallning" })
-        XCTAssertTrue(tapp.upplasning.contains("own baseline"), tapp.upplasning)
-        XCTAssertEqual(v.kort.last?.upplasning, "Shoulder tilt, off")
+        XCTAssertTrue(tapp.upplasning.contains("your usual"), tapp.upplasning)
+        XCTAssertFalse(v.kort.contains { $0.id == "axellutning" })          // dom (b), BESLUT B86
         let j = AttJobbaPaVisning(Demo.attJobbaPa, katalog: try katalog())
         XCTAssertEqual(j.saker[0].upplasning, "Hip sway −3.0 cm, target from −2.5 cm, FO · top · week 5")
         XCTAssertEqual(j.saker[0].foljd[2].upplasning, "Hip shift to target, Spine angle loss +2.0°")
@@ -131,24 +133,26 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(sway.kalla, "Assumption from manufacturer (help.sportsbox.ai, golf.com)")
         XCTAssertEqual(v.kort.first { $0.id == "tempo" }?.info?.kalla, "Manufacturer (blastmotion.com)")
         XCTAssertEqual(v.kort.first { $0.id == "early_extension" }?.info?.kalla,
-                       "Assumption from manufacturer (help.sportsbox.ai)")          // BESLUT B45
+                       "Manufacturer (help.sportsbox.ai)")                          // idealet, BESLUT B86
         XCTAssertEqual(v.kort.first { $0.id == "tappad_hallning" }?.info?.kalla, "Assumption, own baseline")
-        XCTAssertEqual(v.kort.first { $0.id == "flying_elbow" }?.info?.kalla, "Assumption, own baseline")
+        XCTAssertEqual(Infoblad.fran(k, matt: "bakre_armbage_topp", vy: .dtl)?.kalla, "Assumption, own baseline")
+        XCTAssertEqual(Infoblad.fran(k, matt: "brost_lyft_topp", vy: .dtl)?.kalla,
+                       "Assumption from manufacturer (help.sportsbox.ai)")         // tour ± golv, BESLUT B86
         XCTAssertTrue(v.kort.allSatisfy { $0.info != nil })
         let fart = try XCTUnwrap(Infoblad.fran(k, matt: "handfart_max", vy: .fo))
         XCTAssertEqual(fart.kalla, "Assumption, own baseline, untested on the phone")
         XCTAssertEqual(sway.upplasning, "Hip sway. \(sway.vad) \(sway.varfor) + toward target · − away. "
                        + "Source: Assumption from manufacturer (help.sportsbox.ai, golf.com)")
-        let genom = try XCTUnwrap(Infoblad.fran(k, matt: "genomsving_s", vy: .dtl))
-        XCTAssertEqual(genom.kalla, "Assumption, own baseline, untested on the phone")
+        let tid = try XCTUnwrap(Infoblad.fran(k, matt: "handfart_max_fore_traff_ms", vy: .fo))
+        XCTAssertEqual(tid.kalla, "Assumption, own baseline, untested on the phone")
         XCTAssertEqual(Infoblad.fran(k, matt: "huvud_mot_bollen_topp", vy: .dtl)?.namn, "Head toward ball")
         let idag = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: Demo.pass, attJobbaPa: nil)
         XCTAssertTrue(idag.rader.allSatisfy { $0.info != nil })
-        let rader = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["hand_djup_topp": -20])
-        let djup = try XCTUnwrap(rader.first { $0.matt == "hand_djup_topp" })
-        XCTAssertEqual(djup.namn, "Hand depth")
-        XCTAssertEqual(djup.info?.tecken, "+ toward ball · − in toward the body")
-        XCTAssertEqual(djup.info?.kalla, "Assumption, own baseline")
+        let rader = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["huvud_mot_bollen_topp": 2])
+        let huvud = try XCTUnwrap(rader.first { $0.matt == "huvud_mot_bollen_topp" })
+        XCTAssertEqual(huvud.namn, "Head toward ball")
+        XCTAssertEqual(huvud.info?.tecken, "+ toward ball · − away")
+        XCTAssertEqual(huvud.info?.kalla, "Assumption, own baseline")
     }
 
     /// Tempot utan säker start bakifrån (METOD M40): "—" i passet och på Today, utan spann,
@@ -198,7 +202,7 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(kort.info?.kalla, "Assumption, own baseline")
         XCTAssertNotNil(v.kort.first { $0.id == "brost_bojning_adress_spridning" })
         XCTAssertFalse(v.filtrerat(.fo).contains { $0.id == kort.id })
-        XCTAssertEqual(v.kort.last?.id, "axellutning")                     // det avstängda sist
+        XCTAssertFalse(v.kort.contains { $0.id == "axellutning" })         // avstängt och dom (b)
         let i = Idagvisning(idag: Tal.dag(2027, 1, 13), katalog: k, pass: Demo.pass, attJobbaPa: nil)
         XCTAssertFalse(i.rader.contains { $0.id.hasSuffix("_spridning") })
         let u = Utvecklingsvisning(katalog: k, pass: Demo.pass, block: Demo.block)
@@ -388,11 +392,14 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(a - t, 2, accuracy: 1e-6)
         guard case .baslinje? = tapp.spann?.zon else { return XCTFail("egen utan baslinje") }
 
-        let av = try XCTUnwrap(v.kort.last)
+        // Det avstängda felet är dom (b) (BESLUT B86) och syns bara när det övas, sist.
+        let av = try XCTUnwrap(Passvisning(katalog: try katalog(), pass: Demo.pass, ovas: ["axellutning"]).kort.last)
         XCTAssertEqual(av.id, "axellutning")
         XCTAssertEqual(av.markning, .av)
         XCTAssertEqual(av.varde, "—")
         XCTAssertNil(av.spann)
+        XCTAssertEqual(av.lage, .ingen)
+        XCTAssertFalse(v.kort.contains { $0.id == "axellutning" || $0.id == "flying_elbow" })
 
         // Filtret: ett kort för båda telefonerna syns i båda.
         XCTAssertTrue(v.filtrerat(.fo).contains { $0.id == "tempo" })
@@ -608,8 +615,8 @@ final class VisningTests: XCTestCase {
         XCTAssertEqual(lo, -2.5)
         XCTAssertEqual(hi, .infinity)
         XCTAssertGreaterThanOrEqual(sway.axel.hi, 0)       // gränsen syns i diagrammet
-        let resa = try XCTUnwrap(v.matt.first { $0.id == "backens_resa_framat" })
-        guard case .baslinje? = resa.band else { return XCTFail("resan utan baslinje") }
+        let resa = try XCTUnwrap(v.matt.first { $0.id == "bojd_framre_arm" })
+        guard case .baslinje? = resa.band else { return XCTFail("armen utan baslinje") }
         XCTAssertFalse(resa.harSerie1 && resa.punkter.allSatisfy { $0.serie1 == $0.pass })
         XCTAssertFalse(v.matt.contains { $0.id == "axellutning" })   // avstängt
     }
@@ -699,14 +706,15 @@ final class VisningTests: XCTestCase {
         let dtl = Pass(datum: Tal.dag(2027, 1, 12), klubba: "7i", svingar: Demo.pass.last!.svingar.filter { $0.vy == .dtl })
         let bara = Utvecklingsvisning(katalog: k, pass: fo)
         let blandat = Utvecklingsvisning(katalog: k, pass: fo + [dtl])
-        let a = try XCTUnwrap(bara.matt.first { $0.id == "backens_resa_framat" })
-        let b = try XCTUnwrap(blandat.matt.first { $0.id == "backens_resa_framat" })
+        // Ett FO-fel med egen baslinje (resan har ett band sedan BESLUT B86).
+        let a = try XCTUnwrap(bara.matt.first { $0.id == "bojd_framre_arm" })
+        let b = try XCTUnwrap(blandat.matt.first { $0.id == "bojd_framre_arm" })
         guard case let .baslinje(lo, hi)? = a.band, case let .baslinje(lo2, hi2)? = b.band else {
-            return XCTFail("resan utan baslinje")
+            return XCTFail("armen utan baslinje")
         }
         XCTAssertEqual(lo, lo2, "DTL-passet sist rör inte FO-måttets baslinje")
         XCTAssertEqual(hi, hi2)
-        let facit = try XCTUnwrap(Baslinje.spann(fo.dropLast().flatMap { $0.varden("backen_resa_framat", "fo") }))
+        let facit = try XCTUnwrap(Baslinje.spann(fo.dropLast().flatMap { $0.varden("framre_armbage_topp", "fo") }))
         XCTAssertEqual(lo, facit.lo, accuracy: 1e-12)
         XCTAssertEqual(b.punkter.count, 16)
         XCTAssertEqual(b.period, "7i\u{00A0}· Oct–Jan\u{00A0}· 16", "måttets pass, inte DTL-passet")

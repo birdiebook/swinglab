@@ -183,10 +183,10 @@ public enum Texter {
 
     // MARK: märkningen (Markning)
 
-    public static let markningEgen = "own"
+    public static let markningEgen = "Your usual"
     public static let markningAv = "off"
     public static let upplasningB10 = "limit not read in original"
-    public static let upplasningEgen = "own baseline"
+    public static let upplasningEgen = "your usual"
     public static let upplasningAv = "off"
     /// Farterna (METOD M35–M37): oprövade på telefonen, kräver skarp bild (BESLUT B11).
     public static let markningOprovad = "untested"
@@ -201,7 +201,16 @@ public enum Texter {
     public static func malMellan(_ a: String, _ b: String) -> String { "target \(a) to \(b)" }
     public static func malFran(_ a: String) -> String { "target from \(a)" }
     public static func malTill(_ b: String) -> String { "target up to \(b)" }
-    public static func egenBaslinje(_ a: String, _ b: String) -> String { "own baseline \(a) to \(b)" }
+    public static func egenBaslinje(_ a: String, _ b: String) -> String { "your usual \(a) to \(b)" }
+
+    // MARK: läget mot bandet (METOD M62, BESLUT B87): för VoiceOver, inga värdeord (B13)
+
+    public static let lageInne = "in range"
+    public static let lageNara = "just outside range"
+    public static let lageOver = "above range"
+    public static let lageUnder = "below range"
+    public static let lageOverVanligt = "above your usual"
+    public static let lageUnderVanligt = "below your usual"
     public static func forra(_ v: String) -> String { "last \(v)" }
 
     // MARK: passet
