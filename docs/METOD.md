@@ -2069,7 +2069,10 @@ står i kugghjulet (BESLUT B85).
 - **Lutningen** mitt på skärmen, för alla roller: på när |lutningen åt sidan| > **2,0°**, av
   när den är < **1,5°** (hysteres, så att den inte blinkar vid gränsen), och alltid över **45°**
   från lodlinjen; raden "Tilt too large for 3D" (MS17, MS19) bara med två telefoner, ensam bara
-  talet och "Level the phone". Talet i hela grader. **Varför 2°:**
+  talet och "Level the phone". Talet i hela grader och är lutningen som visar rutan: över 45°
+  vinkeln från lodlinjen (så att 50° framåt och rakt åt sidan inte står som "0°"), annars
+  lutningen åt sidan; linjen följer alltid lutningen åt sidan (`LutningsVisare.vinkel`,
+  granskningen av S2j). **Varför 2°:**
   framifrån går rullningen **1:1** in i skaftets vinkel, toppen och skaftlutningen (M49:
   rullad 1° ger +1,0° och −1,0°), och de har egen baslinje, så en lutning som skiljer mellan
   pass syns som en ändring i svingen; 2° är ungefär klubbmåttens osäkerhet per tryck (M49:

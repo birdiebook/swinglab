@@ -51,9 +51,12 @@ extension SwingLabProvVyer {
         try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: sex), "insp-ensam-lutning", farger: [.rod])
         try skarm(InspelningsLager(status: .ingen, varning: .bildfrekvens(120)), "insp-ensam-varning", farger: [.rod, .gul])
 
-        // Över 45°: med två telefoner också "Tilt too large for 3D"; ensam bara talet (B85).
+        // Över 45°: med två telefoner också "Tilt too large for 3D"; ensam bara talet (B85). Rakt åt
+        // sidan men 50° framåt: talet är 50°, inte 0°, och linjen ligger på bildens vågräta (MS32).
         let p = 50.0 * .pi / 180
         let framat = try XCTUnwrap(Lutning(gravity: [0, -cos(p), -sin(p)]))
+        XCTAssertEqual(abs(framat.sida), 0, accuracy: 1e-9)
+        XCTAssertEqual(LutningsVisare.text(framat), "50°")
         try skarm(InspelningsLager(status: .kopplad, varning: nil, lutning: framat), "insp-lead-lutning-for-stor",
                   farger: [.rod, .gron])
         try skarm(InspelningsLager(status: .ingen, varning: nil, lutning: framat, lutning3D: false),

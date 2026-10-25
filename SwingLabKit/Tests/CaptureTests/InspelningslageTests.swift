@@ -167,6 +167,54 @@ final class InspelningslageTests: XCTestCase {
     func testLutningensTal() {
         XCTAssertEqual(LutningsVisare.text(lutning(6.2)), "6°")
         XCTAssertEqual(LutningsVisare.text(lutning(-2.6)), "3°")
+        XCTAssertEqual(LutningsVisare.vinkel(lutning(-2.6)), 2.6, accuracy: 1e-9)
+    }
+
+    /// Lutningen framåt eller bakåt i grader, ingen åt sidan.
+    func framat(_ grader: Double) throws -> Lutning {
+        let p = grader * .pi / 180
+        return try XCTUnwrap(Lutning(gravity: [0, -cos(p), -sin(p)]))
+    }
+
+    func testTaletArLutningenSomVisarRutan() throws {
+        // Rullning 0°, 50° framåt: rutan visas för 45°-regeln, och talet är 50°, inte 0°.
+        let l = try framat(50)
+        XCTAssertEqual(l.sida, 0, accuracy: 1e-9)
+        var v = LutningsVisare()
+        XCTAssertTrue(v.uppdatera(l))
+        XCTAssertEqual(LutningsVisare.vinkel(l), 50, accuracy: 1e-9)
+        XCTAssertEqual(LutningsVisare.text(l), "50°")
+        // Bakåt likadant.
+        XCTAssertEqual(LutningsVisare.text(try framat(-60)), "60°")
+        // Under 45° framåt räknas bara lutningen åt sidan: 30° framåt och 3° åt sidan är "3°".
+        let p = 30.0 * .pi / 180, r = 3.0 * .pi / 180
+        let blandad = try XCTUnwrap(Lutning(gravity: [sin(r) * cos(p), -cos(r) * cos(p), -sin(p)]))
+        XCTAssertFalse(blandad.forStorFor3D)
+        XCTAssertEqual(LutningsVisare.text(blandad), "3°")
+        // Över 45° och lutad åt sidan: vinkeln från lodlinjen, som är den som utlöste rutan.
+        let p2 = 50.0 * .pi / 180
+        let bada = try XCTUnwrap(Lutning(gravity: [sin(r) * cos(p2), -cos(r) * cos(p2), -sin(p2)]))
+        XCTAssertTrue(bada.forStorFor3D)
+        XCTAssertEqual(LutningsVisare.vinkel(bada), bada.franLodlinjen, accuracy: 1e-9)
+        XCTAssertGreaterThan(LutningsVisare.vinkel(bada), 45)
+        // Ett trasigt tal kraschar inte talet.
+        var trasig = l
+        trasig.franLodlinjen = .nan
+        XCTAssertEqual(LutningsVisare.text(trasig), "0°")
+    }
+
+    func testHysteresenOforandradAvTalet() throws {
+        // Talet ändrar inte när rutan visas: samma gränser som förut, också efter 45°.
+        var v = LutningsVisare()
+        XCTAssertTrue(v.uppdatera(try framat(50)))            // 45°-regeln
+        XCTAssertFalse(v.uppdatera(try framat(40)))           // under 45° och rakt åt sidan: av
+        XCTAssertFalse(v.uppdatera(lutning(2.0)))
+        XCTAssertTrue(v.uppdatera(lutning(2.05)))
+        XCTAssertTrue(v.uppdatera(lutning(1.5)))
+        XCTAssertFalse(v.uppdatera(lutning(1.49)))
+        XCTAssertEqual(LutningsVisare.pa, 2.0)
+        XCTAssertEqual(LutningsVisare.av, 1.5)
+        XCTAssertEqual(Plumb.maxTilt, 45)
     }
 
     // MARK: Den andra telefonen slutade

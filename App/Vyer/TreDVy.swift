@@ -141,8 +141,8 @@ struct AnnanTelefonRad: View {
 
 /// Lutningen mitt på skärmen (B39, B85, MS17, MS19, MS32): en vit horisontlinje genom bildens
 /// mitt, vriden med lutningen åt sidan, bildens vågräta streckad, och under den en svart ruta med
-/// talet i hela grader och "Level the phone"; över 45° från lodlinjen också "Tilt too large for
-/// 3D". Svartvitt. Inspelningen visar den bara när lutningen är för stor (`LutningsVisare`).
+/// talet i hela grader och "Level the phone"; över 45° från lodlinjen är talet den vinkeln
+/// (`LutningsVisare.vinkel`), och med två telefoner står också "Tilt too large for 3D" där. Svartvitt. Inspelningen visar den bara när lutningen är för stor (`LutningsVisare`).
 struct LutningVy: View {
     let lutning: Lutning?
     /// Raden "Tilt too large for 3D" över 45°: bara med två telefoner (B85).

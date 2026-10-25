@@ -210,7 +210,9 @@ struct RecordView: View {
             if let g = GravityRecorder.shared.latest, let l = Lutning(gravity: [g.x, g.y, g.z]) {
                 let visas = r.visare.uppdatera(l)
                 if visas != visaLutning { visaLutning = visas }
-                if lutning == nil || abs(l.sida - (lutning?.sida ?? 0)) >= 0.1 || l.forStorFor3D != lutning?.forStorFor3D {
+                // Linjen följer lutningen åt sidan; talet kan vara vinkeln från lodlinjen (MS32).
+                if lutning == nil || abs(l.sida - (lutning?.sida ?? 0)) >= 0.1 || l.forStorFor3D != lutning?.forStorFor3D
+                    || LutningsVisare.text(l) != lutning.map(LutningsVisare.text) {
                     lutning = l
                 }
             }

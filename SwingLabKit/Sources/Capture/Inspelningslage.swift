@@ -150,7 +150,8 @@ public enum InspelningsVarning: Equatable, Sendable {
 
 /// Lutningen mitt på skärmen bara när den är för stor, med hysteres så att den inte blinkar vid
 /// gränsen: på över 2,0°, av under 1,5° (lutningen åt sidan). Över 45° från lodlinjen visas den
-/// alltid ("Tilt too large for 3D", MS17). METOD MS32
+/// alltid ("Tilt too large for 3D", MS17). Talet är den lutning som visar rutan: över 45° vinkeln
+/// från lodlinjen (också framåt och bakåt), annars lutningen åt sidan. METOD MS32
 public struct LutningsVisare: Equatable, Sendable {
     public static let pa = 2.0
     public static let av = 1.5
@@ -173,8 +174,16 @@ public struct LutningsVisare: Equatable, Sendable {
         return visas
     }
 
-    /// Talet i rutan: hela grader, "6°".
-    public static func text(_ l: Lutning) -> String { "\(Int(abs(l.sida).rounded()))°" }
+    /// Vinkeln i rutan, grader: den som visar rutan. Över 45° från lodlinjen den vinkeln, så att en
+    /// telefon som lutar 50° framåt men står rakt åt sidan inte visar 0°; annars |lutningen åt
+    /// sidan|. Horisontlinjen följer alltid lutningen åt sidan. METOD MS32
+    public static func vinkel(_ l: Lutning) -> Double {
+        if l.forStorFor3D, l.franLodlinjen.isFinite { return abs(l.franLodlinjen) }
+        return l.sida.isFinite ? abs(l.sida) : 0
+    }
+
+    /// Talet i rutan: hela grader, "6°" (`vinkel`).
+    public static func text(_ l: Lutning) -> String { "\(Int(vinkel(l).rounded()))°" }
 }
 
 /// Den styrande ser att den andra telefonen slutade spela in mitt i serien: bara efter att följaren
