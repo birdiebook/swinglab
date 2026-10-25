@@ -53,8 +53,13 @@ LIKA = 0.95                # METOD MF7: korrelationen över vilken två bilder �
 PROV_ANDEL = 0.10          # METOD MF7: andel av varje källas bilder som hålls ut för provet
 VAL_ANDEL = 0.10           # METOD MF7: andel för valet av vikter under träningen
 DELAR = ("train", "valid", "test")            # Roboflows mappnamn; test = provet
-TROSKEL = 0.30             # METOD MF7: förslag med lägre konfidens ritas inte
-UTSNITT_SKALA = 2.0        # METOD MF7: utsnittets sida = 2,0 × kroppens höjd i bild
+TROSKEL = 0.30             # METOD MF7: modellens rutor med lägre konfidens ritas inte i kontaktarket
+UTSNITT_SKALA = 2.0        # METOD MF7: utsnittets sida kring kroppen (utan händer) = 2,0 × kroppens höjd
+HAND_SKALA = 1.5           # METOD MF7: utsnittets sida kring händerna = 1,5 × kroppens höjd
+HANDLEDER = (5, 6)         # handled_v och handled_h i filens ordning (format.LEDER_FIL)
+GRANNAR_RUTOR = 3          # METOD MF7: en säker granne söks högst så många rutor bort åt varje håll
+GRANNAR_TOL = (0.02, 0.25) # METOD MF7: avstånd från grannarnas linje: × kroppens höjd + × grannarnas avstånd
+GRANNAR_MIN = 0.2          # METOD MF7: lägsta egna konfidens som grannarna kan lyfta
 RUTA_PX = 320              # px per ruta i förslagens kontaktark
 # Rutorna i kontaktarket, som andel av fasen mellan två tider (faser.py, METOD M4).
 FASER_ARK = (("adress", None), ("baksving 1/3", ("start", "topp", 1 / 3)),
@@ -332,23 +337,40 @@ def tider_ark(faser: dict) -> list[tuple[str, float]]:
     return ut
 
 
-def utsnitt(leder_rutor: list[list], bredd: int, hojd: int, skala: float = UTSNITT_SKALA,
-            min_konfidens: float = 0.3) -> tuple[int, int, int] | None:
-    """Ett kvadratiskt utsnitt (x0, y0, sida) kring golfaren för hela svingen: mitten i
-    ledernas gemensamma ruta, sidan `skala` × kroppens höjd (lägst till högst led), högst
-    bildens långsida. Är sidan större än bilden åt ett håll ligger utsnittet utanför där (`skar`
-    fyller med svart), annars inom bilden. None utan leder. METOD MF7"""
-    p = [(x, y) for leder in leder_rutor for j in leder if j is not None
-         for x, y, c in [(j["x"], j["y"], j["c"]) if isinstance(j, dict) else j] if c >= min_konfidens]
+def _xyc(j) -> tuple[float, float, float]:
+    return (j["x"], j["y"], j["c"]) if isinstance(j, dict) else (j[0], j[1], j[2])
+
+
+def kroppen(leder_rutor: list[list], min_konfidens: float = 0.3) -> tuple[float, float, float] | None:
+    """(kroppens höjd, mitt x, mitt y) i px över svingens rutor: ledernas gemensamma ruta, höjden
+    dess största sida (lägst till högst led). None utan leder. METOD MF7"""
+    p = [_xyc(j)[:2] for leder in leder_rutor for j in leder if j is not None and _xyc(j)[2] >= min_konfidens]
     if not p:
         return None
     a = np.array(p, float)
     (x0, y0), (x1, y1) = a.min(0), a.max(0)
-    sida = int(min(max(bredd, hojd), round(skala * max(y1 - y0, x1 - x0))))
-    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    ux = int(np.clip(round(cx - sida / 2), min(0, bredd - sida), max(0, bredd - sida)))
-    uy = int(np.clip(round(cy - sida / 2), min(0, hojd - sida), max(0, hojd - sida)))
-    return ux, uy, sida
+    return float(max(y1 - y0, x1 - x0)), float((x0 + x1) / 2), float((y0 + y1) / 2)
+
+
+def hander(leder: list, min_konfidens: float = 0.3) -> tuple[float, float] | None:
+    """Händernas mitt i rutan: handledernas mitt, eller den som syns (greppregeln, METOD M1)."""
+    h = [_xyc(leder[i])[:2] for i in HANDLEDER
+         if i < len(leder) and leder[i] is not None and _xyc(leder[i])[2] >= min_konfidens]
+    return (sum(x for x, _ in h) / len(h), sum(y for _, y in h) / len(h)) if h else None
+
+
+def utsnitt(leder: list, kropp: tuple[float, float, float], bredd: int, hojd: int) -> tuple[int, int, int]:
+    """Rutans kvadratiska utsnitt (x0, y0, sida) i klippets px: kring händerna med sidan
+    HAND_SKALA × kroppens höjd, så att klubban ryms åt alla håll utan att bli liten; utan
+    händer kring kroppens mitt med UTSNITT_SKALA. Högst bildens långsida; det som ligger utanför
+    bilden fyller `skar` med svart. METOD MF7"""
+    H, cx, cy = kropp
+    m = hander(leder)
+    sida = HAND_SKALA * H if m else UTSNITT_SKALA * H
+    if m:
+        cx, cy = m
+    sida = int(max(1, min(max(bredd, hojd), round(sida))))
+    return int(round(cx - sida / 2)), int(round(cy - sida / 2)), sida
 
 
 def skar(bild: np.ndarray, x0: int, y0: int, sida: int) -> np.ndarray:
@@ -361,14 +383,57 @@ def skar(bild: np.ndarray, x0: int, y0: int, sida: int) -> np.ndarray:
     return ut
 
 
-def _rita(img: np.ndarray, rad: list[dict], text: str) -> np.ndarray:
+def over_tiden(p: list[dict | None], hojd_px: float, grans: float | None = None,
+               n: int = GRANNAR_RUTOR) -> tuple[list[dict | None], dict]:
+    """Klubbhuvudets punkter i svingens rutor i ordning (None där modellen inte gav något) prövas
+    mot grannarna: närmaste punkt med konfidens ≥ `grans` (MF8) högst `n` rutor bort åt varje
+    håll. Med en sådan granne åt båda håll ska punkten ligga högst 0,02 × kroppens höjd +
+    0,25 × grannarnas avstånd från linjen mellan dem. En punkt som gör det och själv har minst
+    GRANNAR_MIN får den svagare grannens konfidens om den är högre än den egna; en som inte gör
+    det stryks, också en säker. Utan granne åt båda håll gäller modellens egen konfidens. Svarar
+    (punkterna med konfidens ≥ `grans`, annars None; {"lyfta", "strukna"}). METOD MF7"""
+    if grans is None:
+        from .klubba_forslag import VISA_KONFIDENS as grans
+    saker = [q is not None and q["konfidens"] >= grans for q in p]
+    ut: list[dict | None] = [None] * len(p)
+    lyfta = strukna = 0
+    for i, q in enumerate(p):
+        if q is None:
+            continue
+        v = next((j for j in range(i - 1, max(-1, i - n - 1), -1) if saker[j]), None)
+        h = next((j for j in range(i + 1, min(len(p), i + n + 1)) if saker[j]), None)
+        if v is None or h is None:
+            ut[i] = q if saker[i] else None
+            continue
+        a, b = p[v], p[h]
+        u = (i - v) / (h - v)
+        ex, ey = a["x"] + u * (b["x"] - a["x"]), a["y"] + u * (b["y"] - a["y"])
+        tol = GRANNAR_TOL[0] * hojd_px + GRANNAR_TOL[1] * math.hypot(b["x"] - a["x"], b["y"] - a["y"])
+        if math.hypot(q["x"] - ex, q["y"] - ey) > tol:
+            strukna += saker[i]
+            continue
+        k = q["konfidens"]
+        if not saker[i] and k >= GRANNAR_MIN:
+            k = min(a["konfidens"], b["konfidens"])
+            lyfta += 1
+        if k >= grans:
+            ut[i] = {**q, "konfidens": round(float(k), 3)}
+    return ut, {"lyfta": lyfta, "strukna": strukna}
+
+
+def _rita(img: np.ndarray, rad: list[dict], punkt: tuple[float, float] | None = None) -> np.ndarray:
+    """Modellens rutor (konfidens ≥ TROSKEL) och, grön, punkten som står i förslagsfilen."""
     import cv2
     ut = img.copy()
     for r in rad:
+        if r["konfidens"] < TROSKEL:
+            continue
         x, y, w, h = (int(round(v)) for v in r["bbox"])
         f = FARG[r["klass"]]
         cv2.rectangle(ut, (x, y), (x + w, y + h), f, 2)
         cv2.putText(ut, f"{r['konfidens']:.2f}", (x, max(12, y - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, f, 1)
+    if punkt is not None:
+        cv2.circle(ut, (int(round(punkt[0])), int(round(punkt[1]))), max(4, ut.shape[0] // 60), (0, 230, 0), -1)
     return ut
 
 
@@ -379,17 +444,15 @@ def _etikett(img: np.ndarray, text: str) -> np.ndarray:
     return img
 
 
-def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TROSKEL,
-            s3: Path | None = None) -> list[dict]:
-    """Ett kontaktark per sving (<ut>/<pass>/<vy>-<slag>.jpg) med modellens rutor i 11 lägen
-    från adress till finish, och förslagsfilen `swinglab-<pass>-<vy>-forslag.json`
-    (`swinglab-klubba-forslag/1`, docs/FORMAT.md) med klubbhuvudets mitt för varje Visions-ruta
-    i svingarna, kontrollerad mot paketet. Förslaget är aldrig facit (B92). Klippets ruta läses
-    med S3:s förskjutning när `s3` (eller ~/swinglab-s3/<pass>/s3.json) har den för slaget,
-    annars utan (METOD MF1)."""
+def forslag(paket_filer: list[Path], vikter: Path, ut: Path, s3: Path | None = None) -> list[dict]:
+    """Förslagsfilen `swinglab-<pass>-<vy>-forslag.json` (`swinglab-klubba-forslag/1`,
+    docs/FORMAT.md) med klubbhuvudets mitt för varje Visions-ruta från adressen till finishen,
+    prövad över tiden (`over_tiden`) och kontrollerad mot paketet, och ett kontaktark per sving
+    (<ut>/<pass>/<vy>-<slag>.jpg) i 11 lägen med modellens rutor och filens punkt. Förslaget är
+    aldrig facit (B92). Klippets ruta läses med S3:s förskjutning när `s3` (eller
+    ~/swinglab-s3/<pass>/s3.json) har den för slaget, annars utan (METOD MF1)."""
     import cv2
     from . import analys as A
-    from . import klipp as KL
     from . import klubba_forslag as KF
     from . import paket as P
     from . import s3_facit as S3F
@@ -412,59 +475,43 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TR
             for s in p.slag:
                 if not (s.klipp and s.lederna and s.klick_i_klipp_s is not None):
                     continue
+                lw, lh = s.lederna["width"], s.lederna["height"]
+                if (lw, lh) != (fil_d["bredd"], fil_d["hojd"]):
+                    resultat.append({"slag": f"{p.vy}-{s.id}", "hoppat": "annan bildstorlek än passets första slag"})
+                    continue
                 faser = rader[s.id]["faser"] if s.id in rader else FASER_ANTAGNA
                 klipp = Path(tmp) / f"{s.id}{Path(s.klipp).suffix}"
                 klipp.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
-                lw, lh = s.lederna["width"], s.lederna["height"]
-                rutor = s.lederna["frames"]
-                lagen = []
-                for namn, t in tider_ark(faser):
-                    narmast = min(rutor, key=lambda r: abs(r["t"] - t))
-                    lagen.append((namn, float(narmast["t"]) + float(s.klick_i_klipp_s), narmast["joints"]))
-                # Bara klippets rutor i [0; längd) (METOD MS12), lästa på e + δ (MF1).
-                d_s = fsk.get((p.fil, s.id), 0.0) / 1000.0
-                lagen = [(n, tk + d_s, j) for n, tk, j in lagen if P.i_klippet(s, tk)]
-                bilder = KL.ramar_vid(klipp, [tk for _, tk, _ in lagen], lw, lh, 0.006)
-                if not bilder:
+                lagen = tider_ark(faser)
+                rutor = _svingens_rutor(modell, klipp, s, fsk.get((p.fil, s.id), 0.0), lagen, lw, lh)
+                if not rutor:
                     continue
-                h, w = next(iter(bilder.values()))[1].shape[:2]
-                sx, sy = w / lw, h / lh
-                leder = [[None if j is None else ({"x": j["x"] * sx, "y": j["y"] * sy, "c": j["c"]}
-                                                   if isinstance(j, dict) else [j[0] * sx, j[1] * sy, j[2]])
-                          for j in jj] for _, _, jj in lagen]
-                k = min(w, h)
-                u = utsnitt(leder, w, h) or ((w - k) // 2, (h - k) // 2, k)
-                x0, y0, sida = u
-                lagen = [(n, tk, bilder[tk]) for n, tk, _ in lagen if tk in bilder]
-                skurna = [skar(b, x0, y0, sida) for _, _, (_, b) in lagen]
-                det = detektioner(modell, skurna, troskel)
-                rutor_ark = []
-                for (namn, tk, (tr, _)), bild, rad in zip(lagen, skurna, det):
-                    rutor_ark.append(_etikett(cv2.resize(_rita(bild, rad, namn), (RUTA_PX, RUTA_PX)), namn))
-                while len(rutor_ark) % 6:
-                    rutor_ark.append(np.zeros((RUTA_PX, RUTA_PX, 3), np.uint8))
-                ark = np.vstack([np.hstack(rutor_ark[i:i + 6]) for i in range(0, len(rutor_ark), 6)])
+                skala = rutor[0]["skala"]
+                raa = [huvud_punkt(r["rad"], r["x0"], r["y0"], 1 / skala, 1 / skala, lw, lh, GRANNAR_MIN)
+                       for r in rutor]
+                hojd_px = rutor[0]["kropp_hojd"] / skala
+                punkter, filtret = over_tiden(raa, hojd_px)
+                for r, q in zip(rutor, punkter):
+                    if q is not None:
+                        KF.lagg_till(fil_d, s.id, r["t"], {"huvud": q}, ruta=r["nr"], t_klipp=r["t_cv"])
+                # Kontaktarket: de 11 lägenas rutor ur samma genomgång.
+                ark = []
+                for r, q in zip(rutor, punkter):
+                    if r.get("bild") is None:
+                        continue
+                    pkt = None if q is None else (q["x"] * skala - r["x0"], q["y"] * skala - r["y0"])
+                    ark.append(_etikett(cv2.resize(_rita(r["bild"], r["rad"], pkt), (RUTA_PX, RUTA_PX)), r["lage"]))
+                while len(ark) % 6:
+                    ark.append(np.zeros((RUTA_PX, RUTA_PX, 3), np.uint8))
                 namn_ark = f"{p.vy}-{s.id}"
-                cv2.imwrite(str(mapp / f"{namn_ark}.jpg"), cv2.cvtColor(ark, cv2.COLOR_RGB2BGR),
-                            [cv2.IMWRITE_JPEG_QUALITY, 88])
-                hittat = {k: sum(1 for rad in det if any(r["klass"] == k for r in rad)) for k in KLASSER}
-                rad_ut = {"ark": str(mapp / f"{namn_ark}.jpg"), "rutor": len(det), **hittat,
-                          "faser": "uppmatta" if s.id in rader else "antagna"}
-                # Förslagsfilen: varje Visions-ruta från adressen till finishen (METOD MF7, MF8).
-                if (lw, lh) != (fil_d["bredd"], fil_d["hojd"]):
-                    rad_ut["forslag"] = "annan bildstorlek än passets första slag: inte i filen"
-                else:
-                    fran, till = tider_ark(faser)[0][1], tider_ark(faser)[-1][1]
-                    n_rutor = n_huvud = 0
-                    for t, t_cv, nr, rad in _svingens_detektioner(modell, klipp, s, fsk.get((p.fil, s.id), 0.0),
-                                                                    fran, till, lw, lh, u, troskel):
-                        n_rutor += 1
-                        q = huvud_punkt(rad, x0, y0, lw / w, lh / h, lw, lh)
-                        if q is not None:
-                            KF.lagg_till(fil_d, s.id, t, {"huvud": q}, ruta=nr, t_klipp=t_cv)
-                            n_huvud += 1
-                    rad_ut["forslag"] = {"rutor": n_rutor, "huvud": n_huvud}
-                resultat.append(rad_ut)
+                cv2.imwrite(str(mapp / f"{namn_ark}.jpg"),
+                            cv2.cvtColor(np.vstack([np.hstack(ark[i:i + 6]) for i in range(0, len(ark), 6)]),
+                                         cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 88])
+                resultat.append({"slag": namn_ark, "faser": "uppmatta" if s.id in rader else "antagna",
+                                 "rutor": len(rutor),
+                                 "huvud_03": sum(1 for q in raa if q is not None and q["konfidens"] >= TROSKEL),
+                                 "huvud_05": sum(1 for q in raa if q is not None and q["konfidens"] >= KF.VISA_KONFIDENS),
+                                 "i_filen": sum(1 for q in punkter if q is not None), **filtret})
         if fil_d["slag"]:
             fil = mapp / f"swinglab-{p.pass_id}-{p.vy}-forslag.json"
             KF.skriv(fil, fil_d)
@@ -476,23 +523,39 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, troskel: float = TR
     return resultat
 
 
-def _svingens_detektioner(modell, klipp: Path, s, forskjutning_ms: float, fran: float, till: float,
-                          lw: int, lh: int, u: tuple[int, int, int], troskel: float, batch: int = 16):
-    """(Visions t, OpenCV:s t, rutans nummer i klippet, modellens rutor i utsnittet) för varje
-    ruta i klippet vars Visions-ruta (`klubba_forslag.vision_t`, MF1) ligger i [fran, till].
-    Rutorna läses en i taget, så att en sving om 600 rutor inte ligger i minnet."""
+def _svingens_rutor(modell, klipp: Path, s, forskjutning_ms: float, lagen: list[tuple[str, float]],
+                    lw: int, lh: int, batch: int = 16) -> list[dict]:
+    """Varje ruta i klippet vars Visions-ruta (`klubba_forslag.vision_t`, MF1) ligger från det
+    första till det sista av `lagen` (namn, Visions t), i ordning: {"t", "t_cv", "nr", "x0", "y0",
+    "sida" (utsnittet i klippets px), "rad" (modellens rutor i utsnittet, konfidens ≥ 0,1),
+    "skala" (klippets px per leds px), "kropp_hojd" (klippets px), och för rutan närmast
+    varje läge "lage" och "bild" (utsnittet)}. Rutorna läses en i taget, så att en sving om 600
+    rutor inte ligger i minnet. Tom utan leder i svingen."""
     from . import klipp as KL
     from . import klubba_forslag as KF
     from . import paket as P
-    x0, y0, sida = u
-    vantar: list = []
+    alla = {round(float(f["t"]), 6): f["joints"] for f in s.lederna["frames"]}
+    if not alla:
+        return []
+    # Varje läge → den närmaste Visions-rutan; fönstret går från den första av dem till den sista.
+    narmast: dict[float, str] = {}
+    for namn, t in lagen:
+        narmast.setdefault(min(alla, key=lambda x: abs(x - t)), namn)
+    fran, till = min(narmast), max(narmast)
+    vision = {t: j for t, j in alla.items() if fran <= t <= till}
+    ut: list[dict] = []
+    vantar: list[dict] = []
+    kropp = None
     senast = -math.inf
 
-    def kor():
-        det = detektioner(modell, [b for *_, b in vantar], troskel)
-        ut = [(t, tcv, nr, rad) for (t, tcv, nr, _), rad in zip(vantar, det)]
+    def kor() -> None:
+        for r, rad in zip(vantar, detektioner(modell, [r["_bild"] for r in vantar], 0.1)):
+            r["rad"] = rad
+            bild = r.pop("_bild")
+            if r["t"] in narmast:
+                r.update(lage=narmast[r["t"]], bild=bild)
+            ut.append(r)
         vantar.clear()
-        return ut
 
     for nr, (t_cv, bild) in enumerate(KL.ramar(klipp, lw, lh)):
         if t_cv - forskjutning_ms / 1000.0 - s.klick_i_klipp_s > till + KF.RUTA_TOL:
@@ -500,15 +563,28 @@ def _svingens_detektioner(modell, klipp: Path, s, forskjutning_ms: float, fran: 
         if not P.i_klippet(s, t_cv):
             continue
         t = KF.vision_t(s, t_cv, forskjutning_ms)
+        t = None if t is None else round(t, 6)
         # Två rutor i filen får inte ligga närmare än 2 · RUTA_TOL (METOD MF8).
         if t is None or t < fran or t > till or t - senast < 2 * KF.RUTA_TOL:
             continue
         senast = t
-        vantar.append((t, t_cv, nr, skar(bild, x0, y0, sida)))
+        h, w = bild.shape[:2]
+        skala = w / lw
+        if kropp is None:
+            kropp = kroppen([[None if j is None else (lambda x, y, c: [x * skala, y * skala, c])(*_xyc(j))
+                              for j in jj] for jj in vision.values()])
+            if kropp is None:
+                return []
+        leder = [None if j is None else (lambda x, y, c: [x * skala, y * skala, c])(*_xyc(j))
+                 for j in vision.get(t, [])]
+        x0, y0, sida = utsnitt(leder, kropp, w, h)
+        vantar.append({"t": t, "t_cv": t_cv, "nr": nr, "x0": x0, "y0": y0, "sida": sida, "skala": skala,
+                       "kropp_hojd": kropp[0], "_bild": skar(bild, x0, y0, sida)})
         if len(vantar) >= batch:
-            yield from kor()
+            kor()
     if vantar:
-        yield from kor()
+        kor()
+    return ut
 
 
 def huvud_punkt(rad: list[dict], x0: float, y0: float, sx: float, sy: float, bredd: int, hojd: int,
@@ -588,7 +664,6 @@ def main(argv=None) -> int:
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
     f.add_argument("--ut", type=Path, required=True)
-    f.add_argument("--troskel", type=float, default=TROSKEL)
     f.add_argument("--s3", type=Path, help="S3:s s3.json (standard ~/swinglab-s3/<pass>/s3.json)")
     a = ap.parse_args(argv)
     try:
@@ -599,7 +674,7 @@ def main(argv=None) -> int:
         elif a.steg == "prov":
             r = prova(a.mapp, a.vikter)
         else:
-            r = forslag(a.paket, a.vikter, a.ut, a.troskel, a.s3)
+            r = forslag(a.paket, a.vikter, a.ut, a.s3)
     except FormFel as e:
         print(f"fel: {e}", file=sys.stderr)
         return 2

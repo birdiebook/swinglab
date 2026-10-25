@@ -3196,12 +3196,15 @@ räknas som märkning (B71).
   1/3 och 2/3, toppen, nedsvingen 1/4, 1/2, 3/4 och 9/10, träffen, träffen + **0,15 s** och
   finishen) ur svingens faser (M4), annars antagna faser (start −1,1 s, topp −0,28 s, träff
   0 s från klicket, märkta `antagna`). Rutan läses på e + δ med S3:s förskjutning (MF1).
-  Modellen ser ett kvadratiskt utsnitt kring golfaren, **2,0 ×** kroppens höjd i bild
-  (ledernas lägsta till högsta punkt, konfidens ≥ 0,3) och högst bildens långsida, samma
-  för hela svingen, svart utanför bilden; utan leder bildens mitt. 1,8 med kortsidan som tak
-  skar klubban; mitten flyttad uppåt skar bollen framifrån; 2,4 och 2,8 gav färre klubbhuvuden
-  (186 och 188 mot 205), eftersom klubban blir liten i 384 px. Rutor under konfidens **0,30** ritas inte.
-  **antagande** (lägena, 2,0 och 0,30: läsbart ark, hela klubban i bild vid toppen).
+  Modellen ser ett kvadratiskt utsnitt per ruta, **kring händerna** (handledernas mitt,
+  eller den som syns: greppregeln M1) med sidan **1,5 ×** kroppens höjd i bild (ledernas lägsta
+  till högsta punkt över svingen, konfidens ≥ 0,3), och utan händer kring kroppens mitt med
+  **2,0 ×**; högst bildens långsida, svart utanför bilden. Klubban når högst cirka 0,6 ×
+  kroppens höjd från händerna, så den ryms vid toppen och finishen. Ett utsnitt kring kroppen
+  för hela svingen skar klubban där (1,8 med kortsidan som tak, eller mitten flyttad uppåt,
+  som skar bollen framifrån), och ett större (2,4 och 2,8) gav färre klubbhuvuden (186 och 188
+  mot 205 av 231 lägen), eftersom klubban blir liten i 384 px. Kontaktarket ritar modellens
+  rutor med konfidens ≥ **0,30** och filens punkt grön. **antagande** (1,5, lägena och 0,30).
 - **Provet 2026-10-25** (mAP COCO 0,50:0,95, i parentes 0,50; provet hölls ut per scen):
   | modell | golf-49wbh-provet (784) | golf-club-tracking-provet (1 147) |
   |---|---|---|
@@ -3220,19 +3223,33 @@ räknas som märkning (B71).
 - **Förslagsfilen** (`swinglab-klubba-forslag/1`, FORMAT.md, MF8, BESLUT B93): en per pass och
   vy, `swinglab-<pass>-<vy>-forslag.json`. Varje ruta i klippet vars Visions-ruta
   (`klubba_forslag.vision_t`, MF1) ligger från adressen till finishen körs genom modellen med
-  svingens utsnitt; `t` är Visions tid. Bara punkten `huvud`: den säkraste rutan för
+  rutans utsnitt; `t` är Visions tid. Bara punkten `huvud`: den säkraste rutan för
   klubbhuvudet, mitten som x och y och rutan som `box`, i ledernas `width` × `height`. Aldrig
   `hosel` (huvudets mitt ligger 3–5 cm från hoseln) och aldrig `grepp` (klubbans ruta har inget
   entydigt hörn för händerna); de kommer med punktmodellen. Bara konfidens ≥ **0,5** (MF8:s
-  gräns) skrivs. `modell.data` är träningens källor ur `delning.json` med licens och adress.
+  gräns) skrivs, efter prövningen över tiden nedan. `modell.data` är träningens källor ur `delning.json` med licens och adress.
   Filen kontrolleras mot paketet (`klubba_forslag.mot_paket`) innan den skrivs ut. **räkning.**
 - **Provpassets fil** (2026-10-25): FO 19 slag, 2 768 rutor med huvud; DTL 2 slag, 132; båda OK
   i `klubba_forslag.py --paket`. 329 s för passet. Täckningen är låg vid 0,5 men hög vid 0,3:
   FO s24 25 % mot 88 % av rutorna, FO s13 19 % mot 69 %, DTL s02 7 % mot 86 % (adressen 0 av 58
   mot 58 av 58). Modellens konfidens ligger lägre än MF8 antog; gränsen prövas mot Johannes
   märkning (MF8, omprövas). **mätt.**
-- **Nästa:** utsnittet centrerat på händerna i varje ruta (research 7 §4.2) i stället för
-  kroppens mitt, så att klubban ryms vid toppen och finishen utan att bli mindre.
+- **Över tiden** (`over_tiden`): vid 240 bilder/s flyttar sig klubbhuvudet lite mellan rutorna.
+  Varje punkt (modellens säkraste huvud med konfidens ≥ 0,2) prövas mot den närmaste säkra
+  punkten (≥ 0,5) högst **3** rutor bort åt varje håll: den ska ligga högst **0,02 ×** kroppens
+  höjd **+ 0,25 ×** grannarnas avstånd från linjen mellan dem (bågen i nedsvingen ryms i den
+  andra termen). En osäker punkt som gör det får **den svagare grannens konfidens**; en som inte
+  gör det stryks, också en säker. Utan säker granne åt båda håll gäller modellens egen. Konfidensen
+  i filen är alltså modellens, eller för en lyft punkt grannarnas. Punkten och rutan är alltid
+  modellens egna: inget läge räknas fram ur grannarna. **antagande** (3, 0,02, 0,25 och 0,2).
+- **Provpassets fil med utsnittet kring händerna och prövningen över tiden** (2026-10-25, de 18
+  hela svingarna framifrån och DTL s02): framifrån har **52 %** av rutorna en punkt i filen
+  (≥ 0,5 direkt 45 %, lyfta 790, strukna 3; ≥ 0,3 83 %), mot 19–25 % med utsnittet kring
+  kroppen. Bakifrån 14 % (≥ 0,5 10 %, ≥ 0,3 91 %): rutorna sitter rätt i arket men under 0,5.
+  FO 5 504 och DTL 176 rutor i filerna, båda OK mot paketet. 157 s för passet (klippet läses en
+  gång). **mätt.**
+- **Nästa:** modellen på Johannes märkta rutor (bakifrån först), och gränsen 0,5 prövad mot
+  märkningen (MF8).
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 

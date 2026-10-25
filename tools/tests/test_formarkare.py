@@ -128,15 +128,19 @@ class Kontaktarket(unittest.TestCase):
         self.assertAlmostEqual(dict(t)["nedsving 1/2"], -0.125)
         self.assertAlmostEqual(dict(t)["efter"], 0.15)
 
-    def test_utsnittet_kring_kroppen(self) -> None:
-        leder = [[{"x": 500, "y": 400, "c": 0.9}, [520, 1400, 0.9], None, [0, 0, 0.1]]]
-        x0, y0, sida = FM.utsnitt(leder, 1080, 1920)
-        self.assertEqual(sida, 1920)                  # 2,0 × 1000 px, högst långsidan
-        self.assertEqual((x0, y0), (-450, 0))         # utanför i sidled, inom bilden på höjden
-        x0, y0, sida = FM.utsnitt(leder, 1080, 1920, skala=0.5)
-        self.assertEqual((x0, y0, sida), (260, 650, 500))
-        self.assertEqual(FM.utsnitt([[[50, 5, 0.9], [50, 15, 0.9]]], 100, 100, skala=5)[1], 0)
-        self.assertEqual(FM.utsnitt(leder, 1080, 1920, skala=1.8)[:2], (-390, 0))
+    def test_kroppen_over_svingens_rutor(self) -> None:
+        rutor = [[{"x": 500, "y": 400, "c": 0.9}, None, [0, 0, 0.1]], [[520, 1400, 0.9]]]
+        self.assertEqual(FM.kroppen(rutor), (1000.0, 510.0, 900.0))
+        self.assertIsNone(FM.kroppen([[None, [1, 1, 0.1]]]))
+
+    def test_utsnittet_kring_handerna_annars_kroppen(self) -> None:
+        leder = [None] * 13
+        leder[5], leder[6] = [400, 1000, 0.9], {"x": 440, "y": 1020, "c": 0.8}
+        kropp = (1000.0, 510.0, 900.0)
+        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920), (-330, 260, 1500))   # 1,5 × 1000 kring händerna
+        leder[6] = [440, 1020, 0.1]                                                  # greppregeln: den som syns
+        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920)[:2], (-350, 250))
+        self.assertEqual(FM.utsnitt([None] * 13, kropp, 1080, 1920), (-450, -60, 1920))  # kroppen, högst långsidan
 
     def test_utsnittet_fylls_med_svart_utanfor(self) -> None:
         b = np.full((4, 6, 3), 9, np.uint8)
@@ -144,7 +148,39 @@ class Kontaktarket(unittest.TestCase):
         self.assertEqual(u.shape, (5, 5, 3))
         self.assertTrue((u[:3, 2:] == 9).all())
         self.assertEqual(int(u[:, :2].sum()) + int(u[3:].sum()), 0)
-        self.assertIsNone(FM.utsnitt([[None, [1, 1, 0.1]]], 100, 100))
+
+
+class OverTiden(unittest.TestCase):
+    """Grannarna i tiden lyfter en osäker punkt på linjen och stryker en som hoppar (METOD MF7)."""
+
+    @staticmethod
+    def _p(x, y, k):
+        return {"x": float(x), "y": float(y), "konfidens": k}
+
+    def test_osaker_pa_linjen_lyfts_till_den_svagare_grannen(self) -> None:
+        p = [self._p(0, 0, 0.8), self._p(10, 0, 0.3), self._p(20, 1, 0.1), self._p(30, 0, 0.6)]
+        ut, n = FM.over_tiden(p, 100.0)
+        self.assertEqual([None if q is None else q["konfidens"] for q in ut], [0.8, 0.6, None, 0.6])
+        self.assertEqual(n, {"lyfta": 1, "strukna": 0})        # 0,1 är under GRANNAR_MIN
+
+    def test_en_som_hoppar_stryks_aven_om_den_ar_saker(self) -> None:
+        p = [self._p(0, 0, 0.8), self._p(10, 40, 0.9), self._p(20, 0, 0.7)]
+        ut, n = FM.over_tiden(p, 100.0)
+        self.assertIsNone(ut[1])
+        self.assertEqual(n["strukna"], 1)
+
+    def test_utan_granne_at_bada_hall_galler_modellens_egen(self) -> None:
+        p = [self._p(0, 0, 0.4), self._p(10, 0, 0.7), None, None, None, None, self._p(60, 0, 0.45)]
+        ut, n = FM.over_tiden(p, 100.0)
+        self.assertEqual([q is not None for q in ut], [False, True, False, False, False, False, False])
+        self.assertEqual(n, {"lyfta": 0, "strukna": 0})
+
+    def test_toleransen_vaxer_med_grannarnas_avstand(self) -> None:
+        # Grannarna 200 px isär: 0,02 × 100 + 0,25 × 200 = 52 px från linjen godtas.
+        p = [self._p(0, 0, 0.9), self._p(100, 50, 0.3), self._p(200, 0, 0.9)]
+        self.assertIsNotNone(FM.over_tiden(p, 100.0)[0][1])
+        p[1] = self._p(100, 55, 0.3)
+        self.assertIsNone(FM.over_tiden(p, 100.0)[0][1])
 
 
 class Forslagsfilen(unittest.TestCase):
