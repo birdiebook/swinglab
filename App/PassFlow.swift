@@ -208,6 +208,7 @@ struct ReceiptCard: View {
                 rader
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(Theme.surface, in: .rect(cornerRadius: 4))
     }
