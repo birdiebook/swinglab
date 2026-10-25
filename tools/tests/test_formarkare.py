@@ -196,6 +196,7 @@ class MotMarkeringen(unittest.TestCase):
         self.assertFalse(FM.bedom(huvud, pk)["traff"])   # 15 px utanför
         self.assertEqual(FM.bedom(None, pk), {"konfidens": 0.0, "traff": False, "avstand": None})
         self.assertIsNone(FM.bedom(huvud, {"grepp": pk["grepp"], "klubbhuvud": None}))
+        self.assertIsNone(FM.bedom(huvud, {"grepp": pk["grepp"], "klubbhuvud": {"syns_inte": True}}))
 
     def test_klasserna_och_avstandet_bland_traffarna(self) -> None:
         rader = [{"konfidens": 0.6, "traff": True, "avstand": 0.02}, {"konfidens": 0.35, "traff": True, "avstand": 0.04},

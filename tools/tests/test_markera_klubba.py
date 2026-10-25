@@ -170,6 +170,15 @@ class Formatet(unittest.TestCase):
         self.assertEqual(len(ny["rutor"]), 24)
         self.assertTrue(all(r["status"] == "hoppad" for r in ny["rutor"]))
 
+    def test_flera_videor_far_skilda_id(self) -> None:
+        # Två videor i samma körning: varje ruta har ett eget id, och märkningen går att skriva.
+        rutor = MK.valj_video(Path("slag_05.mp4"), 2.6, 1080, 1480, "dtl", 3, "video-slag_05") + \
+            MK.valj_video(Path("slag_12.mp4"), 2.6, 1080, 1480, "dtl", 3, "video-slag_12")
+        self.assertEqual(len({r["id"] for r in rutor}), 6)
+        self.assertEqual(rutor[3]["id"], "video-slag_12-01")
+        self.assertEqual(MK.kontrollera(MK.ny(rutor, ["slag_05.mp4", "slag_12.mp4"], None)), [])
+        self.assertEqual(MK.valj_video(Path("x.mov"), 4.0, 1080, 1920, "fo", 1)[0]["id"], "video-01")
+
     def test_ny_forskjutning_ar_en_ny_ruta(self) -> None:
         gammal = _markering(2)
         gammal["rutor"][0]["status"] = "hoppad"

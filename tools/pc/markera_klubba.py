@@ -158,9 +158,12 @@ def valj_rutor(paket: list[tuple[Path, P.Paket]], forskjutning: dict[tuple[str, 
     return ut
 
 
-def valj_video(fil: Path, langd_s: float, bredd: int, hojd: int, vy: str | None, n: int = JAMNA_VIDEO) -> list[dict]:
-    """En video utan paket: n rutor jämnt över klippet (inga leder, inga faser). METOD MF5"""
-    return [{"id": f"video-{k + 1:02d}", "fil": fil.name, "vy": vy, "slag": None, "val": "jamn", "t": None,
+def valj_video(fil: Path, langd_s: float, bredd: int, hojd: int, vy: str | None, n: int = JAMNA_VIDEO,
+               forled: str = "video") -> list[dict]:
+    """En video utan paket: n rutor jämnt över klippet (inga leder, inga faser), med id
+    `<forled>-NN`. Med flera videor på en gång får varje video sitt namn i `forled`, så att två
+    rutor aldrig får samma id. METOD MF5"""
+    return [{"id": f"{forled}-{k + 1:02d}", "fil": fil.name, "vy": vy, "slag": None, "val": "jamn", "t": None,
              "t_klipp": round((k + 0.5) / n * langd_s, 6), "forskjutning_ms": 0.0, "t_ruta": None,
              "bredd": bredd, "hojd": hojd,
              "visad": [0, 0, bredd, hojd], "status": "omarkerad", "punkter": {p: None for p in PUNKTER},
@@ -703,7 +706,8 @@ def main(argv=None) -> int:
             for f in filer:
                 langd, b, h, fps = _video_info(f)
                 tol_video = 0.5 / fps
-                rutor += valj_video(f, langd, b, h, a.vy, JAMNA_VIDEO if a.jamna is None else a.jamna)
+                rutor += valj_video(f, langd, b, h, a.vy, JAMNA_VIDEO if a.jamna is None else a.jamna,
+                                    "video" if len(filer) == 1 else f"video-{f.stem}")
             standard = filer[0].parent / f"{filer[0].stem}-klubba.json"
         ut = Path(a.ut).expanduser() if a.ut else standard
         if not S.utanfor_repot(ut.parent):

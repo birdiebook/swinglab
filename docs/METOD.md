@@ -3145,7 +3145,8 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
 - **En video utan paket** har inga leder: **24** rutor jämnt över klippet, var och en
   rutan närmast den valda tiden (inom en halv ruta). Den valda tiden står kvar i `t_klipp`
   och rutans egen tid sparas i `t_ruta`, så att en återupptagen märkning hittar rutan.
-  **antagande.**
+  Rutorna heter `video-NN`, och med flera videor i samma körning `video-<videons namn>-NN`, så
+  att två rutor aldrig får samma id (2026-10-25: sex klipp stoppades på det). **antagande.**
 - **Greppets ledtråd:** handledernas mitt i rutan, eller den som syns (greppregeln, M1,
   konfidens ≥ 0,3). Handlederna ligger 5–8 cm från skaftet (cirka 4° på skaftets vinkel),
   så ledtråden visas bara som en ring och greppet kräver ett klick: varje sparad punkt är
@@ -3259,8 +3260,21 @@ räknas som märkning (B71).
   300 px: över punktmodellens mål (2 %, research 7 §4.2), som stöder att huvudet aldrig godtas som
   hoseln (B93). 18 av 18 ger med regeln om tre minst cirka 83 % träffar i klassen 0,3–0,5 (95 %).
   **mätt.**
-- **Nästa:** gränsen 0,5 i MF8 är strängare än provet kräver framifrån; bakifrån märks och mäts
-  innan den ändras. Modellen på Johannes märkta rutor, bakifrån först.
+- **Bakifrån, samma kväll:** provpassets DTL s02 (11 rutor, utsnittet kring händerna; S3:s
+  förskjutning −1,1 ms trots att S3 kallade den tvetydig, eftersom modellen mäts på just den bild
+  som märktes): **11 av 11 träffar**, 8 av 8 med 0,3–0,5 och 1 av 1 med 0,1–0,3; huvudets mitt
+  4,2 % av skaftet från hoseln (p90 14 %, toppen, där skaftet är kort mot kameran). Oktobers
+  järn 7 bakifrån (Kamera-appen utan låst slutare, Golf SG 2026-10-17, slag 5, 12, 19, 26, 33 och
+  40, 32 rutor; utan leder, så modellen såg hela bilden). Tre hoslar var klick där klubban slutade
+  synas (huvudet utanför bilden i slag 40, skymt bakom ryggen i finishen i slag 26) och sattes till
+  `syns_inte`, som X på märksidan; de räknas inte. Kvar: **22 av 22** med 0,3–0,5 och 7 av 7 med
+  ≥ 0,5; 4,0 % (p90 7,0 %). Oktobers rutor är träningsdata, inte prov. **mätt.**
+- **Sammanlagt 80 märkta rutor med hosel:** **48 av 48** träffar med konfidens 0,3–0,5, 31 av 31
+  med ≥ 0,5 och 1 av 1 under 0,3. Med regeln om tre är träffarna i klassen 0,3–0,5 minst cirka
+  94 % (95 %). MF8:s gräns 0,5 döljer alltså förslag som sitter rätt; under 0,3 finns för få
+  rutor för att säga något. **mätt.**
+- **Nästa:** gränsen i MF8 (Python och Swift) på Johannes beslut, och modellen tränad på hans
+  märkta rutor, bakifrån först.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 

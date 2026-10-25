@@ -655,9 +655,9 @@ def bedom(huvud: dict | None, punkter: dict) -> dict | None:
     """En märkt ruta mot modellens säkraste huvud där (i samma px): {"konfidens", "traff"
     (hoseln inom huvudets ruta vidgad TRAFF_MARGINAL), "avstand" (huvudets mitt → hoseln i andel
     av skaftets längd, greppet → hoseln)}. None när rutan saknar greppet eller hoseln. Utan huvud:
-    konfidens 0 och ingen träff. METOD MF7"""
+    konfidens 0 och ingen träff. En punkt som inte syns (`{"syns_inte": true}`) saknas. METOD MF7"""
     g, h = punkter.get("grepp"), punkter.get("klubbhuvud")
-    if not g or not h:
+    if not (g and "x" in g and h and "x" in h):
         return None
     skaft = math.hypot(g["x"] - h["x"], g["y"] - h["y"])
     if huvud is None or skaft <= 0:
@@ -696,13 +696,31 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
     """Modellen mot Johannes märkning (`swinglab-klubba`, markera_klubba.py eller telefonen): för
     varje märkt ruta läses klippets ruta (`t_ruta`), utsnittet kring händerna körs genom modellen
     och det säkraste huvudet prövas mot hoseln (`bedom`). Svarar sammanfattningen per vy och per
-    läge. Provpasset (B92) får mätas så här men aldrig tränas på. METOD MF7"""
+    läge. En video utan paket (markera_klubba.py på ett klipp) har inga leder: där ser modellen
+    hela bilden, som en kvadrat med svart utanför, och vyn redovisas som `<vy> (hela bilden)`.
+    Provpasset (B92) får mätas så här men aldrig tränas på. METOD MF7"""
     from . import klipp as KL
     from . import paket as P
     mk = json.loads(Path(markering).read_text(encoding="utf-8"))
     modell = ladda(vikter)
     rader: list[dict] = []
     for pf in paket_filer:
+        pf = Path(pf)
+        if pf.suffix.lower() != ".zip":
+            for r in [r for r in mk["rutor"] if r.get("fil") == pf.name and r.get("status") == "markerad"]:
+                bilder = KL.ramar_vid(pf, [r["t_ruta"]], r["bredd"], r["hojd"], 0.001)
+                if r["t_ruta"] not in bilder:
+                    continue
+                bild = bilder[r["t_ruta"]][1]
+                h, w = bild.shape[:2]
+                k = max(w, h)
+                x0, y0 = (w - k) // 2, (h - k) // 2
+                rad = detektioner(modell, [skar(bild, x0, y0, k)], 0.05)[0]
+                b = bedom(huvud_punkt(rad, x0, y0, r["bredd"] / w, r["hojd"] / h, r["bredd"], r["hojd"], 0.05),
+                          r["punkter"])
+                if b is not None:
+                    rader.append({**b, "vy": f"{r['vy']} (hela bilden)", "val": r["val"], "id": r["id"]})
+            continue
         p = P.las(pf)
         mina = [r for r in mk["rutor"] if r.get("fil") == p.fil and r.get("status") == "markerad"]
         with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(pf) as z:
@@ -741,6 +759,8 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
         ut[vy] = sammanfatta([r for r in rader if r["vy"] == vy])
     for val in sorted({r["val"] for r in rader}):
         ut[f"lage {val}"] = sammanfatta([r for r in rader if r["val"] == val])
+    ut["rader"] = [{"id": r["id"], "konfidens": round(r["konfidens"], 3), "traff": r["traff"],
+                    "avstand": None if r["avstand"] is None else round(r["avstand"], 3)} for r in rader]
     return ut
 
 
