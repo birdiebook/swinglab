@@ -157,8 +157,9 @@ final class SwingLabProvKlubba: XCTestCase {
         XCTAssertNil(pos.first { $0.name == "P8" }?.index ?? nil, "P8 går inte")
         let shaft = try XCTUnwrap(review.shaft(k1, marks: last.shots[0].klubba), "skaftlinjen i rutan")
         let rader = ReviewRows.rows(pass: last, shot: last.shots[0], position: "P1", baseline: [:])
-        XCTAssertTrue(rader.contains { $0.matt == "skaftplan_p1" && $0.varde == "60.0" })
-        XCTAssertTrue(rader.contains { $0.matt == "skaft_vinkel_p1" && $0.varde == "−60.0" })
+        // Skaftplanet i adressen och skaftets vinkel är dom (b) (BESLUT B86): räknade, men ingen rad.
+        XCTAssertEqual(mv.values["skaftplan_p1"] ?? .nan, 60, accuracy: 0.05)
+        XCTAssertFalse(rader.contains { $0.matt == "skaftplan_p1" || $0.matt.hasPrefix("skaft_vinkel") })
         let still1 = try await XCTUnwrapAsync(try await ShotImages.frame(pass: last, shot: last.shots[0], store: store,
                                                                           at: review.frames[k1].pts))
         try rita(ReviewContent(surface: Image(decorative: still1, scale: 1).resizable(), review: review, number: 1,
@@ -225,9 +226,11 @@ final class SwingLabProvKlubba: XCTestCase {
         // 5. Passet: antalet markerade svingar och klubbmåttens kort med n.
         let v = try XCTUnwrap(PassShotsView.visning(last, earlier: []))
         XCTAssertEqual(v.undertitel, "7i\u{00A0}· 2\u{00A0}· 1 with club marked")
-        let plan = try XCTUnwrap(v.kort.first { $0.matt == "skaftplan_p1" }, "kortet för skaftplanet")
-        XCTAssertEqual(plan.varde, "60.0")
-        XCTAssertTrue(plan.rubrik.hasSuffix("n\u{00A0}1"), plan.rubrik)
+        // Skaftplanet i adressen får inget kort (dom b); over the top bygger på klubbans plan när P6
+        // är markerad (BESLUT B86, B88).
+        XCTAssertNil(v.kort.first { $0.matt == "skaftplan_p1" })
+        let ott = try XCTUnwrap(v.kort.first { $0.id == "over_the_top" })
+        XCTAssertEqual(ott.matt, mv.values["skaft_plan_p6"] == nil ? "handbana" : "skaft_plan_p6")
         XCTAssertNil(v.kort.first { $0.matt == "skaft_vinkel" }, "vinkeln per position bara i granskningen")
         print("PROV: klubban i passet: \(v.undertitel); kort \(v.kort.filter { $0.matt.hasPrefix("skaft") }.map { "\($0.namn) \($0.varde) (\($0.rubrik))" })")
         var bilder: [String: CGImage] = [:]
@@ -372,7 +375,7 @@ final class SwingLabProvKlubba: XCTestCase {
         let shaft = try XCTUnwrap(review.shaft(k7, marks: last.shots[0].klubba), "skaftlinjen i rutan")
         let rader = ReviewRows.rows(pass: last, shot: last.shots[0], position: "P7", baseline: [:])
         XCTAssertTrue(rader.contains { $0.matt == "skaft_lutning_traff" })
-        XCTAssertTrue(rader.contains { $0.matt == "skaft_vinkel_p7" })
+        XCTAssertFalse(rader.contains { $0.matt == "skaft_vinkel_p7" }, "dom (b), BESLUT B86")
         print("PROV: granskningen framifrån vid P7: \(rader.filter { $0.matt.hasPrefix("skaft") }.map { "\($0.namn) \($0.varde)" })")
         let still7 = try await XCTUnwrapAsync(try await ShotImages.frame(pass: last, shot: last.shots[0], store: store,
                                                                           at: review.frames[k7].pts))

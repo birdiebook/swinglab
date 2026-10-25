@@ -25,10 +25,11 @@ extension SwingLabProvVyer {
     }
 
     /// Bandets färg för en punkt (B87): kulören för #30D158, #FFD60A eller #FF3B30, också
-    /// blandad med svart eller grått i kanterna. nil = ingen av dem.
-    static func bandfarg(_ r: Int, _ g: Int, _ b: Int) -> Bandfarg? {
+    /// blandad med svart, grått eller vitt i kanterna (`mattnad` = minsta skillnad mellan
+    /// kanalerna). nil = ingen av dem.
+    static func bandfarg(_ r: Int, _ g: Int, _ b: Int, mattnad: Int = 30) -> Bandfarg? {
         let mx = max(r, g, b), mn = min(r, g, b)
-        guard mx - mn > 30 else { return nil }
+        guard mx - mn > mattnad, mx > mn else { return nil }
         let c = Double(mx - mn)
         var hue: Double
         if mx == r {
@@ -39,9 +40,9 @@ extension SwingLabProvVyer {
             hue = 60 * (Double(r - g) / c) + 240
         }
         if hue < 0 { hue += 360 }
-        if abs(hue - 136) <= 14 { return .gron }          // #30D158: 136°
-        if abs(hue - 50) <= 9 { return .gul }             // #FFD60A: 50°
-        if hue <= 10 || hue >= 352 { return .rod }        // #FF3B30: 3°
+        if abs(hue - 136) <= 20 { return .gron }          // #30D158: 136°
+        if hue >= 40 && hue <= 64 { return .gul }         // #FFD60A: 50° (flaggan #B98A4A är 35°)
+        if hue <= 14 || hue >= 346 { return .rod }        // #FF3B30: 3°
         return nil
     }
 

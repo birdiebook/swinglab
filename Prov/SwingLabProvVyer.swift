@@ -113,7 +113,7 @@ final class SwingLabProvVyer: XCTestCase {
                 if max(abs(r - g), abs(g - b), abs(r - b)) > 6 {
                     if b > r + 6 && g > r && b + 8 >= g {
                         isbla += 1
-                    } else if Self.bandfarg(r, g, b) == nil {
+                    } else if Self.bandfarg(r, g, b, mattnad: 0) == nil {
                         farg += 1
                     }
                 }
