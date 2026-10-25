@@ -1,20 +1,20 @@
-35639a200c7d1e3926ceda104e790d47ca9c64f1 s2j 2026-10-25T08:26:52Z run 40176489128
+bbad4af68e22a0da848ddaaf045075066b8409c8 s4g-kallor 2026-10-25T08:35:00Z run 40176984649
 == swift-release
-GRÖNT: 364 test, 0 fel, 27 s i testerna, bygget 69 s
-Långsammast (av 364):
-      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      1.7 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      1.7 s  TreDTests.testFigurenSomPython
-      1.4 s  TreDTests.testTelefonensVagSomPython
-      1.4 s  KlubbSparTests.testBananSomPython
-      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      0.8 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      0.8 s  TreDTests.testVinklarnaForEnVansterspelare
-      0.8 s  TreDTests.testUtanBrusSomPythonOchExakt
-      0.8 s  KlubbSparTests.testFeletMotSanningen
-      0.7 s  TreDTests.testFigurensFilTurOchRetur
-      0.7 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
-      0.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.6 s  TreDTests.testInreIFilenOchUppdateras
-      0.6 s  TreDTests.testKortet
+GRÖNT: 348 test, 0 fel, 36 s i testerna, bygget 97 s
+Långsammast (av 348):
+      3.0 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.9 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.8 s  TreDTests.testFigurenSomPython
+      2.3 s  TreDTests.testTelefonensVagSomPython
+      2.0 s  KlubbSparTests.testBananSomPython
+      1.4 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testFigurensFilTurOchRetur
+      1.2 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.2 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.1 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.1 s  KlubbSparTests.testFeletMotSanningen
+      1.1 s  TreDTests.testKortet
+      1.0 s  TreDTests.testInreIFilenOchUppdateras
+      1.0 s  TreDTests.testUtanBrusSomPythonOchExakt
 
