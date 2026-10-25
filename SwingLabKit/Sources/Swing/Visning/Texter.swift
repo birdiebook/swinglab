@@ -581,6 +581,9 @@ public enum Texter {
     public static func flerMatt(_ n: Int) -> String { "More measures (\(n))" }
     /// Detaljerna ett tryck bort (kvittot, slagens räkning, Claude-felet).
     public static let detaljer = "Details"
+    /// VoiceOver för en rad som fälls ut.
+    public static let oppen = "expanded"
+    public static let stangd = "collapsed"
 
     /// Raden under bandet: bara bra-området med enhet, eller den egna baslinjen.
     public static func braMellan(_ a: String, _ b: String) -> String { "Good: \(a) to \(b)" }
@@ -612,6 +615,12 @@ public enum Texter {
     /// Raderingen vägras: varför och vad man gör (BESLUT B64).
     public static let iBrukExport = "The session is being sent to the PC. Try again when it is done."
     public static let iBrukFlode = "The session is still recording or importing. Close it first."
+
+    /// Tecknen för stämmer och stämmer inte (kamerorna i 3D, märkningens klara positioner).
+    public static let bock = "\u{2713}"
+    public static let kryss = "\u{2717}"
+    /// En hoppad position i märkningens rad.
+    public static let streck = "\u{2013}"
 
     /// Klubbans märkning när modellens förslag syns (BESLUT B93): godkänn med ✓.
     public static let forslagFraga = "Line right? Tap \u{2713}"

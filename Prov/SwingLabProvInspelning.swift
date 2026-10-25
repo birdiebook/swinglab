@@ -7,7 +7,8 @@
 // och importens kontroll på den. Allt utom kameran och Bilder är alltså bevisat här.
 //
 // PROV-raderna i loggen samlas i resultat/<sha>.kompilera.txt, och kvittot ritas
-// till /tmp/swinglab_prov/kvitto.png (kompilera.yml lägger det på ci-resultat).
+// till /tmp/swinglab_prov/kvitto.png, kvitto-detaljer.png och kvitto-bra.png (S4h; kompilera.yml
+// lägger dem på ci-resultat).
 
 import XCTest
 import AVFoundation
@@ -386,16 +387,32 @@ final class SwingLabProvInspelning: XCTestCase {
         XCTAssertGreaterThan(s.bytes, 0)
         XCTAssertEqual(s.duration, 3.2, accuracy: 0.05)
 
-        let bild = ReceiptCard(title: String(localized: "Set \(1)"), rows: rader)
-            .frame(width: 360)
-            .padding(20)
-            .background(Theme.ground)
-            .environment(\.colorScheme, .dark)
-        let r = ImageRenderer(content: bild)
-        r.scale = 2
-        let png = try XCTUnwrap(r.uiImage?.pngData())
-        try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
-        try png.write(to: URL(fileURLWithPath: Self.ut + "/kvitto.png"))
+        // Kvittot är en mening med dom, eller varningen med vad man gör; raderna under "Details"
+        // (PLAN S4h, BESLUT B94). Den påhittade filmen tappar var tredje ruta: en varning.
+        let dom = try XCTUnwrap(Receipt.dom(rader))
+        XCTAssertEqual(dom.text, "The phone dropped 33% of the frames: close other apps")
+        print("PROV: kvittots dom: \(dom.varningar)")
+        func rita(_ kort: ReceiptCard, _ namn: String) throws {
+            let bild = kort
+                .frame(width: 360)
+                .padding(20)
+                .background(Theme.ground)
+                .environment(\.colorScheme, .dark)
+            let r = ImageRenderer(content: bild)
+            r.scale = 2
+            let png = try XCTUnwrap(r.uiImage?.pngData())
+            try FileManager.default.createDirectory(atPath: Self.ut, withIntermediateDirectories: true)
+            try png.write(to: URL(fileURLWithPath: Self.ut + "/\(namn).png"))
+        }
+        try rita(ReceiptCard(title: String(localized: "Set \(1)"), rows: rader), "kvitto")
+        try rita(ReceiptCard(title: String(localized: "Set \(1)"), rows: rader, visaDetaljer: true), "kvitto-detaljer")
+        // En bra serie: bara meningen.
+        var bra = s
+        bra.timing.missingFraction = 0
+        let braRader = Receipt.rows(bra)
+        XCTAssertEqual(Receipt.dom(braRader)?.bra, true)
+        print("PROV: kvittots dom (bra): \(Receipt.dom(braRader)?.text ?? "")")
+        try rita(ReceiptCard(title: String(localized: "Set \(1)"), rows: braRader), "kvitto-bra")
     }
 
     /// Ljusprovets läsning (allt utom kameran): rutnätet, tappade rutor och flimret.

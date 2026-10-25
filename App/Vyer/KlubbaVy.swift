@@ -85,6 +85,8 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     var instruction: String {
         if stickStep { return String(localized: "Optional: tap both ends of an alignment stick on the ground") }
         if marking.done { return String(localized: "All positions done") }
+        // Modellens förslag syns och kan godkännas med ✓ (BESLUT B93, PLAN S4h).
+        if canUse { return Texter.forslagFraga }
         switch marking.next {
         case .grip: return String(localized: "1 · Tap the grip")
         case .hosel: return String(localized: "2 · Tap the clubhead")
@@ -336,25 +338,28 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
         Image(systemName: "ellipsis").typsnitt(17, .medium).foregroundStyle(Theme.text).frame(width: 40, height: 40)
     }
 
-    /// Positionerna i märkningens ordning (BESLUT B58): markerad vit, hoppad grå med streck, den
-    /// som märks understruken; ett tryck går dit.
+    /// Positionerna i märkningens ordning (BESLUT B58): markerad vit med en bock under, hoppad grå
+    /// med ett streck under (inte överstruken, PLAN S4h), den som märks understruken; ett tryck går dit.
     private var strip: some View {
         HStack(spacing: 0) {
             ForEach(ClubMarking.order, id: \.self) { p in
                 let m = marking.marks[p]
                 let nu = !marking.done && p == marking.position
                 Button { onPosition(p) } label: {
-                    Text(verbatim: p)
-                        .typsnitt(12.5, .semibold, siffror: true)
-                        .strikethrough(m?.hoppad == true)
-                        .foregroundStyle(nu || m?.markerad == true ? Theme.text : Theme.tertiary)
-                        .frame(maxWidth: .infinity, minHeight: 36)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(nu ? Theme.text : Color.clear).frame(height: 2)
-                        }
+                    VStack(spacing: 1) {
+                        Text(verbatim: p)
+                            .typsnitt(12.5, .semibold, siffror: true)
+                        Text(verbatim: m?.markerad == true ? Texter.bock : m?.hoppad == true ? Texter.streck : " ")
+                            .typsnitt(11, .semibold)
+                    }
+                    .foregroundStyle(nu || m?.markerad == true ? Theme.text : Theme.tertiary)
+                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(nu ? Theme.text : Color.clear).frame(height: 2)
+                    }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(verbatim: Texter.positionsnamn[p].map { "\(p), \($0)" } ?? p))
+                .accessibilityLabel(Text(verbatim: Texter.positionMedNamn(p)))
                 .accessibilityValue(nu ? Text("current") : m?.hoppad == true ? Text("skipped")
                                     : m?.markerad == true ? Text("marked") : Text(verbatim: ""))
                 .accessibilityAddTraits(nu ? .isSelected : [])

@@ -24,6 +24,9 @@ enum Theme {
     static let rec = Color(hex: 0xD70015)
     static let recKnapp = Color(hex: 0xFF3B30)
     static let varning = Color(hex: 0xF5B54A)
+    /// Det som tar bort (Delete): systemets röda i mörkt läge, som HIG:s destruktiva knapp
+    /// (PLAN S4h, BESLUT B94). Bara där något raderas.
+    static let destruktiv = Color(hex: 0xFF453A)
 
     /// Stora tal: tabellsiffror, så att de inte hoppar när de ändras.
     static func number(_ size: CGFloat, weight: Font.Weight = .medium) -> Font {

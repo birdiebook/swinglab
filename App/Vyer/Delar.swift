@@ -287,13 +287,18 @@ struct Radbrytning<Innehall: View>: View {
     }
 }
 
-/// Märkningen: en liten symbol och en kort etikett (regel 5). Streckad ring = B10
-/// (gränsen ej läst i original), ram = egen baslinje, överstruken ring = avstängt,
-/// streckad triangel = oprövat på telefonen (farterna, METOD M35–M37).
+/// Märkningen: en liten symbol och en kort etikett (regel 5). Ram = egen baslinje, överstruken
+/// ring = avstängt, streckad triangel = oprövat på telefonen (farterna, METOD M35–M37). B10
+/// (gränsen ej läst i original) visas inte på ytan sedan S4h (BESLUT B94): det är källans status
+/// och står i infobladet ("not verified"), ett tryck bort.
 struct MarkningVy: View {
     let markning: Markning
 
     var body: some View {
+        if markning != .b10 { symbol }
+    }
+
+    private var symbol: some View {
         HStack(spacing: 5) {
             Canvas { c, s in
                 let k = s.width / 12
@@ -353,5 +358,29 @@ extension GraphicsContext {
                  storlek: CGFloat = 10.5, vikt: Font.Weight = .medium) {
         draw(Text(text).font(.system(size: storlek, weight: vikt).monospacedDigit()).foregroundColor(farg),
              at: p, anchor: ankare)
+    }
+}
+
+/// "Details" och en pil: felsökningen ett tryck bort (PLAN S4h, BESLUT B94), i kvittot, slagens
+/// räkning och Claude-felet. Grå och liten: det är inte det man läser först.
+struct DetaljKnapp: View {
+    let oppen: Bool
+    var action: () -> Void = {}
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(verbatim: Texter.detaljer)
+                    .typsnitt(13, .medium)
+                Image(systemName: oppen ? "chevron.up" : "chevron.down")
+                    .typsnitt(11, .semibold)
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(Theme.tertiary)
+            .frame(minHeight: 32)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(oppen ? Text(verbatim: Texter.oppen) : Text(verbatim: Texter.stangd))
     }
 }

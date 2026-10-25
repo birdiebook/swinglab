@@ -134,15 +134,16 @@ enum ClaudeApp {
 }
 
 /// Raden med knapparna, som värden (provet ritar den): två diskreta textknappar med en tunn
-/// linje ovanför, och under dem "Copied" med "Open Claude", eller felraden. Ett tryck på felraden
-/// visar alla felen; texten går att markera.
+/// linje ovanför, och under dem "Copied" med "Open Claude", eller felet på enkel engelska
+/// (PLAN S4h, BESLUT B94). Fälten och koderna står under "Details"; texten går att markera.
 struct ClaudeRad: View {
     enum Lage: Equatable {
         case vila
         case arbetar
         case kopierat
-        /// `Texter.kontrollfelRad` och `kontrollfelAlla`: fältet och koden.
-        case fel(rad: String, alla: [String])
+        /// `Texter.kontrollfelKlartext` överst; `kontrollfelRad` (för VoiceOver) och `kontrollfelAlla`
+        /// (fältet och koden) under "Details".
+        case fel(klartext: String, rad: String, alla: [String])
     }
 
     var lage: Lage
@@ -151,16 +152,16 @@ struct ClaudeRad: View {
     var fraga: () -> Void
     var klistra: () -> Void
     var oppnaClaude: () -> Void
-    @State private var visaAlla: Bool
+    @State private var visaDetaljer: Bool
 
-    init(lage: Lage = .vila, oppna: Bool = false, visaAlla: Bool = false, fraga: @escaping () -> Void = {},
+    init(lage: Lage = .vila, oppna: Bool = false, visaDetaljer: Bool = false, fraga: @escaping () -> Void = {},
          klistra: @escaping () -> Void = {}, oppnaClaude: @escaping () -> Void = {}) {
         self.lage = lage
         self.oppna = oppna
         self.fraga = fraga
         self.klistra = klistra
         self.oppnaClaude = oppnaClaude
-        _visaAlla = State(initialValue: visaAlla)
+        _visaDetaljer = State(initialValue: visaDetaljer)
     }
 
     private struct Stil: ButtonStyle {
@@ -210,21 +211,25 @@ struct ClaudeRad: View {
                 }
                 .frame(minHeight: 32)
             }
-            if case let .fel(rad, alla) = lage {
+            if case let .fel(klartext, _, alla) = lage {
                 VStack(alignment: .leading, spacing: 4) {
-                    if visaAlla {
-                        ForEach(Array(alla.enumerated()), id: \.offset) { _, t in Text(verbatim: t) }
-                    } else {
-                        Text(verbatim: rad)
+                    Text(verbatim: klartext)
+                        .typsnitt(13)
+                        .foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    DetaljKnapp(oppen: visaDetaljer) { visaDetaljer.toggle() }
+                    if visaDetaljer {
+                        ForEach(Array(alla.enumerated()), id: \.offset) { _, t in
+                            Text(verbatim: t)
+                                .typsnitt(12, siffror: true)
+                                .foregroundStyle(Theme.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
+                        }
                     }
                 }
-                .typsnitt(13)
-                .foregroundStyle(Theme.text)
-                .fixedSize(horizontal: false, vertical: true)
-                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-                .onTapGesture { if alla.count > 1 { visaAlla.toggle() } }
                 .padding(.bottom, 8)
             }
         }
@@ -232,7 +237,7 @@ struct ClaudeRad: View {
         .overlay(alignment: .top) {
             Rectangle().fill(Theme.hair).frame(height: 1)
         }
-        .onChange(of: lage) { _, _ in visaAlla = false }
+        .onChange(of: lage) { _, _ in visaDetaljer = false }
     }
 }
 
@@ -449,9 +454,9 @@ struct ClaudeKnappar: View {
                 lage = .vila
                 mottaget = m
             case let .fel(f):
-                let rad = Texter.kontrollfelRad(f)
-                lage = .fel(rad: rad, alla: Texter.kontrollfelAlla(f))
-                meddela(rad)
+                let klartext = Texter.kontrollfelKlartext(f)
+                lage = .fel(klartext: klartext, rad: Texter.kontrollfelRad(f), alla: Texter.kontrollfelAlla(f))
+                meddela(klartext)
             }
         }
     }
@@ -462,7 +467,7 @@ struct ClaudeKnappar: View {
             try ClaudeApp.anvand(m, store: store)
             onFocus()
         } catch {
-            lage = .fel(rad: Texter.focusSparadesInte, alla: [Texter.focusSparadesInte])
+            lage = .fel(klartext: Texter.focusSparadesInte, rad: Texter.focusSparadesInte, alla: [Texter.focusSparadesInte])
             meddela(Texter.focusSparadesInte)
         }
     }

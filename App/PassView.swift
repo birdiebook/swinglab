@@ -453,8 +453,8 @@ struct PassScreenContent: View {
     }
 }
 
-/// Längden som ger skalan (METOD M2, MS14): talet, "assumed" när det är standarden, och ett
-/// tryck väljer Johannes längd.
+/// Längden som ger skalan (METOD M2, MS14): talet i cm som på Me, "assumed" när det är
+/// standarden, och ett tryck väljer Johannes längd.
 struct HeightRow: View {
     let heightM: Double
     let assumed: Bool
@@ -464,7 +464,8 @@ struct HeightRow: View {
     private var label: some View {
         HStack(spacing: 8) {
             Etikett(text: String(localized: "Height"))
-            Text(verbatim: "\(Taltext.decimal(heightM, digits: 2)) m")
+            // I cm som på Me (PLAN S4h).
+            Text(verbatim: "\(Int((heightM * 100).rounded())) cm")
                 .typsnitt(13, siffror: true)
                 .foregroundStyle(Theme.secondary)
             if assumed {
@@ -528,10 +529,14 @@ struct ShotsContent: View {
     var onThumb: (String) -> Void = { _ in }
     /// Seriens redigerare (S2i): fönstret och utsnittet.
     var onEdit: (Int) -> Void = { _ in }
+    /// Analysens räkning (ms per ruta, Visions konfidens) utfälld under "Details" (PLAN S4h,
+    /// BESLUT B94): felsökning, ett tryck bort.
+    @State var visaDetaljer = false
 
     var body: some View {
         let rows = ShotRow.rows(pass)
         let n = ShotRow.counts(pass)
+        let vision = ShotRow.visionDetail(pass)
         VStack(alignment: .leading, spacing: 14) {
             Skarmrubrik("Shots")
             HStack(alignment: .top, spacing: 22) {
@@ -540,14 +545,19 @@ struct ShotsContent: View {
                 if n.uncertain > 0 { count(n.uncertain, "Uncertain", flag: true) }
                 Spacer(minLength: 0)
             }
-            if let ms = n.msPerFrame {
-                Under(text: String(localized: "\(ms) ms/frame"))
-            }
-            // Vad Vision såg: kandidater per ruta, observationernas konfidens och andelen
-            // rutor med en vald person (gränsen 0,6, METOD MS8).
-            if let v = ShotRow.visionDetail(pass) {
-                Under(text: String(localized: "\(v.candidates) per frame · confidence \(v.median) median, \(v.max) max · person \(v.person)"))
-                    .fixedSize(horizontal: false, vertical: true)
+            if n.msPerFrame != nil || vision != nil {
+                DetaljKnapp(oppen: visaDetaljer) { visaDetaljer.toggle() }
+                if visaDetaljer {
+                    if let ms = n.msPerFrame {
+                        Under(text: String(localized: "\(ms) ms/frame"))
+                    }
+                    // Vad Vision såg: kandidater per ruta, observationernas konfidens och andelen
+                    // rutor med en vald person (gränsen 0,6, METOD MS8).
+                    if let v = vision {
+                        Under(text: String(localized: "\(v.candidates) per frame · confidence \(v.median) median, \(v.max) max · person \(v.person)"))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
             if pass.orientationSuspect {
                 Text("Orientation suspect")

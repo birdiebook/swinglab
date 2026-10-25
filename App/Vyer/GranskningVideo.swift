@@ -643,9 +643,11 @@ enum ReviewRows {
     static func rows(pass: PassState, shot: ShotRecord, position: String, baseline: [String: [Double]],
                      ovas: Set<String> = []) -> [Positionsrad] {
         guard let k = AppKatalog.katalog, let m = shot.measure else { return [] }
-        return Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values, baslinje: baseline,
-                                   ovas: ovas, flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true,
-                                   klubba: pass.setup.club)
+        // Rött, gult, grönt och sist utan läge, som passets kort (PLAN S4h, METOD M63).
+        return Lageordning.sortera(Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values,
+                                                       baslinje: baseline, ovas: ovas,
+                                                       flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true,
+                                                       klubba: pass.setup.club))
     }
 }
 
@@ -789,6 +791,15 @@ struct ReviewContent<Surface: View>: View {
             }
             .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
             .padding(.top, 8)
+
+            // Positionen med namnet först, "Top of backswing (P4)" (PLAN S4h, BESLUT B94).
+            if !position.isEmpty {
+                Text(verbatim: Texter.positionMedNamn(position))
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(Theme.text)
+                    .padding(.top, 10)
+                    .accessibilityAddTraits(.isHeader)
+            }
 
             VStack(spacing: 0) {
                 ForEach(rows) { r in PositionsradVy(rad: r) }

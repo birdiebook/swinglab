@@ -159,8 +159,9 @@ struct SessionsVy: View {
                             .listRowSeparatorTint(Theme.hair)
                             .accessibilityAddTraits(.isButton)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                // Systemets röda för det som tar bort (HIG, PLAN S4h, BESLUT B94).
                                 Button { radera(rad) } label: { Label("Delete", systemImage: "trash") }
-                                    .tint(Theme.line)
+                                    .tint(Theme.destruktiv)
                             }
                     }
                 }
@@ -175,12 +176,14 @@ struct SessionsVy: View {
 }
 
 /// Frågan efter svepet: passets rad, vad som försvinner, Cancel som huvudknapp och Delete som en
-/// grå rad utan fyllning, under Cancel (också för VoiceOver), så att Delete aldrig är förvald. Ett blad och inte en
-/// systemdialog, så att provet kan rita den (som B60:s fråga). `problem`: varför raderingen
-/// vägrades eller inte gick. BESLUT B64
+/// röd rad utan fyllning (systemets destruktiva stil, PLAN S4h), under Cancel (också för VoiceOver),
+/// så att Delete aldrig är förvald. Ett blad och inte en systemdialog, så att provet kan rita den
+/// (som B60:s fråga). `problem`: varför raderingen vägrades eller inte gick. `iBruk`: passet används
+/// just nu; Delete är spärrad och raden säger varför och vad man gör (BESLUT B64, B94).
 struct RaderaPassVy: View {
     let rad: Sessionsrad
     var problem: String? = nil
+    var iBruk: String? = nil
     var onDelete: () -> Void = {}
     var onCancel: () -> Void = {}
 
@@ -203,9 +206,9 @@ struct RaderaPassVy: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 12)
             .padding(.bottom, 22)
-            if let problem {
+            if let skal = iBruk ?? problem {
                 // Vit som felraden i B60: signalfärgen är bara för uppställningens varningar (B13).
-                Text(problem)
+                Text(skal)
                     .typsnitt(13, .semibold)
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
@@ -214,11 +217,12 @@ struct RaderaPassVy: View {
             Button("Cancel", action: onCancel)
                 .buttonStyle(PrimaryButtonStyle())
                 .padding(.bottom, 8)
-            Button(action: onDelete) {
+            Button(role: .destructive, action: onDelete) {
                 Text("Delete")
-                    .foregroundStyle(Theme.secondary)
+                    .foregroundStyle(iBruk == nil ? Theme.destruktiv : Theme.tertiary)
             }
             .buttonStyle(RowButtonStyle())
+            .disabled(iBruk != nil)
         }
         .padding(.horizontal, 20)
         .padding(.top, 22)

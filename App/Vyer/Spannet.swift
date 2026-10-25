@@ -4,7 +4,8 @@ import Swing
 /// Spannet (BESLUT B13, regel 3 och 4): en tunn linje; gränsen som ett tjockare
 /// grått segment eller den egna baslinjen som en ram; förra passet som ett grått
 /// streck; passets kvartiler som en tunn vit linje och medianen som en vit prick.
-/// Talen under linjen är axelns och gränsens ändar. Inga ord om läget: läget mot bandet är
+/// I passets kort står inga tal under linjen: kortet skriver bra-området med enhet under den
+/// (`Spann.omrade`, PLAN S4h); `tal` ritar axelns och gränsens ändar där det behövs. Läget mot bandet är
 /// markörens form och färg (METOD M62, BESLUT B87), en grön prick, en gul ring eller en röd pil
 /// som pekar åt det håll värdet ligger; utan läge är markören vit (eller i accenten).
 struct SpannVy: View {
@@ -14,6 +15,9 @@ struct SpannVy: View {
     /// kvartilerna accenten och markören läget.
     var accent = false
     var lage: Bandlage = .ingen
+    /// Axelns och gränsens tal under linjen (förut i passets kort; S4h ersatte dem med raden
+    /// "Good: …" under kortets spann).
+    var tal = false
 
     private var markor: Color { accent ? Theme.acc : Theme.text }
 
@@ -43,7 +47,7 @@ struct SpannVy: View {
                 }
                 // Talen: zonens ändar först (i mitten under sin punkt), sedan axelns ändar
                 // (förankrade inåt) där de inte krockar med ett tal som redan står.
-                let e = spann.etiketter
+                let e = tal ? spann.etiketter : []
                 var upptaget: [ClosedRange<CGFloat>] = []
                 func bredd(_ t: String) -> CGFloat { CGFloat(t.count) * 6 + 2 }
                 func ledigt(_ r: ClosedRange<CGFloat>) -> Bool {
@@ -73,7 +77,7 @@ struct SpannVy: View {
                 c.lage(lage, CGPoint(x: x(spann.nu), y: y), kompakt ? 4.5 : 6, vagrat: true)
             }
         }
-        .frame(height: kompakt ? 14 : 40)
+        .frame(height: kompakt ? 14 : (tal ? 40 : 24))
         .accessibilityElement()
         .accessibilityLabel(spann.upplasning)
     }
@@ -116,6 +120,7 @@ struct GeometriVy: View {
 /// mot förra passet, geometrin där den är måttet och spannet.
 struct MattkortVy: View {
     let kort: Mattkort
+    @State private var visaNyckel = false
 
     var body: some View {
         Sektion {
@@ -142,8 +147,21 @@ struct MattkortVy: View {
                         Spacer(minLength: 0)
                         if let g = kort.geometri { GeometriVy(geometri: g) }
                     }
+                    // Ett tryck på bandet eller ⓘ visar nyckeln (PLAN S4h, BESLUT B94).
                     SpannVy(spann: spann, accent: kort.ovas, lage: kort.lage)
                         .padding(.top, 12)
+                        .contentShape(.rect)
+                        .onTapGesture { visaNyckel = true }
+                    HStack(alignment: .center, spacing: 6) {
+                        if let o = spann.omrade {
+                            Text(verbatim: o)
+                                .typsnitt(12, .medium, siffror: true)
+                                .foregroundStyle(Theme.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                        NyckelKnapp { visaNyckel = true }
+                    }
                 } else {
                     // Ett saknat eller avstängt mått: bara strecket, utan enhet.
                     StortTal(varde: kort.varde, enhet: kort.varde == "—" ? "" : kort.enhet, avstangt: true)
@@ -152,6 +170,101 @@ struct MattkortVy: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kort.upplasning)
+        .accessibilityAction(named: Text(verbatim: Texter.nyckelKnapp)) { visaNyckel = true }
         .infoblad(kort.info)                     // BESLUT B41
+        .sheet(isPresented: $visaNyckel) { BandnyckelArk() }
+    }
+}
+
+/// Den lilla ⓘ som öppnar bandets nyckel: tryckytan 44×44 pt, men raden räknar den som 28 hög.
+struct NyckelKnapp: View {
+    var action: () -> Void = {}
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "info.circle")
+                .typsnitt(13)
+                .foregroundStyle(Theme.tertiary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, -8)
+        .accessibilityLabel(Text(verbatim: Texter.nyckelKnapp))
+    }
+}
+
+/// Bandets nyckel (PLAN S4h, BESLUT B94, design/README regel 11): varje tecken på spannet ritat som
+/// i kortet, med en kort rad. Texten är SwingLabKits (`Bandnyckel`).
+struct BandnyckelVy: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: Bandnyckel.rubrik)
+                .typsnitt(22, .semibold)
+                .foregroundStyle(Theme.text)
+                .padding(.bottom, 14)
+            ForEach(Bandnyckel.Tecken.allCases, id: \.self) { t in
+                HStack(spacing: 14) {
+                    NyckelTecken(tecken: t)
+                        .frame(width: 44, height: 20)
+                    Text(verbatim: Bandnyckel.text(t))
+                        .typsnitt(15)
+                        .foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 9)
+                .overlay(alignment: .top) { Rectangle().fill(Theme.hair).frame(height: 1) }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: Bandnyckel.text(t)))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 28)
+    }
+}
+
+/// Ett tecken i nyckeln, med samma mått och färger som spannet (`SpannVy`).
+struct NyckelTecken: View {
+    let tecken: Bandnyckel.Tecken
+
+    var body: some View {
+        Canvas { c, s in
+            let y = s.height / 2, x0: CGFloat = 2, x1 = s.width - 2
+            let mitt = CGPoint(x: s.width / 2, y: y)
+            switch tecken {
+            case .bandet:
+                c.linje(CGPoint(x: x0, y: y), CGPoint(x: x1, y: y), Theme.line, 1.5)
+                c.linje(CGPoint(x: x0 + 8, y: y), CGPoint(x: x1 - 8, y: y), Theme.secondary, 4)
+            case .inne:
+                c.lage(Bandlage(.gron), mitt, 6, vagrat: true)
+            case .nara:
+                c.lage(Bandlage(.gul), mitt, 6, vagrat: true)
+            case .ute:
+                c.lage(Bandlage(.rod, pil: .over), mitt, 6, vagrat: true)
+            case .slagen:
+                c.linje(CGPoint(x: x0, y: y), CGPoint(x: x1, y: y), Theme.line, 1.5)
+                c.linje(CGPoint(x: x0 + 10, y: y), CGPoint(x: x1 - 10, y: y), Theme.text, 1.5)
+            case .forra:
+                c.linje(CGPoint(x: x0, y: y), CGPoint(x: x1, y: y), Theme.line, 1.5)
+                c.linje(CGPoint(x: mitt.x, y: y - 7), CGPoint(x: mitt.x, y: y + 7), Theme.tertiary, 1.5)
+            case .vanligt:
+                c.linje(CGPoint(x: x0, y: y), CGPoint(x: x1, y: y), Theme.line, 1.5)
+                let ram = CGRect(x: x0 + 8, y: y - 4, width: x1 - x0 - 16, height: 8)
+                c.stroke(Path(roundedRect: ram, cornerRadius: 1.5), with: .color(Theme.secondary), lineWidth: 1.3)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Nyckeln i ett sheet: halv höjd, svart botten (som infobladet).
+struct BandnyckelArk: View {
+    var body: some View {
+        ScrollView { BandnyckelVy() }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Theme.ground)
     }
 }

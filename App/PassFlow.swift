@@ -163,10 +163,13 @@ struct SetupView: View {
     }
 }
 
-/// Raderna i ett kvitto eller ljusprovets kort: etikett, tal, en färg per rad.
+/// Kvittot efter en serie: en mening med dom, eller varningarna med vad man gör, och raderna med
+/// talen bakom "Details" (PLAN S4h, BESLUT B94, `Receipt.dom`). Ljusprovets kort har ingen dom och
+/// visar raderna som förut: etikett, tal, en färg per rad. METOD MS11
 struct ReceiptCard: View {
     var title: String?
     let rows: [ReceiptRow]
+    @State var visaDetaljer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -176,26 +179,57 @@ struct ReceiptCard: View {
                     .foregroundStyle(Theme.secondary)
                     .padding(.bottom, 6)
             }
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 8) {
-                    Text(row.label).foregroundStyle(Theme.secondary)
-                    Spacer(minLength: 8)
-                    if row.light != .good {
-                        Circle()
-                            .strokeBorder(Theme.flag, lineWidth: 1.5)
-                            .background(Circle().fill(row.light == .tooDark ? Theme.flag : .clear))
-                            .frame(width: 8, height: 8)
+            if let dom = Receipt.dom(rows) {
+                if dom.bra {
+                    Text(verbatim: dom.text)
+                        .font(.system(size: 17, weight: .medium).monospacedDigit())
+                        .foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(dom.varningar, id: \.self) { v in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.flag)
+                                .accessibilityHidden(true)
+                            Text(verbatim: v)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(Theme.text)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 4)
                     }
-                    Text(row.value)
-                        .font(Theme.number(17))
-                        .foregroundStyle(row.light == .good ? Theme.text : Theme.flag)
                 }
-                .font(.system(size: 15))
-                .frame(minHeight: 30)
+                DetaljKnapp(oppen: visaDetaljer) { visaDetaljer.toggle() }
+                    .padding(.top, 4)
+                if visaDetaljer { rader }
+            } else {
+                rader
             }
         }
         .padding(14)
         .background(Theme.surface, in: .rect(cornerRadius: 4))
+    }
+
+    private var rader: some View {
+        ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+            HStack(spacing: 8) {
+                Text(row.label).foregroundStyle(Theme.secondary)
+                Spacer(minLength: 8)
+                if row.light != .good {
+                    Circle()
+                        .strokeBorder(Theme.flag, lineWidth: 1.5)
+                        .background(Circle().fill(row.light == .tooDark ? Theme.flag : .clear))
+                        .frame(width: 8, height: 8)
+                }
+                Text(row.value)
+                    .font(Theme.number(17))
+                    .foregroundStyle(row.light == .good ? Theme.text : Theme.flag)
+            }
+            .font(.system(size: 15))
+            .frame(minHeight: 30)
+        }
     }
 }
 

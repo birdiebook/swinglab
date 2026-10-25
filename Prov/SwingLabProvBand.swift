@@ -11,7 +11,8 @@
 //              klubban är markerad;
 //   färgerna   bara bandets tre färger utöver gråskalan och accenten, och rätt färger per bild.
 // Bilderna: band-passet-fo, band-passet-dtl, band-passet-driver, band-granskning-p4,
-// band-granskning-p6-klubba.
+// band-granskning-p6-klubba; och S4h:s passet-fler ("More measures" utfällt), passet-focus (Focus
+// överst) och band-nyckel (bandets nyckel).
 
 import XCTest
 import SwiftUI
@@ -117,8 +118,24 @@ extension SwingLabProvVyer {
         XCTAssertEqual(v.kort.first { $0.id == "tappad_hallning" }?.markning?.etikett, "Your usual")
         XCTAssertFalse(v.kort.contains { $0.id == "flying_elbow" || $0.id == "axellutning" })   // dom (b)
         print("PROV: band \(v.kort.map { "\($0.id)=\($0.lage.lage.rawValue)\($0.lage.pil.map { "/\($0.rawValue)" } ?? "")" })")
+        // Första intrycket (PLAN S4h, BESLUT B94): överst de röda måtten, sedan rött, gult och grönt,
+        // och "More measures (n)" med det som inte kan säga bra eller dåligt, utfällt med ett tryck.
+        let lfo = v.lista(i: .fo), ldtl = v.lista(i: .dtl)
+        XCTAssertEqual(lfo.topp?.kort.map(\.id), ["sway_gap"])
+        XCTAssertEqual(ldtl.topp?.kort.map(\.id), ["early_extension", "tappad_hallning"])
+        XCTAssertEqual(lfo.kort.first?.id, "sway_gap")
+        XCTAssertTrue(lfo.fler.contains { $0.id == "chicken_wing" })
+        XCTAssertEqual(v.kort.first { $0.id == "sway_topp" }?.spann?.omrade, "Good: \u{2265} \u{2212}2.5 cm")
+        print("PROV: S4h FO \(lfo.kort.map(\.id)) · fler \(lfo.fler.map(\.id)); DTL \(ldtl.kort.map(\.id)) · fler \(ldtl.fler.map(\.id))")
         try ritaBand(PassetVy(visning: v, vy: .fo), namn: "band-passet-fo", farger: [.gron, .gul, .rod])
         try ritaBand(PassetVy(visning: v, vy: .dtl), namn: "band-passet-dtl", farger: [.gron, .gul, .rod])
+        try ritaBand(PassetVy(visning: v, vy: .fo, visaFler: true), namn: "passet-fler", farger: [.gron, .gul, .rod])
+        // Ett pass där något övas: Focus överst med rubriken i accenten.
+        let ovas = Passvisning(katalog: k, pass: tidigare + [nu], ovas: ["sway_topp"])
+        XCTAssertEqual(ovas.lista(i: .fo).topp?.kort.map(\.id), ["sway_topp"])
+        try ritaBand(PassetVy(visning: ovas, vy: .fo), namn: "passet-focus", farger: [.gron, .gul, .rod], accent: true)
+        // Bandets nyckel: tecknen i sina färger och raderna.
+        try ritaBand(BandnyckelVy(), namn: "band-nyckel", farger: [.gron, .gul, .rod], accent: false)
 
         // Driver: ett band som klubban flyttar visas inte (utan baslinje inget läge); de andra
         // banden gäller båda klubborna (research 6 §6, BESLUT B86).
@@ -151,8 +168,11 @@ extension SwingLabProvVyer {
         XCTAssertFalse(p4.contains { dolda.contains($0.matt) }, "\(p4.map(\.matt))")
         XCTAssertEqual(p4.map(\.matt), ["brost_lyft_topp", "huvud_mot_bollen_topp", "skaft_riktning_topp"])
         XCTAssertEqual(p4.map(\.lage.lage), [.gron, .ingen, .gul])
-        print("PROV: granskningen P4 \(p4.map { "\($0.matt)=\($0.lage.lage.rawValue)" })")
-        try ritaBand(lista(p4), namn: "band-granskning-p4", farger: [.gron, .gul])
+        // I granskningen efter läget, som passets kort (PLAN S4h): gult, grönt, utan läge.
+        let p4s = Lageordning.sortera(p4)
+        XCTAssertEqual(p4s.map(\.matt), ["skaft_riktning_topp", "brost_lyft_topp", "huvud_mot_bollen_topp"])
+        print("PROV: granskningen P4 \(p4s.map { "\($0.matt)=\($0.lage.lage.rawValue)" })")
+        try ritaBand(lista(p4s), namn: "band-granskning-p4", farger: [.gron, .gul])
 
         // P6 med klubban markerad: over the top är klubbans plan, en rad, och över planet är rött.
         let p6 = Positionsmatt.rader(k, vy: .dtl, position: "P6", varden: ["handbana": 1.0, "skaft_plan_p6": 13.0],

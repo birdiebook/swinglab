@@ -321,8 +321,11 @@ struct TreDFigurInnehall: View {
 
             if kameror, let u = uppstallning, u.kameror != nil {
                 VStack(spacing: 0) {
-                    talrad(Texter.treDSampson, u.sampsonPx.map { Tal.medEnhet(Tal.tal($0, decimaler: 1), "px") },
-                           under: Texter.treDSparr(Tal.axel(TvaKameror.sampsonMaxPx, decimaler: 1)))
+                    // Kamerorna stämmer (✓) eller inte (✗); Sampson-felet i px litet under (PLAN S4h,
+                    // BESLUT B94, METOD MK3).
+                    talrad(Texter.treDSampson, u.sampsonPx.map { $0 <= TvaKameror.sampsonMaxPx ? Texter.bock : Texter.kryss },
+                           under: Texter.treDKameraFel(u.sampsonPx.map { Tal.medEnhet(Tal.tal($0, decimaler: 1), "px") },
+                                                       Tal.axel(TvaKameror.sampsonMaxPx, decimaler: 1)))
                     talrad(Texter.treDVinkelMellan, u.vinkel.map { Tal.medEnhet(Tal.tal($0, decimaler: 0), "°") },
                            under: Texter.treDVinkelSpann)
                 }

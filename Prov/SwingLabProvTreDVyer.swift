@@ -19,6 +19,16 @@ extension SwingLabProvVyer {
         return (TreDFil(pass: "20261103-180000", raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: 1, ut: .resultat(r)), r)
     }
 
+    /// 3D-fixturen (tio svingar) med passets antal (PLAN S4h, research 8 punkt 9): kortets antal är
+    /// svingarna i 3D och kan inte vara fler än passets. Under tröskeln (MK7) inga tal, som i appen.
+    func treDKort(svingar: Int, katalog k: Katalog) throws -> TreDKort {
+        var (fil, r) = try treDFil()
+        r.n = r.n.mapValues { min($0, svingar) }
+        if svingar < r.minSlag { r.session = [:] }
+        fil = TreDFil(pass: fil.pass, raknad: Date(), raknadAv: .dtl, kallor: [:], sekunder: 1, ut: .resultat(r))
+        return TreDKort(fil, katalog: k)
+    }
+
     func testTreDKortet() throws {
         let k = try katalog()
         let (fil, r) = try treDFil()

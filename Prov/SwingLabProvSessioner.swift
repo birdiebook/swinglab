@@ -120,17 +120,23 @@ extension SwingLabProvVyer {
         XCTAssertTrue(rfo.contains { $0.matt == "sway_gap_traff" } && !rfo.contains { $0.matt == "backen_thrust_traff" })
         XCTAssertTrue(rdtl.contains { $0.matt == "backen_thrust_traff" } && !rdtl.contains { $0.matt == "sway_gap_traff" })
         print("PROV: FO-sessionen \(kfo.count) kort, DTL-sessionen \(kdtl.count) kort; P7 FO \(rfo.map(\.matt)), DTL \(rdtl.map(\.matt))")
-        // 3D-kortet (S6c-2) står i båda sessionerna, utanför filtret per vy.
-        let kort3D = (try? treDFil()).map { TreDKort($0.0, katalog: k) }
-        XCTAssertNotNil(kort3D, "3D-fixturen")
+        // 3D-kortet (S6c-2) står i båda sessionerna, utanför filtret per vy, med passets antal
+        // svingar (S4h: fixturens tio stod förut på ett pass med åtta).
+        let fo3D = try? treDKort(svingar: fo.pass.visningsPass.slag, katalog: k)
+        let dtl3D = try? treDKort(svingar: dtl.pass.visningsPass.slag, katalog: k)
+        XCTAssertNotNil(dtl3D, "3D-fixturen")
+        XCTAssertEqual(dtl3D?.svingar, Texter.svingar(dtl.pass.visningsPass.slag))
         try rendera(PassScreenContent(pass: fo.pass, visning: fo.visning, images: [:], overlays: [:], analysis: AnalysisState(),
-                                      editable: false, treD: kort3D), namn: "session-fo", skala: 2)
+                                      editable: false, treD: fo3D), namn: "session-fo", skala: 2)
         try rendera(PassScreenContent(pass: dtl.pass, visning: dtl.visning, images: [:], overlays: [:],
-                                      analysis: AnalysisState(), editable: false, treD: kort3D), namn: "session-dtl", skala: 2)
+                                      analysis: AnalysisState(), editable: false, treD: dtl3D), namn: "session-dtl", skala: 2)
 
         // 3. Raderingen: frågan (Cancel först och vit, Delete en grå rad), och Delete tar passets
         // filer utom att_jobba_pa, och inget annat.
         try rendera(RaderaPassVy(rad: rader[2]), namn: "sessions-radera", accent: false)
+        // Delete i systemets röda (HIG, PLAN S4h): bilden har rött och inget annat färgat.
+        let radera = try XCTUnwrap(UIImage(contentsOfFile: "\(Self.ut)/sessions-radera.png"))
+        XCTAssertEqual(try bandfarger(radera), [.rod], "Delete är röd")
         let staleA = try XCTUnwrap(store.load(a))
         let fm = FileManager.default
         XCTAssertTrue(fm.fileExists(atPath: store.passFolder(a).path))
@@ -163,16 +169,19 @@ extension SwingLabProvVyer {
         store.setExporting(c, true)
         store.problem = nil
         XCTAssertFalse(store.deletePass(c))
-        XCTAssertEqual(store.problem, "The session is in use.")
+        // Varför och vad man gör (PLAN S4h, BESLUT B94), och Delete spärrad i frågan.
+        XCTAssertEqual(store.problem, Texter.iBrukExport)
+        XCTAssertEqual(store.inUse(c), Texter.iBrukExport)
         XCTAssertNotNil(store.load(c))
+        try rendera(RaderaPassVy(rad: rader[1], iBruk: store.inUse(c)), namn: "sessions-radera-vagrad", accent: false)
         store.setExporting(c, false)
         store.setInFlow(c, true)
         XCTAssertFalse(store.deletePass(c))
+        XCTAssertEqual(store.problem, Texter.iBrukFlode)
         XCTAssertNotNil(store.load(c))
         store.setInFlow(c, false)
+        XCTAssertNil(store.inUse(c))
         store.problem = nil
-        try rendera(RaderaPassVy(rad: rader[1], problem: String(localized: "The session is in use.")),
-                    namn: "sessions-radera-vagrad", accent: false)
         // Den andra telefonen (en egen Store) har samma pass; raderingen här rör det inte.
         let rot2 = FileManager.default.temporaryDirectory
             .appending(path: "swinglab-sessioner-andra-\(UUID().uuidString)", directoryHint: .isDirectory)

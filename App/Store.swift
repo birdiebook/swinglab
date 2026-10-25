@@ -204,8 +204,8 @@ final class Store {
     @discardableResult
     func deletePass(_ id: String) -> Bool {
         guard PassID.isValid(id) else { return false }
-        guard !exporting.contains(id), !inFlow.contains(id) else {
-            problem = String(localized: "The session is in use.")
+        if let skal = inUse(id) {
+            problem = skal
             return false
         }
         let fm = FileManager.default
@@ -232,6 +232,13 @@ final class Store {
         }
         removeFromIndex(id)
         return true
+    }
+
+    /// Varför passet inte kan raderas just nu, och vad man gör; nil när det kan (BESLUT B64, B94).
+    func inUse(_ id: String) -> String? {
+        if exporting.contains(id) { return Texter.iBrukExport }
+        if inFlow.contains(id) { return Texter.iBrukFlode }
+        return nil
     }
 
     private func removeFromIndex(_ id: String) {

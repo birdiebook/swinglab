@@ -17,7 +17,8 @@
 //                      bladet säger det.
 // Bilderna: claude-passet (knapparna i passet, med Copied och Open Claude; Today är dold sedan
 // S4e, BESLUT B64), claude-blad (bladet med svaret), claude-blad-ersatt (frågan),
-// claude-blad-aldre (ett äldre pass) och claude-fel (felraden).
+// claude-blad-aldre (ett äldre pass), claude-fel (felet på enkel engelska) och claude-fel-detaljer
+// (fältet och koden under "Details", S4h).
 // iOS fråga om tillåtelse att klistra in syns inte här: provet läser det appen själv lagt i
 // urklippet. FRÅGAN OCH CLAUDE-APPEN PROVAS BARA PÅ TELEFONEN.
 
@@ -152,7 +153,14 @@ extension SwingLabProvVyer {
         XCTAssertEqual(Texter.kontrollfelRad(g), "svaret: no code block from Claude")
         XCTAssertEqual(store.focus?.pass, nuID)
         XCTAssertEqual(try Data(contentsOf: store.focusFolder.appending(path: m.fileName)), fore, "inget ändrat")
-        try rendera(ClaudeRad(lage: .fel(rad: rad, alla: Texter.kontrollfelAlla(f))), namn: "claude-fel", accent: false)
+        // Felet på enkel engelska överst, fältet och koden under "Details" (PLAN S4h, BESLUT B94).
+        let klartext = Texter.kontrollfelKlartext(f)
+        XCTAssertTrue(klartext.hasPrefix("Claude's reply can't be used: "), klartext)
+        print("PROV: Claude-felet på enkel engelska: \(klartext)")
+        XCTAssertFalse(klartext.contains("7") || klartext.contains("inches") || klartext.contains("tanke"), klartext)
+        let felLage = ClaudeRad.Lage.fel(klartext: klartext, rad: rad, alla: Texter.kontrollfelAlla(f))
+        try rendera(ClaudeRad(lage: felLage), namn: "claude-fel", accent: false)
+        try rendera(ClaudeRad(lage: felLage, visaDetaljer: true), namn: "claude-fel-detaljer", accent: false)
         print("PROV: ogiltigt svar: \(rad); fel pass: \(Texter.kontrollfelRad(annat))")
 
         // 4. Passet har redan en fil: "Use" frågar, "Cancel" sparar inget, "Replace" skriver över.

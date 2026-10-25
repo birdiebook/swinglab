@@ -85,7 +85,7 @@ struct SakVy: View {
             StortTal(varde: sak.nu, enhet: sak.enhet)
                 .padding(.top, 10)
             if let mal = sak.mal {
-                SpannVy(spann: mal, accent: true)
+                SpannVy(spann: mal, accent: true, tal: true)
                     .padding(.top, 12)
             }
             Color.clear.frame(height: 14)

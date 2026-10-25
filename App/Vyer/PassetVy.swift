@@ -1,10 +1,11 @@
 import SwiftUI
 import Swing
 
-/// Passet (skissens skärm 5): dagen, filtret Alla/FO/DTL, klubban och slagen, och
-/// ett kort per mått i katalogens ordning. Datan kommer som värden (Passvisning),
-/// så att provet kan rita skärmen utan app och utan telefon. Inne i en session (`vy`) visas
-/// bara sessionens vy, utan filtret (PLAN S4e, BESLUT B64).
+/// Passet (skissens skärm 5): dagen, filtret Alla/DTL/FO, klubban och slagen, och korten i
+/// läsordningen (PLAN S4h, BESLUT B94): överst Focus eller de röda måtten, sedan korten rött, gult
+/// och grönt, och sist "More measures (n)" med de mått som inte kan säga bra eller dåligt, ett
+/// tryck bort. Datan kommer som värden (Passvisning), så att provet kan rita skärmen utan app och
+/// utan telefon. Inne i en session (`vy`) visas bara sessionens vy, utan filtret (PLAN S4e, BESLUT B64).
 struct PassetVy: View {
     let visning: Passvisning
     var tillbaka: () -> Void = {}
@@ -16,20 +17,23 @@ struct PassetVy: View {
     /// stället för filtret. nil = filtret Alla/FO/DTL (skissen).
     var vy: Vy? = nil
     @State private var filter: Passvisning.Filter
+    /// "More measures" utfällt (provet ritar det utfällt).
+    @State private var visaFler: Bool
 
     init(visning: Passvisning, filter: Passvisning.Filter = .alla, vy: Vy? = nil, navrad: Bool = true,
-         tillbaka: @escaping () -> Void = {}, dela: @escaping () -> Void = {}) {
+         visaFler: Bool = false, tillbaka: @escaping () -> Void = {}, dela: @escaping () -> Void = {}) {
         self.visning = visning
         self.tillbaka = tillbaka
         self.dela = dela
         self.navrad = navrad
         self.vy = vy
         _filter = State(initialValue: filter)
+        _visaFler = State(initialValue: visaFler)
     }
 
-    /// Korten som visas: sessionens vy, eller filtrets.
-    private var korten: [Mattkort] {
-        vy.map { visning.kort(i: $0) } ?? visning.filtrerat(filter)
+    /// Korten som visas i läsordningen: sessionens vy, eller filtrets (PLAN S4h).
+    private var lista: Passlista {
+        vy.map { visning.lista(i: $0) } ?? visning.lista(filter)
     }
 
     @ViewBuilder private var vanster: some View {
@@ -73,11 +77,84 @@ struct PassetVy: View {
                 }
             }
             .padding(.bottom, 6)
-            ForEach(korten) { kort in
+            let l = lista
+            if let topp = l.topp {
+                PassToppVy(topp: topp, upplasning: l.toppUpplasning ?? "")
+            }
+            ForEach(l.kort) { kort in
                 MattkortVy(kort: kort)
+            }
+            if let rad = l.flerRad {
+                FlerRad(text: rad, oppen: visaFler) { visaFler.toggle() }
+                if visaFler {
+                    ForEach(l.fler) { kort in
+                        MattkortVy(kort: kort)
+                    }
+                }
             }
         }
         .padding(.horizontal, 20)
         .background(Theme.ground)
+    }
+}
+
+/// Passets översta kort (PLAN S4h, BESLUT B94): Focus (måtten som övas, rubriken i accenten,
+/// BESLUT B31) eller de röda måtten, ett per rad med namnet, talet och läget. Korten står också i
+/// listan under; det här är vad man läser först.
+struct PassToppVy: View {
+    let topp: Passlista.Topp
+    var upplasning = ""
+
+    private var focus: Bool {
+        if case .focus = topp { return true }
+        return false
+    }
+
+    var body: some View {
+        Sektion {
+            VStack(alignment: .leading, spacing: 10) {
+                Etikett(text: topp.rubrik, farg: focus ? Theme.acc : Theme.tertiary)
+                ForEach(topp.kort) { k in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(verbatim: k.namn)
+                            .typsnitt(16, .medium)
+                            .foregroundStyle(Theme.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                        Text(verbatim: Tal.medEnhet(k.varde, k.varde == "—" ? "" : k.enhet))
+                            .typsnitt(17, .medium, siffror: true)
+                            .foregroundStyle(Theme.text)
+                        LageSymbol(lage: k.lage, storlek: 12)
+                            .frame(width: 12)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(upplasning)
+    }
+}
+
+/// Raden längst ner i passet: "More measures (n)" och en pil; ett tryck fäller ut korten utan dom
+/// (PLAN S4h, BESLUT B94).
+struct FlerRad: View {
+    let text: String
+    let oppen: Bool
+    var action: () -> Void = {}
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(verbatim: text)
+                    .foregroundStyle(Theme.secondary)
+                Spacer(minLength: 8)
+                Image(systemName: oppen ? "chevron.up" : "chevron.down")
+                    .typsnitt(13, .semibold)
+                    .foregroundStyle(Theme.tertiary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .buttonStyle(RowButtonStyle())
+        .accessibilityValue(oppen ? Text(verbatim: Texter.oppen) : Text(verbatim: Texter.stangd))
     }
 }

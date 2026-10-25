@@ -145,7 +145,7 @@ struct Flikar: View {
         // Vägras raderingen eller går den inte, står bladet kvar med felet (`Store.problem`).
         .sheet(item: $radera, onDismiss: { raderaFel = nil }) { rad in
             ScrollView {
-                RaderaPassVy(rad: rad, problem: raderaFel, onDelete: {
+                RaderaPassVy(rad: rad, problem: raderaFel, iBruk: store.inUse(rad.id), onDelete: {
                     store.problem = nil
                     if store.deletePass(rad.id) {
                         rader.removeAll { $0.id == rad.id }

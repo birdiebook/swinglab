@@ -215,7 +215,9 @@ extension SwingLabProvVyer {
         let annan = try AnnanSession.pass(try XCTUnwrap(styrStore.otherPhone(id)), lead: styrP)
         let foVisning = try XCTUnwrap(PassShotsView.visning(annan, earlier: []))
         XCTAssertTrue(foVisning.kort(i: .fo).contains { $0.id == "sway_topp" })
-        let kort3D = (try? treDFil()).map { TreDKort($0.0, katalog: k) }
+        // 3D med passets svingar från båda telefonerna (S4h: förut fixturens tio mot fyra här).
+        let kort3D = try? treDKort(svingar: 4, katalog: k)
+        XCTAssertEqual(kort3D?.svingar, "4 swings")
         for (val, namn) in [(Parvy.dtl, "parad-dtl"), (.fo, "parad-fo"), (.treD, "parad-3d")] {
             let lage = ParadLage(egen: .dtl, valt: val, franBada: status,
                                  forlopp: val == .dtl ? Texter.hamtar(60) : nil, kanHamtaHela: true,

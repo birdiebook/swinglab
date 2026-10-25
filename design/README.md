@@ -23,8 +23,10 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    och läget som en markör i spannet. Ingen totalpoäng.
 5. **Ingen beskrivande text.** Bara etiketter, tal, enheter och det som måste
    läsas för att använda appen: övningens namn, tanken och "klart när" som ett
-   villkor i tal. Märkningarna är små symboler med en kort etikett: B10 (gräns
-   ej läst i original), Your usual (egen baslinje, B87), off (avstängt mått).
+   villkor i tal. Märkningarna är små symboler med en kort etikett: Your usual (egen
+   baslinje, B87), off (avstängt mått). B10 (gräns ej läst i original) står bara i
+   infobladets källa sedan S4h (BESLUT B94). **Undantag (B94):** kvittot och Claude-felet
+   är en mening med vad man gör, och felsökningens tal ligger bakom "Details".
 6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.
@@ -52,6 +54,14 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
     också utan färg. Den egna baslinjen är ramen "Your usual" utan färg, utom den röda
     triangeln när värdet ligger mer än golvet åt måttets sämre håll. Inga ord. Accenten
     (regel 10) står kvar på rubriken, namnet och kvartilerna; markören bär läget när det finns.
+    **Sedan S4h (BESLUT B94):** under spannet står bara bra-området med enhet ("Good: −2.5 to 0
+    cm") eller den egna baslinjen ("Your usual: 2.0 to 2.6°"), ett undantag från regel 4, och ⓘ;
+    ett tryck på spannet eller ⓘ visar nyckeln (vad fältet, prick, ring, triangel, den vita linjen,
+    strecket och ramen betyder). Passet börjar med Focus eller de röda måtten, korten står rött,
+    gult, grönt, och mått utan läge ligger under "More measures (n)". Granskningens rader står i
+    samma ordning.
+12. **Det som tar bort (BESLUT B94).** Delete har systemets röda `#FF453A` (HIG:s destruktiva
+    stil), i svepet och i frågan; spärrad är den grå med en rad om varför.
 
 ## Språket (BESLUT B30, B33)
 
@@ -82,6 +92,7 @@ Måtten: Sway, Hip shift, Thrust, Chest bend, Side bend, Sway gap. Klubborna skr
 | `--rec` | `#D70015` | bara REC-pillen under inspelningen (B85) |
 | `--rec-knapp` | `#FF3B30` | bara inspelningsknappens fält i den vita ringen (B85) |
 | `--varning` | `#F5B54A` | bara varningens ikon i inspelningen (B85) |
+| `--destruktiv` | `#FF453A` | bara Delete (regel 12, B94) |
 
 ## Öppna val
 

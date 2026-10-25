@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -416,6 +416,43 @@ usual". Analysen till Claude bygger på samma källa och band som appen (`katalo
 ritar grönt, gult och rött och en granskning utan (b)-måtten, och Johannes har läst ett järnpass på
 telefonen och direkt sett vad som är innanför, nära och utanför, och ändrat de mått han inte håller
 med om (B86 omprövas per mått).
+
+## S4h — Första intrycket (Johannes beslut 2026-10-25, efter research 8)
+
+Underlaget: [docs/research/8_ux_granskning.md](docs/research/8_ux_granskning.md), en granskning
+med nya ögon av simulatorns bilder. Johannes valde punkterna 1, 2, 3, 4, 8 och 9; punkterna 5
+(riktningen i ord), 6 (Claude-flödet) och 7 (inspelningen och Lead/Follow) väntar på hans beslut.
+BESLUT B94, METOD M63 (B86 dom (a) i visningen).
+
+**Byggt (grenen `s4h`).**
+1. **Felsökningen ett tryck bort:** kvittot är en mening med dom eller varningarna med vad man
+   gör, raderna under "Details" (`Receipt.dom`); slagens ms per ruta och Visions konfidens under
+   "Details"; B10-märket bara i infobladets källa; "Cameras agree" ✓/✗ i 3D med felet i px litet
+   under; Claude-felet på enkel engelska med fältet under "Details" (`Texter.kontrollfelKlartext`).
+2. **Det viktiga först:** överst Focus (det som övas i vyn) eller de röda måtten, sedan korten
+   rött, gult, grönt, inom gruppen i katalogens ordning (`Passlista`, `Lageordning`);
+   granskningens rader i samma ordning.
+3. **Bara mått med dom:** kort utan läge, oprövade och "—" under "More measures (n)", ett tryck
+   bort; rött mot den egna baslinjen visas; urklippet och exporten oförändrade. Axeln mot den egna
+   baslinjen rymmer ramen ± golvet (`Spann(golv:)`).
+4. **Bandet förklarat:** "Good: −2.5 to 0 cm" under spannet i stället för fyra tal, och nyckeln
+   (`Bandnyckel`) vid tryck på spannet eller ⓘ.
+5. **P-positionerna med namnet först:** "Top of backswing (P4) · 3 of 10" i märkningen och
+   positionens namn över granskningens rader; bock för klar, streck för hoppad; "Line right? Tap ✓"
+   när förslaget syns. Ordningen P1, P3 … P2, P6, P8 är kvar (B58).
+6. **HIG:** Delete röd i svepet och frågan, och en spärrad radering säger varför; filtret All ·
+   DTL · FO som det parade passets DTL · FO · 3D; längden i cm i passet som på Me; provets
+   3D-kort med passets antal svingar (fixturens tio stod på pass med fyra och åtta).
+
+Prov: `ForstaIntrycketTests`, `testKvittotsDom`, `testFeletPaEnkelEngelska` (Linux) och
+simulatorns bilder `band-passet-fo`, `band-passet-dtl`, `passet-fler`, `passet-focus`,
+`band-nyckel`, `band-granskning-p4`, `kvitto`, `kvitto-detaljer`, `kvitto-bra`, `claude-fel`,
+`claude-fel-detaljer`, `klubba-forslag`, `klubba-greppet`, `klubba-klar`, `granskning-video`,
+`sessions-radera`, `sessions-radera-vagrad`, `session-dtl`, `parad-3d`.
+
+**Klart när:** Linux och simulatorn är gröna med bilderna ovan, och Johannes har öppnat ett pass
+på telefonen och direkt sett vad han ska titta på först, hittat "More measures" och bandets
+nyckel, läst ett kvitto utan att fråga vad talen betyder, och raderat ett pass med den röda Delete.
 
 ## S5 — PC-länken och Claude
 
