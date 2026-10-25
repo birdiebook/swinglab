@@ -3170,6 +3170,39 @@ lagrad liggande och börjar efter 0 (`tools/tests/test_s3_facit.py`,
   ett lås till ett unikt temporärt namn och byts in, och sidan skickar dem en i taget.
   **räkning.**
 
+## MF7 — Förmärkaren för klubban (S7-1, steg 1)
+
+`tools/pc/formarkare.py`, BESLUT B92. Förslagen är aldrig facit: bara det Johannes klickat
+räknas som märkning (B71).
+
+- **Data:** golf-49wbh (Roboflow, lvs-rd, version 1, 7 842 bilder om 640 × 640, utsträckta)
+  och golf-club-tracking (club-head-tracking, version 2, 11 477 bilder, två kopior per
+  källbild med ljusändring). Båda **CC BY 4.0**, läst på Universe-sidan 2026-10-25.
+  Klasserna blir **klubba** (golf-49wbh `club`, golf-club-tracking `0`) och **klubbhuvud**
+  (`club_head`, `1`). Övriga klasser tas bort (boll, person, hål, matta, och händerna `3`,
+  som golf-49wbh saknar); en bild utan rutor står kvar som negativ. **läst** (licensen och
+  klasserna), **antagande** (att `0` är skaftet och `1` huvudet, sett på 16 bilder).
+- **Delningen per scen:** varje bild blir en miniatyr om **16 × 16** i gråskala med medel 0
+  och längd 1. Två bilder med korrelation över **0,95** är samma scen, transitivt. Hela
+  scener går till provet (**10 %** av varje källas bilder, som tak), valet (**10 %**) och
+  träningen, i ordningen efter en hash av scenens första filnamn. Då delas en källa likadant
+  vilka andra källor som än byggs med, och grannrutor ur samma video hamnar aldrig på båda
+  sidor. **antagande** (0,95 och 16 px: golf-49wbh fick 1 837 scener av 7 842 bilder,
+  golf-club-tracking 977 av 11 477).
+- **Modellen:** RF-DETR Nano (Apache 2.0, 30,2 M parametrar, 384 px) från COCO-vikterna,
+  batch **8** med **2** i ackumulering, AdamW med rf-detr:s standard (lr 10⁻⁴), EMA, valet av
+  vikter på mAP i valet. Ingen Ultralytics (B92). **standard** (rf-detr 1.11.2).
+- **Förslagen** på ett paket: ett kontaktark per sving med **11** lägen (adressen, baksvingen
+  1/3 och 2/3, toppen, nedsvingen 1/4, 1/2, 3/4 och 9/10, träffen, träffen + **0,15 s** och
+  finishen) ur svingens faser (M4), annars antagna faser (start −1,1 s, topp −0,28 s, träff
+  0 s från klicket, märkta `antagna`). Rutan läses på e + δ med S3:s förskjutning (MF1).
+  Modellen ser ett kvadratiskt utsnitt kring golfaren, **1,8 ×** kroppens höjd i bild
+  (ledernas lägsta till högsta punkt, konfidens ≥ 0,3) och högst bildens kortsida, samma
+  för hela svingen; utan leder bildens mitt. Rutor under konfidens **0,30** ritas inte.
+  JSON:en bredvid arket (`swinglab-forslag/1`, `kalla: "modell"`, `facit: false`) har
+  rutorna i hela bildens px. **antagande** (lägena, 1,8 och 0,30: läsbart ark, hela klubban
+  i bild vid toppen).
+
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 
 Filen `swinglab-klubba-forslag/1` (FORMAT.md, BESLUT B93) och hur telefonen visar den.
