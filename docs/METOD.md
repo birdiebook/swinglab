@@ -2135,8 +2135,12 @@ rutan ur kameran och kodar den (`App/Forhandsbild.swift`, `App/Camera.swift`) oc
   bredvid `AVCaptureMovieFileOutput` lämnar 240 bilder/s orörda (Apple har tidigare inte tillåtit
   båda samtidigt; i de iOS-versioner som appen kräver är det **ej mätt**). Därför: utgången läggs
   bara till hos Follow, är avstängd (`connection.isEnabled = false`) när ingen tar emot, stängs av
-  på kamerans kö före varje `startRecording` (serie och ljusprov), och tas bort helt om filens
-  koppling inte är aktiv med den bredvid. **Mått på telefonen:** kvittots frekvens och tappade
+  på kamerans kö före varje `startRecording` (serie och ljusprov), slås inte på igen förrän filen
+  är stängd (en egen flagga på kamerans kö, inte bara `isRecording`, som kan bli sann först när
+  filen börjat), och tas bort helt om filens koppling inte är aktiv med den bredvid, vid starten
+  eller när utgången slås på. Den läggs till bara när kameran ställs in, så en Lead som kopplar
+  under en serie ändrar aldrig sessionen mitt i den. Hos Lead avkodas ingen bild under den egna
+  serien eller ljusprovet. **Mått på telefonen:** kvittots frekvens och tappade
   rutor (MS1, FrameTiming) hos Follow med bilden på mot av, och följarens starttid.
 - **Vad som provas var.** Linux (`ForhandsbildTests`): meddelandena på tråden, förmågan i hello
   (en äldre app får ingen bild), kvittensen, högst en i flykt, takten, en kvittens som aldrig

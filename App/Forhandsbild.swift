@@ -88,6 +88,9 @@ final class AndraBild {
     /// Avkodningarnas ordning: en som blir klar efter en senare visas inte.
     @ObservationIgnored private var lopnummer = 0
     @ObservationIgnored private var visad = 0
+    /// Den styrande spelar in (serie eller ljusprov): rutan syns inte, så ingen bild avkodas och
+    /// inspelningen får telefonens kraft (MS35).
+    @ObservationIgnored var pausad = false
 
     init(bild: UIImage? = nil) {
         self.bild = bild
@@ -95,6 +98,7 @@ final class AndraBild {
 
     /// En ny bild: avkodas utanför huvudtråden; en äldre som blir klar efter en nyare visas inte.
     func ta(_ p: LinkPreview) {
+        guard !pausad else { return }
         lopnummer += 1
         let data = p.jpeg, n = lopnummer
         Task.detached(priority: .userInitiated) {

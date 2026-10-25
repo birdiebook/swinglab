@@ -249,6 +249,7 @@ struct RecordView: View {
             }
         }
         guard pass.setup.role == .lead, let link else { return }
+        link.andraBild.pausad = inspelar
         let nu = LinkClock.now()
         let visas = link.forhandsbildVisas(nu: nu, inspelar: inspelar)
         if visas != visaAndraBild {

@@ -46,6 +46,9 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
     @ObservationIgnored private let forhandsQueue = DispatchQueue(label: "swinglab.forhandsbild")
     /// Den styrande vill ha bilden (takten över noll); kamerans kö.
     @ObservationIgnored private var forhandsPa = false
+    /// En serie eller ljusprovet är begärd och inte avslutad; kamerans kö. Sätts före
+    /// `startRecording`, eftersom `isRecording` kan bli sann först när filen börjat (MS35).
+    @ObservationIgnored private var filmar = false
 
     private(set) var phase: Phase = .idle
     /// Rutnätet som ställdes in, bilder/s.
@@ -147,6 +150,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
         phase = .recording
         gravityToken = GravityRecorder.shared.start()                 // lodlinjen (S6b), METOD MS17
         queue.async { [self] in
+            filmar = true
             setForhandsConnection(false)                                // ingen förhandsbild under serien (MS35)
             output.startRecording(to: url, recordingDelegate: self)
         }
@@ -181,6 +185,7 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
         probeURL = url
         probeDone = nil
         queue.async { [self] in
+            filmar = true
             setForhandsConnection(false)                                // inte under ljusprovet (MS35)
             output.startRecording(to: url, recordingDelegate: self)
         }
@@ -213,6 +218,8 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
                     from connections: [AVCaptureConnection], error: Error?) {
         let ok = error == nil
             || ((error as NSError?)?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false)
+        // Före fasen: förhandsbilden får slås på igen först när filen är stängd (MS35).
+        queue.async { self.filmar = false }
         DispatchQueue.main.async { self.didFinish(outputFileURL, ok: ok) }
     }
 
@@ -320,13 +327,20 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
     private func kontrolleraForhandsbild() {
         guard let d = dataOutput else { return }
         guard let film = output.connection(with: .video), film.isActive, film.isEnabled else {
-            session.beginConfiguration()
-            session.removeOutput(d)
-            session.commitConfiguration()
-            dataOutput = nil
+            taBortForhandsOutput(d)
             return
         }
-        setForhandsConnection(forhandsPa)
+        setForhandsConnection(forhandsPa && !filmar && !output.isRecording)
+    }
+
+    /// Körs på `queue`, aldrig under en serie: förhandsbildens utgång bort för gott (tills kameran
+    /// ställs in igen).
+    private func taBortForhandsOutput(_ d: AVCaptureVideoDataOutput) {
+        d.connection(with: .video)?.isEnabled = false
+        session.beginConfiguration()
+        session.removeOutput(d)
+        session.commitConfiguration()
+        dataOutput = nil
     }
 
     /// Den styrande tar emot förhandsbilden (takten över noll) eller inte. Under en serie och
@@ -334,14 +348,18 @@ final class Camera: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVid
     func setForhandsbild(_ pa: Bool) {
         queue.async { [self] in
             forhandsPa = pa
-            setForhandsConnection(pa && !output.isRecording)
+            setForhandsConnection(pa && !filmar && !output.isRecording)
         }
     }
 
-    /// Körs på `queue`.
+    /// Körs på `queue`. Blir filens koppling inaktiv när utgången slås på, tas utgången bort: filen
+    /// går före bilden (den säkra vägen, MS35).
     private func setForhandsConnection(_ pa: Bool) {
-        guard let c = dataOutput?.connection(with: .video), c.isEnabled != pa else { return }
+        guard let d = dataOutput, let c = d.connection(with: .video), c.isEnabled != pa else { return }
         c.isEnabled = pa
+        if pa, !filmar, output.connection(with: .video)?.isActive != true {
+            taBortForhandsOutput(d)
+        }
     }
 
     /// Förhandsbildens ruta (`forhandsQueue`): tiden på värdklockan, som filens start (B19).
