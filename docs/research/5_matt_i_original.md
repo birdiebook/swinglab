@@ -14,6 +14,10 @@ sitt underlag med en URL och en status per rad:
 - [5d — Mått att ta in](5d_nya_matt.md): vad som saknas och vad som är svagast
   belagt.
 
+Fortsättningen: [6 — Ranges](6_ranges.md) (2026-10-25) går igenom varje rad i
+katalogen mot källorna här, föreslår ett band där måttet är detsamma och ger
+måtten utan källa en dom (behåll, flytta eller ta bort).
+
 Den här filen är sammanfattningen. Den visar vad som ändras för SwingLab, och
 var ett mått motsvarar en METOD-rad. **Ingenting i koden eller katalogen är
 ändrat.** Förslagen i §4 och §5 är underlag för den som bygger.

@@ -308,6 +308,9 @@ Det ersätter grönt, gult och rött med två lägen när den byggs. Inget är b
 med Johannes innan den startas (spannet, `Spann`, gränserna i katalogen och den egna baslinjen,
 METOD M27).
 
+Underlaget: [docs/research/6_ranges.md](docs/research/6_ranges.md) (2026-10-25), ett band per mått
+där källan mäter samma sak, domar för måtten utan källa och besluten som väntar på Johannes.
+
 **Klart när:** bestäms med Johannes.
 
 ## S5 — PC-länken och Claude
