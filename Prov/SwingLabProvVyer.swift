@@ -89,7 +89,8 @@ final class SwingLabProvVyer: XCTestCase {
 
     /// Gråskala och den enda accenten (B13 regel 6, B31), botten svart, och något ljust ritat.
     /// En punkt räknas som accent när den ligger på linjen mellan grått och isblått
-    /// (#6FD3F7: blått över grönt över rött); allt annat färgat är ett fel.
+    /// (#6FD3F7: blått över grönt över rött); bandets tre färger (B87, `bandfarg`) får stå för
+    /// läget; allt annat färgat är ett fel.
     func provaFormspraket(_ bild: UIImage, namn: String, accent: Bool?) throws {
         let cg = try XCTUnwrap(bild.cgImage)
         let w = cg.width, h = cg.height
@@ -110,7 +111,11 @@ final class SwingLabProvVyer: XCTestCase {
                 let i = (y * w + x) * 4
                 let r = Int(px[i]), g = Int(px[i + 1]), b = Int(px[i + 2])
                 if max(abs(r - g), abs(g - b), abs(r - b)) > 6 {
-                    if b > r + 6 && g > r && b + 8 >= g { isbla += 1 } else { farg += 1 }
+                    if b > r + 6 && g > r && b + 8 >= g {
+                        isbla += 1
+                    } else if Self.bandfarg(r, g, b) == nil {
+                        farg += 1
+                    }
                 }
                 if r > 200 && g > 200 { ljust += 1 }
                 x += 3

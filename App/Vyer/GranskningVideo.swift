@@ -619,7 +619,8 @@ enum ReviewRows {
                      ovas: Set<String> = []) -> [Positionsrad] {
         guard let k = AppKatalog.katalog, let m = shot.measure else { return [] }
         return Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values, baslinje: baseline,
-                                   ovas: ovas, flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true)
+                                   ovas: ovas, flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true,
+                                   klubba: pass.setup.club)
     }
 }
 
@@ -942,9 +943,10 @@ struct PositionsradVy: View {
             }
             Spacer(minLength: 6)
             if let s = rad.spann {
-                SpannVy(spann: s, kompakt: true, accent: rad.ovas)
+                SpannVy(spann: s, kompakt: true, accent: rad.ovas, lage: rad.lage)
                     .frame(width: 84)
             }
+            LageSymbol(lage: rad.lage, storlek: 10)              // BESLUT B87
             HStack(alignment: .firstTextBaseline, spacing: rad.enhet == "°" ? 0 : 3) {
                 Text(rad.varde)
                     .typsnitt(15, .medium, siffror: true)

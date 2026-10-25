@@ -4,12 +4,16 @@ import Swing
 /// Spannet (BESLUT B13, regel 3 och 4): en tunn linje; gränsen som ett tjockare
 /// grått segment eller den egna baslinjen som en ram; förra passet som ett grått
 /// streck; passets kvartiler som en tunn vit linje och medianen som en vit prick.
-/// Talen under linjen är axelns och gränsens ändar. Inga ord om läget.
+/// Talen under linjen är axelns och gränsens ändar. Inga ord om läget: läget mot bandet är
+/// markörens form och färg (METOD M62, BESLUT B87), en grön prick, en gul ring eller en röd pil
+/// som pekar åt det håll värdet ligger; utan läge är markören vit (eller i accenten).
 struct SpannVy: View {
     let spann: Spann
     var kompakt = false
-    /// Det du övar på: markören och kvartilerna i accenten (BESLUT B31).
+    /// Det du övar på: markören och kvartilerna i accenten (BESLUT B31); med ett läge bär
+    /// kvartilerna accenten och markören läget.
     var accent = false
+    var lage: Bandlage = .ingen
 
     private var markor: Color { accent ? Theme.acc : Theme.text }
 
@@ -63,7 +67,11 @@ struct SpannVy: View {
                     if ledigt(r) { c.etikett(sist.text, CGPoint(x: px, y: y + 14), ankare: .topTrailing) }
                 }
             }
-            c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, markor)
+            if lage.lage == .ingen {
+                c.prick(CGPoint(x: x(spann.nu), y: y), kompakt ? 3.5 : 5, markor)
+            } else {
+                c.lage(lage, CGPoint(x: x(spann.nu), y: y), kompakt ? 4.5 : 6, vagrat: true)
+            }
         }
         .frame(height: kompakt ? 14 : 40)
         .accessibilityElement()
@@ -125,13 +133,16 @@ struct MattkortVy: View {
                 if let spann = kort.spann {
                     HStack(alignment: .bottom, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
-                            StortTal(varde: kort.varde, enhet: kort.enhet)
+                            HStack(alignment: .center, spacing: 10) {
+                                StortTal(varde: kort.varde, enhet: kort.enhet)
+                                LageSymbol(lage: kort.lage, storlek: 14)       // BESLUT B87
+                            }
                             if let d = kort.skillnad { Under(text: d) }
                         }
                         Spacer(minLength: 0)
                         if let g = kort.geometri { GeometriVy(geometri: g) }
                     }
-                    SpannVy(spann: spann, accent: kort.ovas)
+                    SpannVy(spann: spann, accent: kort.ovas, lage: kort.lage)
                         .padding(.top, 12)
                 } else {
                     // Ett saknat eller avstängt mått: bara strecket, utan enhet.
