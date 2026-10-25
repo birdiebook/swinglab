@@ -346,7 +346,8 @@ class Laget(unittest.TestCase):
         klubbberoende = sorted({e.get("id") or e["matt"] for e in K.las()["fel"] + K.las()["matt"]
                                 if e.get("klubbberoende")})
         self.assertEqual(klubbberoende, ["axellinje_lutning_adress", "backen_lyft_in_traff", "backen_lyft_min",
-                                         "backen_sway_p3", "backens_resa_framat", "brost_lyft_traff", "sway_gap"])
+                                         "backen_resa_p5", "backen_sway_p3", "backens_resa_framat", "brost_lyft_traff",
+                                         "hoftlinje_lutning_traff", "sway_gap"])
         self.assertEqual(K.lage_for(_fel("axellutning"), 99.0), {"lage": "ingen", "pil": None})
 
     def test_vad_sessionen_visar(self) -> None:

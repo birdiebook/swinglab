@@ -1764,9 +1764,10 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
      där research 6 skriver "båda klubborna" eller källan inte skiljer klubborna, till exempel
      swayen vid toppen, tempot, nedsvingens tid, early extension, bröstets böjning i adressen,
      bröstets lyft vid toppen, höftlinjen i adressen och vid toppen, och banden ur definitionen.
-     **De sju band som klubban flyttar** (research 6 §6: resan framåt, sway gap, bröstets lyft vid
+     **De nio band som klubban flyttar** (research 6 §6: resan framåt, sway gap, bröstets lyft vid
      träffen, bäckenets lägsta punkt och lyft in i träffen, axellinjen i adressen och swayen vid
-     P3) bär `klubbberoende: true` i katalogen och visas bara på järnpass (4–9 och PW); på andra
+     P3; och ur §3 resan till P5 och höftlinjen vid träffen, granskningen 2026-10-25) bär
+     `klubbberoende: true` i katalogen och visas bara på järnpass (4–9 och PW); på andra
      klubbor visas inget band, bara den egna baslinjen där den finns.
   3. **Domarna:** (a) behåll; (b) `visas: false`: visas inte för spelaren (passet,
      granskningen och Progress) men finns i exporten, paketet och underlaget till Claude (S5b); (c) bort ur
@@ -1788,7 +1789,7 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Ett fel som övas visas** även när det är dom (b) (flying elbow kan väljas av Claude):
   annars syns inte det Johannes ska öva på.
 - **Analysen till Claude** följer samma klubbregel som appen (`katalog.i_passet`,
-  `Fel.iPasset`): en enhet med en annan klubba än järn har inget band för de sju, och klubban står
+  `Fel.iPasset`): en enhet med en annan klubba än järn har inget band för de nio, och klubban står
   i underlaget. Den egna baslinjens z-gränser (M27) gäller fortfarande där.
 - **Bortvalt:** två lägen (innanför och utanför), PLAN S4g:s första skiss: gult behövs för det
   som kan vara mätfel (B87). Att ta bort beräkningen av dom (c): måtten och paketet skulle
@@ -1796,7 +1797,7 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   klubba än (B45).
 - **Kostnad:** 16 band är tour ± golv och säger inget om spridningen bland proffsen
   (thrustens SD 3,6 cm mot golvet 2 cm), och de flesta amatörer ligger utanför nedsvingens band.
-  En driver visar inga band för de sju tills klubban styr bandet.
+  En driver visar inga band för de nio tills klubban styr bandet.
 - **Omprövas:** per mått när Johannes ändrar ett beslut, när klubban förs in i katalogen
   (driverns band), och när riktiga pass visar var Johannes ligger.
 

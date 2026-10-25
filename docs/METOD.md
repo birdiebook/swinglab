@@ -2927,7 +2927,8 @@ Samma regler i Python (`katalog.lage`, `lage_baslinje`, `lage_for`, `band`, `vis
   läge. Ramens ände, inte medianen: en stor egen spridning ska inte ge rött inne i ramen.
 - **Klubban** (BESLUT B86): katalogens band är järnets (`gront`), och driverns står i
   `gront_driver` utan att användas. Ett band som inte beror på klubban gäller alla klubbor. De
-  sju band som klubban flyttar (research 6 §6) bär `klubbberoende: true` och visas bara på
+  nio band som klubban flyttar (research 6 §6, och resan till P5 och höftlinjen vid träffen ur §3)
+  bär `klubbberoende: true` och visas bara på
   **järnpass**: järnen 4–9 och PW, som id (`j7`, `pw`) eller etikett (`7i`, `PW`); en okänd
   klubba räknas som järn, standarden. På andra klubbor visas inget band för dem, och läget är
   den egna baslinjens. Analysen till Claude (M27, MT3) följer samma regel per enhet (klubba).
