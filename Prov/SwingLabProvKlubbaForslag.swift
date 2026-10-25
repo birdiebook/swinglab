@@ -69,17 +69,19 @@ final class SwingLabProvKlubbaForslag: XCTestCase {
         for f in j1.frames {
             guard let g = hander(f) else { continue }
             let h = hoselFor(g)
-            rutor.append(["t": f.t, "punkter": [
-                "grepp": ["x": g.x, "y": g.y, "konfidens": 0.9],
-                "hosel": ["x": h.x, "y": h.y, "konfidens": 0.8, "box": [h.x - 6, h.y - 6, 22, 14]],
-                "huvud": ["x": h.x + 8, "y": h.y + 3, "konfidens": 0.85]]])
+            let hosel: [String: Any] = ["x": h.x, "y": h.y, "konfidens": 0.8, "box": [h.x - 6, h.y - 6, 22.0, 14.0]]
+            let punkter: [String: Any] = ["grepp": ["x": g.x, "y": g.y, "konfidens": 0.9], "hosel": hosel,
+                                          "huvud": ["x": h.x + 8, "y": h.y + 3, "konfidens": 0.85]]
+            rutor.append(["t": f.t, "punkter": punkter])
         }
         func forslagsfil(vy: String, pass id: String) throws -> Data {
-            try JSONSerialization.data(withJSONObject: [
-                "format": KlubbForslagFil.format, "pass": id, "vy": vy, "skapad": "2026-10-25T21:15:00+02:00",
-                "modell": ["namn": "prov-modell", "version": "0.0.1",
-                           "data": [["namn": "golf-49wbh", "licens": "CC BY 4.0"]]],
-                "bredd": j1.width, "hojd": j1.height, "slag": [["id": s1.id, "rutor": rutor]]] as [String: Any])
+            let modell: [String: Any] = ["namn": "prov-modell", "version": "0.0.1",
+                                         "data": [["namn": "golf-49wbh", "licens": "CC BY 4.0"]]]
+            let slag: [String: Any] = ["id": s1.id, "rutor": rutor]
+            let d: [String: Any] = ["format": KlubbForslagFil.format, "pass": id, "vy": vy,
+                                    "skapad": "2026-10-25T21:15:00+02:00", "modell": modell,
+                                    "bredd": j1.width, "hojd": j1.height, "slag": [slag]]
+            return try JSONSerialization.data(withJSONObject: d)
         }
         XCTAssertThrowsError(try store.importClubSuggestions(forslagsfil(vy: "fo", pass: pass.id))) { e in
             XCTAssertEqual((e as? FormatFel)?.beskrivning, "suggestions: vy: does not match the session")
