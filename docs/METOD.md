@@ -2090,6 +2090,61 @@ står i kugghjulet (BESLUT B85).
   fyra lägena och kugghjulets blad för Lead och ensam, och största textstorleken, ritade på en grå
   videoyta. Telefonen: räknaren, `peakHoldLevel`, följarens starttid och lutningen live.
 
+## MS35 — Den andra telefonens bild live (S2k)
+
+Logiken i `Capture/Forhandsbild.swift` (`LinkPreview`, `Forhandstakt`, `ForhandsSandare`,
+`ForhandsMottagare`), meddelandena i `Capture/Link.swift` och `LinkSession.swift`; appen tar
+rutan ur kameran och kodar den (`App/Forhandsbild.swift`, `App/Camera.swift`) och visar den
+(`App/Vyer/InspelningsLager.swift`). Varför JPEG och varför ingen bild under serien: BESLUT B90.
+
+- **Bilden:** kortsidan **360 px** (360 × 640 stående), JPEG med kvaliteten **0,5** (ImageIO,
+  `CIContext.jpegRepresentation`), aldrig uppskalad. Rutan ur kamerans egen videoutgång i
+  förhandsbildens storlek (`deliversPreviewSizedOutputBuffers`, kameran skalar), vriden 90° som
+  filen (`oriented(.right)`), skalad och kodad i appen. En bild över **200 kB** skickas inte (en
+  trasig kodning). 360p är beställningens; kvaliteten är **antagande** (räcker för att se fötter,
+  boll och huvud i hjälplinjerna; prövas på telefonen).
+- **Takten:** **12** bilder/s i uppställningen (beställningens 10–15), **6** när telefonen är
+  varm (`fair`), och ingen från **serious** (beställningen; Apple: systemet kan sänka kvaliteten
+  där, MS11). Under en serie och ljusprovet **ingen** (den säkra vägen, nedan). Bara till en
+  styrande vars hello har `preview1`. **antagande** (takten), **beställning** (värmen).
+- **Mottrycket:** högst **en** bild i flykt. Nästa ruta blir en bild först när den förra är
+  kvitterad (`preview_ack` med numret) och tidigast 1/takten − **2 ms** efter förra (marginalen
+  mot kamerans rutnät, 4,2 ms i 240 bilder/s). En kvittens som inte kommer på **1 s** släpper
+  flykten. Bilderna glesnar alltså när nätet är långsamt, i stället för att en kö växer: en bild
+  är aldrig äldre än en överföring och en kvittens. **räkning** (`ForhandsbildTests`).
+- **Bandbredden (räkning):** en bild på cirka 20–35 kB blir 4/3 större i base64 (Wire skickar
+  snedstrecken oescapade sedan S2k), alltså 27–47 kB på tråden och **2,6–4,5 Mbit/s** i 12
+  bilder/s. Peer-to-peer-wifi (AWDL) eller ett gemensamt wifi ger tiotals Mbit/s (**antagande**,
+  ej mätt); H.264 skulle ta 0,5–1 Mbit/s, men det behövs inte (B90). Provet skriver
+  simulatorns storlek för sin påhittade scen; en riktig gräsbild kan bli större.
+- **Fördröjningen (räkning):** kameran till utgången ~30–50 ms, kodningen några ms, överföringen
+  ~10–20 ms för 40 kB, kvittensen en väg, avkodningen och skärmen ~20 ms: cirka **0,1 s**, mot
+  kravet **0,3 s** (PLAN S2k). Den styrande mäter den: rutans tid på följarens värdklocka
+  (`LinkPreview.t`, ur buffertens PTS som filens start, B19) minus pingens θ (MS9) mot när bilden
+  kom, median av de **15** senaste. Kugghjulet visar den med takten de senaste **2 s** på raden
+  "Other phone's view" ("0.12 s · 12 fps"), bara hos Lead när bilden kommer.
+- **Rutan hos Lead:** när följaren är kopplad, ingen egen serie spelas in och senaste bilden är
+  högst **1,5 s** gammal (följaren spelar in, är varm eller tappad: rutan går). 60 × 107 pt nere
+  till vänster, ovanpå knappradens tomma plats, så att inspelningsknappen inte flyttar. Ett tryck
+  gör den stor med hjälplinjerna i bildens ram. **antagande** (tiderna, storleken).
+- **Pingen och bilden delar förbindelsen.** En bild före en ping i TCP-kön gör pingens väg längre;
+  klockans skattning tar de pingar som gick snabbast (MS9), och under serien, när pingen räknas
+  för parningen, går ingen bild. **räkning**; kvar att se på telefonerna: klockans osäkerhet i
+  kugghjulet med och utan bilden.
+- **Den säkra vägen under inspelningen.** Det är inte bekräftat att en `AVCaptureVideoDataOutput`
+  bredvid `AVCaptureMovieFileOutput` lämnar 240 bilder/s orörda (Apple har tidigare inte tillåtit
+  båda samtidigt; i de iOS-versioner som appen kräver är det **ej mätt**). Därför: utgången läggs
+  bara till hos Follow, är avstängd (`connection.isEnabled = false`) när ingen tar emot, stängs av
+  på kamerans kö före varje `startRecording` (serie och ljusprov), och tas bort helt om filens
+  koppling inte är aktiv med den bredvid. **Mått på telefonen:** kvittots frekvens och tappade
+  rutor (MS1, FrameTiming) hos Follow med bilden på mot av, och följarens starttid.
+- **Vad som provas var.** Linux (`ForhandsbildTests`): meddelandena på tråden, förmågan i hello
+  (en äldre app får ingen bild), kvittensen, högst en i flykt, takten, en kvittens som aldrig
+  kommer, storleken och den styrandes ruta, fördröjning och takt. Simulatorn
+  (`SwingLabProvForhandsbild`): två telefoner över loopback med appens kodning, takten, mottrycket,
+  fördröjningen, pausen, värmen och tappet, och rutan och den stora bilden ritade. Telefonerna:
+  fördröjningen, frekvensen och värmen (PLAN S2k, Klart när).
+
 ## MT1 — Paketet till svingar
 
 - Varje slag i paketet (S2_SPEC §8.3, docs/FORMAT.md "Paketet") blir en sving i

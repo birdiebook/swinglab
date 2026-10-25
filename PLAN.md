@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -251,9 +251,30 @@ Follow skickar en liten förhandsbild till Lead över PhoneLink (direkt wifi, in
   stjäl kraft från inspelningen i 240 bilder/s eller värmer telefonen.
 - **Dataregeln:** bilden går bara mellan de två parade telefonerna (B61) och sparas inte.
 
+**Byggt (grenen `s2k`, BESLUT B90, METOD MS35):** JPEG per bild (360 × 640, kvaliteten 0,5) som
+meddelandet `preview` över samma koppling, kvitterad med `preview_ack`, högst en i flykt; förmågan
+`preview1` i hello, så att en äldre partner fungerar som förut. Takten 12 bilder/s, 6 när Follow är
+varm (`fair`), ingen från `serious` och **ingen under serien eller ljusprovet** (den säkra vägen:
+den egna videoutgången stängs av före varje inspelning, och tas bort om filens koppling inte är
+aktiv bredvid den). SwingLabKit `Capture/Forhandsbild.swift` (`LinkPreview`, `Forhandstakt`,
+`ForhandsSandare`, `ForhandsMottagare`) med `ForhandsbildTests`; appen `App/Forhandsbild.swift`
+(källan och kodningen hos Follow, `AndraBild` hos Lead), kamerans utgång i förhandsbildens storlek
+(`App/Camera.swift`), och i `InspelningsLager` rutan 60 × 107 pt nere till vänster (knappen flyttar
+inte) och den stora bilden med hjälplinjerna och en stängknapp, utan ord. Kugghjulet hos Lead har
+raden "Other phone's view" med fördröjningen och takten ("0.12 s · 12 fps"). Simulatorprovet
+`Prov/SwingLabProvForhandsbild.swift`: två telefoner över loopback med appens kodning (takten,
+mottrycket, fördröjningen, pausen, värmen, tappet) och bilderna `insp-lead-andra-bild*`,
+`andra-bild-mottagen` och `insp-installningar-andra-bild`.
+
+**Oprövat på telefonerna:** att iOS låter videoutgången ligga bredvid filen i 240 bilder/s,
+bildens vridning, bandbredden över AWDL och värmen.
+
 **Klart när:** Lead visar Follows bild med under 0,3 s fördröjning på riktiga telefoner,
 inspelningens bildfrekvens påverkas inte, och det termiska trycket stiger inte märkbart under en
-uppställning på 5 minuter.
+uppställning på 5 minuter. Mäts så: (1) fördröjningen i Leads kugghjul, raden "Other phone's
+view", och med ögat (vifta framför Follow och se Lead); (2) Follows kvitto efter en serie med Lead
+kopplad mot en ensam serie: samma frekvens och inga fler tappade rutor; (3) Thermal i Follows
+kugghjul före och efter 5 minuter med Leads ruta öppen.
 
 ## S3 — Facit: Vision mot MediaPipe
 

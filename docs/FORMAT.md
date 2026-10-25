@@ -312,8 +312,14 @@ serien kvitteras, så att parningen kan göras om när kameran öppnas igen.
 `SwingLabKit/Sources/Capture/Link.swift`; de lämnar aldrig telefonerna. En okänd typ hoppas
 över (sedan S6c-2). `hello` bär `role`, `device` (stabil per installation sedan S6c-2), `model`,
 `app`, `view` och, sedan S6c-2, `mode` (`record` eller `pass`, saknas = `record`) och `caps`
-(`["part1"]`: tar emot bitarna; sedan S6g också `"video1"`: begär och skickar klipp); okända
-nycklar tål avkodaren.
+(`["part1"]`: tar emot bitarna; sedan S6g också `"video1"`: begär och skickar klipp; sedan S2k
+också `"preview1"`: förhandsbilden); okända nycklar tål avkodaren.
+
+**Förhandsbilden** (S2k, BESLUT B90, METOD MS35): följaren skickar `preview` med `{"v": 1, "n",
+"t", "w", "h", "jpeg"}` (numret, när rutan togs på följarens värdklocka i s, storleken i px och
+JPEG-bytena i base64) bara till en styrande vars hello har `preview1`, och den styrande svarar
+`preview_ack` med `{"n"}`. Nästa bild skickas först efter kvittensen (högst en i flykt). Bilden
+sparas aldrig, varken i passet eller i paketet.
 
 ### 3D mellan telefonerna (S6c-2): `part`, `swinglab-slag/1` och `tre_d.json`
 

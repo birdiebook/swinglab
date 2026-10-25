@@ -251,7 +251,11 @@ public enum Wire {
     public static func frame(_ m: LinkMessage) throws -> Data {
         let json: Data
         do {
-            json = try JSONEncoder().encode(m)
+            // Utan "\/" för varje snedstreck: base64 i bitarna och förhandsbilden har ett per 64 tecken
+            // (S2k, MS35). Läsaren tål båda.
+            let e = JSONEncoder()
+            e.outputFormatting = .withoutEscapingSlashes
+            json = try e.encode(m)
         } catch {
             throw WireError.unencodable
         }

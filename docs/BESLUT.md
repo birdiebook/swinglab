@@ -1857,6 +1857,46 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Omprövas:** när S7 ger klubban på alla slag, och när riktiga pass visar var klubbans plan
   ligger.
 
+## B90 — Den andra telefonens bild live: JPEG per bild över PhoneLink, en i flykt, ingen under serien
+*2026-10-25 · prövas · Johannes ja 2026-10-25 · PLAN.md S2k · METOD MS35*
+
+- **Valt:** Follow skickar en förhandsbild till Lead över samma PhoneLink-koppling: en JPEG per
+  bild, 360 × 640, kvaliteten 0,5, cirka 12 bilder/s (6 när telefonen är varm, ingen från
+  serious), som meddelandet `preview` med JPEG i base64 och numret, och Lead kvitterar varje bild
+  (`preview_ack`). Nästa bild tas först när den förra är kvitterad: högst en i flykt, så att
+  fördröjningen inte växer när nätet är långsamt. Förmågan `preview1` i hello: en telefon med ett
+  äldre bygge får ingen bild och allt annat fungerar som förut. Lead visar bilden i en liten ruta
+  nere till vänster (där kameraappen har sin senaste bild) när telefonerna är kopplade och bilden
+  är färsk; ett tryck gör den stor med hjälplinjerna och en stängknapp. Inga ord. Kugghjulet
+  visar fördröjningen och takten ("Other phone's view · 0.12 s · 12 fps") hos Lead, så att Klart
+  när går att läsa av.
+- **Under inspelningen ingen bild** (den säkra vägen): rutan kommer ur en egen
+  `AVCaptureVideoDataOutput` i förhandsbildens storlek hos Follow, och det är inte mätt att den
+  lämnar 240 bilder/s i filen orörda. Utgången är avstängd när Lead inte tar emot, stängs av före
+  varje serie och ljusprov på kamerans kö, och tas bort om filens koppling inte är aktiv bredvid
+  den. Rutan hos Lead går under den egna serien och när bilderna slutar komma.
+- **Dataregeln:** bilden går bara till den telefon som kopplingen redan godtar (samma syfte och,
+  när den är känd, passets partner, B61), finns bara i minnet tills nästa kommer, och sparas
+  aldrig: inte i passet, inte i paketet och inte vid ett tapp (den skickas aldrig igen).
+- **Varför JPEG:** varje bild står för sig, så en bild som hoppas över (mottrycket, ett tapp, en
+  paus) kostar inget, och kodningen är några rader med Core Image utan avkodarens tillstånd,
+  nyckelbilder eller en egen inramning. Bandbredden räcker: 2,6–4,5 Mbit/s mot tiotals Mbit/s över
+  peer-to-peer-wifi (MS35, räkning). Wire skickar sedan dess snedstrecken oescapade (base64 har ett
+  per 64 tecken).
+- **Bortvalt:** H.264 via VideoToolbox (en femtedel av bandbredden, men tappade bilder kräver en ny
+  nyckelbild och avkodaren ett tillstånd: omprövas om bandbredden inte räcker); en egen förbindelse
+  för bilden (ännu en Bonjour-tjänst och parning, och ett tapp på två ställen); en bild under
+  inspelningen i 1–2 bilder/s (osäkert vad den egna utgången kostar i 240 bilder/s; omprövas när
+  det är mätt); skärmdump av förhandsbildens lager (ritas utanför appen och går inte att läsa);
+  att Lead begär bilden (Lead visar den alltid när den är kopplad i inspelningen, så en begäran
+  vore ett meddelande till utan nytta).
+- **Kostnad:** Follow kör en videoutgång till i uppställningen, och kamerans kö får 240 rutor i
+  sekunden att släppa; kodningen tar några ms per bild. Pingen delar förbindelsen med bilden (MS35).
+  Ingen bild alls om iOS inte låter utgången ligga bredvid filen, och ingen under serien.
+- **Omprövas:** efter telefonprovet (PLAN S2k, Klart när): fördröjningen under 0,3 s, frekvensen
+  i Follows kvitto med och utan bilden, och värmen under 5 minuters uppställning. Är frekvensen
+  orörd kan bilden gå i 1–2 bilder/s under serien.
+
 ## B92 — Klubbmodellen ska kunna användas av andra: ingen NC-data och ingen AGPL i träningen
 *2026-10-25 · gäller · Johannes svar på research 7 §5 · PLAN.md S7 · [research 7](research/7_klubban.md)*
 
