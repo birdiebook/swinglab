@@ -2671,6 +2671,57 @@ Geometrin i `FigurVy.swift` (SwingLabKit, prövad på Linux), ritad av appens `T
   den stannar vid slutet och börjar om från början. Vyn som fingret lämnar står kvar per
   vinkel tills slaget byts; dubbeltryck ger vinkeln som från början. **Johannes beställning.**
 
+## MK12 — Klubbens bana i 3D (S7e)
+
+`tools/pc/klubba_3d.py`, BESLUT B96. Förmärkarens klubbhuvud (MF7, konfidens ≥ 0,3, B95) på
+träffens tid i båda vyerna. Bara bilden i visaren: inget mått beror på banan.
+
+- **Kalibreringen med uppställningen**, när lederna ensamma ger Sampson-felet över spärren
+  eller vinkeln utanför 60–120° (MK3): båda kamerorna i våg (ingen rullning), lutningen högst
+  **20°**, siktet högst **15°** bredvid spelaren, höjdskillnaden högst **1 m** och DTL-kamerans
+  avstånd **1,5–6 m** med FO-kamerans satt till 3 m (skalan tas sedan ur benen, MK10).
+  Villkoren är mjuka (200 px per radian eller meter utanför). Huvudets punktpar (DTL
+  interpolerat högst 1,5 rutor) väger som tre ledpar. Robust Sampson-kostnad (Cauchy med
+  3 × MAD) med Levenberg–Marquardt från **tolv** starter i vinkeln mellan kamerorna (−165° till
+  165°); den lägsta kostnaden vinner. Sedan synken på lederna (MK4) och på huvudet, och en
+  kalibrering till på de slag där huvudets återprojektion är under **15 px**, två varv.
+  **antagande** (talen); **mätt** (provpasset nedan).
+- **Synken på huvudet:** huvudet rör sig upp till 40 m/s, så 2 ms (MK4:s rest) är 8 cm av
+  banan. Den söks **±5 ms** kring ledernas i steg om **0,25 ms** på huvudets återprojektion,
+  med parabelns topp. Påhittat: 3 ms hittas inom 0,7 ms. **räkning, mätt (påhittat).**
+- **Banan:** en punkt för varje tid där någon vy har huvudet. Båda vyerna: DLT (MK5) utan
+  utjämning (M61). En vy: huvudet på sfären med slagets skaftlängd (medianen grepp → huvud i
+  de två vyernas punkter) kring greppet, handledernas mitt i 3D; av de två skärningarna den
+  närmast de två vyernas bana interpolerad i tiden. Ingen vy: ingen punkt. Ett slag vars
+  huvudåterprojektion är över **15 px** får ingen bana ("vyerna ser inte samma sving").
+  Visaren ritar från P1 − **0,05 s** till huvudets högsta punkt inom **0,8 s** efter träffen
+  + **0,10 s**: före och efter står klubban still eller sänks. **antagande.**
+- **En vy (väg b)** för FO-slag som ingen DTL filmade, i samma serie som ett parat slag:
+  greppet på strålen genom handledernas mitt (utjämnad som MK5) på **mallens** djup för
+  svingens fas (0 vid P1, 1 vid toppen, 2 vid träffen), huvudet på sfären med mallens
+  skaftlängd för fasen kring det, och av skärningarna den närmast mallens huvuddjup. Mallen
+  är det första parade slagets bana i FO-kamerans ram. Missar strålen sfären tas punkten
+  närmast. **antagande.**
+- **Provpasset 2026-10-24** (B92: prov, aldrig träning): två slag med klipp från båda
+  telefonerna. Lederna ensamma: Sampson-felet 15–36 px och vinkeln mellan 24° och 155° med
+  synken, alltså obestämd; spegling av DTL förklarade inget (16 px). Med uppställningen och
+  huvudet: **88°**, Sampson-felet för lederna 13 px och för huvudet **3,7 px**, ett slag i
+  kalibreringen (s02 · s06). Det andra (s03 · s08) får ingen bana: DTL-klippet är kort och
+  ingen synk inom ±0,6 s triangulerar huvudet. s02 · s06: 631 punkter från P1 till finishen,
+  91 % ur båda vyerna, huvudets återprojektion **2,7 px**, skaftet 0,97 m med p5–p95
+  0,89–1,08 m (handledernas mitt flyttar sig mot greppet med handlederna). Farten står bara i
+  visaren (Johannes tal, CLAUDE.md Dataregeln; oprövad, ingen launch monitor). **mätt.**
+- **Väg b mot väg a** på s02 · s06 (FO ensam mot båda vyerna, huvudets avstånd i 3D): med
+  greppets djup konstant från adressen **9,7 cm** i median och p95 20 cm (baksvingen 3,2,
+  nedsvingen 17,0, efter träffen 13,5 cm); med mallen ur samma sving 1,1 cm och p95 9,6 cm,
+  men det är cirkulärt och bara en övre gräns. Det verkliga felet med en mall ur en annan
+  sving ligger mellan och mäts med ett andra parat slag. Väg b gav en bana för tio FO-slag
+  i serie 1. **mätt.**
+- **Facit (påhittat, `test_klubba_3d`):** två kameror med 90°, 1 px brus, en bana som inte är
+  plan (nedsvingen 8 cm innanför): uppställningen hittas inom 3°, de två vyernas punkter
+  ligger under 1 cm i median och sfärens under 3 cm, skaftet inom 2 cm, och fel synk (0,3 s)
+  ger ingen bana. **mätt (påhittat).**
+
 ## M50 — 3D på telefonen: Swift mot Python (S6c-1)
 
 - **Porten.** `SwingLabKit/Sources/TreD` räknar MK1–MK7 rad för rad som

@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S7e · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S7e nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -1035,7 +1035,7 @@ godkänn och rätta i appen.
 **Klart när:** banan ligger inom en överenskommen gräns (sätts i METOD) från handmärkta
 rutor mellan ankarna, på DTL-klipp, med andelen interpolerade rutor redovisad.
 
-### S7e — Klubbens bana i 3D (Johannes 2026-10-25, väntar på ja)
+### S7e — Klubbens bana i 3D (Johannes 2026-10-25)
 
 Beställningen: linjer för hur klubbhuvudet, och gärna skaftet, rör sig genom luften under
 svingen, ur våra videor, i 3D som går att vrida. Sportsbox gör det ur en kamera med en modell av
@@ -1058,39 +1058,36 @@ en telefon i taget (Kamera-appen). I dag finns alltså ingen riktig 3D att lägg
 | **(c) Ett svingplan** anpassat till 2D-banan | en telefon; förmärkarens eller S7b:s 2D-bana | bakifrån står planet på kant mot kameran (därför är en sving på planet ett streck i DTL), så djupet går inte att läsa där. Framifrån går ett lutat plan att anpassa, men allt utanför planet blir noll, och just det (över eller under planet, olika plan upp och ner) är det intressanta. En modell, inte en mätning (B13) | (a) |
 
 **Rekommendation: (a), med (b):s sfär som utfyllnad** där huvudet syns i bara en vy; greppet
-finns då i 3D ur trianguleringen. (b) ensam väntar på S6e, och (c) ritar en modell som döljer det
-vi vill se.
+finns då i 3D ur trianguleringen. (c) ritar en modell som döljer det vi vill se. **Johannes
+2026-10-25:** snabbaste vägen till ett coolt resultat, och (b) ska också fungera, även för
+slag som bara en telefon filmade (BESLUT B96).
 
-**Gör:**
+**Byggt (grenen `s7e-bana3d`, METOD MK12, BESLUT B96).** `tools/pc/klubba_3d.py`: kalibreringen
+med uppställningen (kamerorna i våg och siktande mot spelaren) och huvudets punktpar när lederna
+inte räcker, synken på huvudet, trianguleringen, sfären kring greppet där huvudet syns i en vy,
+ingen bana när vyerna inte ser samma sving, och väg (b) för FO-slag utan DTL med greppets djup
+och skaftets längd ur ett parat slags mall. `visa.py --forslag <dtl> <fo>` ritar banan i
+3D-figuren, färgad efter fas (före toppen, nedsvingen, efter träffen) eller fart, blekare där
+bara en vy bär punkten, med klubban vid rutan och som spöke vid P-positionerna, och projicerar
+den tillbaka i båda klippen. Prov: `test_klubba_3d` (påhittad sving, 90°, en bana som inte är
+plan).
 
-1. **Kalibreringen med klubbhuvudet, provpasset först.** Huvudet sveper cirka 2 m, och lederna
-   ligger inom en halv meter i djup, så huvudets punkter i båda vyerna ger fler och mer spridda
-   punktpar till MK3:s självkalibrering. I första varvet bara rutor där huvudet rör sig långsamt
-   (adress till topp), så att synken inte blir ett kalibreringsfel. Sampson-felet och vinkeln på
-   provpasset redovisas med och utan huvudet. Går det under spärren får provpassets två slag en
-   bana. Gör det inte det, var det uppställningen, och det står i METOD.
-2. **Trianguleringen** (ett nytt verktyg i `tools/pc/`): förslagsfilernas huvud (konfidens ≥ 0,3,
-   B95) på Visions tid. Synken finjusteras per slag på huvudets återprojektion i nedsvingen och
-   jämförs med MK4:s. DLT som MK5, utan utjämning av banan (M61: utjämningen drar in bågen).
-   Greppet är 3D-handledernas mitt (M1) tills punktmodellen ger det. En ruta med huvudet i en vy
-   får sfären med slagets skaftlängd (medianen grepp → huvud i de triangulerade rutorna), den
-   skärning som ligger närmast grannarna, och märks `en_vy`. Utan huvud i någon vy blir det
-   ingen punkt, alltså en lucka: en gissning ska aldrig se ut som en bana (M61). Skaftet är
-   linjen grepp → huvud.
-3. **Facit, påhittat:** `tre_d/sving.py` får en klubba: greppet ur handlederna, skaftets längd och
-   huvudet på en känd bana som inte är plan. `generera_paket.py --tva` skriver huvudets 2D med
-   förmärkarens fel: bruset, mitten förskjuten mot hoseln olika i vyerna, 15 % och 8 % saknade
-   rutor (MF7) och synken ±7 ms. Ut kommer felet i 3D per fas (median och p95), andelen `en_vy`
-   och deras fel.
-4. **Visaren** (`visa.py`, S6f): huvudets bana som linje i 3D-figuren, färgad efter fas
-   (baksving, nedsving, genomsving), med P1–P10 som prickar och ett val för fart (färgskala).
-   `en_vy` ritas streckad, skaftet som spökstreck var n:te ruta och vid P1–P10, och P1-planet som
-   en svag yta. Banan följer klippens stegning och projiceras tillbaka i båda klippen, så att en
-   trasig bana syns mot videon.
-5. **Johannes del: ett pass med två telefoner** enligt S6_FELBUDGET §7 (90°, 3 m, höfthöjd, rätt
-   vy på varje telefon), cirka 15 svingar, med S6g:s klipp till Lead och Send to PC. Samma pass
-   ger S6c-2:s, S6d:s och S6g:s Klart när, så det görs en gång för alla fyra. Klart när kräver
-   fler slag än provpassets två, så passet behövs även om steg 1 räddar provpasset.
+**Mätt på provpasset** (MK12): lederna ensamma bestämmer inte kamerorna (vinkeln 24–155°), med
+uppställningen och huvudet 88° och huvudets Sampson-fel 3,7 px. Slaget s02 · s06 får banan
+(återprojektionen 2,7 px, skaftet 0,97 m med p5–p95 0,89–1,08 m). s03 · s08 får ingen: DTL-klippet
+är kort och triangulerar inte på någon synk. Väg (b) mot (a) på samma slag: 9,7 cm i median med
+greppets djup konstant; med mallen ur samma sving 1,1 cm, men det är cirkulärt. Tio FO-slag får
+en bana med (b).
+
+**Kvar:**
+
+1. **Johannes:** titta i visaren (`visa.py` med `--forslag`, sidan i `~/swinglab-analys/` i WSL).
+2. **Johannes del: ett pass med två telefoner** enligt S6_FELBUDGET §7 (90°, 3 m, höfthöjd, rätt
+   vy på varje telefon), cirka 15 svingar, med S6g:s klipp till Lead och Send to PC. Det ger
+   Klart när:s fem slag, mäter (b) med en mall ur en annan sving, och är också S6c-2:s, S6d:s och
+   S6g:s Klart när.
+3. Facitet med förmärkarens fel (mitten mot hoseln olika i vyerna, 15 % och 8 % saknade rutor,
+   synken ±7 ms) och felet per fas; visarens prov med en påhittad förslagsfil.
 
 **Klart när:**
 

@@ -105,6 +105,8 @@ td.tal { text-align: right; white-space: nowrap; }
       <label><input type="checkbox" id="v_mp" checked> MediaPipe</label>
       <label><input type="checkbox" id="v_rep" checked> 3D i bilden</label>
       <label><input type="checkbox" id="v_bana" checked> banor</label>
+      <label id="klubbval" hidden><input type="checkbox" id="v_klubba" checked> klubban</label>
+      <select id="klubbfarg" title="Klubbans färg" hidden><option value="fas" selected>efter fas</option><option value="fart">efter fart</option></select>
     </div>
     <div class="forklaring dov" id="forklaring"></div>
     <div id="info">
@@ -129,7 +131,32 @@ const tal = (v, d = 1) => v == null || !isFinite(v) ? "–" : v.toFixed(d).repla
 const farg = (namn) => getComputedStyle(document.documentElement).getPropertyValue(namn).trim();
 
 let radIx = 0, tau = 0, spelar = false, fart = 0.25, senast = null;
-const visa = { vision: true, mp: true, rep: true, bana: true };
+const visa = { vision: true, mp: true, rep: true, bana: true, klubba: true, klubbfarg: "fas" };
+
+// --- klubbens bana (PLAN S7e, METOD MK12) --------------------------------------------------
+const FASFARG = { bak: [0.31, 0.66, 1.0], ned: [1.0, 0.54, 0.24], genom: [0.61, 0.89, 0.48] };
+function radensKlubba(r) {            // båda vyerna (paret), annars en vy (väg b, raden själv)
+  const p = radensPar(r);
+  if (p) return p.klubba && !p.klubba.fel ? p.klubba : null;
+  return r.klubba || null;
+}
+function fartTak(k) {                 // 98:e percentilen: ett enstaka språng ska inte äga färgskalan
+  const v = k.fart.filter((x) => x != null).sort((a, b) => a - b);
+  return v.length ? v[Math.floor(0.98 * (v.length - 1))] : 1;
+}
+function klubbPunkt(k, i) { return [k.huvud[i][0], k.huvud[i][1], k.huvud[i][2]]; }
+function klubbGrepp(k, i) { const g = k.grepp[i]; return g[0] == null ? null : [g[0], g[1], g[2]]; }
+function klubbFarg(k, i, vmax) {      // [r, g, b] 0–1: fasen (före toppen, nedsvingen, efter träffen) eller farten
+  let c;
+  if (visa.klubbfarg === "fart") {
+    const v = k.fart[i] == null ? 0 : Math.min(1, k.fart[i] / vmax);
+    c = [0.15 + 0.85 * v, 0.25 + 0.6 * v * (1 - v) * 2.5, 0.9 * (1 - v) + 0.1];
+  } else {
+    const t = k.t[i];
+    c = k.topp != null && t < k.topp ? FASFARG.bak : t < 0 ? FASFARG.ned : FASFARG.genom;
+  }
+  return k.kalla[i] === 2 ? c : c.map((x) => 0.35 + 0.4 * x);   // en vy: blekare
+}
 
 // --- tiden ----------------------------------------------------------------------------
 function narmast(t, x) {          // index för tiden närmast x i den stigande listan t
@@ -240,6 +267,28 @@ function ritaPanel(p) {
       linjer(ctx, xy, skala, D.ben, farg("--rep"), lw, [6 * dpr, 4 * dpr]);
     }
   }
+  // klubbens bana i 3D tillbaka i klippet: spåret svagt, huvudet och skaftet vid rutan
+  const k = radensKlubba(D.rader[radIx]);
+  const uk = k ? T.uppstallningar[par ? par.uppstallning : k.uppstallning] : null;
+  if (visa.klubba && k && uk && uk.kameror && (par || D.paket[p.i].vy === "fo")) {
+    const vy = D.paket[p.i].vy, kam = uk.kameror[vy], K = par ? (vy === "fo" ? par.KA : par.KB) : k.K;
+    ctx.lineWidth = Math.max(1, dpr); ctx.strokeStyle = "rgba(255, 210, 90, 0.45)"; ctx.beginPath();
+    let forra = null;
+    for (let i = 0; i < k.t.length; i++) {
+      const q = projicera(kam, K, klubbPunkt(k, i));
+      if (q[0] == null) { forra = null; continue; }
+      if (forra != null && k.t[i] - k.t[forra] < 4 * RUTA) ctx.lineTo(q[0] * skala, q[1] * skala); else ctx.moveTo(q[0] * skala, q[1] * skala);
+      forra = i;
+    }
+    ctx.stroke();
+    const i = narmast(k.t, tau);
+    if (i >= 0 && Math.abs(k.t[i] - tau) < 0.012) {
+      const h = projicera(kam, K, klubbPunkt(k, i)), g = klubbGrepp(k, i);
+      ctx.strokeStyle = ctx.fillStyle = "#ffd25a"; ctx.lineWidth = 2 * dpr;
+      if (g) { const gq = projicera(kam, K, g); if (gq[0] != null && h[0] != null) { ctx.beginPath(); ctx.moveTo(gq[0] * skala, gq[1] * skala); ctx.lineTo(h[0] * skala, h[1] * skala); ctx.stroke(); } }
+      if (h[0] != null) { ctx.beginPath(); ctx.arc(h[0] * skala, h[1] * skala, 5 * dpr, 0, 2 * Math.PI); ctx.stroke(); }
+    }
+  }
   // fasens namn när τ står på en position
   const pos = positioner(D.rader[radIx]);
   for (const [k, t] of Object.entries(pos)) if (Math.abs(t - tau) < RUTA / 2 + 1e-6) {
@@ -297,6 +346,16 @@ if (tre.ok) {
   tre.figur.frustumCulled = tre.punkter.frustumCulled = false;
   tre.figur.geometry.setDrawRange(0, 0); tre.punkter.geometry.setDrawRange(0, 0);
   tre.scen.add(tre.figur, tre.punkter);
+  // klubban vid rutan: skaftet grepp → huvud och huvudet som en prick
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+  tre.skaft = new THREE.Line(sg, new THREE.LineBasicMaterial({ color: 0xffd25a }));
+  const hg = new THREE.BufferGeometry();
+  hg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3), 3));
+  tre.huvud = new THREE.Points(hg, new THREE.PointsMaterial({ color: 0xffd25a, size: 0.07 }));
+  tre.skaft.frustumCulled = tre.huvud.frustumCulled = false;
+  tre.skaft.visible = tre.huvud.visible = false;
+  tre.scen.add(tre.skaft, tre.huvud);
   let drag = null;
   tre.el.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; tre.el.setPointerCapture(e.pointerId); });
   tre.el.addEventListener("pointerup", () => { drag = null; });
@@ -323,7 +382,8 @@ function byggScen() {
     tom.textContent = T.hoppat ? `Ingen 3D: ${T.hoppat}` : "Ingen 3D för den här svingen.";
     return;
   }
-  if (!par) { tom.style.display = "block"; tom.textContent = "Svingen är inte parad: bara kamerorna visas."; }
+  if (!par && !radensKlubba(r)) { tom.style.display = "block"; tom.textContent = "Svingen är inte parad: bara kamerorna visas."; }
+  else if (!par) { tom.style.display = "block"; tom.textContent = "En vy: klubbhuvudet på sfären kring greppet, greppets djup ur det parade slagets mall (väg b)."; }
   // golvet och målet: figurens fotleder och höfter, annars mitt emellan kamerorna
   const fA = u.kameror.fo.C, fB = u.kameror.dtl.C;
   let mal = [(fA[0] + fB[0]) / 2, (fA[1] + fB[1]) / 2, (fA[2] + fB[2]) / 2], golv = Math.min(fA[2], fB[2]) - 1.2;
@@ -337,6 +397,10 @@ function byggScen() {
     const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
     if (fot.length) golv = med(fot);
     if (hoft[0].length) mal = hoft.map(med);
+  } else if (radensKlubba(r)) {         // en vy: målet mitt i banan, golvet under dess lägsta punkt
+    const k = radensKlubba(r);
+    mal = [0, 1, 2].map((a) => k.huvud.reduce((s, h) => s + h[a], 0) / k.huvud.length);
+    golv = Math.min(...k.huvud.map((h) => h[2])) - 0.05;
   }
   tre.mal = v3(mal);
   const grid = new THREE.GridHelper(10, 20, 0x3a4046, 0x24282c);
@@ -370,6 +434,39 @@ function byggScen() {
       const bana = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineBasicMaterial({ color: stil, transparent: true, opacity: 0.45 }));
       bana.visible = visa.bana; bana.userData.bana = true; tre.grupp.add(bana);
+    }
+  }
+  // klubbens bana: en linje per sammanhängande bit (en lucka över fyra rutor bryter den), färgad
+  // per punkt, och skaftet som spöke vid varje P-position
+  const k = radensKlubba(r);
+  if (k) {
+    const vmax = Math.max(1, fartTak(k));
+    let bit = [], farger = [];
+    const slut = () => {
+      if (bit.length > 1) {
+        const g = new THREE.BufferGeometry().setFromPoints(bit);
+        g.setAttribute("color", new THREE.Float32BufferAttribute(farger, 3));
+        const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true }));
+        l.userData.klubba = true; tre.grupp.add(l);
+      }
+      bit = []; farger = [];
+    };
+    for (let i = 0; i < k.t.length; i++) {
+      if (i > 0 && k.t[i] - k.t[i - 1] > 4 * RUTA) slut();
+      bit.push(v3(klubbPunkt(k, i))); farger.push(...klubbFarg(k, i, vmax));
+    }
+    slut();
+    const spoken = [];
+    for (const [namn, tp] of Object.entries(positioner(r))) {
+      const i = narmast(k.t, tp);
+      if (i < 0 || Math.abs(k.t[i] - tp) > 0.012) continue;
+      const g = klubbGrepp(k, i);
+      if (g) spoken.push(v3(g), v3(klubbPunkt(k, i)));
+    }
+    if (spoken.length) {
+      const s = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(spoken),
+        new THREE.LineBasicMaterial({ color: 0xffd25a, transparent: true, opacity: 0.3 }));
+      s.userData.klubba = true; tre.grupp.add(s);
     }
   }
   // vyn: mitt i figuren och båda kamerorna, så långt bort att alla tre syns
@@ -411,7 +508,28 @@ function ritaTre() {
     tre.punkter.geometry.setDrawRange(0, n);
     pos.needsUpdate = pp.needsUpdate = true;
   }
-  for (const o of tre.grupp.children) if (o.userData.bana) o.visible = visa.bana;
+  for (const o of tre.grupp.children) {
+    if (o.userData.bana) o.visible = visa.bana;
+    if (o.userData.klubba) o.visible = visa.klubba;
+  }
+  const k = radensKlubba(D.rader[radIx]);
+  let syns = false;
+  if (k && visa.klubba) {
+    const i = narmast(k.t, tau), g = i >= 0 ? klubbGrepp(k, i) : null;
+    if (i >= 0 && Math.abs(k.t[i] - tau) < 0.012) {
+      const h = v3(klubbPunkt(k, i));
+      tre.huvud.geometry.attributes.position.setXYZ(0, h.x, h.y, h.z);
+      tre.huvud.geometry.attributes.position.needsUpdate = true;
+      if (g) {
+        const G = v3(g), sp = tre.skaft.geometry.attributes.position;
+        sp.setXYZ(0, G.x, G.y, G.z); sp.setXYZ(1, h.x, h.y, h.z); sp.needsUpdate = true;
+      }
+      tre.skaft.visible = !!g;
+      syns = true;
+    }
+  }
+  tre.huvud.visible = syns;
+  if (!syns) tre.skaft.visible = false;
   const c = Math.cos(tre.el_);
   tre.kamera.position.set(tre.mal.x + tre.avst * c * Math.sin(tre.az), tre.mal.y + tre.avst * Math.sin(tre.el_),
     tre.mal.z + tre.avst * c * Math.cos(tre.az));
@@ -502,8 +620,27 @@ function kortSving() {
     for (const m of Object.keys(D.matt_info).filter((k) => k in par.matt))
       h += `<tr><td title="${esc((D.matt_info[m] || {}).vad)}">${esc(mattNamn(m))}</td><td class="tal">${tal(par.matt[m], 1)}°</td></tr>`;
     h += `</table>`;
-    if (u.hoppat) h += `<div class="rod">Uppställningen hoppades över: ${esc(u.hoppat)}. Figuren visas för felsökning, inte som mått.</div>`;
+    const k = par.klubba;
+    if (k && k.fel) h += `<h3>Klubban</h3><div class="rod">Ingen bana: ${esc(k.fel)}</div>`;
+    else if (k) {
+      const vmax = fartTak(k);
+      h += `<h3>Klubban</h3><table>`
+        + `<tr><td>skaftet, grepp → huvud</td><td class="tal">${tal(k.skaft_m, 2)} m</td>`
+        + `<td class="dov">${k.langd_m ? `p5–p95 ${tal(k.langd_m.p5, 2)}–${tal(k.langd_m.p95, 2)}` : ""}</td></tr>`
+        + `<tr><td>huvudets återprojektion</td><td class="tal">${tal(k.aterprojektion_px, 1)} px</td><td></td></tr>`
+        + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">båda vyerna ${tal(100 * k.andel.tva, 0)} %, FO ${tal(100 * k.andel.fo, 0)} %, DTL ${tal(100 * k.andel.dtl, 0)} %</td></tr>`
+        + `<tr><td>huvudets fart, 98:e percentilen</td><td class="tal">${tal(vmax, 0)} m/s</td><td class="dov">oprövad</td></tr></table>`;
+    }
+    if (u.kalibrering === "uppstallningen") h += `<div class="dov">Kalibrerad med uppställningen och klubbhuvudet (S7e), inte mot spärren: bilden, inte måtten.</div>`;
+    else if (u.hoppat) h += `<div class="rod">Uppställningen hoppades över: ${esc(u.hoppat)}. Figuren visas för felsökning, inte som mått.</div>`;
     else if (par.fel) h += `<div class="rod">Inga 3D-mått: ${esc(par.fel)}</div>`;
+  }
+  if (!par && r.klubba) {
+    const k = r.klubba;
+    h += `<h3>Klubban, en vy</h3><table>`
+      + `<tr><td>källan</td><td colspan="2" class="dov">FO ensam: sfären kring greppet, greppets djup och skaftets längd ur ${esc(k.mall)} (väg b)</td></tr>`
+      + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">strålen missade sfären i ${tal(100 * (1 - k.andel.fo), 0)} %</td></tr>`
+      + `<tr><td>huvudets fart, 98:e percentilen</td><td class="tal">${tal(fartTak(k), 0)} m/s</td><td class="dov">oprövad</td></tr></table>`;
   }
   h += `<h3>2D</h3><table><tr><th>Mått</th>${r.vyer.map((v, i) => v ? `<th class="tal">${VYNAMN[D.paket[i].vy] || ""}</th>` : "").join("")}</tr>`;
   for (const k of nycklar) {
@@ -525,8 +662,10 @@ function kortTred() {
     if (u.sampson_px != null) {
       const sOk = u.sampson_px <= T.sparr_px, vOk = u.vinkel_ok;
       h += `<tr><td>Sampson-felet, median</td><td class="tal ${sOk ? "gron" : "rod"}">${tal(u.sampson_px, 1)} px</td><td class="dov">spärren ${tal(T.sparr_px, 0)} px</td></tr>`;
+      if (u.sampson_huvud_px != null)
+        h += `<tr><td>… för klubbhuvudet</td><td class="tal">${tal(u.sampson_huvud_px, 1)} px</td><td class="dov">${u.huvudpar} par · kalibrerad med uppställningen</td></tr>`;
       h += `<tr><td>vinkeln mellan kamerorna</td><td class="tal ${vOk ? "gron" : "rod"}">${tal(u.vinkel_mellan_kamerorna, 0)}°</td><td class="dov">${T.vinkel_ok[0]}–${T.vinkel_ok[1]}°</td></tr>`;
-      h += `<tr><td>lodlinjen</td><td colspan="2">${u.lodlinje === "manifest" ? "telefonernas" : "kamerornas vågräta"}`
+      h += `<tr><td>lodlinjen</td><td colspan="2">${u.lodlinje === "manifest" ? "telefonernas" : u.lodlinje === "uppstallningen" ? "kamerorna i våg (uppställningen)" : "kamerornas vågräta"}`
         + (u.lodlinje_mot_vagrata != null ? ` (${tal(u.lodlinje_mot_vagrata, 1)}° mot de vågräta)` : "") + `</td></tr>`;
       h += `<tr><td>skalan i bilden</td><td colspan="2" class="dov">${u.skala === "langd" ? `figurens längd (${tal(D.langd_m, 2)} m)` : "okänd: 1 = avståndet mellan kamerorna"}</td></tr>`;
     }
@@ -567,7 +706,9 @@ function kortPaket() {
   D.rader.forEach((r, i) => {
     if (r.serie !== serie) { serie = r.serie; h += `<div class="serie">Serie ${serie}</div>`; }
     const par = radensPar(r), u = par ? T.uppstallningar[par.uppstallning] : null;
-    const m = !par ? `<span class="m">2D</span>` : u.hoppat ? `<span class="m fel" title="${esc(u.hoppat)}">spärren</span>`
+    const m = !par ? (r.klubba ? `<span class="m">klubba, en vy</span>` : `<span class="m">2D</span>`)
+      : radensKlubba(r) ? `<span class="m ok">klubba 3D</span>`
+      : u.hoppat ? `<span class="m fel" title="${esc(u.hoppat)}">spärren</span>`
       : Object.keys(par.matt).length ? `<span class="m ok">3D</span>` : `<span class="m" title="${esc(par.fel)}">3D –</span>`;
     const fel = r.vyer.filter((v) => v && v.fel).map((v) => v.fel).join("; ");
     h += `<button data-i="${i}" title="${esc(fel)}"><span>${esc(r.namn)}</span>${m}</button>`;
@@ -579,7 +720,14 @@ function kortPaket() {
   $("tid").oninput = (e) => { spela(false); sok(+e.target.value); };
   $("bak").onclick = (e) => { spela(false); sok(tau - RUTA * (e.shiftKey ? 10 : 1)); };
   $("fram").onclick = (e) => { spela(false); sok(tau + RUTA * (e.shiftKey ? 10 : 1)); };
-  for (const k of ["vision", "mp", "rep", "bana"]) $("v_" + k).onchange = (e) => { visa[k] = e.target.checked; rita(); };
+  for (const k of ["vision", "mp", "rep", "bana", "klubba"]) $("v_" + k).onchange = (e) => { visa[k] = e.target.checked; rita(); };
+  $("klubbfarg").onchange = (e) => { visa.klubbfarg = e.target.value; byggScen(); rita(); };
+  if (T.par.some((p) => p.klubba && !p.klubba.fel) || D.rader.some((r) => r.klubba)) {
+    $("klubbval").hidden = $("klubbfarg").hidden = false;
+    $("forklaring").innerHTML += `<span><i style="background:rgb(79,168,255)"></i>klubban före toppen</span>`
+      + `<span><i style="background:rgb(255,138,61)"></i>nedsvingen</span><span><i style="background:rgb(156,227,122)"></i>efter träffen</span>`
+      + `<span class="dov">blekt: huvudet i en vy (sfären kring greppet)</span>`;
+  }
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "SELECT") return;
     if (e.key === " ") { e.preventDefault(); spela(!spelar); }

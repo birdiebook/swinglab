@@ -2046,3 +2046,29 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   felen minst sällsyntare än cirka 6 % (regeln om tre, 95 %).
 - **Omprövas:** när punktmodellen ger greppet och hoseln (S7-1), och när fler märkta rutor finns
   under 0,3 eller i nya miljöer (ljus, klubbor).
+
+## B96 — Klubbens bana i 3D: triangulering med uppställningen som villkor, sfären i en vy
+*2026-10-25 · prövas · Johannes 2026-10-25 ("snabbaste vägen till ett coolt resultat", och väg b ska fungera) · PLAN.md S7e · METOD MK12*
+
+- **Varför:** Johannes vill se klubbhuvudets bana i 3D. Det enda passet med två telefoner
+  (provpasset) har ett slag där båda vyerna ser samma sving, och lederna ensamma bestämmer
+  inte kamerornas läge där (vinkeln 24–155° med synken).
+- **Valt:**
+  - **Väg a, triangulering**, med förmärkarens huvud i båda vyerna. När lederna ger en
+    kalibrering över spärren eller utanför vinklarna kalibreras uppställningen med huvudet och
+    med det vi vet om den: kamerorna i våg och siktande mot spelaren (MK12). Synken tas om på
+    huvudet. Banan visas bara i visaren, märkt "kalibrerad med uppställningen": det är
+    bilden, inte måtten, och S6:s spärr gäller fortfarande för 3D-måtten.
+  - **Väg b, sfären kring greppet**, där huvudet syns i en vy och för FO-slag utan DTL i samma
+    serie, med greppets djup och skaftets längd ur ett parat slags mall. Blekare färg i
+    visaren.
+  - **Färgen efter fas** (före toppen, nedsvingen, efter träffen) som standard, farten som val.
+    Ingen siffra ur banan i appen (B71, VISION).
+- **Bortvalt:** väg c (ett plan anpassat till 2D-banan: bakifrån står planet på kant, och
+  allt utanför planet blir noll); en monokulär lyftning av kroppen (S6e) för väg b; att
+  utjämna banan (M61).
+- **Kostnad:** villkoren kan ge en kalibrering som ser rimlig ut fast den är fel; kvittot är
+  huvudets Sampson-fel, återprojektionen och skaftets längd över svingen (MK12). Väg b:s fel
+  med en mall ur en annan sving är omätt.
+- **Omprövas:** när ett pass med två telefoner och fler parade slag finns (S7e:s Klart när),
+  och när punktmodellen ger greppet (S7-1).
