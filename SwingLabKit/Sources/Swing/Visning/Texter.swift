@@ -431,6 +431,20 @@ public enum Texter {
     /// Platsen när felet gäller hela filen.
     public static let filen = "file"
 
+    // MARK: felen när telefonen läser modellens förslag (S7d, BESLUT B93)
+
+    /// Samma text som `tools/pc/klubba_forslag.py`: fältet först, värdet aldrig. METOD MF8
+    public static func forslagFel(_ text: String) -> String { "suggestions: \(text)" }
+    public static func formatSkaVara(_ format: String) -> String { "format: must be \(format)" }
+    public static func dubblett(_ falt: String) -> String { "\(falt): duplicate" }
+    public static func utanforBilden(_ falt: String) -> String { "\(falt): outside the image" }
+    public static func ingenPunkt(_ falt: String) -> String { "\(falt): no point" }
+    public static let flerFel = "more errors skipped"
+    public static let forStor = "\(filen): too large"
+    public static let ingetPass = "pass: no such session"
+    public static let annanVy = "vy: does not match the session"
+    public static func ingetSlag(_ falt: String) -> String { "\(falt): no such shot" }
+
     // MARK: svaret från Claude-appen (S5b)
 
     /// Kontrollens koder (AttJobbaPaKontroll och ClaudeSvar, samma som PC:ns) på engelska;

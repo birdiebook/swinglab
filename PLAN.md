@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -912,6 +912,32 @@ från B13 gäller bara märkningsläget (B59, design/README regel 9). Prov: `Klu
 
 **Klart när:** Johannes har markerat 2–3 svingar på telefonen med S7c utan att fråga vad han
 ska göra, i båda vyerna.
+
+### S7d — Modellens förslag i markeringen (Johannes 2026-10-25)
+
+En detektor på PC:n (B92, tränad på golf-49wbh) förmärker Johannes omärkta svingar, och han
+rättar i stället för att märka från noll. Förmärkningen är aldrig facit: bara det han klickat
+eller godkänt räknas (B92, som B71). BESLUT B93, METOD MF8.
+
+**Byggt (grenen `s7d`).** Formatet `swinglab-klubba-forslag/1` (FORMAT.md): en fil per pass och
+vy med modellen och datasetens licens, och per slag och ruta Visions tid och punkterna grepp,
+hosel, huvudets mitt och skaftets mitt med konfidens och box. `tools/pc/klubba_forslag.py`
+kontrollerar filen (också mot paketet: passet, vyn, slagen och att varje tid är en Visions-ruta),
+skriver den (`ny`, `lagg_till`, `skriv`) och räknar Visions tid ur OpenCV:s (`vision_t`);
+SwingLabKits `KlubbForslagFil` ger samma fel och samma matchning ruta → visad ruta (2 ms, MF8).
+Telefonen: "Import club suggestions" under Me (Filer), sparad per pass och vy; i markeringen
+streckade "1?" och "2?" i rutan, ett tryck på ringen godkänner, ✓ godkänner allt som saknas
+med ett tryck, ett tryck någon annanstans rättar; huvudets mitt är bara en streckad ruta.
+Källan `godkand_forslag` och förslaget i `forslag` (`kalla` `modell`) i `swinglab-klubba`;
+`klubba.ursprung` skiljer klick, ringen, godkänt och rättat, och `samla_klubba.py` räknar dem
+per pass (`index.json`) och kan lämna förslagen utanför (`--utan-forslag`). Prov:
+`test_klubba_forslag`, `KlubbForslagTests`, `KlubbForslagMarkeringTests`, simulatorprovet
+(bilderna `klubba-forslag`, `klubba-forslag-godkant`, `klubba-forslag-rattat`).
+
+**Klart när:** PC-sessionens modell har skrivit en förslagsfil för ett riktigt pass som går
+igenom `klubba_forslag.py --paket`, Johannes har importerat den och märkt 2–3 svingar på
+telefonen med förslagen (godkänt med ett tryck, rättat där de var fel), och `samla_klubba.py`
+visar godkända och rättade punkter skilda från rena klick för passet.
 
 ### S7b — Klubbhuvudets bana mellan ankarna (Johannes ja 2026-10-23)
 

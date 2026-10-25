@@ -50,6 +50,10 @@ VAL_1 = ("adress", "topp", "tidig_nedsving", "jamn")
 VAL = VAL_1 + POSITIONER
 STATUS = ("omarkerad", "markerad", "hoppad")
 KALLOR = ("klick", "handlederna_bekraftad")   # BESLUT B44, B47: ett fritt tryck, eller ringen ur handlederna bekräftad med ett tryck
+KALLA_GODKAND = "godkand_forslag"   # BESLUT B93: modellens förslag som Johannes godkänt med ett tryck (S7d)
+KALLOR_V2 = KALLOR + (KALLA_GODKAND,)  # BESLUT B47, B93: källorna i version 2 och 3
+KALLA_MODELL = "modell"             # BESLUT B93: förslagets källa i `forslag`: modellens punkt som visades
+URSPRUNG = ("klick", "handlederna_bekraftad", "godkand_forslag", "rattat_forslag")   # BESLUT B93, research 7 §4.2
 PASS_ID = re.compile(r"^\d{8}-\d{6}$")
 FIL = "klubba.json"                   # filen i paketet (docs/FORMAT.md)
 
@@ -184,7 +188,7 @@ def kontrollera(d) -> list[str]:
                 fel.append(f"{p}.forslag.klubbhuvud ska ha kalla spar eller interpolerad")
         elif "granskning" in r:
             fel.append(f"{p}.granskning finns bara i banans rutor")
-        kallor = KALLOR_BANA if bana else (KALLOR if v2 else KALLOR[:1])
+        kallor = KALLOR_BANA if bana else (KALLOR_V2 if v2 else KALLOR[:1])
         pk = r.get("punkter")
         if not isinstance(pk, dict) or set(pk) != set(PUNKTER):
             fel.append(f"{p}.punkter ska ha exakt {', '.join(PUNKTER)}")
@@ -202,6 +206,11 @@ def kontrollera(d) -> list[str]:
                     fel.append(f"{p}.punkter.{n} ska vara null, {{x, y, kalla}} eller {{syns_inte: true}}")
                 elif bh and not (0 <= q["x"] <= bh[0] and 0 <= q["y"] <= bh[1]):
                     fel.append(f"{p}.punkter.{n} ligger utanför bilden")
+                elif q["kalla"] == KALLA_GODKAND and not (
+                        isinstance(r.get("forslag"), dict) and isinstance(r["forslag"].get(n), dict)
+                        and r["forslag"][n].get("kalla") == KALLA_MODELL):
+                    # BESLUT B93: en godkänd punkt bär förslaget den godkände.
+                    fel.append(f"{p}.punkter.{n}.kalla godkand_forslag kräver forslag.{n} med kalla modell")
         fs = r.get("forslag")
         if not isinstance(fs, dict) or not set(fs) <= set(PUNKTER) or not all(
                 isinstance(q, dict) and _tal(q.get("x")) and _tal(q.get("y")) and isinstance(q.get("kalla"), str)
@@ -224,6 +233,20 @@ def las_dict(d, namn: str = "märkningen") -> dict:
     if f:
         raise KlubbFel(f"{namn}: " + "; ".join(f))
     return uppgradera(d)
+
+
+def ursprung(r: dict, punkt: str) -> str | None:
+    """Hur en punkt i en markerad ruta kom till (BESLUT B93, research 7 §4.2): "klick" (ett
+    fritt tryck utan förslag), "handlederna_bekraftad" (ringen ur handlederna), "godkand_forslag"
+    (modellens förslag godkänt med ett tryck) eller "rattat_forslag" (ett tryck när modellens
+    förslag visades: förslaget rättat). None när punkten inte är satt."""
+    q = (r.get("punkter") or {}).get(punkt)
+    if not (isinstance(q, dict) and "x" in q):
+        return None
+    if q["kalla"] == "klick":
+        f = (r.get("forslag") or {}).get(punkt)
+        return "rattat_forslag" if isinstance(f, dict) and f.get("kalla") == KALLA_MODELL else "klick"
+    return q["kalla"]
 
 
 def _punkt(q) -> tuple[float, float] | None:
@@ -617,10 +640,18 @@ def yta_till_bild(u: float, v: float, visad: list) -> tuple[float, float]:
 def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd: int = FIXTUR_BREDD,
            hojd: int = FIXTUR_HOJD, rutor: list | None = None) -> dict:
     """Markeringarna som en fil i version 2, som telefonen skriver den (PassPackage, BESLUT
-    B47): `t_klipp` och `forskjutning_ms` null, `visad` hela bilden. `rutor` = lägg till."""
+    B47): `t_klipp` och `forskjutning_ms` null, `visad` hela bilden. `rutor` = lägg till.
+    En markering kan bära `grepp_kalla`, `hosel_kalla` och modellens förslag som visades
+    (`forslag` = {"grepp", "hosel", "modell"}, BESLUT B93)."""
     rutor = list(rutor or [])
     for m in marks:
         satt = m["grepp"] is not None
+        forslag = {}
+        f = m.get("forslag") or {}
+        for n, fil_n in (("grepp", "grepp"), ("hosel", "klubbhuvud")):
+            if f.get(n) is not None:
+                forslag[fil_n] = {"x": f[n][0], "y": f[n][1], "kalla": KALLA_MODELL,
+                                  **({"modell": f["modell"]} if f.get("modell") else {})}
         rutor.append({
             "id": f"{vy}-{slag}-{m['position']}", "fil": fil, "vy": vy, "slag": slag, "val": m["position"],
             "t": m["t"], "t_klipp": None, "forskjutning_ms": None, "t_ruta": None,
@@ -629,8 +660,9 @@ def fil_ur(marks: list[dict], vy: str, pass_id: str, fil: str, slag: str, bredd:
             "punkter": {"grepp": {"x": m["grepp"][0], "y": m["grepp"][1],
                                   "kalla": m.get("grepp_kalla", "klick")} if satt else None,
                         "skaft_mitt": None,
-                        "klubbhuvud": {"x": m["hosel"][0], "y": m["hosel"][1], "kalla": "klick"} if satt else None},
-            "forslag": {}})
+                        "klubbhuvud": {"x": m["hosel"][0], "y": m["hosel"][1],
+                                       "kalla": m.get("hosel_kalla", "klick")} if satt else None},
+            "forslag": forslag})
     return {"format": FORMAT, "pass": pass_id, "kalla": [fil], "punkter": list(PUNKTER),
             "andrad": "2026-10-23T12:00:00+02:00", "rutor": rutor}
 
@@ -653,6 +685,14 @@ def fixturer() -> dict:
                      "markeringar": _som_lista(marks), "matt": ut, "sd": sd})
     marks, _ = fixtur_markeringar("dtl")
     marks[0] = {**marks[0], "grepp_kalla": "handlederna_bekraftad"}
+    # S7d (BESLUT B93): båda punkterna godkända ur modellens förslag, och hoseln rättad (ett
+    # tryck när förslaget visades) med greppet godkänt.
+    modell = "klubba-golf49 0.1.0"
+    marks[1] = {**marks[1], "grepp_kalla": KALLA_GODKAND, "hosel_kalla": KALLA_GODKAND,
+                "forslag": {"grepp": marks[1]["grepp"], "hosel": marks[1]["hosel"], "modell": modell}}
+    marks[2] = {**marks[2], "grepp_kalla": KALLA_GODKAND,
+                "forslag": {"grepp": marks[2]["grepp"], "hosel": (marks[2]["hosel"][0] + 14.0, marks[2]["hosel"][1] - 9.0),
+                            "modell": modell}}
     fil = fil_ur(marks, "dtl", "20261103-180000", "swinglab-20261103-180000-dtl.zip", "s03")
     yta = []
     # Trycket blir pixeln på samma sätt i båda vyerna (vyn ingår inte); de två sista är utsnitt

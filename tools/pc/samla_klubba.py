@@ -7,6 +7,12 @@ från markera_klubba.py) läses som samma data, `swinglab-klubba/2` (docs/FORMAT
 skrivs per pass till `<ut>/<pass>.json`, med `index.json` över passen, rutorna och
 källorna. Bilderna tas inte med: en ruta pekar på sitt paket (`fil`), slag och tid, och
 läses ur klippet med S3:s förskjutning när S7:s träning byggs. Ingen träning här.
+
+Varje punkt bär sin källa (BESLUT B93, S7d): ett tryck (`klick`), ringen ur handlederna, ett
+godkänt förslag från modellen (`godkand_forslag`), eller ett tryck där modellens förslag visades
+(rättat, `klubba.ursprung`). `index.json` räknar dem per pass och punkt, så att proven i research 7
+§4.2 kan skilja godkända förslag från rena klick, och `--utan-forslag` lämnar bara positionerna
+där ingen punkt kom till med ett förslag på skärmen (facit som modellen inte påverkat).
 Mappen får inte ligga i repot: markeringarna är Johannes data (CLAUDE.md, Dataregeln).
 """
 from __future__ import annotations
@@ -89,10 +95,35 @@ def _samma_tid(a: dict, b: dict) -> bool:
     return ta is not None and tb is not None and abs(ta - tb) <= 1e-4
 
 
+def utan_forslag(m: dict) -> dict:
+    """Passet utan de markerade positionerna där någon punkt är ett godkänt eller rättat
+    förslag (BESLUT B93); hoppade positioner och banans rutor står kvar."""
+    def med_forslag(r):
+        return r["val"] in KL.POSITIONER and any(
+            KL.ursprung(r, n) in ("godkand_forslag", "rattat_forslag") for n in ("grepp", "klubbhuvud"))
+    return {**m, "rutor": [r for r in m["rutor"] if not med_forslag(r)]}
+
+
+def ursprung_antal(m: dict) -> dict:
+    """Antalet punkter per källa i passets markerade positioner (BESLUT B93): {"grepp": {...},
+    "klubbhuvud": {...}} med varje källa i `klubba.URSPRUNG`."""
+    ut = {n: {u: 0 for u in KL.URSPRUNG} for n in ("grepp", "klubbhuvud")}
+    for r in m["rutor"]:
+        if r["val"] not in KL.POSITIONER or r["status"] != "markerad":
+            continue
+        for n in ut:
+            u = KL.ursprung(r, n)
+            if u is not None:
+                ut[n][u] = ut[n].get(u, 0) + 1
+    return ut
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Klubbans markeringar → en träningsmapp (S7a).")
     ap.add_argument("kallor", nargs="+", help="paket (swinglab-*.zip) och märkfiler (*-klubba.json)")
     ap.add_argument("--ut", required=True, help="träningsmappen, utanför repot")
+    ap.add_argument("--utan-forslag", action="store_true",
+                    help="bara positioner där ingen punkt kom till med modellens förslag på skärmen (B93)")
     a = ap.parse_args(argv)
     ut = Path(a.ut).expanduser()
     if ut.resolve().is_relative_to(REPO):
@@ -107,6 +138,8 @@ def main(argv=None) -> int:
             return 1
         (lasta if d is not None else utan).append(d if d is not None else Path(k).name)
     per_pass = sla_ihop(lasta)
+    if a.utan_forslag:
+        per_pass = {k: utan_forslag(m) for k, m in per_pass.items()}
     ut.mkdir(parents=True, exist_ok=True)
     index = {"format": "swinglab-klubba-index/1", "skapad": datetime.now().astimezone().isoformat(timespec="seconds"),
              "pass": []}
@@ -116,6 +149,7 @@ def main(argv=None) -> int:
         index["pass"].append({"pass": m["pass"], "fil": f"{nyckel}.json", "kalla": m["kalla"],
                               "rutor": len(m["rutor"]), "markerade": len(markerade),
                               "bana": sum(r["val"] == KL.BANA for r in m["rutor"]),
+                              "ursprung": ursprung_antal(m),
                               "positioner": sorted({r["val"] for r in markerade if r["val"] in KL.POSITIONER},
                                                    key=KL.POSITIONER.index)})
     (ut / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
