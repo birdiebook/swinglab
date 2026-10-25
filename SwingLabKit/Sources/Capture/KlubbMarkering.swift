@@ -78,6 +78,9 @@ public struct ClubMarking: Equatable, Sendable {
     /// modellens namn och version. Tom = inga förslag; märkningen är då som i S7c.
     public let suggestions: [KlubbForslagFil.Ruta]
     public let suggestionModel: String
+    /// Förslaget som visades när positionens punkter sattes (BESLUT B93): sparas med markeringen,
+    /// också när en punkt flyttas senare och förslagsfilen bytts. En sparad position har sitt.
+    public private(set) var pointsSuggestion: KlubbMarkering.Forslag?
     /// Rutans tid (s relativt klicket) där första punkten sattes; positionen sparas med den.
     public private(set) var frameT: Double?
     private var history: [Snapshot] = []
@@ -89,6 +92,7 @@ public struct ClubMarking: Equatable, Sendable {
         let hosel: KlubbPunkt?
         let gripSource: String
         let hoselSource: String
+        let pointsSuggestion: KlubbMarkering.Forslag?
         let frameT: Double?
     }
 
@@ -143,7 +147,7 @@ public struct ClubMarking: Equatable, Sendable {
 
     private func snapshot() -> Snapshot {
         Snapshot(index: index, marks: marks, grip: grip, hosel: hosel, gripSource: gripSource, hoselSource: hoselSource,
-                 frameT: frameT)
+                 pointsSuggestion: pointsSuggestion, frameT: frameT)
     }
 
     private mutating func load() {
@@ -155,6 +159,7 @@ public struct ClubMarking: Equatable, Sendable {
         hoselSource = m?.hoselKalla ?? Klubba.kalla
         // Bara en markerad position har en ruta med punkter; en hoppad visar förslaget (M45).
         frameT = m?.markerad == true ? m?.t : nil
+        pointsSuggestion = m?.markerad == true ? m?.forslag : nil
     }
 
     // MARK: ytan
@@ -210,8 +215,13 @@ public struct ClubMarking: Equatable, Sendable {
     /// greppens mitt) plus halva skaftet åt det håll skaftet pekar i den närmaste markerade
     /// positionen i svingen (grannen), och utan granne händerna. Skaftets längd ur positionens
     /// markering, annars medianen av de markerade, annars `shaftM` genom skalan (`cmPerPx`).
-    public mutating func startZoom(hands: KlubbPunkt?, cmPerPx: Double?) {
-        let egen = marks[position].flatMap { $0.markerad ? $0 : nil }
+    /// Utan egen markering men med modellens grepp och hosel i rutan `t` (S7d, BESLUT B93) är
+    /// det förslagets skaft, så att ✓ aldrig godkänner en punkt utanför det som syns.
+    public mutating func startZoom(hands: KlubbPunkt?, cmPerPx: Double?, t: Double? = nil) {
+        var egen = marks[position].flatMap { $0.markerad ? $0 : nil }
+        if egen == nil, !done, let t, let f = suggestion(at: t), let g = f.grepp, let h = f.hosel {
+            egen = KlubbMarkering(position: position, t: t, grepp: g, hosel: h)
+        }
         func langd(_ m: KlubbMarkering) -> Double {
             ((m.hosel!.x - m.grepp!.x) * (m.hosel!.x - m.grepp!.x) + (m.hosel!.y - m.grepp!.y) * (m.hosel!.y - m.grepp!.y))
                 .squareRoot()
@@ -332,6 +342,7 @@ public struct ClubMarking: Equatable, Sendable {
             grip = gissning.0
             gripSource = gissning.1
             frameT = t
+            pointsSuggestion = forslagForMark(t)
             return true
         }
         if n == .hosel, let h = forslag?.hosel, avstand(h, u, v) <= Self.grabRadius,
@@ -349,6 +360,7 @@ public struct ClubMarking: Equatable, Sendable {
             grip = p
             gripSource = Klubba.kalla
             frameT = t
+            pointsSuggestion = forslagForMark(t)
         } else {
             // Punkt 2 på punkt 1 är ett tryck på greppet, inte klubbhuvudet (B59).
             if let g = grip, avstand(g, u, v) <= Self.grabRadius {
@@ -391,10 +403,15 @@ public struct ClubMarking: Equatable, Sendable {
         return ut.tom ? nil : ut
     }
 
-    /// Ett tryck räcker (✓, BESLUT B93): förslaget har varje punkt som saknas på positionen.
+    /// Ett tryck räcker (✓, BESLUT B93): förslaget har varje punkt som saknas på positionen, och
+    /// de syns i det inzoomade (en punkt utanför godkänns inte utan att ha setts). METOD MF8
     public func canUseSuggestion(t: Double) -> Bool {
         guard let f = shownSuggestion(t: t) else { return false }
-        return (grip != nil || f.grepp != nil) && (hosel != nil || f.hosel != nil)
+        func syns(_ p: KlubbPunkt) -> Bool {
+            let s = surfacePoint(p)
+            return (0...1).contains(s.u) && (0...1).contains(s.v)
+        }
+        return (grip != nil || f.grepp.map(syns) == true) && (hosel != nil || f.hosel.map(syns) == true)
     }
 
     /// ✓: punkterna som saknas tas ur förslaget (godkända), och positionen sparas med rutan. Svarar
@@ -411,21 +428,34 @@ public struct ClubMarking: Equatable, Sendable {
             hosel = h
             hoselSource = Klubba.kallaForslag
         }
-        frameT = frameT ?? t
+        if frameT == nil {
+            frameT = t
+            pointsSuggestion = forslagForMark(t)
+        }
         spara(now: now)
         return true
     }
 
-    /// Förslaget som visades i rutan, för markeringen (B93): grepp och hosel, med modellen.
+    /// Förslaget som visas i rutan när första punkten sätts, för markeringen (B93): grepp och
+    /// hosel, och huvudets mitt när den visas i stället för hoseln, med modellen. Ett tryck med
+    /// en ledtråd på skärmen är då inte ett rent klick (`klubba.ursprung`, `--utan-forslag`).
     private func forslagForMark(_ t: Double) -> KlubbMarkering.Forslag? {
-        guard let f = suggestion(at: t), f.grepp != nil || f.hosel != nil else { return nil }
-        return KlubbMarkering.Forslag(grepp: f.grepp, hosel: f.hosel, modell: f.modell)
+        guard let f = suggestion(at: t) else { return nil }
+        let huvud = f.hosel == nil ? f.huvud : nil
+        guard f.grepp != nil || f.hosel != nil || huvud != nil else { return nil }
+        return KlubbMarkering.Forslag(grepp: f.grepp, hosel: f.hosel, huvud: huvud, modell: f.modell)
     }
 
+    /// Markeringen med förslaget som visades när punkterna sattes. En godkänd punkt bär alltid
+    /// sitt förslag (PC:ns `klubba.kontrollera` kräver det); finns det inte längre blir den ett
+    /// tryck på samma plats.
     private func markering(_ g: KlubbPunkt, _ h: KlubbPunkt, _ f: Double, now: Date) -> KlubbMarkering {
-        KlubbMarkering(position: position, t: f, grepp: g, hosel: h,
-                       greppKalla: gripSource == Klubba.kalla ? nil : gripSource, andrad: Self.sekund(now),
-                       hoselKalla: hoselSource == Klubba.kalla ? nil : hoselSource, forslag: forslagForMark(f))
+        let fs = pointsSuggestion
+        let gk = gripSource == Klubba.kallaForslag && fs?.grepp == nil ? Klubba.kalla : gripSource
+        let hk = hoselSource == Klubba.kallaForslag && fs?.hosel == nil ? Klubba.kalla : hoselSource
+        return KlubbMarkering(position: position, t: f, grepp: g, hosel: h,
+                              greppKalla: gk == Klubba.kalla ? nil : gk, andrad: Self.sekund(now),
+                              hoselKalla: hk == Klubba.kalla ? nil : hk, forslag: fs)
     }
 
     /// Flyttar en satt punkt dit (inget nära kanten). En sparad position sparas om på samma
@@ -476,6 +506,7 @@ public struct ClubMarking: Equatable, Sendable {
         hosel = nil
         gripSource = Klubba.kalla
         hoselSource = Klubba.kalla
+        pointsSuggestion = nil
         frameT = nil
     }
 
@@ -513,6 +544,7 @@ public struct ClubMarking: Equatable, Sendable {
         hosel = s.hosel
         gripSource = s.gripSource
         hoselSource = s.hoselSource
+        pointsSuggestion = s.pointsSuggestion
         frameT = s.frameT
     }
 

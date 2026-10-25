@@ -131,9 +131,17 @@ class KallanIMarkeringen(unittest.TestCase):
         f = KL.fixturer()["fil"]
         self.assertEqual(KL.kontrollera(f), [])
         r = f["rutor"]
-        self.assertEqual([(KL.ursprung(x, "grepp"), KL.ursprung(x, "klubbhuvud")) for x in r[:4]],
+        self.assertEqual([(KL.ursprung(x, "grepp"), KL.ursprung(x, "klubbhuvud")) for x in r[:5]],
                          [("handlederna_bekraftad", "klick"), ("godkand_forslag", "godkand_forslag"),
-                          ("godkand_forslag", "rattat_forslag"), ("klick", "klick")])
+                          ("godkand_forslag", "rattat_forslag"), ("klick", "klick"), ("klick", "rattat_forslag")])
+        # Klubbhuvudets mitt som ledtråd (modell_huvud) godkänns aldrig som hoseln (B93).
+        self.assertEqual(r[4]["forslag"]["klubbhuvud"]["kalla"], KL.KALLA_MODELL_HUVUD)
+        huvud = copy.deepcopy(f)
+        huvud["rutor"][4]["punkter"]["klubbhuvud"]["kalla"] = KL.KALLA_GODKAND
+        huvud["rutor"][4]["forslag"]["grepp"] = dict(huvud["rutor"][4]["forslag"]["klubbhuvud"])
+        self.assertEqual(KL.kontrollera(huvud), [
+            "rutor[4].punkter.klubbhuvud.kalla godkand_forslag kräver forslag.klubbhuvud med kalla modell",
+            "rutor[4].forslag.grepp kan inte ha kalla modell_huvud"])
         trasig = copy.deepcopy(f)
         trasig["rutor"][1]["forslag"] = {}
         self.assertEqual(KL.kontrollera(trasig), [
@@ -151,7 +159,7 @@ class KallanIMarkeringen(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fil = Path(tmp) / f"swinglab-{f['pass']}-klubba.json"
             fil.write_text(json.dumps(f), encoding="utf-8")
-            for flagga, rutor in (([], 10), (["--utan-forslag"], 8)):
+            for flagga, rutor in (([], 10), (["--utan-forslag"], 7)):
                 ut = Path(tmp) / ("ut" + "".join(flagga))
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(SK.main([str(fil), "--ut", str(ut)] + flagga), 0)
@@ -161,8 +169,8 @@ class KallanIMarkeringen(unittest.TestCase):
                 if not flagga:
                     self.assertEqual(u["grepp"], {"klick": 7, "handlederna_bekraftad": 1, "godkand_forslag": 2,
                                                   "rattat_forslag": 0})
-                    self.assertEqual(u["klubbhuvud"], {"klick": 8, "handlederna_bekraftad": 0, "godkand_forslag": 1,
-                                                       "rattat_forslag": 1})
+                    self.assertEqual(u["klubbhuvud"], {"klick": 7, "handlederna_bekraftad": 0, "godkand_forslag": 1,
+                                                       "rattat_forslag": 2})
                 else:
                     self.assertEqual(u["grepp"]["godkand_forslag"] + u["klubbhuvud"]["rattat_forslag"], 0)
 

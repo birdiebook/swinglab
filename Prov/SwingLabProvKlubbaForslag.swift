@@ -125,7 +125,7 @@ final class SwingLabProvKlubbaForslag: XCTestCase {
         let k1 = try ruta()
         let t1 = review.frames[k1].t
         let g1 = try XCTUnwrap(hander(review.frames[k1]))
-        m.startZoom(hands: g1, cmPerPx: s1.measure?.cmPerPx)
+        m.startZoom(hands: g1, cmPerPx: s1.measure?.cmPerPx, t: t1)
         let visat = try XCTUnwrap(m.shownSuggestion(t: t1))
         XCTAssertEqual(visat.grepp, g1)
         XCTAssertTrue(m.canUseSuggestion(t: t1))
@@ -136,7 +136,7 @@ final class SwingLabProvKlubbaForslag: XCTestCase {
         XCTAssertEqual([p1.greppKalla, p1.hoselKalla], [Klubba.kallaForslag, Klubba.kallaForslag])
         XCTAssertEqual(p1.hosel, hoselFor(g1))
         m.go(to: "P1")
-        m.startZoom(hands: g1, cmPerPx: s1.measure?.cmPerPx)
+        m.startZoom(hands: g1, cmPerPx: s1.measure?.cmPerPx, t: t1)
         try rita(try await yta(k1), "klubba-forslag-godkant")
         XCTAssertTrue(m.advance())
 

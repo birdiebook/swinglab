@@ -793,10 +793,20 @@ final class Store {
         return f
     }
 
+    /// Filen med passets förslag i dess vy, eller nil (ogiltigt pass-id). Läses med
+    /// `clubSuggestions(at:)` utanför huvudtråden.
+    func clubSuggestionFile(_ pass: PassState) -> URL? {
+        KlubbForslagFil.filnamn(pass: pass.id, vy: pass.setup.view).map { suggestionFolder.appending(path: $0) }
+    }
+
     /// Passets förslag i dess vy, eller nil (ingen fil, eller en som inte längre går igenom).
     func clubSuggestions(_ pass: PassState) -> KlubbForslagFil? {
-        guard let namn = KlubbForslagFil.filnamn(pass: pass.id, vy: pass.setup.view),
-              let data = try? Data(contentsOf: suggestionFolder.appending(path: namn)) else { return nil }
+        clubSuggestionFile(pass).flatMap { Self.clubSuggestions(at: $0) }
+    }
+
+    /// Förslagen i filen, eller nil (ingen fil, eller en som inte längre går igenom).
+    nonisolated static func clubSuggestions(at url: URL) -> KlubbForslagFil? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
         return try? KlubbForslagFil.las(data)
     }
 

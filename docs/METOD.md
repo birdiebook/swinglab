@@ -3161,11 +3161,15 @@ Samma regler i `tools/pc/klubba_forslag.py` och SwingLabKits `KlubbForslagFil` o
 - **Godkänna:** ett tryck inom `grabRadius` (5 % av ytans bredd, M45) från den streckade
   ringen godtar förslagets punkt, inte tryckets; för hoseln bara när trycket ligger närmare
   förslaget än greppet. ✓ godtar alla punkter som saknas på positionen med ett tryck och
-  sparar positionen. Ett godkänt förslag som flyttas blir ett tryck (`klick`). **räkning.**
+  sparar positionen, men bara när punkterna det godkänner syns i det inzoomade; startzoomen
+  visar förslagets skaft när rutan har grepp och hosel (samma regel som en markerad position,
+  M45). Ett godkänt förslag som flyttas blir ett tryck (`klick`). **räkning.**
 - **Källan:** en godkänd punkt sparas med `godkand_forslag` och förslaget i `forslag` med
   `kalla` `modell` (och modellens namn); ett tryck när ett förslag visades sparas som
-  `klick` med förslaget bredvid (ett **rättat** förslag, `klubba.ursprung`). Ett förslag
-  som inte godkänts eller rättats sparas aldrig, inte heller på en hoppad position.
-  **räkning.**
+  `klick` med förslaget bredvid (ett **rättat** förslag, `klubba.ursprung`); huvudets mitt,
+  när den visades i stället för hoseln, sparas som `modell_huvud`. Förslaget är det som
+  visades när punkterna sattes och följer med när en punkt flyttas senare, också om filen
+  bytts; finns det inte blir en godkänd punkt ett tryck. Ett förslag som inte godkänts eller
+  rättats sparas aldrig som punkt, inte heller på en hoppad position. **räkning.**
 - **Storleken:** högst **20 MB** (cirka 400 rutor per slag i 40 slag med fyra punkter); filer
   med förslag för varje ruta är normalfallet. **antagande.**

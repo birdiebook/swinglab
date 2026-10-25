@@ -819,7 +819,7 @@ rutor som markerade. En läsare av version 2 säger nej till version 3.
 | `visad` | delen som sidan visar, `[x, y, b, h]` i px inom bilden (MF6) |
 | `status` | `omarkerad`, `markerad` (alla tre punkterna satta; i version 2 räcker `grepp` och `klubbhuvud`) eller `hoppad` |
 | `punkter` | exakt de tre: `null` (inte satt), `{"x", "y", "kalla"}` i hela bildens pixlar, eller `{"syns_inte": true}`. `kalla` är `klick` (ett tryck) eller, i version 2 och 3, `handlederna_bekraftad` för greppet: ringen ur handlederna som Johannes bekräftade med ett tryck (B47), så att träningsdatan kan skilja den från ett fritt tryck, eller `godkand_forslag` (S7d, B93): modellens förslag som Johannes godkände med ett tryck; då står förslaget i `forslag` med samma punkt och `kalla` `modell` |
-| `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`, eller `modell` för modellens förslag, S7d, med modellens namn och version i `modell`); de blir aldrig en punkt av sig själva. En punkt med `kalla` `klick` och ett förslag med `kalla` `modell` är ett **rättat** förslag (`klubba.ursprung`: `klick`, `handlederna_bekraftad`, `godkand_forslag` eller `rattat_forslag`) |
+| `forslag` | ledtrådarna som visades, `{punkt: {"x", "y", "kalla"}}` (`kalla` = varifrån, t.ex. `handlederna`, eller `modell` för modellens förslag, S7d, med modellens namn och version i `modell`); de blir aldrig en punkt av sig själva. `klubbhuvud` med `kalla` `modell_huvud` (S7d) är klubbhuvudets mitt, som visades i stället för hoseln när modellen inte gav den: en ledtråd som aldrig kan godkännas. En punkt med `kalla` `klick` och ett förslag med `kalla` `modell` eller `modell_huvud` är ett **rättat** förslag (`klubba.ursprung`: `klick`, `handlederna_bekraftad`, `godkand_forslag` eller `rattat_forslag`) |
 
 **Punkterna** (B44): **grepp** = skaftet mitt mellan händerna; **skaftets mitt** = mitt
 mellan greppet och hoseln; **klubbhuvud** = GolfPose hosel, där skaftet går in i huvudet
@@ -874,13 +874,17 @@ samma fel (B12).
 i huvudet, samma punkt som `klubbhuvud` i `swinglab-klubba`; `huvud` = klubbhuvudets mitt (en
 detektors ruta, som i golf-49wbh), som telefonen bara visar som ledtråd och **aldrig godtar som
 hoseln**; `skaft_mitt` = mitt mellan greppet och hoseln, som telefonen inte visar. Bara `grepp`
-och `hosel` kan godkännas. Telefonen visar en punkt med `konfidens` ≥ 0,5 (MF8).
+och `hosel` kan godkännas. Telefonen visar en punkt med `konfidens` ≥ 0,5 (MF8). Ett tryck
+med bara huvudets mitt på skärmen sparas som `klick` med huvudets mitt i `forslag.klubbhuvud`
+(`kalla` `modell_huvud`), så att `samla_klubba.py --utan-forslag` lämnar också det utanför.
 
 **Tiden.** Telefonen tar rutan i filen vars `t` ligger närmast den visade rutans Visions-tid och
 högst 2 ms därifrån (`klubba_forslag.ruta_for`, `KlubbForslagFil.ruta`, MF8); finns ingen visas
 inget förslag. För en ruta som OpenCV läst ur paketets klipp: `t = t_opencv − forskjutning_ms/1000 −
 klick_i_klipp_s` (MF1, S3:s δ ur `s3.json`), avrundat till den närmaste av slagets Visions-tider
-(`klubba_forslag.vision_t`). Utan δ kan rutan bli grannen. Förslag för alla rutor i svingen är
+(`klubba_forslag.vision_t`). Utan δ kan rutan bli grannen. En PC som väljer rutan ur slagets
+`frames[]` (som `formarkare.py`) skriver den rutans `t` direkt. Punkterna och boxarna står i
+lederna `width` × `height`: läses rutan ur klippet i en annan storlek skalas de om först. Förslag för alla rutor i svingen är
 bäst: då har varje ruta som Johannes stegar till ett.
 
 **Formen är öppen** för nya fält (en nyare PC kan lägga till utan att en äldre telefon säger
