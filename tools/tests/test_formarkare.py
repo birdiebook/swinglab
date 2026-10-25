@@ -102,6 +102,30 @@ class Coco(unittest.TestCase):
         self.assertEqual([k["name"] for k in c["categories"]], ["klubba-delar", "klubba", "klubbhuvud"])
         self.assertEqual([a["category_id"] for a in c["annotations"]], [1, 2])
 
+    def test_handerna_bara_nar_de_valjs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "train"
+            d.mkdir()
+            (d / "_annotations.coco.json").write_text(json.dumps({
+                "categories": [{"id": 0, "name": "golf"}, {"id": 1, "name": "0"}, {"id": 2, "name": "3"}],
+                "images": [{"id": 0, "file_name": "a.jpg", "width": 640, "height": 640}],
+                "annotations": [{"image_id": 0, "category_id": 1, "bbox": [1, 2, 3, 4]},
+                                {"image_id": 0, "category_id": 2, "bbox": [5, 6, 7, 8]}]}))
+            self.assertEqual([r["klass"] for r in FM.las_coco(Path(tmp))[0]["rutor"]], ["klubba"])
+            b = FM.las_coco(Path(tmp), FM.ALLA_KLASSER)
+        self.assertEqual([r["klass"] for r in b[0]["rutor"]], ["klubba", "hander"])
+        b[0]["ut_namn"] = "a.jpg"
+        c = FM.coco(b, FM.ALLA_KLASSER)
+        self.assertEqual([k["name"] for k in c["categories"]][1:], ["klubba", "klubbhuvud", "hander"])
+        self.assertEqual([a["category_id"] for a in c["annotations"]], [1, 3])
+
+    def test_storleken_ur_viktmappen(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            v = Path(tmp) / "best.pth"
+            self.assertEqual(FM.storlek(v), "nano")              # de första vikterna har ingen modell.json
+            (Path(tmp) / "modell.json").write_text(json.dumps({"storlek": "small"}))
+            self.assertEqual(FM.storlek(v), "small")
+
     def test_tom_mapp(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(FM.FormFel):
             FM.las_coco(Path(tmp))
@@ -234,7 +258,7 @@ class Forslagsfilen(unittest.TestCase):
 
     def test_filen_ar_giltig_med_bara_huvud(self) -> None:
         from pc import klubba_forslag as KF
-        d = KF.ny("20261024-142435", "fo", FM.MODELL_NAMN, "alla-2026-10-25",
+        d = KF.ny("20261024-142435", "fo", "rfdetr-nano-klubba", "alla-2026-10-25",
                   [{"namn": "golf-49wbh", "licens": "CC BY 4.0"}], 1080, 1920)
         q = FM.huvud_punkt([{"klass": "klubbhuvud", "konfidens": 0.7, "bbox": [500, 900, 40, 30]}],
                            0, 0, 1, 1, 1080, 1920)

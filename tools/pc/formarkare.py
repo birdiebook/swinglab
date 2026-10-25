@@ -46,9 +46,11 @@ if __package__ in (None, ""):
 from .session import REPO  # noqa: E402
 
 KLASSER = ("klubba", "klubbhuvud")            # METOD MF7: kategori 1 och 2 i COCO-filen
+ALLA_KLASSER = KLASSER + ("hander",)          # METOD MF7: händerna bara i golf-club-tracking (klass 3)
+MODELLER = {"nano": "RFDETRNano", "small": "RFDETRSmall"}   # RF-DETR i Apache 2.0 (B92)
 # Datasetens klassnamn → våra. golf-49wbh: club, club_head; golf-club-tracking: 0 (skaftet),
-# 1 (huvudet) och 3 (händerna, tas inte med: golf-49wbh saknar dem). METOD MF7
-NAMN = {"club": "klubba", "club_head": "klubbhuvud", "0": "klubba", "1": "klubbhuvud"}
+# 1 (huvudet) och 3 (händerna, bara när `klasser` tar med dem: golf-49wbh saknar dem). METOD MF7
+NAMN = {"club": "klubba", "club_head": "klubbhuvud", "0": "klubba", "1": "klubbhuvud", "3": "hander"}
 MINIATYR = 16              # METOD MF7: px i scenens miniatyr (16 × 16, gråskala)
 LIKA = 0.95                # METOD MF7: korrelationen över vilken två bilder är samma scen
 PROV_ANDEL = 0.10          # METOD MF7: andel av varje källas bilder som hålls ut för provet
@@ -155,10 +157,10 @@ def dela(namn: list[str], scen: np.ndarray, prov: float = PROV_ANDEL, val: float
 
 # ---------------------------------------------------------------------------- bygg
 
-def las_coco(mapp: Path) -> list[dict]:
+def las_coco(mapp: Path, klasser: tuple[str, ...] = KLASSER) -> list[dict]:
     """Alla bilder i en Roboflow-export (train, valid och test slås ihop, delningen görs om):
     [{"fil", "namn", "bredd", "hojd", "rutor": [{"klass", "bbox"}]}]. Klasser utanför
-    NAMN tas bort; en bild utan rutor står kvar som negativ."""
+    NAMN eller `klasser` tas bort; en bild utan rutor står kvar som negativ."""
     mapp = Path(mapp)
     ut = []
     for del_ in DELAR:
@@ -166,7 +168,7 @@ def las_coco(mapp: Path) -> list[dict]:
         if not fil.exists():
             continue
         d = json.loads(fil.read_text(encoding="utf-8"))
-        kat = {c["id"]: NAMN.get(c["name"]) for c in d["categories"]}
+        kat = {c["id"]: (NAMN.get(c["name"]) if NAMN.get(c["name"]) in klasser else None) for c in d["categories"]}
         rutor: dict[int, list] = {}
         for a in d["annotations"]:
             if kat.get(a["category_id"]):
@@ -179,32 +181,32 @@ def las_coco(mapp: Path) -> list[dict]:
     return ut
 
 
-def coco(bilder: list[dict]) -> dict:
+def coco(bilder: list[dict], klasser: tuple[str, ...] = KLASSER) -> dict:
     """COCO-filen i Roboflows form, som RF-DETR läser: kategori 0 är överklassen,
-    1 och 2 är KLASSER."""
+    1, 2 … är `klasser`."""
     kat = [{"id": 0, "name": "klubba-delar", "supercategory": "none"}] + [
-        {"id": i + 1, "name": k, "supercategory": "klubba-delar"} for i, k in enumerate(KLASSER)]
+        {"id": i + 1, "name": k, "supercategory": "klubba-delar"} for i, k in enumerate(klasser)]
     images, anns = [], []
     for i, b in enumerate(bilder):
         images.append({"id": i, "file_name": b["ut_namn"], "width": b["bredd"], "height": b["hojd"]})
         for r in b["rutor"]:
             x, y, w, h = r["bbox"]
-            anns.append({"id": len(anns), "image_id": i, "category_id": KLASSER.index(r["klass"]) + 1,
+            anns.append({"id": len(anns), "image_id": i, "category_id": klasser.index(r["klass"]) + 1,
                          "bbox": [x, y, w, h], "area": w * h, "iscrowd": 0})
     return {"info": {"description": "SwingLab S7-1, METOD MF7"}, "images": images,
             "annotations": anns, "categories": kat}
 
 
-def bygg(kallor: list[Path], ut: Path) -> dict:
+def bygg(kallor: list[Path], ut: Path, klasser: tuple[str, ...] = KLASSER) -> dict:
     """Träningsmappen: <ut>/{train,valid,test}/ med länkar till bilderna och
-    _annotations.coco.json, plus delning.json med antalen per källa och del."""
+    _annotations.coco.json, plus delning.json med antalen per källa och del och `klasser`."""
     import cv2
     ut = utanfor_repot(ut)
     alla: list[dict] = []
     sammanfattning: dict[str, dict] = {}
     for k in kallor:
         k = Path(k).expanduser().resolve()
-        bilder = las_coco(k)
+        bilder = las_coco(k, klasser)
         v = np.stack([miniatyr(cv2.imread(b["fil"], cv2.IMREAD_GRAYSCALE)) for b in bilder])
         scen = scener(v)
         delar = dela([b["namn"] for b in bilder], scen)
@@ -214,7 +216,7 @@ def bygg(kallor: list[Path], ut: Path) -> dict:
         for d in DELAR:
             i_del = [b for b in bilder if b["del_"] == d]
             s[d] = {"bilder": len(i_del),
-                    **{kl: sum(1 for b in i_del for r in b["rutor"] if r["klass"] == kl) for kl in KLASSER}}
+                    **{kl: sum(1 for b in i_del for r in b["rutor"] if r["klass"] == kl) for kl in klasser}}
         sammanfattning[k.name] = s
         alla += bilder
     for d in DELAR:
@@ -225,52 +227,64 @@ def bygg(kallor: list[Path], ut: Path) -> dict:
             lank = mapp / b["ut_namn"]
             if not lank.exists():
                 lank.symlink_to(b["fil"])
-        (mapp / "_annotations.coco.json").write_text(json.dumps(coco(i_del)), encoding="utf-8")
+        (mapp / "_annotations.coco.json").write_text(json.dumps(coco(i_del, klasser)), encoding="utf-8")
     (ut / "bilder.json").write_text(json.dumps({b["ut_namn"]: b["kalla"] for b in alla}), encoding="utf-8")
     r = {"skapad": datetime.now().astimezone().isoformat(timespec="seconds"), "kallor": sammanfattning,
-         "lika": LIKA, "miniatyr": MINIATYR}
+         "lika": LIKA, "miniatyr": MINIATYR, "klasser": list(klasser)}
     (ut / "delning.json").write_text(json.dumps(r, indent=1, ensure_ascii=False), encoding="utf-8")
     return r
 
 
 # ---------------------------------------------------------------------------- träna och prova
 
-def trana(mapp: Path, ut: Path, epoker: int, batch: int, ackum: int, fortsatt: bool = False) -> dict:
-    """RF-DETR Nano från COCO-vikterna (Apache 2.0) på mappen från `bygg`. Valet av vikter
-    görs på `valid`; provet (`test`) används inte. Med `fortsatt` tas träningen upp från
-    <ut>/last.ckpt (efter ett avbrott, till exempel när WSL uppdateras). Svarar tiden."""
-    from rfdetr import RFDETRNano
+def trana(mapp: Path, ut: Path, epoker: int, batch: int, ackum: int, fortsatt: bool = False,
+          storlek_: str = "nano") -> dict:
+    """RF-DETR (`storlek_` i MODELLER, med sin egen upplösning) från COCO-vikterna (Apache 2.0)
+    på mappen från `bygg`. Valet av vikter görs på `valid`; provet (`test`) används inte. Med
+    `fortsatt` tas träningen upp från <ut>/last.ckpt (efter ett avbrott, till exempel när WSL
+    uppdateras). Storleken skrivs i <ut>/modell.json, så att `ladda` tar rätt modell. Svarar tiden."""
+    import rfdetr
     ut = utanfor_repot(ut)
+    ut.mkdir(parents=True, exist_ok=True)
+    (ut / "modell.json").write_text(json.dumps({"storlek": storlek_}), encoding="utf-8")
     sist = ut / "last.ckpt"
     fortsatt = bool(fortsatt and sist.exists())
     t0 = time.time()
-    RFDETRNano().train(dataset_dir=str(Path(mapp).expanduser()), output_dir=str(ut), epochs=epoker,
-                       batch_size=batch, grad_accum_steps=ackum, num_workers=2, seed=0,
-                       run_test=False, tensorboard=False, progress_bar=None,
-                       resume=str(sist) if fortsatt else None)
+    getattr(rfdetr, MODELLER[storlek_])().train(
+        dataset_dir=str(Path(mapp).expanduser()), output_dir=str(ut), epochs=epoker, batch_size=batch,
+        grad_accum_steps=ackum, num_workers=2, seed=0, run_test=False, tensorboard=False,
+        progress_bar=None, resume=str(sist) if fortsatt else None)
     r = {"sekunder": round(time.time() - t0), "epoker": epoker, "batch": batch, "ackum": ackum,
-         "modell": "RF-DETR Nano", "fortsatt": fortsatt}
+         "modell": f"RF-DETR {storlek_}", "fortsatt": fortsatt}
     (ut / "tid.json").write_text(json.dumps(r), encoding="utf-8")
     return r
 
 
+def storlek(vikter: Path) -> str:
+    """Modellens storlek ur <vikternas mapp>/modell.json; nano när den saknas (de första vikterna)."""
+    try:
+        return json.loads((Path(vikter).expanduser().parent / "modell.json").read_text(encoding="utf-8"))["storlek"]
+    except (OSError, KeyError, json.JSONDecodeError):
+        return "nano"
+
+
 def ladda(vikter: Path):
-    from rfdetr import RFDETRNano
-    return RFDETRNano(pretrain_weights=str(Path(vikter).expanduser()))
+    import rfdetr
+    return getattr(rfdetr, MODELLER[storlek(vikter)])(pretrain_weights=str(Path(vikter).expanduser()))
 
 
 def detektioner(modell, bilder: list, troskel: float) -> list[list[dict]]:
     """Modellens rutor per bild: [{"klass", "bbox" (x, y, b, h i bildens px), "konfidens"}].
     RF-DETR numrerar klasserna från 0 i `class_names`-ordning (utan överklassen), inte med
     COCO-filens id."""
-    namn = list(getattr(modell, "class_names", None) or KLASSER)
+    namn = list(getattr(modell, "class_names", None) or ALLA_KLASSER)
     ut = []
     for i in range(0, len(bilder), 8):
         res = modell.predict(bilder[i:i + 8], threshold=troskel)
         for d in (res if isinstance(res, list) else [res]):
             rad = []
             for (x0, y0, x1, y1), c, k in zip(d.xyxy, d.confidence, d.class_id):
-                if 0 <= int(k) < len(namn) and namn[int(k)] in KLASSER:
+                if 0 <= int(k) < len(namn) and namn[int(k)] in ALLA_KLASSER:
                     rad.append({"klass": namn[int(k)], "konfidens": float(c),
                                 "bbox": [float(x0), float(y0), float(x1 - x0), float(y1 - y0)]})
             ut.append(rad)
@@ -290,11 +304,12 @@ def prova(mapp: Path, vikter: Path) -> dict:
     kalla = json.loads((mapp / "bilder.json").read_text(encoding="utf-8"))
     modell = ladda(vikter)
     ims = gt.dataset["images"]
+    kat = {c["name"]: c["id"] for c in gt.dataset["categories"] if c["id"] != 0}
     t0 = time.time()
     det = detektioner(modell, [Image.open(mapp / "test" / im["file_name"]).convert("RGB") for im in ims], 0.001)
     sek_per_bild = (time.time() - t0) / max(1, len(ims))
-    res = [{"image_id": im["id"], "category_id": KLASSER.index(r["klass"]) + 1, "bbox": r["bbox"],
-            "score": r["konfidens"]} for im, rad in zip(ims, det) for r in rad]
+    res = [{"image_id": im["id"], "category_id": kat[r["klass"]], "bbox": r["bbox"],
+            "score": r["konfidens"]} for im, rad in zip(ims, det) for r in rad if r["klass"] in kat]
     dt = gt.loadRes(res) if res else None
 
     def matt(bild_id=None, kat=None) -> dict:
@@ -310,12 +325,12 @@ def prova(mapp: Path, vikter: Path) -> dict:
         return {"map": round(float(e.stats[0]), 4), "map50": round(float(e.stats[1]), 4)}
 
     r = {"bilder": len(ims), "alla": matt(), "ms_per_bild": round(1000 * sek_per_bild, 1)}
-    for i, k in enumerate(KLASSER):
-        r[k] = matt(kat=i + 1)
+    for k, i in kat.items():
+        r[k] = matt(kat=i)
     for kl in sorted(set(kalla.values())):
         ids = [im["id"] for im in ims if kalla.get(im["file_name"]) == kl]
         if ids:
-            r[kl] = {"bilder": len(ids), "alla": matt(ids), **{k: matt(ids, i + 1) for i, k in enumerate(KLASSER)}}
+            r[kl] = {"bilder": len(ids), "alla": matt(ids), **{k: matt(ids, i) for k, i in kat.items()}}
     return r
 
 
@@ -470,7 +485,7 @@ def forslag(paket_filer: list[Path], vikter: Path, ut: Path, s3: Path | None = N
         forsta = next((s for s in p.slag if s.lederna), None)
         if forsta is None:
             continue
-        fil_d = KF.ny(p.pass_id, p.vy, MODELL_NAMN, version, data, forsta.lederna["width"],
+        fil_d = KF.ny(p.pass_id, p.vy, f"rfdetr-{storlek(vikter)}-klubba", version, data, forsta.lederna["width"],
                       forsta.lederna["height"], paket=p.fil)
         with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(pf) as z:
             for s in p.slag:
@@ -620,7 +635,6 @@ def huvud_punkt(rad: list[dict], x0: float, y0: float, sx: float, sy: float, bre
 DATASET = {"golf-49wbh": ("CC BY 4.0", "https://universe.roboflow.com/lvs-rd/golf-49wbh"),
            "golf-club-tracking": ("CC BY 4.0", "https://universe.roboflow.com/club-head-tracking/golf-club-tracking"),
            "azb-dc": ("CC BY 4.0", "https://universe.roboflow.com/club-head/azb-dc")}
-MODELL_NAMN = "rfdetr-nano-klubba"
 
 
 def modell_info(vikter: Path) -> tuple[str, list[dict]]:
@@ -770,6 +784,7 @@ def main(argv=None) -> int:
     b = sub.add_parser("bygg")
     b.add_argument("kallor", nargs="+", type=Path)
     b.add_argument("--ut", type=Path, required=True)
+    b.add_argument("--klasser", default=",".join(KLASSER), help=f"bland {','.join(ALLA_KLASSER)}")
     t = sub.add_parser("trana")
     t.add_argument("mapp", type=Path)
     t.add_argument("--ut", type=Path, required=True)
@@ -777,6 +792,7 @@ def main(argv=None) -> int:
     t.add_argument("--batch", type=int, default=8)
     t.add_argument("--ackum", type=int, default=2)
     t.add_argument("--fortsatt", action="store_true", help="ta upp träningen från <ut>/last.ckpt")
+    t.add_argument("--storlek", choices=sorted(MODELLER), default="nano")
     pr = sub.add_parser("prov")
     pr.add_argument("mapp", type=Path)
     pr.add_argument("--vikter", type=Path, required=True)
@@ -792,9 +808,12 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     try:
         if a.steg == "bygg":
-            r = bygg(a.kallor, a.ut)
+            klasser = tuple(k for k in a.klasser.split(",") if k)
+            if not klasser or any(k not in ALLA_KLASSER for k in klasser):
+                raise FormFel(f"--klasser: bland {', '.join(ALLA_KLASSER)}")
+            r = bygg(a.kallor, a.ut, klasser)
         elif a.steg == "trana":
-            r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum, a.fortsatt)
+            r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum, a.fortsatt, a.storlek)
         elif a.steg == "prov":
             r = prova(a.mapp, a.vikter)
         elif a.steg == "facit":

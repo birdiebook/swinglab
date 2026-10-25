@@ -3277,7 +3277,18 @@ räknas som märkning (B71).
 - **Gränsen sänkt till 0,3** (B95, MF8) efter provet ovan. Provpassets filer med 0,3: framifrån
   har **85 %** av rutorna en punkt (lyfta 167, strukna 40), bakifrån **92 %**; FO 8 963 och DTL
   751 rutor, båda OK mot paketet. **mätt.**
-- **Nästa:** modellen tränad på Johannes märkta rutor, bakifrån först.
+- **Händerna och storleken** (2026-10-25): `bygg --klasser klubba,klubbhuvud,hander` tar med
+  golf-club-trackings händer (klass `3`) för greppet; golf-49wbh saknar dem och byggs utan.
+  `trana --storlek small` tränar RF-DETR Small (512 px, Apache 2.0) i stället för Nano; storleken
+  står i viktmappens `modell.json`. Provet för händerna är samma scener som för klubban.
+  **räkning.**
+- **Visions handleder som grepp** (provpasset mot märkningen, 50 rutor): 11 % av skaftet från
+  greppet i median framifrån (10 % bakifrån, p90 29 %), och skaftets vinkel fel med 3,9° i
+  median framifrån (p90 6,1°) och 2,7° bakifrån (p90 3,6°, max 10°). Handlederna ligger mot
+  underarmen, inte på skaftet. **mätt.**
+- **Nästa:** greppet ur händerna och klubbans ruta (händernas läge lagt på skaftets linje,
+  kalibrerat på oktobers rutor, mätt på provpasset), och modellen tränad på Johannes märkta
+  rutor, bakifrån först.
 
 ## MF8 — Modellens förslag i klubbmarkeringen (S7d)
 
