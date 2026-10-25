@@ -169,13 +169,18 @@ public enum Texter {
     public static let treDKameror = "Cameras"
     /// Telefonens etikett i bilden: vyn den filmade som ("FO", "DTL").
     public static func treDTelefon(_ vy: String) -> String { "\(vy) phone" }
-    /// Kamerornas två tal, med sin gräns (METOD MK3).
-    public static let treDSampson = "Sampson error"
+    /// Kamerornas två tal, med sin gräns (METOD MK3). Felet heter inte Sampson för spelaren
+    /// (PLAN S4h): raden säger om kamerorna stämmer, och felet i px står litet under.
+    public static let treDSampson = "Cameras agree"
     public static func treDSparr(_ px: String) -> String { "limit \(px) px" }
+    /// "error 14.8 px · limit 8 px" under raden; utan tal bara gränsen.
+    public static func treDKameraFel(_ fel: String?, _ grans: String) -> String {
+        (fel.map { "error \($0)" + skilje } ?? "") + treDSparr(grans)
+    }
     public static let treDVinkelMellan = "Angle between phones"
     public static let treDVinkelSpann = "60–120°"
     /// Uppställningen kalibrerades men mättes inte: kamerorna, ingen figur.
-    public static let treDOverSparren = "Sampson error over the limit: no figure"
+    public static let treDOverSparren = "Cameras do not agree: no figure"
     /// Ett slag utan figur i en uppställning som inte mättes.
     public static let treDIngenFigur = "No figure for this swing"
     /// Spelhastigheten.
@@ -507,8 +512,114 @@ public enum Texter {
     /// Alla felen, ett per rad, när Johannes trycker på raden.
     public static func kontrollfelAlla(_ fel: [Kontrollfel]) -> [String] { fel.map(kontrollfelText) }
 
+    /// Det första felet på enkel engelska (PLAN S4h): vilken del av svaret och vad som är fel, och
+    /// vad man gör. Fältet och koden står under "Details" (`kontrollfelRad`), värdet aldrig.
+    /// "Claude's reply can't be used: the swing thought has digits. Ask Claude to try again."
+    public static func kontrollfelKlartext(_ fel: [Kontrollfel]) -> String {
+        guard let f = fel.first else { return "" }
+        return "Claude's reply can't be used: \(kontrollfelSak(f)). Ask Claude to try again."
+    }
+
+    /// Delen och felet: "the swing thought has digits", "it has no Focus code block".
+    static func kontrollfelSak(_ f: Kontrollfel) -> String {
+        switch (f.falt, f.kod) {
+        case ("svaret", "inget_block"): return "it has no Focus code block"
+        case ("svaret", "inte_json"): return "its code block could not be read"
+        case ("svaret", "inte_att_jobba_pa"): return "it has no Focus file"
+        case ("svaret", _): return "it is too long"
+        case ("pass", "ej_i_analysen"): return "this session has no measures yet"
+        case ("pass", _): return "it is for another session"
+        default: return "\(kontrollfelDel(f.falt)) \(kontrollfelVad(f.kod))"
+        }
+    }
+
+    /// Delen av svaret ur fältets sista nyckel: "saker[0].ovning.tanke" → "the swing thought".
+    static func kontrollfelDel(_ falt: String) -> String {
+        let delar = falt.split(separator: ".").map { String($0.split(separator: "[").first ?? "") }
+        let sista = delar.last ?? ""
+        if sista == "tanke" { return "the swing thought" }
+        if delar.contains("klart_nar") { return "the done-when rule" }
+        if delar.contains("fysik") { return "the mobility part" }
+        if delar.contains("ovning") { return "the drill" }
+        if delar.contains("block") { return "the week count" }
+        switch sista {
+        case "fel", "foljdfel", "vag", "namn": return "the fault"
+        case "saker": return "the list of items"
+        case "format", "filen", "skapad": return "the file"
+        default: return "an item"
+        }
+    }
+
+    /// Kodens fel i ord.
+    static func kontrollfelVad(_ kod: String) -> String {
+        switch kod {
+        case "siffror": return "has digits"
+        case "for_lang", "for_stort": return "is too long"
+        case "vardeord": return "has judging words"
+        case "utropstecken": return "has an exclamation mark"
+        case "svenska": return "is not in English"
+        case "saknas": return "is missing"
+        case "text": return "is not text"
+        case "okand_nyckel": return "has an unknown field"
+        case "antal": return "must have 1 to 3 items"
+        case "dubblett": return "has the same fault twice"
+        case "format", "objekt", "iso", "pass_form", "lista", "typ", "grans_tal", "grans_spann", "villkor":
+            return "has the wrong form"
+        default: return "does not match this session"
+        }
+    }
+
     /// "Use" kunde inte spara filen: fältet och koden, som felen ovan.
     public static let focusSparadesInte = "\(filen): could not be saved"
+
+    // MARK: första intrycket (PLAN S4h, BESLUT B94, METOD M63)
+
+    /// Passets översta kort: det som övas, eller de röda måtten.
+    public static let fokus = "Focus"
+    public static let utanforBandet = "Outside range"
+    /// Raden längst ner med måtten som inte kan säga bra eller dåligt: "More measures (3)".
+    public static func flerMatt(_ n: Int) -> String { "More measures (\(n))" }
+    /// Detaljerna ett tryck bort (kvittot, slagens räkning, Claude-felet).
+    public static let detaljer = "Details"
+
+    /// Raden under bandet: bara bra-området med enhet, eller den egna baslinjen.
+    public static func braMellan(_ a: String, _ b: String) -> String { "Good: \(a) to \(b)" }
+    public static func braFran(_ a: String) -> String { "Good: \u{2265} \(a)" }
+    public static func braTill(_ b: String) -> String { "Good: \u{2264} \(b)" }
+    public static func vanligtMellan(_ a: String, _ b: String) -> String { "Your usual: \(a) to \(b)" }
+
+    /// Bandets nyckel (ett tryck på bandet eller ⓘ).
+    public static let nyckelRubrik = "Reading the band"
+    public static let nyckelBandet = "Good range"
+    public static let nyckelInne = "Inside the good range"
+    public static let nyckelNara = "Just outside: may be measurement error"
+    public static let nyckelUte = "Outside, pointing toward the value"
+    public static let nyckelSlagen = "Your swings today, middle half"
+    public static let nyckelForra = "Last session"
+    public static let nyckelVanligt = "Your usual, when no good range is known"
+    /// VoiceOver för knappen som öppnar nyckeln.
+    public static let nyckelKnapp = "How to read the band"
+
+    /// Kvittots dom (Receipt.dom): en mening, eller varningarna med vad man gör.
+    public static func domHord(_ n: Int) -> String { n == 1 ? "1 swing heard" : "\(n) swings heard" }
+    public static func domFps(_ fps: String) -> String { "\(fps) fps" }
+    public static func domInteSlowmotion(_ fps: String) -> String { "Not slow motion: \(fps) fps" }
+    public static func domLagFps(_ fps: String) -> String { "\(fps) fps, not 240" }
+    public static func domTappade(_ andel: String) -> String { "The phone dropped \(andel) of the frames: close other apps" }
+    public static let domIngenHord = "No swings heard: check the microphone"
+    public static let domVarm = "The phone is hot: pause soon"
+
+    /// Raderingen vägras: varför och vad man gör (BESLUT B64).
+    public static let iBrukExport = "The session is being sent to the PC. Try again when it is done."
+    public static let iBrukFlode = "The session is still recording or importing. Close it first."
+
+    /// Klubbans märkning när modellens förslag syns (BESLUT B93): godkänn med ✓.
+    public static let forslagFraga = "Line right? Tap \u{2713}"
+
+    /// Positionen med namnet först: "Top of backswing (P4)".
+    public static func positionMedNamn(_ p: String) -> String {
+        positionsnamn[p].map { "\($0) (\(p))" } ?? p
+    }
 
     // MARK: klubbans märkning (S7c, BESLUT B59)
 
@@ -520,8 +631,8 @@ public enum Texter {
         "P4": "Top of backswing", "P5": "Lead arm parallel, downswing", "P6": "Club parallel, downswing",
         "P7": "Impact", "P8": "Club parallel, follow-through", "P9": "Trail arm parallel", "P10": "Finish"]
 
-    /// "P4 · Top of backswing · 3 of 10": positionen, dess namn och var i märkningens ordning.
+    /// "Top of backswing (P4) · 3 of 10": namnet först (PLAN S4h), sedan var i märkningens ordning.
     public static func markeringsPosition(_ p: String, nummer: Int, av: Int) -> String {
-        "\(p)\(skilje)\(positionsnamn[p] ?? p)\(skilje)\(nummer) of \(av)"
+        "\(positionMedNamn(p))\(skilje)\(nummer) of \(av)"
     }
 }

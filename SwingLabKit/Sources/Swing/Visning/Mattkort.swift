@@ -162,7 +162,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
             let v = Session.percentil(fa.sorted(), 0.5)
             let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
             let spann = Spann(nu: v, spridning: nil, forra: nil, gront: fel.gront, baslinje: bas,
-                              decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet)
+                              decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet, golv: fel.golv)
             return Mattkort(id: fel.id, matt: fel.matt, namn: e.namn, rubrik: Etiketter.rubrik(fel), vy: vy,
                             markning: markning, varde: text(Avrundning.avrunda(fel.matt, v), e), enhet: e.enhet,
                             skillnad: nil, spann: spann, geometri: nil)
@@ -181,7 +181,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         }
         let bas = Baslinje.spann(tidigare.flatMap { $0.varden(fel.matt, grupp) })
         let spann = Spann(nu: s.median, spridning: (s.q1, s.q3), forra: forraMedian, gront: fel.gront,
-                          baslinje: bas, decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet)
+                          baslinje: bas, decimaler: e.decimaler, enhet: e.enhet == ": 1" ? "" : e.enhet, golv: fel.golv)
         var geometri: Geometri? = nil
         switch e.geometri {
         case .bojning:
@@ -224,7 +224,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
             }
             let bas = Baslinje.spann(tidigare.compactMap { $0.spridning(post.matt, post.vy) })
             let spann = Spann(nu: v, spridning: nil, forra: f, gront: nil, baslinje: bas, decimaler: e.decimaler,
-                              enhet: e.enhet)
+                              enhet: e.enhet, golv: post.golv)
             k = Mattkort(id: post.id, matt: post.matt, namn: namn, rubrik: rubrik(post), vy: Vy(rawValue: post.vy),
                          markning: .egen, varde: Tal.tal(Avrundning.avrunda(post.matt, v), decimaler: e.decimaler),
                          enhet: e.enhet, skillnad: skillnad, spann: spann, geometri: nil)
@@ -258,7 +258,7 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
         let tidigareV = tidigare.flatMap { $0.varden(post.matt, post.vy) }
         let bas = Baslinje.spann(tidigareV)
         let spann = Spann(nu: med, spridning: nil, forra: f, gront: post.band(nu.klubba), baslinje: bas,
-                          decimaler: e.decimaler, enhet: e.enhet)
+                          decimaler: e.decimaler, enhet: e.enhet, golv: post.golv)
         let rubrik = ([Etiketter.vy(post.vy)] + (e.fas.isEmpty ? [] : [e.fas]) + [Texter.n(v.count)])
             .joined(separator: " · ")
         var k = Mattkort(id: "\(post.matt)_\(post.vy)", matt: post.matt, namn: e.namn, rubrik: rubrik,
@@ -314,8 +314,9 @@ public struct Passvisning: Sendable {
         kort = Mattkort.passet(katalog, nu: nu, tidigare: Array(pass.dropLast()), ovas: ovas)
     }
 
+    /// Alla · DTL · FO: samma ordning som det parade passets DTL · FO · 3D (PLAN S4h).
     public enum Filter: String, CaseIterable, Sendable {
-        case alla, fo, dtl
+        case alla, dtl, fo
 
         public var etikett: String { self == .alla ? Texter.alla : rawValue.uppercased() }
     }

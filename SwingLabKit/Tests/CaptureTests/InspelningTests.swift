@@ -398,6 +398,33 @@ final class InspelningTests: XCTestCase {
         XCTAssertEqual(Receipt.rateLight(FrameTiming.analyze((0..<90).map { Double($0) / 30 })), .tooDark)
     }
 
+    /// Kvittots dom (PLAN S4h, BESLUT B94): en mening när allt är bra, annars varningarna med vad
+    /// man gör, den värsta först; raderna ligger kvar bakom "Details". METOD MS11
+    func testKvittotsDom() {
+        var s = SeriesRecord.make(nr: 1, source: .recording, club: "j7", file: "Video/01.mov",
+                                  start: Date(), startHost: nil, facts: facts())
+        s.pressure = .serious
+        let d = Receipt.dom(Receipt.rows(s))
+        XCTAssertEqual(d?.varningar, ["The phone dropped 33% of the frames: close other apps", "The phone is hot: pause soon"])
+        XCTAssertEqual(d?.text, "The phone dropped 33% of the frames: close other apps")
+        XCTAssertEqual(d?.bra, false)
+        // En bra serie: frekvensen och svingarna som hördes.
+        s.timing.missingFraction = 0
+        s.pressure = .nominal
+        XCTAssertEqual(Receipt.dom(Receipt.rows(s)), Kvittodom(text: "240 fps\u{00A0}· 2 swings heard", varningar: []))
+        // Inget klick: varningen säger vad man gör.
+        s.clicks = []
+        XCTAssertEqual(Receipt.dom(Receipt.rows(s))?.varningar, ["No swings heard: check the microphone"])
+        // 120 bilder/s är gult, inte slowmotion rött; den uppmätta klockan står inte i meningen.
+        let rader = [ReceiptRow("fps", "120 (119.6)", .marginal, kind: .rate), ReceiptRow("Clicks", "1", kind: .clicks)]
+        XCTAssertEqual(Receipt.dom(rader)?.text, "120 fps, not 240")
+        XCTAssertEqual(Receipt.dom([ReceiptRow("fps", "240", kind: .rate), ReceiptRow("Clicks", "1", kind: .clicks)])?.text,
+                       "240 fps\u{00A0}· 1 swing heard")
+        // Ljusprovets rader har ingen dom: kortet visar dem som förut.
+        XCTAssertNil(Receipt.dom([ReceiptRow("ISO", "640", .good)]))
+        for t in d?.varningar ?? [] { XCTAssertNil(t.rangeOfCharacter(from: Self.svenska), t) }
+    }
+
     func testLjusprovetsKort() {
         let format = CameraFormat(index: 0, width: 1920, height: 1080, maxFrameRate: 240, fieldOfView: 70, binned: true,
                                   minISO: 50, maxISO: 2000, minExposure: 1.0 / 24_000, maxExposure: 0.5,

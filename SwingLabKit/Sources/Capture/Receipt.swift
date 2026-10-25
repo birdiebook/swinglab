@@ -6,17 +6,41 @@ import Swing
 // beskrivande text). Raderna byggs här så att vyn bara ritar dem; orden står i
 // Swings Texter, på engelska (BESLUT B30, B33). METOD MS11
 
-/// En rad: etiketten, talet med enhet, och färgen (good = vit, annars signalfärgen).
+/// En rad: etiketten, talet med enhet, och färgen (good = vit, annars signalfärgen). `kind` säger
+/// vilken av kvittots rader det är, så att domen (`Receipt.dom`) kan läsas ur raderna; ljusprovets
+/// rader har ingen. Två rader är lika när det som visas är lika.
 public struct ReceiptRow: Equatable, Sendable {
     public var label: String
     public var value: String
     public var light: ExposurePlan.Light
+    public var kind: Kind?
 
-    public init(_ label: String, _ value: String, _ light: ExposurePlan.Light = .good) {
+    public enum Kind: String, Sendable {
+        case rate, dropped, frames, clicks, size, length, heat
+    }
+
+    public init(_ label: String, _ value: String, _ light: ExposurePlan.Light = .good, kind: Kind? = nil) {
         self.label = label
         self.value = value
         self.light = light
+        self.kind = kind
     }
+
+    public static func == (a: ReceiptRow, b: ReceiptRow) -> Bool {
+        a.label == b.label && a.value == b.value && a.light == b.light
+    }
+}
+
+/// Kvittots dom (PLAN S4h, research 8 punkt 1): en mening när inspelningen är bra
+/// ("240 fps · 2 swings heard"), annars varningarna med vad man gör, den värsta först. Raderna
+/// med talen ligger bakom "Details". METOD MS11
+public struct Kvittodom: Equatable, Sendable {
+    /// Meningen när allt är bra; den första varningen annars.
+    public let text: String
+    /// Varningarna, den värsta först; tom när inspelningen är bra.
+    public let varningar: [String]
+
+    public var bra: Bool { varningar.isEmpty }
 }
 
 public enum Receipt {
@@ -52,15 +76,43 @@ public enum Receipt {
     /// filens storlek per minut, längden och trycket. METOD MS11
     public static func rows(_ s: SeriesRecord, wantedRate: Double = 240) -> [ReceiptRow] {
         var r = [
-            ReceiptRow(Texter.kvittoBilder, rateText(s.timing), rateLight(s.timing, wantedRate: wantedRate)),
-            ReceiptRow(Texter.kvittoTappade, Taltext.percent(s.timing.missingFraction), missingLight(s)),
-            ReceiptRow(Texter.kvittoRutor, Taltext.integer(Double(s.timing.count))),
-            ReceiptRow(Texter.kvittoKlick, Taltext.integer(Double(s.clicks.count)), s.clicks.isEmpty ? .marginal : .good),
-            ReceiptRow(Texter.kvittoMBmin, Taltext.integer(s.megabytesPerMinute)),
-            ReceiptRow(Texter.kvittoLangd, Taltext.duration(s.duration)),
+            ReceiptRow(Texter.kvittoBilder, rateText(s.timing), rateLight(s.timing, wantedRate: wantedRate), kind: .rate),
+            ReceiptRow(Texter.kvittoTappade, Taltext.percent(s.timing.missingFraction), missingLight(s), kind: .dropped),
+            ReceiptRow(Texter.kvittoRutor, Taltext.integer(Double(s.timing.count)), kind: .frames),
+            ReceiptRow(Texter.kvittoKlick, Taltext.integer(Double(s.clicks.count)), s.clicks.isEmpty ? .marginal : .good,
+                       kind: .clicks),
+            ReceiptRow(Texter.kvittoMBmin, Taltext.integer(s.megabytesPerMinute), kind: .size),
+            ReceiptRow(Texter.kvittoLangd, Taltext.duration(s.duration), kind: .length),
         ]
-        if let p = s.pressure { r.append(ReceiptRow(pressureLabel, pressureName(p), p.light)) }
+        if let p = s.pressure { r.append(ReceiptRow(pressureLabel, pressureName(p), p.light, kind: .heat)) }
         return r
+    }
+
+    /// Domen ur kvittots rader (PLAN S4h): varje rad som inte är bra blir en varning i ord med vad
+    /// man gör, den värsta först och annars i radernas ordning; utan varningar en mening med
+    /// frekvensen och svingarna som hördes. nil för rader utan `kind` (ljusprovet). METOD MS11
+    public static func dom(_ rows: [ReceiptRow]) -> Kvittodom? {
+        guard rows.contains(where: { $0.kind != nil }) else { return nil }
+        let rate = rows.first { $0.kind == .rate }
+        // Frekvensen utan den uppmätta klockan inom parentes: "240 (239.4)" → "240".
+        let fps = rate.map { String($0.value.split(separator: " ").first ?? Substring($0.value)) } ?? ""
+        var varningar: [(light: ExposurePlan.Light, nr: Int, text: String)] = []
+        for (i, r) in rows.enumerated() where r.light != .good {
+            let t: String?
+            switch r.kind {
+            case .rate?: t = r.light == .tooDark ? Texter.domInteSlowmotion(fps) : Texter.domLagFps(fps)
+            case .dropped?: t = Texter.domTappade(r.value)
+            case .clicks?: t = Texter.domIngenHord
+            case .heat?: t = Texter.domVarm
+            default: t = nil
+            }
+            if let t { varningar.append((light: r.light, nr: i, text: t)) }
+        }
+        let ordnade = varningar.sorted { a, b in a.light != b.light ? a.light > b.light : a.nr < b.nr }.map { $0.text }
+        if let forsta = ordnade.first { return Kvittodom(text: forsta, varningar: ordnade) }
+        let klick = rows.first { $0.kind == .clicks }.flatMap { Int($0.value.replacingOccurrences(of: ",", with: "")) }
+        let delar = (rate == nil ? [] : [Texter.domFps(fps)]) + (klick.map { [Texter.domHord($0)] } ?? [])
+        return Kvittodom(text: delar.joined(separator: Texter.skilje), varningar: [])
     }
 
     /// Ljusprovets kort: ljuset (ISO eller bristen i steg), flimret, rutorna och

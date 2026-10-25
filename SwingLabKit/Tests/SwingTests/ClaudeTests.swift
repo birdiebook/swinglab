@@ -122,6 +122,12 @@ final class ClaudeTests: XCTestCase {
                         XCTAssertFalse(f.text.contains(v), "\(f.text) bär \(v)")
                     }
                 }
+                // Felet på enkel engelska (PLAN S4h): inget värde och inga svenska nycklar.
+                let klar = Texter.kontrollfelKlartext(felen)
+                XCTAssertEqual(klar.isEmpty, felen.isEmpty)
+                for v in ["slice", "great", "Great", "Well", "igår", "-1", "20261399", "kg", "saker", "ovning", "tanke"] {
+                    XCTAssertFalse(klar.contains(v), "\(klar) bär \(v)")
+                }
                 // Appens rad (S5b-2): det första felet och antalet till, inget värde.
                 let rad = Texter.kontrollfelRad(felen)
                 XCTAssertEqual(rad.isEmpty, felen.isEmpty)
@@ -131,6 +137,23 @@ final class ClaudeTests: XCTestCase {
                 }
             }
         }
+    }
+
+    /// Felet på enkel engelska (PLAN S4h, BESLUT B94): delen och felet, och vad man gör; fältet
+    /// står under "Details" (`kontrollfelRad`).
+    func testFeletPaEnkelEngelska() {
+        XCTAssertEqual(Texter.kontrollfelKlartext([]), "")
+        XCTAssertEqual(Texter.kontrollfelKlartext([Kontrollfel("saker[0].ovning.tanke", "siffror")]),
+                       "Claude's reply can't be used: the swing thought has digits. Ask Claude to try again.")
+        XCTAssertEqual(Texter.kontrollfelKlartext([Kontrollfel("svaret", "inget_block"), Kontrollfel("skapad", "iso")]),
+                       "Claude's reply can't be used: it has no Focus code block. Ask Claude to try again.")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[1].klart_nar.grans", "grans_tal")), "the done-when rule has the wrong form")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].ovning.text", "for_lang")), "the drill is too long")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].fel", "inte_flaggat")), "the fault does not match this session")
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("pass", "ej_i_analysen")), "this session has no measures yet")
+        // En okänd nyckel är Claudes text: den står aldrig i meningen.
+        XCTAssertEqual(Texter.kontrollfelSak(Kontrollfel("saker[0].ovning.hemligt", "okand_nyckel")),
+                       "the drill has an unknown field")
     }
 
     /// "Paste from Claude": felraden i appen (BESLUT B60, METOD MS18).

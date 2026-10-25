@@ -71,6 +71,9 @@ public struct Spann: Equatable, Sendable {
     public let decimaler: Int
     /// Katalogens gräns som den står (nil i en ände = öppen), nil utan gräns.
     public let grans: (fran: Double?, till: Double?)?
+    /// Raden under spannet (PLAN S4h, BESLUT B94): bara bra-området med enhet, "Good: −2.5 to 0 cm",
+    /// eller den egna baslinjen, "Your usual: 2.0 to 2.6°"; nil utan någon av dem. METOD M63
+    public let omrade: String?
 
     /// Zonen är den egna baslinjen (ramen "Your usual"), inte en gräns.
     public var arBaslinje: Bool {
@@ -104,8 +107,10 @@ public struct Spann: Equatable, Sendable {
     }
 
     /// `gront` som i katalogen ([lo, hi], nil = öppen ände); utan den används `baslinje`.
+    /// `golv` = måttets brusgolv (METOD M62): mot den egna baslinjen rymmer axeln alltid ramen ±
+    /// golvet, så att en avvikelse under golvet inte ser stor ut (PLAN S4h, METOD M63).
     public init(nu: Double, spridning: (lo: Double, hi: Double)?, forra: Double?, gront: [Double?]?,
-                baslinje: (lo: Double, hi: Double)?, decimaler: Int, enhet: String = "") {
+                baslinje: (lo: Double, hi: Double)?, decimaler: Int, enhet: String = "", golv: Double? = nil) {
         self.enhet = enhet
         self.decimaler = decimaler
         if let g = gront, g.count == 2 { grans = (g[0], g[1]) } else { grans = nil }
@@ -115,7 +120,11 @@ public struct Spann: Equatable, Sendable {
         let gLo = gront?.first ?? nil, gHi = gront?.last ?? nil
         if let g = gLo { varden.append(g) }
         if let g = gHi { varden.append(g) }
-        if gront == nil, let b = baslinje { varden += [b.lo, b.hi] }
+        if gront == nil, let b = baslinje {
+            varden += [b.lo, b.hi]
+            // Golvet sätter axelns minsta bredd mot den egna baslinjen. METOD M63
+            if let g = golv, g > 0, g.isFinite { varden += [b.lo - g, b.hi + g] }
+        }
         // En minsta bredd: fyra steg på sista decimalen, så att axelns ändar aldrig skrivs
         // som samma tal ("20 … 20") när alla slag har samma värde.
         let minsta = 4 * pow(10, -Double(Swift.max(0, decimaler)))
@@ -155,5 +164,26 @@ public struct Spann: Equatable, Sendable {
             let zonens = i > 0 && i < e.count - 1
             return (v, Tal.axel(v, decimaler: zonens && baslinjens ? Swift.max(1, decimaler) : decimaler))
         }
+        omrade = Spann.omrade(grans: grans, baslinje: gront == nil ? baslinje : nil, decimaler: decimaler, enhet: enhet)
+    }
+
+    /// "Good: −2.5 to 0 cm", "Good: ≥ 0 cm", "Good: ≤ 4.3 cm" ur gränsen; "Your usual: 2.0 to 2.6°"
+    /// ur den egna baslinjen (räknade tal, minst en decimal). METOD M63
+    static func omrade(grans: (fran: Double?, till: Double?)?, baslinje: (lo: Double, hi: Double)?,
+                       decimaler: Int, enhet: String) -> String? {
+        if let g = grans {
+            func t(_ v: Double) -> String { Tal.axel(v, decimaler: decimaler) }
+            switch (g.fran, g.till) {
+            case let (a?, b?): return Texter.braMellan(t(a), Tal.medEnhet(t(b), enhet))
+            case let (a?, nil): return Texter.braFran(Tal.medEnhet(t(a), enhet))
+            case let (nil, b?): return Texter.braTill(Tal.medEnhet(t(b), enhet))
+            case (nil, nil): return nil
+            }
+        }
+        if let b = baslinje {
+            let d = Swift.max(1, decimaler)
+            return Texter.vanligtMellan(Tal.tal(b.lo, decimaler: d), Tal.medEnhet(Tal.tal(b.hi, decimaler: d), enhet))
+        }
+        return nil
     }
 }

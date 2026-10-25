@@ -91,7 +91,8 @@ public enum Positionsmatt {
         let bas = Baslinje.spann(baslinje)
         let spann = gront == nil && bas == nil
             ? nil
-            : Spann(nu: v, spridning: nil, forra: nil, gront: gront, baslinje: bas, decimaler: e.decimaler, enhet: enhet)
+            : Spann(nu: v, spridning: nil, forra: nil, gront: gront, baslinje: bas, decimaler: e.decimaler, enhet: enhet,
+                    golv: golv)
         var r = Positionsrad(matt: matt, namn: e.namn, under: under, markning: markning,
                              varde: Mattkort.text(Avrundning.avrunda(matt, v), e), enhet: enhet, spann: spann)
         // Läget på det visade (avrundade) talet. METOD M62

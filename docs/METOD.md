@@ -2954,6 +2954,32 @@ Samma regler i Python (`katalog.lage`, `lage_baslinje`, `lage_for`, `band`, `vis
   triangel som pekar åt värdet (upp eller ner bredvid talet, höger eller vänster på spannets
   axel), så att läget går att läsa utan färg.
 
+## M63 — Passets ordning, de dolda måtten och raden under bandet (S4h)
+
+Visningen av passet efter research 8 (BESLUT B94). Inget mått räknas annorlunda: läget är M62:s,
+och urklippet till Claude och exporten byggs inte av visningen. Logiken i SwingLabKit
+(`Passlista`, `Lageordning`, `Spann.omrade`, `Bandnyckel`), prövat i `ForstaIntrycketTests`.
+Python har ingen motsvarighet: inget som PC:n eller urklippet läser ändras (B12 gäller där
+analysen eller urklippet påverkas).
+
+- **Synligt** = kortet kan säga bra eller dåligt: ett läge (grönt, gult eller rött mot bandet,
+  eller rött mot den egna baslinjen åt måttets sämre håll, M62), ett tal (inte "—") och inte
+  `status: "oprovad"` (handens fart, M35). Ett kort som övas (Att jobba på) är alltid synligt
+  (B86). Resten står under "More measures (n)", i katalogens ordning. **räkning** (regeln är
+  VISION:s, Johannes 2026-10-25).
+- **Ordningen:** rött, gult, grönt, sist synligt utan läge (bara det som övas). Stabil: inom
+  gruppen katalogens ordning (felen, spridningen, klubbens mått). Samma ordning för granskningens
+  rader vid en position. **räkning.**
+- **Det översta kortet:** de synliga kort som övas, annars de röda; inget när inget av dem finns.
+  **räkning.**
+- **Raden under bandet:** bara bandets gränser som katalogen skriver dem (`Tal.axel`, måttets
+  decimaler) med enhet: "Good: a to b", "Good: ≥ a", "Good: ≤ b"; mot den egna baslinjen ramens
+  ändar med minst en decimal, "Your usual: a to b". **räkning.**
+- **Axeln mot den egna baslinjen** rymmer alltid ramen ± måttets golv (M62: 2 cm, 5°, eller
+  måttets eget). Rött kräver mer än golvet utanför ramen (M62), så axeln visar var rött börjar,
+  och en skillnad under golvet ser liten ut. Förut zoomade axeln in till ±0,3 (research 8 punkt
+  3). Bandets axel är oförändrad. **räkning** (golvet: M62, antagande).
+
 ---
 
 # Facit (S3 och S7)

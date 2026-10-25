@@ -1788,6 +1788,10 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   uppåt). Huvudet mot bollen har ingen riktning (beloppet), så det får ingen färg.
 - **Ett fel som övas visas** även när det är dom (b) (flying elbow kan väljas av Claude):
   annars syns inte det Johannes ska öva på.
+- **Dom (a) i visningen ändrad (Johannes 2026-10-25, efter research 8, BESLUT B94):** ett mått i
+  passet som inte kan säga bra eller dåligt (egen baslinje utan avvikelse åt det sämre hållet,
+  oprövat eller utan tal) visas inte bland korten utan under "More measures (n)", ett tryck bort;
+  rött mot den egna baslinjen visas. Urklippet och exporten är oförändrade.
 - **Analysen till Claude** följer samma klubbregel som appen (`katalog.i_passet`,
   `Fel.iPasset`): en enhet med en annan klubba än järn har inget band för de nio, och klubban står
   i underlaget. Den egna baslinjens z-gränser (M27) gäller fortfarande där.
@@ -1963,3 +1967,55 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   `godkand_forslag`.
 - **Omprövas:** när Johannes märkt ett pass med förslag (gränsen 0,5, om ✓ förstås, om huvudets
   ruta hjälper), och när modellen ger hoseln direkt (S7-1).
+
+## B94 — Första intrycket: det viktiga först, felsökningen ett tryck bort, och bara mått med dom
+*2026-10-25 · prövas · Johannes beslut 2026-10-25 (punkterna 1, 2, 3, 4, 8 och 9 i research 8) · PLAN.md S4h · METOD M63, MS11*
+
+- **Varför:** en granskare utan koden och planerna (research 8) mötte ett pass med 10–14 lika
+  stora kort i katalogens ordning, felsökningsdata och interna koder på ytan, mått utan bra eller
+  dåligt och ett band utan nyckel. VISION: enkelhet utan att offra djupet, och ett mått som visas
+  ska kunna säga bra eller dåligt.
+- **Valt:**
+  - **Felsökningen bort från ytan, ett tryck bort:** kvittot är en mening med dom ("240 fps ·
+    2 swings heard") eller varningarna med vad man gör ("The phone dropped 33% of the frames:
+    close other apps"), raderna med talen under "Details" (`Receipt.dom`, MS11). Slagens räkning
+    (ms per ruta, Visions konfidens) under "Details" i Shots. B10-märket visas inte på kort och
+    rader: källan "not verified" står kvar i infobladet. Kamerornas Sampson-fel heter "Cameras
+    agree" med ✓ eller ✗ och felet i px litet under, bakom valet Cameras. Claude-felet på enkel
+    engelska ("Claude's reply can't be used: the swing thought has digits. Ask Claude to try
+    again."), fältet och koden under "Details", värdet aldrig (`Texter.kontrollfelKlartext`).
+  - **Passet börjar med det viktiga** (M63): överst ett kort med Focus (måtten som övas i vyn)
+    eller annars de röda måtten, inget kort när inget är rött; sedan korten rött, gult, grönt och
+    sist det som övas utan läge, inom gruppen i katalogens ordning. Granskningens rader vid en
+    position står i samma ordning.
+  - **Mått utan dom döljs i passet** (M63): kort utan läge ("Your usual" utan avvikelse, ett mått
+    utan band och utan baslinje), oprövade (handens fart) och kort med bara "—" ligger under en rad
+    längst ner, "More measures (n)", som fälls ut med ett tryck. Ett "Your usual" som blir rött åt
+    måttets sämre håll visas, rött. Det som övas visas alltid (B86). Urklippet till Claude och
+    exporten bär allt som förut: de byggs inte av visningen. Ändrar B86:s dom (a) i visningen.
+  - **Bandet förklaras en gång:** under bandet står bara bra-området med enhet ("Good: −2.5 to 0
+    cm") eller den egna baslinjen ("Your usual: 2.0 to 2.6°"), inte fyra tal utan enhet. Ett tryck
+    på bandet eller ⓘ öppnar nyckeln: det grå fältet, prick, ring och triangel, den vita linjen
+    (passets mittersta hälft) och det grå strecket (förra passet), och ramen. Axeln mot den egna
+    baslinjen rymmer alltid ramen ± måttets golv, så att brus inte ser ut som avvikelse.
+  - **P-positionerna med namnet först** där de står i text: "Top of backswing (P4) · 3 of 10" i
+    märkningen och positionens namn över granskningens rader. Märkningens rad visar en klar
+    position med en bock och en hoppad med ett streck under, inte överstruken. När modellens
+    förslag syns säger instruktionsraden "Line right? Tap ✓". **Ordningen P1, P3 … P2, P6, P8
+    behålls** (B58): förslaget för P2, P6 och P8 bygger på positionerna runt dem.
+  - **Konsekvens och HIG:** Delete i systemets röda destruktiva stil (svepet och frågan), och en
+    vägrad radering säger varför och vad man gör ("being sent to the PC", "still recording or
+    importing"). Filtret Alla · DTL · FO i samma ordning som det parade passets DTL · FO · 3D.
+    Längden i cm i passet som på Me. 3D-kortets antal är svingarna i 3D; provets bilder satte en
+    3D-fixtur med tio svingar på pass med fyra och åtta, och ritar nu fixturen med passets antal.
+- **Bortvalt:** att ta bort felsökningsdatan helt (den behövs när något är fel, ett tryck bort
+  räcker); att fälla ihop gröna kort till en rad (research 8 föreslog det; sorteringen och de
+  dolda räcker först); en nyckel som visas av sig själv första gången (ett tillstånd till att
+  spara, och nyckeln är ett tryck bort på varje band); P1–P10 i svingens ordning i märkningen
+  (B58:s skäl gäller); namn i varje flik i positionsraden (tio flikar på 390 pt ryms inte).
+- **Undantag från design/README regel 4 och 5:** raden under bandet säger "Good" och kvittot
+  och Claude-felet är meningar (Johannes beställning). Regel 11 i design/README.
+- **Kostnad:** en dold rad till att öppna för den som vill se allt; meningarna i kvittot är
+  engelska och bara för de varningar som finns (en ny varning kräver en ny text).
+- **Omprövas:** när Johannes läst ett pass på telefonen med S4h (PLAN S4h, Klart när), och när
+  punkterna 5–7 i research 8 är beslutade.

@@ -305,13 +305,13 @@ final class KlubbaMarkeringTests: XCTestCase {
     func testPositionenIKlartextOchRiktpinnensSteg() throws {
         let nbsp = "\u{00A0}"
         var m = ClubMarking(existing: nil, width: 1080, height: 1920, crop: nil, view: .fo, xTecken: 1)
-        XCTAssertEqual(m.positionLine, "P1\(nbsp)· Address\(nbsp)· 1 of 10")
+        XCTAssertEqual(m.positionLine, "Address (P1)\(nbsp)· 1 of 10")
         m.skip(t: -1.2)
-        XCTAssertEqual(m.positionLine, "P3\(nbsp)· Lead arm parallel, backswing\(nbsp)· 2 of 10")
+        XCTAssertEqual(m.positionLine, "Lead arm parallel, backswing (P3)\(nbsp)· 2 of 10")
         m.go(to: "P4")
-        XCTAssertEqual(m.positionLine, "P4\(nbsp)· Top of backswing\(nbsp)· 3 of 10")
+        XCTAssertEqual(m.positionLine, "Top of backswing (P4)\(nbsp)· 3 of 10")
         m.go(to: "P8")
-        XCTAssertEqual(m.positionLine, "P8\(nbsp)· Club parallel, follow-through\(nbsp)· 10 of 10")
+        XCTAssertEqual(m.positionLine, "Club parallel, follow-through (P8)\(nbsp)· 10 of 10")
         XCTAssertEqual(Set(Texter.positionsnamn.keys), Set(Klubba.positioner))
         for (p, namn) in Texter.positionsnamn {
             XCTAssertNil(namn.range(of: "[åäöÅÄÖ]", options: .regularExpression), p)
