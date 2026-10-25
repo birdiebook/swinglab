@@ -1,0 +1,9 @@
+4dde4acd1d533e1d8586b4fac0fedc38f37f43d0 s7d 2026-10-25T11:41:56Z run 40189889378
+== swift-release
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/KlubbForslag.swift:94:75: error: value of type '[String]' has no member '0'
+|                                                                           `- error: value of type '[String]' has no member '0'
+/__w/swinglab/swinglab/SwingLabKit/Sources/Swing/KlubbForslag.swift:94:81: error: value of type '[String]' has no member '1'
+|                                                                                 `- error: value of type '[String]' has no member '1'
+error: fatalError
+
