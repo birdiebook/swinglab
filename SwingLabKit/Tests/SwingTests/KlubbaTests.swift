@@ -163,11 +163,15 @@ final class KlubbaTests: XCTestCase {
     /// Katalogen visar skaftets vinkel vid varje position med positionens värde (METOD M46).
     func testGranskningensRadVidEnPosition() throws {
         let k = try Katalog.las(json: Fixturer.katalog)
+        // Skaftets vinkel är dom (b) sedan research 6 (BESLUT B86): raden visas inte, men går att räkna.
         let rader = Positionsmatt.rader(k, vy: .dtl, position: "P2", varden: ["skaft_vinkel_p2": -35.04])
-        XCTAssertEqual(rader.map(\.matt), ["skaft_vinkel_p2"])
-        XCTAssertEqual(rader[0].namn, "Shaft angle")
-        XCTAssertEqual(rader[0].varde, "−35.0")
-        XCTAssertEqual(rader[0].enhet, "°")
+        XCTAssertEqual(rader.map(\.matt), [])
+        let rad = Positionsmatt.rad("skaft_vinkel_p2", etikett: "skaft_vinkel", varden: ["skaft_vinkel_p2": -35.04],
+                                    gront: nil, golv: nil, samre: nil, aktiv: true, markning: .egen, baslinje: [],
+                                    under: nil)
+        XCTAssertEqual(rad.namn, "Shaft angle")
+        XCTAssertEqual(rad.varde, "−35.0")
+        XCTAssertEqual(rad.enhet, "°")
         // Bakifrån utan riktpinne säger källraden att flyktpunkten är antagen (METOD M48).
         let topp = Positionsmatt.rader(k, vy: .dtl, position: "P4", varden: ["skaft_riktning_topp": 12],
                                        flyktpunktAntagen: true).first { $0.matt == "skaft_riktning_topp" }

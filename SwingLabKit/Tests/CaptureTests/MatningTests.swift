@@ -315,11 +315,9 @@ final class MatningTests: XCTestCase {
         let p4 = Positionsmatt.rader(k, vy: .fo, position: "P4", varden: m.values, ovas: ["sway_topp"])
         // Felen först, sedan katalogens mått (S1b: knänas sway, bröstets och handens lyft, METOD M31–M34).
         // S1e: recentreringen och höftlinjen vid toppen (METOD M41, M18).
+        // Research 6 (BESLUT B86): knänas sway, handens och huvudets lyft och recentreringen visas inte.
         XCTAssertEqual(p4.map(\.matt), ["backen_sway_topp", "sidbojning_topp", "framre_armbage_topp",
-                                        "framre_kna_sway_topp", "bakre_kna_sway_topp", "brost_lyft_topp",
-                                        "hand_lyft_topp", "huvud_lyft_topp", "backen_recentrering",
-                                        "hoftlinje_lutning_topp"])
-        XCTAssertTrue(p4.first { $0.matt == "bakre_kna_sway_topp" }!.ovas, "bakre knäets sway följer sway-felet")
+                                        "brost_lyft_topp", "hoftlinje_lutning_topp"])
         let sway = try XCTUnwrap(p4.first)
         XCTAssertEqual(sway.namn, "Hip sway")                  // granskningen: utan position (BESLUT B40)
         XCTAssertTrue(sway.ovas)
@@ -327,19 +325,21 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(sway.enhet, "cm")
         XCTAssertEqual(sway.varde, Tal.tecken(Avrundning.avrunda("backen_sway_topp", m.values["backen_sway_topp"]), decimaler: 1))
         XCTAssertNotNil(sway.spann, "katalogens gräns")
-        XCTAssertNil(p4[1].spann, "egen baslinje utan tidigare pass: inget spann")
-        XCTAssertEqual(p4[1].markning, .egen)
+        XCTAssertNil(p4[2].spann, "egen baslinje utan tidigare pass: inget spann")
+        XCTAssertEqual(p4[2].markning, .egen)
+        XCTAssertNotNil(p4[1].spann, "reverse spine: bandet ur definitionen (BESLUT B86)")
 
         let p3 = Positionsmatt.rader(k, vy: .fo, position: "P3", varden: m.values, ovas: ["sway_topp"])
-        XCTAssertEqual(p3.map(\.matt), ["backen_sway_p3", "framre_armbage_p3"])
+        XCTAssertEqual(p3.map(\.matt), ["backen_sway_p3"])
         XCTAssertTrue(p3[0].ovas, "sway hittills följer felets accent")
-        XCTAssertFalse(p3[1].ovas)
 
         let p7 = Positionsmatt.rader(k, vy: .fo, position: "P7", varden: m.values)
-        let av = try XCTUnwrap(p7.first { $0.matt == "axellinje_lutning_traff" })
+        // Det avstängda felet och händerna vid träffen är dom (b): inga rader (BESLUT B86).
+        XCTAssertFalse(p7.contains { $0.matt == "axellinje_lutning_traff" || $0.matt == "hander_fore_adress_traff" })
+        let av = try XCTUnwrap(Positionsmatt.rader(k, vy: .fo, position: "P7", varden: m.values, ovas: ["axellutning"])
+            .first { $0.matt == "axellinje_lutning_traff" })
         XCTAssertEqual(av.varde, "—")
         XCTAssertEqual(av.markning, .av)
-        XCTAssertTrue(p7.contains { $0.matt == "hander_fore_adress_traff" })
         // Farterna märks oprövade (METOD M35–M37, BESLUT B11), i m/s.
         let fart = try XCTUnwrap(p7.first { $0.matt == "handfart_max" })
         XCTAssertEqual(fart.markning, .oprovad)
@@ -351,17 +351,16 @@ final class MatningTests: XCTestCase {
         XCTAssertEqual(p9.first?.under, "after impact")
 
         // Med tidigare pass blir den egna baslinjen ett spann.
-        let bas = ["sidbojning_topp": (0..<10).map { Double($0) }]
+        let bas = ["framre_armbage_topp": (0..<10).map { Double($0) }]
         let medBas = Positionsmatt.rader(k, vy: .fo, position: "P4", varden: m.values, baslinje: bas)
-        guard case .baslinje? = medBas[1].spann?.zon else { return XCTFail("egen baslinje utan spann") }
+        guard case .baslinje? = medBas[2].spann?.zon else { return XCTFail("egen baslinje utan spann") }
 
         // DTL vid P1: katalogens mått i den vyn.
         let dtl = ShotMeasuring.measure(Self.serie(DemoSving.dtl(thrust: (topp: 1, traff: 3, finish: 5))),
                                         shot: Self.slag(), setup: PassSetup(view: .dtl, club: "j7", distance: 3, hand: .hoger),
                                         height: 1.8)
         let p1 = Positionsmatt.rader(k, vy: .dtl, position: "P1", varden: dtl.values)
-        XCTAssertEqual(p1.map(\.matt), ["brost_bojning_adress", "bakre_kna_adress", "backen_bojning_adress",
-                                        "framre_kna_adress"])
+        XCTAssertEqual(p1.map(\.matt), ["brost_bojning_adress"])          // knäna och höftfällningen: dom (b)
         XCTAssertTrue(p1.allSatisfy { $0.varde != "—" && $0.enhet == "°" })
         XCTAssertEqual(dtl.values["framre_kna_adress"]!, 20, accuracy: 0.5)     // DemoSving: främre knät 20°
         XCTAssertNil(dtl.startUncertain)                                        // starten ur posen (M40)

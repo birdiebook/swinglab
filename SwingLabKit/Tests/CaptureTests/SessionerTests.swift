@@ -93,7 +93,7 @@ final class SessionerTests: XCTestCase {
         XCTAssertTrue(kdtl.contains { $0.id == "early_extension" })
         XCTAssertFalse(kdtl.contains { $0.id == "sway_topp" })
         // Genom katalogens vy: varje fel i katalogen hamnar i rätt session.
-        for f in k.fel where f.aktiv {
+        for f in k.fel where f.aktiv && f.visas {                   // dom (b) visas inte (BESLUT B86)
             XCTAssertEqual(kfo.contains { $0.id == f.id }, f.vy != "dtl", f.id)
             XCTAssertEqual(kdtl.contains { $0.id == f.id }, f.vy != "fo", f.id)
         }
