@@ -1075,9 +1075,10 @@ plan).
 **Mätt på provpasset** (MK12): lederna ensamma bestämmer inte kamerorna (vinkeln 24–155°), med
 uppställningen och huvudet 88° och huvudets Sampson-fel 3,7 px. Slaget s02 · s06 får banan
 (återprojektionen 2,7 px, skaftet 0,97 m med p5–p95 0,89–1,08 m). s03 · s08 får ingen: DTL-klippet
-är kort och triangulerar inte på någon synk. Väg (b) mot (a) på samma slag: 9,7 cm i median med
-greppets djup konstant; med mallen ur samma sving 1,1 cm, men det är cirkulärt. Tio FO-slag får
-en bana med (b).
+är kort och triangulerar inte på någon synk. Väg (b) mot (a) på samma slag: 0,9–2,4 cm i median,
+men mallen kommer ur samma sving, så det är en övre gräns. Tio FO-slag får en bana med (b). Hacken
+där källan bytte (Johannes 2026-10-25) är borta utom ett av elva banor; korta luckor ritas
+streckade.
 
 **Kvar:**
 

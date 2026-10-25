@@ -43,7 +43,8 @@ SYNK_HUVUD_SOK_S = 0.005       # METOD MK12: huvudets synk söks så nära leder
 SYNK_HUVUD_STEG_S = 0.00025
 LUCKA_MIN_S = 4 / 240          # METOD MK12: en lucka i banan är längre än så
 LUCKA_MAX_S = 0.10             # METOD MK12: och fylls polärt (streckad) upp till så lång; längre förblir lucka
-SFAR_COS_MIN = 0.3            # METOD MK12: strålen mot sfärens normal; under det tangerar den (≈ 17°)
+VAL_MARGINAL = 0.25            # METOD MK12: skärningarnas avstånd till mallens djup skiljer mindre (andel av skaftet): kontinuiteten väljer
+SFAR_COS_MIN = 0.3           # METOD MK12: strålen mot sfärens normal; under det tangerar den (≈ 17°)
 ATERPROJ_MAX_PX = 15.0         # METOD MK12: huvudets återprojektion över det = vyerna ser inte samma sving
 
 
@@ -244,6 +245,17 @@ def sfar(C: np.ndarray, d: np.ndarray, G: np.ndarray, L: float) -> tuple[np.ndar
     return X, disk >= 0
 
 
+def _mot_tangering(Xs: np.ndarray, Xr: np.ndarray, d: np.ndarray, G: np.ndarray, L, traff: np.ndarray):
+    """Sfärens punkt Xs där strålen skär sfären tydligt, reservens Xr (på samma stråle) där den
+    nästan tangerar eller missar, och en mjuk övergång emellan efter cosinus mellan strålen
+    och sfärens normal: under SFAR_COS_MIN bara reserven, över 2 · SFAR_COS_MIN bara sfären.
+    Ett tvärt byte gav hack där strålen gick in och ut ur tangeringen. METOD MK12"""
+    cos = np.abs(np.sum(d * (np.nan_to_num(Xs) - G), axis=1)) / L
+    w = np.clip((cos - SFAR_COS_MIN) / SFAR_COS_MIN, 0.0, 1.0)
+    w[~traff | ~np.isfinite(Xs).all(1)] = 0.0
+    return w[:, None] * np.nan_to_num(Xs) + (1 - w)[:, None] * Xr
+
+
 def _narmast(X2: np.ndarray, ref: np.ndarray) -> np.ndarray:
     """Den av de två skärningarna (M, 2, 3) som ligger närmast ref (M, 3)."""
     avst = np.linalg.norm(X2 - ref[:, None, :], axis=-1)
@@ -309,9 +321,7 @@ def bana(kamA, kamB, d: dict, forsk: float, tg: np.ndarray, X: np.ndarray) -> di
             dd = _stralen(kam, uv[en])
             C = kam.centrum
             narm = C + np.sum(dd * (ref - C), axis=1)[:, None] * dd
-            cos = np.abs(np.sum(dd * (Xv - G[en]), axis=1)) / Lt
-            tangerar = ~traff | ~(cos >= SFAR_COS_MIN)
-            Xv[tangerar] = narm[tangerar]
+            Xv = _mot_tangering(Xv, narm, dd, G[en], Lt, traff)
             idx = np.where(en)[0]
             H[idx], kalla[idx] = Xv, kod
     ok = np.isfinite(H).all(1)
@@ -420,14 +430,22 @@ def bana_en_vy(kam, t_led: np.ndarray, uv_led: np.ndarray, k_led: np.ndarray, h:
     L = np.interp(f, mall["fas"], mall["langd"]) if "langd" in mall else np.full(len(t), mall["skaft"])
     X2, traff = sfar(kam.centrum, d, G, L)
     djup2 = np.stack([kam.djup(X2[:, 0]), kam.djup(X2[:, 1])], 1)
-    i = np.argmin(np.abs(np.nan_to_num(djup2, nan=1e9) - zh[:, None]), 1)
+    avst = np.abs(np.nan_to_num(djup2, nan=1e9) - zh[:, None])
+    i = np.argmin(avst, 1)
+    # Kontinuitet: ligger båda skärningarna nästan lika nära mallens djup väljs den närmast
+    # förra punkten, annars kan valet byta skärning mellan två rutor (ett hopp i djup)
+    for j in range(1, len(t)):
+        if not traff[j] or t[j] - t[j - 1] > 2 / 240:
+            continue
+        if abs(avst[j, 0] - avst[j, 1]) < VAL_MARGINAL * L[j]:
+            forra = X2[j - 1, i[j - 1]]
+            i[j] = int(np.argmin(np.linalg.norm(np.nan_to_num(X2[j], nan=1e9) - forra, axis=1)))
     H = X2[np.arange(len(t)), i]
-    # strålen missar sfären: närmaste punkten på strålen
-    m = ~traff
-    if m.any():
-        lam = np.sum(d[m] * (G[m] - kam.centrum), axis=1)
-        H[m] = kam.centrum + lam[:, None] * d[m]
-    return {"t": t, "huvud": H, "grepp": G, "kalla": np.where(traff, 1, 0), "skaft": mall["skaft"],
+    # Strålen missar eller nästan tangerar sfären: där hoppar valet mellan skärningarna, så
+    # punkten på strålen på mallens huvuddjup i stället (samma regel som i bana). METOD MK12
+    H = _mot_tangering(H, _punkt_pa_djup(kam, h[:, 1:3], zh), d, G, L, traff)
+    t, H, G, kalla = _fyll_luckor(t, H, G, np.ones(len(t), int), t, G)
+    return {"t": t, "huvud": H, "grepp": G, "kalla": kalla, "skaft": mall["skaft"],
             "aterprojektion_px": None, "langd": np.linalg.norm(H - G, axis=1)}
 
 

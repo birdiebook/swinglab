@@ -649,7 +649,7 @@ function kortSving() {
     const k = r.klubba;
     h += `<h3>Klubban, en vy</h3><table>`
       + `<tr><td>källan</td><td colspan="2" class="dov">FO ensam: sfären kring greppet, greppets djup och skaftets längd ur ${esc(k.mall)} (väg b)</td></tr>`
-      + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">strålen missade sfären i ${tal(100 * (1 - k.andel.fo), 0)} %</td></tr>`
+      + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">ifyllt ${tal(100 * (k.andel.ifylld || 0), 0)} %</td></tr>`
       + `<tr><td>huvudets fart, 98:e percentilen</td><td class="tal">${tal(fartTak(k), 0)} m/s</td><td class="dov">oprövad</td></tr></table>`;
   }
   h += `<h3>2D</h3><table><tr><th>Mått</th>${r.vyer.map((v, i) => v ? `<th class="tal">${VYNAMN[D.paket[i].vy] || ""}</th>` : "").join("")}</tr>`;

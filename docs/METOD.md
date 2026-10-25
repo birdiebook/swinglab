@@ -2706,9 +2706,12 @@ träffens tid i båda vyerna. Bara bilden i visaren: inget mått beror på banan
 - **En vy (väg b)** för FO-slag som ingen DTL filmade, i samma serie som ett parat slag:
   greppet på strålen genom handledernas mitt (utjämnad som MK5) på **mallens** djup för
   svingens fas (0 vid P1, 1 vid toppen, 2 vid träffen), huvudet på sfären med mallens
-  skaftlängd för fasen kring det, och av skärningarna den närmast mallens huvuddjup. Mallen
-  är det första parade slagets bana i FO-kamerans ram. Missar strålen sfären tas punkten
-  närmast. **antagande.**
+  skaftlängd för fasen kring det, och av skärningarna den närmast mallens huvuddjup; ligger
+  båda inom **0,25** skaft av det, den närmast förra punkten. Där strålen nästan tangerar
+  sfären glider punkten mjukt (cosinus 0,3–0,6) över till strålens punkt på mallens
+  huvuddjup, i båda vägarna: ett tvärt byte gav 52 hack över tio slag, den mjuka övergången
+  och kontinuiteten ett. Mallen är det första parade slagets bana i FO-kamerans ram.
+  **antagande.**
 - **Provpasset 2026-10-24** (B92: prov, aldrig träning): två slag med klipp från båda
   telefonerna. Lederna ensamma: Sampson-felet 15–36 px och vinkeln mellan 24° och 155° med
   synken, alltså obestämd; spegling av DTL förklarade inget (16 px). Med uppställningen och
@@ -2719,11 +2722,11 @@ träffens tid i båda vyerna. Bara bilden i visaren: inget mått beror på banan
   0,89–1,08 m (handledernas mitt flyttar sig mot greppet med handlederna). Farten står bara i
   visaren (Johannes tal, CLAUDE.md Dataregeln; oprövad, ingen launch monitor). **mätt.**
 - **Väg b mot väg a** på s02 · s06 (FO ensam mot båda vyerna, huvudets avstånd i 3D): med
-  greppets djup konstant från adressen **9,7 cm** i median och p95 20 cm (baksvingen 3,2,
-  nedsvingen 17,0, efter träffen 13,5 cm); med mallen ur samma sving 1,1 cm och p95 9,6 cm,
-  men det är cirkulärt och bara en övre gräns. Det verkliga felet med en mall ur en annan
-  sving ligger mellan och mäts med ett andra parat slag. Väg b gav en bana för tio FO-slag
-  i serie 1. **mätt.**
+  mallen ur samma sving 0,9 cm i median och p95 2,4 cm; med greppets djup konstant från
+  adressen 2,4 cm och p95 17 cm. Båda tar skaftlängden och huvuddjupet ur samma svings mall,
+  så de är cirkulära och bara övre gränser (före tangeringsregeln och den lokala längden gav
+  den konstanta 15 cm). Det verkliga felet med en mall ur en annan sving mäts med ett andra
+  parat slag. Väg b gav en bana för tio FO-slag i serie 1. **mätt.**
 - **Facit (påhittat, `test_klubba_3d`):** två kameror med 90°, 1 px brus, en bana som inte är
   plan (nedsvingen 8 cm innanför): uppställningen hittas inom 3°, de två vyernas punkter
   ligger under 1 cm i median och sfärens under 3 cm, skaftet inom 2 cm, och fel synk (0,3 s)
