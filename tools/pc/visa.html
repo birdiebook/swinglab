@@ -441,18 +441,28 @@ function byggScen() {
   const k = radensKlubba(r);
   if (k) {
     const vmax = Math.max(1, fartTak(k));
-    let bit = [], farger = [];
+    // En ifylld lucka (källa 0, polärt kring greppet) ritas streckad, som S7b:s interpolerade.
+    let bit = [], farger = [], streckad = false;
     const slut = () => {
       if (bit.length > 1) {
         const g = new THREE.BufferGeometry().setFromPoints(bit);
         g.setAttribute("color", new THREE.Float32BufferAttribute(farger, 3));
-        const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true }));
+        const mat = streckad ? new THREE.LineDashedMaterial({ vertexColors: true, dashSize: 0.04, gapSize: 0.04 })
+          : new THREE.LineBasicMaterial({ vertexColors: true });
+        const l = new THREE.Line(g, mat);
+        if (streckad) l.computeLineDistances();
         l.userData.klubba = true; tre.grupp.add(l);
       }
       bit = []; farger = [];
     };
     for (let i = 0; i < k.t.length; i++) {
       if (i > 0 && k.t[i] - k.t[i - 1] > 4 * RUTA) slut();
+      const s = k.kalla[i] === 0;
+      if (i > 0 && s !== streckad && bit.length) {     // byt stil; den förra punkten binder ihop bitarna
+        const p = bit[bit.length - 1], c = farger.slice(-3);
+        slut(); bit.push(p); farger.push(...c);
+      }
+      streckad = s;
       bit.push(v3(klubbPunkt(k, i))); farger.push(...klubbFarg(k, i, vmax));
     }
     slut();
@@ -628,7 +638,7 @@ function kortSving() {
         + `<tr><td>skaftet, grepp → huvud</td><td class="tal">${tal(k.skaft_m, 2)} m</td>`
         + `<td class="dov">${k.langd_m ? `p5–p95 ${tal(k.langd_m.p5, 2)}–${tal(k.langd_m.p95, 2)}` : ""}</td></tr>`
         + `<tr><td>huvudets återprojektion</td><td class="tal">${tal(k.aterprojektion_px, 1)} px</td><td></td></tr>`
-        + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">båda vyerna ${tal(100 * k.andel.tva, 0)} %, FO ${tal(100 * k.andel.fo, 0)} %, DTL ${tal(100 * k.andel.dtl, 0)} %</td></tr>`
+        + `<tr><td>punkterna</td><td class="tal">${k.t.length}</td><td class="dov">båda vyerna ${tal(100 * k.andel.tva, 0)} %, FO ${tal(100 * k.andel.fo, 0)} %, DTL ${tal(100 * k.andel.dtl, 0)} %, ifyllt ${tal(100 * (k.andel.ifylld || 0), 0)} %</td></tr>`
         + `<tr><td>huvudets fart, 98:e percentilen</td><td class="tal">${tal(vmax, 0)} m/s</td><td class="dov">oprövad</td></tr></table>`;
     }
     if (u.kalibrering === "uppstallningen") h += `<div class="dov">Kalibrerad med uppställningen och klubbhuvudet (S7e), inte mot spärren: bilden, inte måtten.</div>`;
@@ -726,7 +736,7 @@ function kortPaket() {
     $("klubbval").hidden = $("klubbfarg").hidden = false;
     $("forklaring").innerHTML += `<span><i style="background:rgb(79,168,255)"></i>klubban före toppen</span>`
       + `<span><i style="background:rgb(255,138,61)"></i>nedsvingen</span><span><i style="background:rgb(156,227,122)"></i>efter träffen</span>`
-      + `<span class="dov">blekt: huvudet i en vy (sfären kring greppet)</span>`;
+      + `<span class="dov">blekt: huvudet i en vy (sfären kring greppet) · streckat: ifylld lucka</span>`;
   }
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "SELECT") return;

@@ -171,7 +171,8 @@ def _klubba_ut(b: dict | None, s: float, pos: dict) -> dict | None:
             "skaft_m": _tal(b["skaft"] * s, 3) if b["skaft"] else None,
             "aterprojektion_px": _tal(b["aterprojektion_px"], 1) if b["aterprojektion_px"] is not None else None,
             "langd_m": {k: (round(x * s, 3) if k != "n" else x) for k, x in sprid.items()} if sprid else None,
-            "andel": {k: round(float(np.mean(b["kalla"] == c)), 3) for k, c in (("tva", 2), ("fo", 1), ("dtl", -1))},
+            "andel": {k: round(float(np.mean(b["kalla"] == c)), 3)
+                      for k, c in (("tva", 2), ("fo", 1), ("dtl", -1), ("ifylld", 0))},
             "topp": topp}
 
 

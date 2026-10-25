@@ -50,7 +50,8 @@ def kameror():
     return titta_mot([0.0, -3.0, 1.1], [0.0, 0.0, 0.9], K, "A"), titta_mot([-3.0, 0.0, 1.2], [0.0, 0.0, 0.9], K, "B")
 
 
-def slaget(brus: float = 1.0, saknas_dtl: tuple | None = None, forskjut_dtl: float = 0.0) -> tuple[dict, tuple]:
+def slaget(brus: float = 1.0, saknas_dtl: tuple | None = None, forskjut_dtl: float = 0.0,
+           saknas_bada: tuple | None = None) -> tuple[dict, tuple]:
     """Slaget som tva_kameror ser det (FO = A, DTL = B), med huvudspåren som förslagsfilen ger dem."""
     rng = np.random.default_rng(7)
     kamA, kamB = kameror()
@@ -64,6 +65,8 @@ def slaget(brus: float = 1.0, saknas_dtl: tuple | None = None, forskjut_dtl: flo
         spar = np.column_stack([th, h, np.full(len(T), 0.8)])
         if s == "B" and saknas_dtl:
             spar = spar[(T < saknas_dtl[0]) | (T > saknas_dtl[1])]
+        if saknas_bada:
+            spar = spar[(T < saknas_bada[0]) | (T > saknas_bada[1])]
         d["huvud" + s] = spar
     return d, (kamA, kamB, X, Hh)
 
@@ -100,6 +103,18 @@ class Banan(unittest.TestCase):
         self.assertLess(np.median(e[en]), 0.03)
         self.assertAlmostEqual(b["skaft"], (1 - GREPP_ANDEL) * RADIE, delta=0.02)
         self.assertLess(b["aterprojektion_px"], 3.0)
+
+    def test_luckan_fylls_polart_och_den_langa_star_kvar(self):
+        d, (kamA, kamB, X, Hh) = slaget(saknas_bada=(-0.70, -0.65))
+        b = KL.bana(kamA, kamB, d, 0.0, T, X)
+        ifylld = b["kalla"] == 0
+        self.assertGreater(ifylld.sum(), 8)
+        sann = np.column_stack([np.interp(b["t"], T, Hh[:, a]) for a in range(3)])
+        self.assertLess(np.max(np.linalg.norm(b["huvud"][ifylld] - sann[ifylld], axis=1)), 0.05)
+        d, (kamA, kamB, X, _) = slaget(saknas_bada=(-0.70, -0.55))
+        b = KL.bana(kamA, kamB, d, 0.0, T, X)
+        self.assertFalse((b["kalla"] == 0).any())
+        self.assertGreater(np.max(np.diff(b["t"])), KL.LUCKA_MAX_S)
 
     def test_fel_synk_ger_ingen_bana(self):
         d, (kamA, kamB, X, _) = slaget(forskjut_dtl=0.3)

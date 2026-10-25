@@ -2689,10 +2689,17 @@ träffens tid i båda vyerna. Bara bilden i visaren: inget mått beror på banan
 - **Synken på huvudet:** huvudet rör sig upp till 40 m/s, så 2 ms (MK4:s rest) är 8 cm av
   banan. Den söks **±5 ms** kring ledernas i steg om **0,25 ms** på huvudets återprojektion,
   med parabelns topp. Påhittat: 3 ms hittas inom 0,7 ms. **räkning, mätt (påhittat).**
-- **Banan:** en punkt för varje tid där någon vy har huvudet. Båda vyerna: DLT (MK5) utan
-  utjämning (M61). En vy: huvudet på sfären med slagets skaftlängd (medianen grepp → huvud i
-  de två vyernas punkter) kring greppet, handledernas mitt i 3D; av de två skärningarna den
-  närmast de två vyernas bana interpolerad i tiden. Ingen vy: ingen punkt. Ett slag vars
+- **Banan:** en punkt för varje FO-ruta med huvudet, och för DTL-rutor bara i FO:s luckor (de
+  två klockorna varvas en halv ruta isär, och punkter ur båda vyerna och ur en vy om vartannat
+  gav en sicksack på 7–10 cm). Båda vyerna: DLT (MK5) utan utjämning (M61). En vy: huvudet på
+  sfären kring greppet (handledernas mitt i 3D) med den **lokala** längden grepp → huvud,
+  interpolerad i tiden mellan de två vyernas punkter; slagets median gav hack på 7–28 cm där
+  källan byter, eftersom längden går 0,85–1,09 m under svingen. Av skärningarna den närmast
+  de två vyernas bana; där strålen nästan tangerar sfären (cosinus mot normalen under
+  **0,3**) eller missar den, punkten på strålen närmast den banan. Luckor där ingen vy har
+  huvudet, längre än 4 rutor och högst **0,10 s**, fylls polärt kring greppet som M61 (källa
+  0, streckad); längre luckor förblir luckor. På provpasset: inga hopp över 3 cm mellan
+  grannpunkter som inte farten förklarar, två luckor om 13 rutor ifyllda. Ett slag vars
   huvudåterprojektion är över **15 px** får ingen bana ("vyerna ser inte samma sving").
   Visaren ritar från P1 − **0,05 s** till huvudets högsta punkt inom **0,8 s** efter träffen
   + **0,10 s**: före och efter står klubban still eller sänks. **antagande.**

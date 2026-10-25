@@ -41,7 +41,9 @@ STRAFF = 200.0                 # METOD MK12: villkorens vikt i px per radian (el
 HUVUD_VIKT = 3.0               # METOD MK12: ett huvudpar väger som tre ledpar (färre, mer utspridda)
 SYNK_HUVUD_SOK_S = 0.005       # METOD MK12: huvudets synk söks så nära ledernas
 SYNK_HUVUD_STEG_S = 0.00025
-SFAR_TOL = 0.25                # METOD MK12: skaftlängden får skilja så mycket (andel) innan sfären tappar
+LUCKA_MIN_S = 4 / 240          # METOD MK12: en lucka i banan är längre än så
+LUCKA_MAX_S = 0.10             # METOD MK12: och fylls polärt (streckad) upp till så lång; längre förblir lucka
+SFAR_COS_MIN = 0.3            # METOD MK12: strålen mot sfärens normal; under det tangerar den (≈ 17°)
 ATERPROJ_MAX_PX = 15.0         # METOD MK12: huvudets återprojektion över det = vyerna ser inte samma sving
 
 
@@ -230,8 +232,8 @@ def _stralen(kam, uv: np.ndarray) -> np.ndarray:
 
 
 def sfar(C: np.ndarray, d: np.ndarray, G: np.ndarray, L: float) -> tuple[np.ndarray, np.ndarray]:
-    """Strålen C + λ·d mot sfären |X − G| = L: de två skärningarna (M, 2, 3), NaN där strålen
-    missar sfären. METOD MK12"""
+    """Strålen C + λ·d mot sfären |X − G| = L (ett tal eller ett per stråle): de två
+    skärningarna (M, 2, 3), NaN där strålen missar sfären. METOD MK12"""
     m = C[None, :] - G
     b = np.sum(d * m, axis=1)
     c = np.sum(m * m, axis=1) - L * L
@@ -252,15 +254,22 @@ def _narmast(X2: np.ndarray, ref: np.ndarray) -> np.ndarray:
 def bana(kamA, kamB, d: dict, forsk: float, tg: np.ndarray, X: np.ndarray) -> dict | None:
     """Huvudets och greppets bana för ett slag på FO:s klocka (träffen = 0), i kedjans
     enheter: tiderna där någon vy har huvudet, huvudet (M, 3), greppet (M, 3), källan per
-    punkt (2 = båda vyerna, 1 = bara FO, −1 = bara DTL), skaftets längd och huvudets
+    punkt (2 = båda vyerna, 1 = bara FO, −1 = bara DTL, 0 = ifylld lucka), skaftets längd och huvudets
     återprojektion. `tg`, `X` är slagets triangulerade leder. METOD MK12"""
     hA, hB = d["huvudA"], d["huvudB"]
-    tider = np.unique(np.concatenate([hA[:, 0] if len(hA) else [], hB[:, 0] - forsk if len(hB) else []]))
+    # FO:s rutor, och DTL:s bara i FO:s luckor: två klockor som varvas en halv ruta isär ger
+    # annars punkter ur båda vyerna och ur en vy om vartannat, och banan blir en sicksack
+    tA = hA[:, 0] if len(hA) else np.zeros(0)
+    tB = hB[:, 0] - forsk if len(hB) else np.zeros(0)
+    if len(tA) and len(tB):
+        j = np.clip(np.searchsorted(tA, tB), 1, len(tA) - 1) if len(tA) > 1 else np.zeros(len(tB), int)
+        narmast = np.minimum(np.abs(tB - tA[j - 1]), np.abs(tB - tA[j])) if len(tA) > 1 else np.abs(tB - tA[0])
+        tB = tB[narmast > MAX_LUCKA_S]
+    tider = np.unique(np.concatenate([tA, tB]))
     tider = tider[(tider >= tg[0]) & (tider <= tg[-1])] if len(tg) else tider[:0]
     if not len(tider):
         return None
     uvA, kA = huvud_pa(hA, tider)
-    # en FO-ruta som finns räknas som sig själv, inte som interpolationen mellan grannarna
     uvB, kB = huvud_pa(hB, tider + forsk)
     grepp_led = (X[:, I["v_handled"]] + X[:, I["h_handled"]]) / 2
     G = np.column_stack([np.interp(tider, tg, grepp_led[:, a], left=np.nan, right=np.nan) for a in range(3)])
@@ -281,22 +290,71 @@ def bana(kamA, kamB, d: dict, forsk: float, tg: np.ndarray, X: np.ndarray) -> di
     langd = np.linalg.norm(H - G, axis=1)
     fin = np.isfinite(langd) & (kalla == 2)
     L = float(np.median(langd[fin])) if fin.sum() >= 5 else None
-    # En vy: sfären kring greppet, den skärning som ligger närmast de två vyernas bana
+    # En vy: sfären kring greppet med den lokala längden grepp → huvud (interpolerad i tiden
+    # mellan de två vyernas punkter: handledernas mitt flyttar sig mot greppet under svingen,
+    # så medianen ger hack där källan byter), den skärning som ligger närmast de två vyernas bana
     if L is not None:
-        tv = np.where(kalla == 2)[0]
+        tv = np.where(fin)[0]
         for kam, uv, k, kod in ((kamA, uvA, kA, 1), (kamB, uvB, kB, -1)):
             en = (k > 0) & (kalla == 0) & np.isfinite(G).all(1)
             if not en.any():
                 continue
-            X2, traff = sfar(kam.centrum, _stralen(kam, uv[en]), G[en], L)
+            Lt = np.interp(tider[en], tider[tv], langd[tv])
+            X2, traff = sfar(kam.centrum, _stralen(kam, uv[en]), G[en], Lt)
             ref = np.column_stack([np.interp(tider[en], tider[tv], H[tv, a]) for a in range(3)])
             Xv = _narmast(X2, ref)
-            ok = traff & (np.linalg.norm(Xv - ref, axis=1) < SFAR_TOL * 4 * L)
-            idx = np.where(en)[0][ok]
-            H[idx], kalla[idx] = Xv[ok], kod
+            # Där strålen nästan tangerar sfären flyttar ett litet fel i bilden skärningen långt
+            # längs strålen: då punkten på strålen närmast grannarnas bana (vyn bestämmer bara
+            # läget tvärs strålen). METOD MK12
+            dd = _stralen(kam, uv[en])
+            C = kam.centrum
+            narm = C + np.sum(dd * (ref - C), axis=1)[:, None] * dd
+            cos = np.abs(np.sum(dd * (Xv - G[en]), axis=1)) / Lt
+            tangerar = ~traff | ~(cos >= SFAR_COS_MIN)
+            Xv[tangerar] = narm[tangerar]
+            idx = np.where(en)[0]
+            H[idx], kalla[idx] = Xv, kod
     ok = np.isfinite(H).all(1)
-    return {"t": tider[ok], "huvud": H[ok], "grepp": G[ok], "kalla": kalla[ok], "skaft": L,
-            "aterprojektion_px": rep, "langd": langd[ok]}
+    tider, H, G, kalla = tider[ok], H[ok], G[ok], kalla[ok]
+    tider, H, G, kalla = _fyll_luckor(tider, H, G, kalla, tg, grepp_led)
+    langd = np.linalg.norm(H - G, axis=1)
+    return {"t": tider, "huvud": H, "grepp": G, "kalla": kalla, "skaft": L,
+            "aterprojektion_px": rep, "langd": langd}
+
+
+def _fyll_luckor(t, H, G, kalla, tg, grepp_led):
+    """Luckor där ingen vy har huvudet, längre än LUCKA_MIN_S och högst LUCKA_MAX_S, fylls
+    polärt kring greppet som M61: riktningen grepp → huvud vrids den kortaste vägen och
+    längden går linjärt mellan luckans kanter, en punkt per ruta (240 bilder/s). Källan blir 0
+    (interpolerad), och visaren ritar den streckad. METOD MK12"""
+    if len(t) < 2:
+        return t, H, G, kalla
+    nt, nH, nG = [t], [H], [G]
+    for i in np.where((np.diff(t) > LUCKA_MIN_S) & (np.diff(t) <= LUCKA_MAX_S))[0]:
+        a, b = H[i] - G[i], H[i + 1] - G[i + 1]
+        if not (np.isfinite(a).all() and np.isfinite(b).all()):
+            continue
+        ti = np.arange(t[i] + 1 / 240, t[i + 1] - 0.5 / 240, 1 / 240)
+        if not len(ti):
+            continue
+        w = (ti - t[i]) / (t[i + 1] - t[i])
+        La, Lb = np.linalg.norm(a), np.linalg.norm(b)
+        ua, ub = a / La, b / Lb
+        om = math.acos(float(np.clip(ua @ ub, -1, 1)))
+        if om < 1e-6:
+            u = ua[None] * np.ones((len(w), 1))
+        else:
+            u = (np.sin((1 - w) * om)[:, None] * ua + np.sin(w * om)[:, None] * ub) / math.sin(om)
+        Gi = np.column_stack([np.interp(ti, tg, grepp_led[:, k]) for k in range(3)])
+        nt.append(ti)
+        nH.append(Gi + u * ((1 - w) * La + w * Lb)[:, None])
+        nG.append(Gi)
+    if len(nt) == 1:
+        return t, H, G, kalla
+    t2 = np.concatenate(nt)
+    k2 = np.concatenate([kalla] + [np.zeros(len(x), int) for x in nt[1:]])
+    i = np.argsort(t2, kind="stable")
+    return t2[i], np.concatenate(nH)[i], np.concatenate(nG)[i], k2[i]
 
 
 # --- 4. en vy: sfären kring greppet med greppets djup ur en mall (väg b i S7e) -----------------
