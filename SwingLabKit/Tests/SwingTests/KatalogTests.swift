@@ -73,7 +73,11 @@ final class KatalogTests: XCTestCase {
         XCTAssertEqual(k.matt.first { $0.matt == "stans_bredd" }.flatMap { Markning.fran($0) }, .egen)
         let bojning = try XCTUnwrap(k.matt.first { $0.matt == "brost_bojning_adress" })
         XCTAssertNil(Markning.fran(bojning))                                   // bandet, läst i original
-        XCTAssertEqual(Markning.fran(bojning, klubba: "Dr"), .egen)            // järnets band bara på järn
+        XCTAssertNil(Markning.fran(bojning, klubba: "Dr"))                     // båda klubborna (B86)
+        let axlar = try XCTUnwrap(k.matt.first { $0.matt == "axellinje_lutning_adress" })
+        XCTAssertTrue(axlar.klubbberoende)
+        XCTAssertNil(Markning.fran(axlar, klubba: "7i"))
+        XCTAssertEqual(Markning.fran(axlar, klubba: "Dr"), .egen)               // klubban flyttar bandet
         XCTAssertEqual(k.matt.first { $0.matt == "skaft_plan_p6" }.flatMap { Markning.fran($0) }, .b10)
         for m in k.matt {
             let vy = try XCTUnwrap(Vy(rawValue: m.vy), m.matt)
