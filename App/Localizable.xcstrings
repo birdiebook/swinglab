@@ -716,6 +716,17 @@
         }
       }
     },
+    "Import club suggestions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import club suggestions"
+          }
+        }
+      }
+    },
     "Import focus": {
       "extractionState": "manual",
       "localizations": {
@@ -1526,6 +1537,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Storage"
+          }
+        }
+      }
+    },
+    "Suggestions saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggestions saved"
           }
         }
       }

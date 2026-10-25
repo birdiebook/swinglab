@@ -19,6 +19,8 @@ struct JagVy: View {
     var onClub: (String) -> Void = { _ in }
     /// Filer för `att_jobba_pa.json` (S2f).
     var onImportFocus: () -> Void = {}
+    /// Filer för modellens förslag till klubbmarkeringen (S7d, BESLUT B93).
+    var onImportSuggestions: () -> Void = {}
     /// Svaret efter hämtningen ("Focus saved", eller fältet som är fel), och om det är ett fel.
     var importResult: String? = nil
     var importFailed = false
@@ -88,6 +90,8 @@ struct JagVy: View {
             Button("Import focus", action: onImportFocus)
                 .buttonStyle(RowButtonStyle())
                 .padding(.top, 26)
+            Button("Import club suggestions", action: onImportSuggestions)
+                .buttonStyle(RowButtonStyle())
             if let importResult {
                 Text(verbatim: importResult)
                     .typsnitt(13, .semibold)

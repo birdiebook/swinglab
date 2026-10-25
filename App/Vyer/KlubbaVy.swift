@@ -10,7 +10,9 @@ import Capture
 /// heter 1 och 2, och skaftlinjen dras mellan dem. Appens gissning av greppet är en ihålig punkt
 /// "1?". Positionen sparas av sig själv när punkt 2 är satt. Under ytan står positionen i
 /// klartext ("P4 · Top of backswing · 3 of 10"), raden med positionerna i märkningens ordning,
-/// Undo och Skip. Bakifrån kommer riktpinnen som ett eget valfritt steg före P1. Allt som avgör
+/// Undo och Skip. Med modellens förslag (S7d, BESLUT B93) visas förslaget i rutan som streckade
+/// "1?" och "2?"; ett tryck på en ring godkänner den, ✓ godkänner allt som saknas med ett tryck,
+/// och ett tryck någon annanstans rättar. Bakifrån kommer riktpinnen som ett eget valfritt steg före P1. Allt som avgör
 /// vad ett tryck blir står i `ClubMarking` (SwingLabKit). Innehållet tar sina värden utifrån,
 /// så att provet kan rita det med en stillbild och ett finger på ytan.
 struct ClubMarkContent<Surface: View, Loupe: View>: View {
@@ -23,6 +25,12 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
     let time: String
     /// Appens gissning av greppet (handledernas mitt), i hela bildens pixlar: "1?".
     var ring: KlubbPunkt? = nil
+    /// Modellens förslag i rutan som visas (S7d, `ClubMarking.shownSuggestion`): punkterna som
+    /// saknas, streckade. Modellens grepp ersätter ringen ur handlederna.
+    var suggestion: KlubbForslag? = nil
+    /// ✓: ett tryck godkänner förslagets punkter som saknas (`ClubMarking.canUseSuggestion`).
+    var canUse = false
+    var onUse: () -> Void = {}
     /// Riktpinnens steg (bara bakifrån, före P1, BESLUT B59) och dess punkter (0–2).
     var stickStep = false
     var stick: [KlubbPunkt] = []
@@ -193,6 +201,19 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
                     .buttonStyle(.plain)
                     .disabled(!marking.canUndo)
                     Spacer(minLength: 8)
+                    // Förslaget godkänt med ett tryck (S7d, BESLUT B93): ett tecken, inget nytt ord.
+                    if canUse {
+                        Button(action: onUse) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Theme.ground)
+                                .frame(width: 52, height: 52)
+                                .background(Circle().fill(Theme.text))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text("Use"))
+                        Spacer(minLength: 8)
+                    }
                     // På en markerad position går knappen vidare utan att ändra den (Next); annars
                     // hoppas positionen över (Skip). B59
                     Button(action: onSkip) {
@@ -217,7 +238,9 @@ struct ClubMarkContent<Surface: View, Loupe: View>: View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 surface(marking.zoom)
-                ClubPoints(marking: marking, ring: !stickStep && marking.next == .grip ? ring : nil,
+                ClubPoints(marking: marking,
+                           ring: !stickStep && marking.next == .grip && suggestion?.grepp == nil ? ring : nil,
+                           suggestion: stickStep ? nil : suggestion,
                            stick: stickStep ? stick : [], stickStep: stickStep)
                 if !time.isEmpty {
                     Text(verbatim: time)
@@ -463,10 +486,13 @@ struct LoupeImage: View {
 }
 
 /// Punkterna 1 (greppet) och 2 (klubbhuvudet) med skaftlinjen mellan dem när båda är satta,
-/// appens gissning av greppet som en ihålig punkt "1?", och riktpinnens ändar (BESLUT B59).
+/// appens gissning av greppet som en ihålig punkt "1?", modellens förslag som streckade "1?" och
+/// "2?" med en streckad skaftlinje och huvudets ruta (S7d, BESLUT B93), och riktpinnens ändar
+/// (BESLUT B59).
 struct ClubPoints: View {
     let marking: ClubMarking
     var ring: KlubbPunkt? = nil
+    var suggestion: KlubbForslag? = nil
     var stick: [KlubbPunkt] = []
     var stickStep = false
 
@@ -501,6 +527,34 @@ struct ClubPoints: View {
                 etikett("\(i + 1)", vid: p(q))
             }
             if stickStep { return }
+            if let f = suggestion {
+                // Modellens förslag: streckat, så att det skiljer sig från det som är satt.
+                func streckadRing(_ m: CGPoint) {
+                    let ruta = CGRect(x: m.x - 9, y: m.y - 9, width: 18, height: 18)
+                    c.stroke(Path(ellipseIn: ruta), with: .color(Theme.ground.opacity(0.6)), lineWidth: 3.5)
+                    c.stroke(Path(ellipseIn: ruta), with: .color(Theme.text), style: StrokeStyle(lineWidth: 1.6, dash: [3, 2.5]))
+                }
+                if let h = f.hosel, let g = marking.grip ?? f.grepp {
+                    c.linje(p(g), p(h), Theme.ground.opacity(0.5), 2.6, streckad: [5, 4])
+                    c.linje(p(g), p(h), Theme.text, 1, streckad: [5, 4])
+                }
+                if let b = f.huvudBox, b.count == 4 {
+                    let a = p(KlubbPunkt(x: b[0], y: b[1])), e = p(KlubbPunkt(x: b[0] + b[2], y: b[1] + b[3]))
+                    let ruta = CGRect(x: a.x, y: a.y, width: e.x - a.x, height: e.y - a.y)
+                    c.stroke(Path(ruta), with: .color(Theme.ground.opacity(0.6)), lineWidth: 3)
+                    c.stroke(Path(ruta), with: .color(Theme.text), style: StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
+                } else if let hv = f.huvud {
+                    streckadRing(p(hv))
+                }
+                if let g = f.grepp {
+                    streckadRing(p(g))
+                    etikett("1?", vid: p(g))
+                }
+                if let h = f.hosel {
+                    streckadRing(p(h))
+                    etikett("2?", vid: p(h))
+                }
+            }
             if let r = ring {
                 // Gissningen: en ihålig ring, så att händerna syns genom den.
                 let m = p(r)
