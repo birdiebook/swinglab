@@ -317,10 +317,10 @@ struct RecordView: View {
         // läggs till när kameran startar, så källan finns före `camera.start()`.
         if pass.setup.role == .follow {
             let k = forhandsKalla ?? ForhandsKalla()
-            k.onBild = { [weak l] p in
+            k.onBild = { [weak l, weak k] p in
                 DispatchQueue.main.async {
                     MainActor.assumeIsolated {
-                        if l?.sendPreview(p) != true { k.slapp(p.n) }
+                        if l?.sendPreview(p) != true { k?.slapp(p.n) }
                     }
                 }
             }

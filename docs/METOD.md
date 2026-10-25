@@ -2142,8 +2142,10 @@ rutan ur kameran och kodar den (`App/Forhandsbild.swift`, `App/Camera.swift`) oc
   (en äldre app får ingen bild), kvittensen, högst en i flykt, takten, en kvittens som aldrig
   kommer, storleken och den styrandes ruta, fördröjning och takt. Simulatorn
   (`SwingLabProvForhandsbild`): två telefoner över loopback med appens kodning, takten, mottrycket,
-  fördröjningen, pausen, värmen och tappet, och rutan och den stora bilden ritade. Telefonerna:
-  fördröjningen, frekvensen och värmen (PLAN S2k, Klart när).
+  fördröjningen, pausen, värmen och tappet, och rutan och den stora bilden ritade (första körningen,
+  `ecaff21`: kodningen median 5,6 ms, 11,5 bilder/s, fördröjningen 8 ms över loopback, högst 1 i
+  flykt; den påhittade scenen är platt och blev bara 7 kB per bild, en riktig bild blir större).
+  Telefonerna: fördröjningen, frekvensen och värmen (PLAN S2k, Klart när).
 
 ## MT1 — Paketet till svingar
 
