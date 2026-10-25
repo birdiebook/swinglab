@@ -2039,12 +2039,14 @@ står i kugghjulet (BESLUT B85).
   datan nu först, det som går att rätta efteråt sist.
 - **Den andra telefonen slutade:** den styrande varnar när en kopplad följare har setts spela in
   i serien och slutat, eller inte har börjat **3 s** efter den egna starten (följaren startar
-  kameran efter kommandot). **antagande** (startens tid på telefonen, oprövad).
+  kameran efter kommandot). Vakten tystnar så fort stopp är tryckt, inte när den egna filen är
+  klar: följaren får stoppet över kopplingen och kan bli klar med sin fil före den styrande.
+  **antagande** (startens tid på telefonen, oprövad).
 - **Svingarna under serien:** ljudkanalens `peakHoldLevel` (dB) i den inspelade filens koppling
   (`AVCaptureAudioChannel`), läst **20** gånger i sekunden. En topp minst **20 dB** över medianen
   av topparna de senaste **3 s** räknas, högst en per **1 s**, och nästa först när toppen fallit
   under gränsen − **6 dB**; inget räknas under första **0,5 s** (baslinjen). 20 dB är klickets
-  25 × energins median (28 dB, MS4) minus ungefär toppens marginal över medlet i brus. Bara för
+  25 × RMS-medianen (28 dB i amplitud, MS4) minus ungefär toppens marginal över medlet i brus. Bara för
   pillen: seriens klick hittas i filen (MS4), och ett tal som skiljer är inget fel. **antagande**
   (kalibreras på telefonen, oprövad); utan ljud (mikrofonen av) visas bara tiden.
 - **Lutningen** mitt på skärmen, för alla roller: på när |lutningen åt sidan| > **2,0°**, av

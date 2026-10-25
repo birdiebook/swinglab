@@ -35,6 +35,9 @@ struct RecordView: View {
     @State private var andraStoppade = false
     @State private var antalSvingar: Int?
     @State private var serieStart: Date?
+    /// Stopp är tryckt men filen inte klar: vakten för den andra telefonen tystnar direkt, så att
+    /// en följare som blir klar med sin fil först inte ger falsklarm (METOD MS32).
+    @State private var stopparSerie = false
     @State private var nu = Date()
     @State private var ledigt: Int64?
     @State private var raknare = Raknare()
@@ -77,6 +80,7 @@ struct RecordView: View {
         .task { await levande() }
         .onChange(of: camera.phase) { _, phase in
             link?.report(recording: phase == .recording, freeBytes: store.availableBytes(), pressure: camera.pressure)
+            stopparSerie = false
             if phase == .recording {
                 serieStart = Date()
                 nu = Date()
@@ -202,7 +206,7 @@ struct RecordView: View {
                     if antalSvingar != r.svingar.antal { antalSvingar = r.svingar.antal }
                 }
             }
-            let stoppade = r.vakt.uppdatera(roll: pass.setup.role, egenInspelar: inspelar,
+            let stoppade = r.vakt.uppdatera(roll: pass.setup.role, egenInspelar: inspelar && !stopparSerie,
                                             tid: t.timeIntervalSinceReferenceDate, andra: andra)
             if stoppade != andraStoppade { andraStoppade = stoppade }
             if t.timeIntervalSince(r.ledigtLast) >= 5 {
@@ -232,6 +236,7 @@ struct RecordView: View {
 
     private func toggle() {
         if camera.phase == .recording {
+            stopparSerie = true
             camera.stopSeries()
             // Stopp på den styrande stoppar följarna; på följaren bara den själv.
             link?.stopSeries()

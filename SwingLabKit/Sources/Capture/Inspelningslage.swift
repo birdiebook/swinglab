@@ -178,7 +178,9 @@ public struct LutningsVisare: Equatable, Sendable {
 
 /// Den styrande ser att den andra telefonen slutade spela in mitt i serien: den har setts spela
 /// in och slutat, eller har inte börjat efter `marginal` sekunder (följaren behöver en stund för
-/// att starta kameran). Följaren vet inte om den styrande spelar in och varnar aldrig. METOD MS32
+/// att starta kameran). Följaren vet inte om den styrande spelar in och varnar aldrig. `egenInspelar`
+/// är falskt så fort stopp är tryckt: den styrandes fas står kvar i inspelning tills filen är klar,
+/// och en följare som blir klar först får inte ge falsklarm. METOD MS32
 public struct AndraStoppadeVakt: Equatable, Sendable {
     public static let marginal = 3.0
 
