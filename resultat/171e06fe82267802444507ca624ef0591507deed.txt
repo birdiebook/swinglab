@@ -1,0 +1,20 @@
+171e06fe82267802444507ca624ef0591507deed s2j 2026-10-25T09:15:36Z run 40179690474
+== swift-release
+GRÖNT: 364 test, 0 fel, 34 s i testerna, bygget 96 s
+Långsammast (av 364):
+      2.8 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.7 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.6 s  TreDTests.testFigurenSomPython
+      2.2 s  TreDTests.testTelefonensVagSomPython
+      2.0 s  KlubbSparTests.testBananSomPython
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.3 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.1 s  TreDTests.testFigurensFilTurOchRetur
+      1.1 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.1 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.1 s  KlubbSparTests.testFeletMotSanningen
+      1.0 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.0 s  TreDTests.testKortet
+      1.0 s  TreDTests.testInreIFilenOchUppdateras
+      1.0 s  TreDTests.testUtanBrusSomPythonOchExakt
+
