@@ -894,3 +894,34 @@ nej); `klubba_forslag.py` skriver ut okända fält så att en felstavning syns. 
 `slag[1].rutor[0].punkter.hosel: outside the image`, `slag[0].rutor[2].t: duplicate`,
 `slag[0].rutor[0].punkter: no point`, och mot passet `pass: no such session`, `vy: does not match
 the session`, `slag[2].id: no such shot`.
+
+## Klubbmodellen: `swinglab-klubba-coreml/1` och `swinglab-klubbmodell/1` (release)
+
+Klubbmodellen på telefonen (S7-2, BESLUT B96, METOD MF7). `formarkare.py coreml` skriver
+Core ML-paketet och **beskrivningen** `<modell>.json` bredvid; appen läser den som
+`Klubbmodell.json` (SwingLabKits `KlubbModellBeskrivning`).
+
+```json
+{"format": "swinglab-klubba-coreml/1", "modell": "klubba-small-hander-2026-10-27-fp16", "precision": "float16",
+ "data": [{"namn": "golf-club-tracking", "licens": "CC BY 4.0", "kalla": "https://universe.roboflow.com/"}],
+ "indata": {"namn": "tensors", "form": [1, 3, 512, 512], "fargordning": "RGB", "skala": 0.00392156862745098,
+            "medel": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+ "utdata": {"rutor": "concat_2", "logits": "linear_112"}, "rutor": "cx, cy, b, h normerade 0-1",
+ "klasser": ["klubba", "klubbhuvud", "hander"]}
+```
+
+| Fält | Krav och betydelse |
+|---|---|
+| `indata` | Core ML-namnet och formen 1 × 3 × sida × sida; varje värde är `(byte × skala − medel) / std` per färg |
+| `utdata` | Core ML-namnen på rutorna (frågor × 4, cx, cy, b, h normerade 0–1) och logits (frågor × klasser + 1) |
+| `klasser` | logit i är `klasser[i]`; den sista logiten används inte. Konfidensen är logitens sigmoid |
+| `data[]` | träningens dataset, för namnangivelsen (B92) och spärren i B96 |
+
+**Pekaren** `klubbmodell.json` i repots rot (`swinglab-klubbmodell/1`) pekar på modellens GitHub
+Release: `tag`, `modell`, `data` och `filer` (filnamn → sha256) för `<modell>.mlpackage.zip`
+(med mappen `Klubbmodell.mlpackage/`), `<modell>.json` och `<modell>-prov.zip`. Provet
+(`swinglab-klubbmodell-prov/1`, `prov/prov.json` med `prov-NN.png`) är ritade bilder i modellens
+sida och PyTorch-modellens rutor med konfidens ≥ 0,3 (`ur_utdata`), som simulatorprovet jämför
+Core ML med. `tools/hamta_klubbmodell.py` hämtar och prövar filerna; `formarkare.py release` och
+`tools/pc/publicera_klubbmodell.py` gör och lägger upp dem.
+

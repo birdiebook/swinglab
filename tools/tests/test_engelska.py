@@ -107,6 +107,8 @@ INTE_TEXT = {
     "1", "2", "1?", "\\(…), \\(…)",
     # Modellens förslag (S7d, BESLUT B93): förslagets "2?" och tecknet för att godkänna det.
     "2?", "checkmark",
+    # Klubbmodellen i appen (S7-2, BESLUT B96): resursens namn och Core ML:s filändelse.
+    "Klubbmodell", "mlmodelc",
 
     # Spåren i granskningen (S4f, BESLUT B70): symbolen före valet.
     "point.topleft.down.curvedto.point.bottomright.up",

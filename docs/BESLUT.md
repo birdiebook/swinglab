@@ -2046,3 +2046,26 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   felen minst sällsyntare än cirka 6 % (regeln om tre, 95 %).
 - **Omprövas:** när punktmodellen ger greppet och hoseln (S7-1), och när fler märkta rutor finns
   under 0,3 eller i nya miljöer (ljus, klubbor).
+
+## B96 — Klubbmodellen till telefonen: en GitHub Release när den bara är tränad på öppen data
+*2026-10-27 · gäller · Johannes ja 2026-10-27 · PLAN.md S7 · METOD MF7 · kompletterar B92*
+
+- **Varför:** modellen (Small med händer, MF7) ska köras på telefonen (S7-2). Core ML-paketet är
+  55 MB och kan inte checkas in i git: varje version skulle stanna i det publika repots historik.
+  B92 lade vikterna utanför repot med tanke på Johannes svingar (dataregeln), men en modell
+  tränad bara på CC BY 4.0-data bär inget av hans.
+- **Valt:** en modell vars träningsdata **bara** är öppna dataset (licensen känd i
+  `formarkare.DATASET`) publiceras som en **GitHub Release** i repot, taggad
+  `klubbmodell-<namn>`, med paketet, beskrivningen och ett prov på ritade bilder (inga andras bilder sprids).
+  `klubbmodell.json` i repot pekar på releasen med filernas sha256. `kompilera.yml` och
+  `testflight.yml` hämtar den, kontrollerar summorna och lägger modellen i appen. Simulatorprovet
+  jämför Core ML med PyTorch på provets bilder. Datasetens namn (CC BY) står i releasen och i
+  beskrivningen; appen har ännu ingen "About", och den kommer innan modellen visar något för andra.
+- **Spärr:** `formarkare.py release` vägrar en modell vars källor inte alla är öppna. En modell
+  tränad på Johannes svingar publiceras bara på hans ja (ett eget beslut), och fram till dess
+  förs den till telefonen via Filer.
+- **Bortvalt:** modellen i git (repots storlek för alltid), import via Filer för alla modeller
+  (bara Johannes telefon får den, och appen behöver en importvy), en privat lagring som bygget
+  hämtar ur (en hemlighet till och ingen nytta när datat är öppet), och en server (B3).
+- **Omprövas:** när en modell tränas på Johannes svingar, eller om ett dataset visar sig ha
+  bilder med oklar rätt (B92).

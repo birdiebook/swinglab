@@ -850,6 +850,13 @@ bakifrån har ett förslag (MF7). Greppet ur en modell med händerna ger skaftet
 automatiskt inom 0,8° i median framifrån (p90 2,0°) och 2,1° bakifrån (MF7). Oktobers 41 slag med järn 7
 (Kamera-appen) ligger i Golf SG:s `data/handled/video/2026-10-17` för märkningen.
 
+**S7-2, modellen på telefonen (2026-10-27, samma gren):** RF-DETR Small med händer (mAP 0,544,
+29 av 29 rutor i oktober, MF7) blir Core ML i FP16 (55 MB) med `formarkare.py coreml`. Den förs
+till appen som en GitHub Release (B96: bara öppen data i träningen), och bygget hämtar den
+(`tools/hamta_klubbmodell.py`). Simulatorprovet jämför Core ML med PyTorch på ritade bilder.
+Kvar: utsnittet kring händerna, skaftet och P6 på telefonen, måtten med källraden "automatic"
+och tiden per slag på telefonen.
+
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget
 färdigt att ta: GolfPose har eget EULA, ClubheadDB är CC BY-NC och bara DTL.

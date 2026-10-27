@@ -97,6 +97,10 @@ jobs:
           echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
           pip install "codemagic-cli-tools==0.70.0"
 
+      # Klubbmodellen ur sin release (S7-2, BESLUT B96), summorna prövade mot klubbmodell.json.
+      - name: Hämta klubbmodellen
+        run: python tools/hamta_klubbmodell.py
+
       - name: Generera Xcode-projektet
         run: xcodegen generate
 

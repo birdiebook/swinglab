@@ -1,0 +1,17 @@
+{
+ "format": "swinglab-klubbmodell/1",
+ "tag": "klubbmodell-small-hander-2026-10-27-fp16",
+ "modell": "klubba-small-hander-2026-10-27-fp16",
+ "data": [
+  {
+   "namn": "golf-club-tracking",
+   "licens": "CC BY 4.0",
+   "kalla": "https://universe.roboflow.com/club-head-tracking/golf-club-tracking"
+  }
+ ],
+ "filer": {
+  "klubba-small-hander-2026-10-27-fp16-prov.zip": "ea767b0ff4bbb8a4d066ab76eaca0fef0e1a6bff8f4f90dafbd56f3ac15ad708",
+  "klubba-small-hander-2026-10-27-fp16.json": "f727ce0a107afdc4f17c89616d5944ea9fcca4b458569b4c1d6f8996834ae3dd",
+  "klubba-small-hander-2026-10-27-fp16.mlpackage.zip": "6752f7ddbc29442b25f09c43e9d42443b46245916779aeda44730f505d4f81f5"
+ }
+}

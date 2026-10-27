@@ -20,7 +20,7 @@ name: kompilera
 on:
   push:
     paths: ["App/**", "Prov/**", "SwingLabKit/**", "project.yml", ".github/workflows/kompilera.yml",
-            "tools/pc/**", "tools/tests/test_appens_paket.py"]
+            "tools/pc/**", "tools/tests/test_appens_paket.py", "klubbmodell.json", "tools/hamta_klubbmodell.py"]
   workflow_dispatch:
 
 concurrency:
@@ -48,6 +48,11 @@ jobs:
           echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
           unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
+      # Klubbmodellen ur sin release (S7-2, BESLUT B96): summorna i klubbmodell.json prövas, och
+      # provets ritade bilder med PyTorch-modellens rutor läggs där simulatorprovet läser dem.
+      - name: Hämta klubbmodellen
+        run: python3 tools/hamta_klubbmodell.py --prov /tmp/swinglab_modell/prov
 
       - name: Generera Xcode-projektet
         id: gen
@@ -129,6 +134,9 @@ jobs:
               # S2k: förhandsbildens mätningar, också när raderna ovan nått taket.
               echo "== den andra telefonens bild (S2k, METOD MS35)"
               grep -E '^PROV: förhandsbild' prov.log || true
+              # S7-2: Core ML mot PyTorch, också när raderna ovan nått taket.
+              echo "== klubbmodellen (S7-2, BESLUT B96)"
+              grep -E '^PROV: klubbmodell' prov.log || true
             fi
             echo
             echo "== PC:n läser appens paket (tools/tests/test_appens_paket.py)"

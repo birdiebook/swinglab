@@ -21,6 +21,16 @@ targets:
       # Katalogen (BESLUT B6) i appen: passets mått och granskningens positioner (S4b).
       - path: katalog.json
         buildPhase: resources
+      # Klubbmodellen (S7-2, BESLUT B96): hämtas ur sin release av bygget (tools/hamta_klubbmodell.py,
+      # gitignorerad). Xcode kompilerar paketet till Klubbmodell.mlmodelc; utan hämtningen finns
+      # ingen modell, och appen klarar sig utan (KlubbModellKorning.iAppen ger nil).
+      - path: Modeller/Klubbmodell.mlpackage
+        type: file
+        buildPhase: sources
+        optional: true
+      - path: Modeller/Klubbmodell.json
+        buildPhase: resources
+        optional: true
     dependencies:
       - package: SwingLabKit
         product: Swing

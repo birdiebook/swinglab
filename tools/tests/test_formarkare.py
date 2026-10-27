@@ -326,6 +326,13 @@ class CoreML(unittest.TestCase):
         (v / "best.pth").write_bytes(b"")
         return v / "best.pth"
 
+    def setUp(self) -> None:
+        self._namn = FM.coreml_namn
+        FM.coreml_namn = lambda paket: (["tensors"], ["concat_2", "linear_112"])
+
+    def tearDown(self) -> None:
+        FM.coreml_namn = self._namn
+
     def test_beskrivningen(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             m = self._Modell()
@@ -335,7 +342,26 @@ class CoreML(unittest.TestCase):
             self.assertEqual((b["format"], b["klasser"], b["indata"]["form"]),
                              (FM.COREML_FORMAT, ["klubba", "klubbhuvud", "hander"], [1, 3, 512, 512]))
             self.assertEqual(b["data"][0]["licens"], "CC BY 4.0")         # namnangivelsen i appen (B92)
+            self.assertEqual((b["indata"]["namn"], b["utdata"]), ("tensors", {"rutor": "concat_2", "logits": "linear_112"}))
             self.assertEqual((m.kw["format"], m.kw["coreml_precision"]), ("coreml", "float16"))
+
+    def test_utdatan_som_rutor(self) -> None:
+        # Två frågor, tre klasser och en oanvänd logit. Samma fall som SwingLabKits KlubbModellTests (B12).
+        rutor = [[0.5, 0.25, 0.1, 0.2], [0.2, 0.8, 0.4, 0.1]]
+        logits = [[2.0, -1.0, 0.0, 9.0], [-3.0, 1.0, -0.5, 9.0]]
+        d = FM.ur_utdata(rutor, logits, ["klubba", "klubbhuvud", "hander"], 0.3, 512, 256)
+        self.assertEqual([(x["klass"], x["fraga"]) for x in d],
+                         [("klubba", 0), ("klubbhuvud", 1), ("hander", 0), ("hander", 1)])
+        self.assertEqual(d[0]["konfidens"], 0.8808)
+        self.assertEqual(d[0]["bbox"], [230.4, 38.4, 51.2, 51.2])
+        self.assertEqual(d[3]["konfidens"], 0.3775)
+
+    def test_bara_oppen_data_blir_release(self) -> None:
+        FM.oppen_data({"data": [{"namn": "golf-club-tracking", "licens": "CC BY 4.0"}]})
+        for data in ([], [{"namn": "oktober-j7", "licens": "CC BY 4.0"}],
+                     [{"namn": "golf-club-tracking", "licens": "CC BY-NC 4.0"}]):
+            with self.assertRaises(FM.FormFel):
+                FM.oppen_data({"data": data})
 
     def test_repot_och_fel_precision_nekas(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

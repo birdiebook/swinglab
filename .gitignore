@@ -30,3 +30,6 @@ build/
 .DS_Store
 Thumbs.db
 __pycache__/
+
+# --- Klubbmodellen: hämtas ur sin release av bygget (BESLUT B96, tools/hamta_klubbmodell.py) ---
+Modeller/

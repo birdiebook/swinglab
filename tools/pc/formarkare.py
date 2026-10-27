@@ -11,6 +11,7 @@ Förslaget är aldrig facit: bara det Johannes klickat räknas som märkning (B7
     python tools/pc/formarkare.py facit <paket.zip> [fler] --markering <klubba.json> --vikter <vikter.pth>
     python tools/pc/formarkare.py matt <paket.zip> [fler] --vikter <vikter med händer> --ut ~/swinglab-s7/matt
     python tools/pc/formarkare.py coreml --vikter <vikter.pth> --ut ~/swinglab-s7/coreml   # till telefonen (S7-2)
+    python tools/pc/formarkare.py release ~/swinglab-s7/coreml/<namn>.json --vikter <vikter.pth> --ut ~/swinglab-s7/release
 
 `bygg` läser bara mappar i COCO-format (Roboflows export) och lägger varje bild i träning,
 val eller prov **per scen**: bilder vars miniatyrer nästan är lika (samma video, samma
@@ -983,6 +984,35 @@ COREML_FORMAT = "swinglab-klubba-coreml/1"
 IMAGENET = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))   # RF-DETR:s normering, samma som i träningen
 
 
+OPPNA_LICENSER = ("CC BY 4.0",)   # BESLUT B96: en modell med bara sådan data får bli en release
+PROV_BILDER = 5                   # BESLUT B96: ritade bilder i releasens prov
+PROV_KONFIDENS = 0.3              # METOD MF7: provets rutor, samma gräns som förslagen (B95)
+
+
+def coreml_namn(paket: Path) -> tuple[list[str], list[str]]:
+    """Core ML-paketets namn på indata och utdata, i modellens ordning (rfdetr: rutorna, logits).
+    Läses ur specifikationen, vilket går utan macOS."""
+    import coremltools as ct
+    spec = ct.models.MLModel(str(paket), skip_model_load=True).get_spec()
+    return [i.name for i in spec.description.input], [o.name for o in spec.description.output]
+
+
+def ur_utdata(rutor, logits, klasser: list[str], troskel: float, bredd: float, hojd: float) -> list[dict]:
+    """Modellens råa utdata som rutor i bildens px: varje fråga och klass vars sigmoid når
+    `troskel`, säkrast först. `rutor` är frågornas cx, cy, b, h normerade 0–1 och `logits`
+    frågornas logits, där logit i är `klasser[i]` och resten inte används. Samma räkning som
+    SwingLabKits `KlubbModell.detektioner` (B12). METOD MF7, S7-2"""
+    r = np.asarray(rutor, float).reshape(-1, 4)
+    p = 1 / (1 + np.exp(-np.asarray(logits, float).reshape(len(r), -1)[:, :len(klasser)]))
+    ut = []
+    for q, k in zip(*np.nonzero(p >= troskel)):
+        cx, cy, b, h = r[q]
+        ut.append({"klass": klasser[k], "konfidens": round(float(p[q, k]), 4), "fraga": int(q),
+                   "bbox": [round(float((cx - b / 2) * bredd), 3), round(float((cy - h / 2) * hojd), 3),
+                            round(float(b * bredd), 3), round(float(h * hojd), 3)]})
+    return sorted(ut, key=lambda d: (-d["konfidens"], d["fraga"], d["klass"]))
+
+
 def till_coreml(vikter: Path, ut: Path, precision: str = "float16", modell=None) -> dict:
     """Vikterna som Core ML (`.mlpackage`, rfdetr:s egen export via torch.export och coremltools 9)
     och en beskrivning bredvid (`<namn>.json`) som telefonen läser: indatans storlek och normering,
@@ -999,13 +1029,122 @@ def till_coreml(vikter: Path, ut: Path, precision: str = "float16", modell=None)
     paket = modell.export(output_dir=str(ut), format="coreml", coreml_precision=precision,
                           output_name=namn, verbose=False)
     sida = int(modell.model.resolution)
+    indata, utdata = coreml_namn(Path(paket))
+    if len(indata) != 1 or len(utdata) != 2:
+        raise FormFel(f"{paket}: väntade en indata och två utdata, fick {len(indata)} och {len(utdata)}")
     beskr = {"format": COREML_FORMAT, "modell": namn, "precision": precision, "data": data,
-             "indata": {"form": [1, 3, sida, sida], "fargordning": "RGB", "skala": 1 / 255,
-                        "medel": list(IMAGENET[0]), "std": list(IMAGENET[1])},
-             "utdata": ["rutor", "logits"], "rutor": "cx, cy, b, h normerade 0-1",
+             "indata": {"namn": indata[0], "form": [1, 3, sida, sida], "fargordning": "RGB",
+                        "skala": 1 / 255, "medel": list(IMAGENET[0]), "std": list(IMAGENET[1])},
+             "utdata": {"rutor": utdata[0], "logits": utdata[1]}, "rutor": "cx, cy, b, h normerade 0-1",
              "klasser": list(modell.class_names)}
     (ut / f"{namn}.json").write_text(json.dumps(beskr, indent=1, ensure_ascii=False), encoding="utf-8")
     return {"paket": str(paket), "beskrivning": str(ut / f"{namn}.json"), "modell": namn}
+
+
+def ritad_provbild(i: int, sida: int = 512):
+    """En ritad golfare med klubba (PIL), bild i av releasens prov: bakgrund, gräs, kropp, armar
+    till händerna och ett skaft med huvud i en vinkel som beror på i. Modellen hittar klubban
+    och huvudet i dem (konfidens 0,8–0,96, 2026-10-27). Samma i ger samma bild."""
+    from PIL import Image, ImageDraw
+    rng = np.random.default_rng(i)
+    im = Image.new("RGB", (sida, sida), tuple(int(v) for v in rng.integers(90, 200, 3)))
+    d = ImageDraw.Draw(im)
+    s = sida / 512
+    d.rectangle([0, int(sida * 0.75), sida, sida], fill=(60, 130, 60))
+    cx = sida * (0.4 + 0.2 * rng.random())
+    d.ellipse([cx - 22 * s, 60 * s, cx + 22 * s, 110 * s], fill=(220, 180, 150))
+    d.rectangle([cx - 35 * s, 110 * s, cx + 35 * s, 260 * s], fill=(40, 60, 120))
+    d.rectangle([cx - 30 * s, 260 * s, cx + 30 * s, 390 * s], fill=(50, 50, 50))
+    v = math.radians(-100 + 60 * rng.random() + (0 if i % 2 else 180))
+    hx, hy = cx + 10 * s, 250 * s
+    for ax in (cx - 30 * s, cx + 30 * s):
+        d.line([ax, 130 * s, hx, hy], fill=(220, 180, 150), width=max(1, round(14 * s)))
+    d.ellipse([hx - 14 * s, hy - 14 * s, hx + 14 * s, hy + 14 * s], fill=(240, 240, 240))
+    kx, ky = hx + 200 * s * math.cos(v), hy - 200 * s * math.sin(v)
+    d.line([hx, hy, kx, ky], fill=(30, 30, 30), width=max(1, round(5 * s)))
+    d.ellipse([kx - 16 * s, ky - 9 * s, kx + 16 * s, ky + 9 * s], fill=(70, 70, 80))
+    return im
+
+
+def _sha256(p: Path) -> str:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _zippa_mapp(mapp: Path, zipfil: Path, namn: str) -> None:
+    with zipfile.ZipFile(zipfil, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(mapp.rglob("*")):
+            if p.is_file():
+                z.write(p, f"{namn}/{p.relative_to(mapp).as_posix()}")
+
+
+def oppen_data(beskr: dict) -> None:
+    """Spärren i B96: varje källa i beskrivningen är ett känt dataset med öppen licens."""
+    if not beskr.get("data"):
+        raise FormFel("beskrivningen saknar träningens data (B96)")
+    for d in beskr["data"]:
+        namn = d.get("namn")
+        if namn not in DATASET or DATASET[namn][0] not in OPPNA_LICENSER or d.get("licens") != DATASET[namn][0]:
+            raise FormFel(f"{namn}: inte ett öppet dataset ({', '.join(OPPNA_LICENSER)}); "
+                          "en modell med Johannes svingar publiceras bara på hans ja (B96)")
+
+
+def release(beskrivning: Path, vikter: Path, ut: Path, modell=None) -> dict:
+    """Releasens filer för en Core ML-modell (BESLUT B96): paketet och beskrivningen, och ett
+    prov med PROV_BILDER ritade bilder (`ritad_provbild`, PNG i modellens sida) och
+    PyTorch-modellens rutor i FP32 genom `ur_utdata`. Ritade, inte datasetens: releasen sprider
+    inga andras bilder. Vägrar en modell vars data inte är öppen. Skriver <ut>/<modell>/ och
+    pekaren klubbmodell.json, som kopieras till repots rot. METOD MF7, S7-2"""
+    from PIL import Image
+    import torch
+    beskrivning = Path(beskrivning).expanduser()
+    beskr = json.loads(beskrivning.read_text(encoding="utf-8"))
+    if beskr.get("format") != COREML_FORMAT:
+        raise FormFel(f"{beskrivning}: inte {COREML_FORMAT}")
+    oppen_data(beskr)
+    if modell_info(vikter)[1] != beskr["data"]:
+        raise FormFel(f"{vikter}: vikternas data är inte beskrivningens")
+    namn = beskr["modell"]
+    paket = beskrivning.with_suffix(".mlpackage")
+    if not paket.is_dir():
+        raise FormFel(f"{paket}: Core ML-paketet saknas (formarkare.py coreml)")
+    mapp = utanfor_repot(Path(ut) / namn)
+    mapp.mkdir(parents=True, exist_ok=True)
+
+    sida = beskr["indata"]["form"][2]
+    medel = np.array(beskr["indata"]["medel"], np.float32)[:, None, None]
+    std = np.array(beskr["indata"]["std"], np.float32)[:, None, None]
+    modell = modell if modell is not None else ladda(vikter)
+    natet = modell.model.model.to("cpu").eval()
+    bilder = []
+    with tempfile.TemporaryDirectory() as tmp:
+        provmapp = Path(tmp) / "prov"
+        provmapp.mkdir()
+        for i in range(1, PROV_BILDER + 1):
+            fil = f"prov-{i:02d}.png"
+            ritad_provbild(i, sida).save(provmapp / fil)
+            x = (np.asarray(Image.open(provmapp / fil).convert("RGB"), np.float32).transpose(2, 0, 1)
+                 * np.float32(beskr["indata"]["skala"]) - medel) / std
+            with torch.no_grad():
+                o = natet(torch.from_numpy(x)[None])
+            det = ur_utdata(o["pred_boxes"][0].numpy(), o["pred_logits"][0].numpy(), beskr["klasser"],
+                            PROV_KONFIDENS, sida, sida)
+            bilder.append({"fil": fil, "detektioner": det})
+        prov = {"format": "swinglab-klubbmodell-prov/1", "modell": namn, "konfidens": PROV_KONFIDENS,
+                "data": beskr["data"], "bilder": bilder}
+        (provmapp / "prov.json").write_text(json.dumps(prov, indent=1, ensure_ascii=False), encoding="utf-8")
+        _zippa_mapp(provmapp, mapp / f"{namn}-prov.zip", "prov")
+    _zippa_mapp(paket, mapp / f"{namn}.mlpackage.zip", "Klubbmodell.mlpackage")
+    (mapp / f"{namn}.json").write_text(json.dumps(beskr, indent=1, ensure_ascii=False), encoding="utf-8")
+    pekare = {"format": "swinglab-klubbmodell/1", "tag": f"klubbmodell-{namn.removeprefix('klubba-')}",
+              "modell": namn, "data": beskr["data"],
+              "filer": {p.name: _sha256(p) for p in sorted(mapp.iterdir()) if p.name != "klubbmodell.json"}}
+    (mapp / "klubbmodell.json").write_text(json.dumps(pekare, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return {"mapp": str(mapp), "pekare": pekare,
+            "prov": [{"fil": b["fil"], "rutor": len(b["detektioner"])} for b in bilder]}
 
 
 def main(argv=None) -> int:
@@ -1039,6 +1178,10 @@ def main(argv=None) -> int:
     cm.add_argument("--vikter", type=Path, required=True)
     cm.add_argument("--ut", type=Path, required=True)
     cm.add_argument("--precision", default="float16", help="float16 (telefonen) eller float32")
+    rl = sub.add_parser("release")
+    rl.add_argument("beskrivning", type=Path, help="<namn>.json bredvid Core ML-paketet (formarkare.py coreml)")
+    rl.add_argument("--vikter", type=Path, required=True)
+    rl.add_argument("--ut", type=Path, required=True)
     f = sub.add_parser("forslag")
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
@@ -1059,6 +1202,8 @@ def main(argv=None) -> int:
             r = matt_utan_tryck(a.paket, a.vikter, a.ut, a.s3)
         elif a.steg == "coreml":
             r = till_coreml(a.vikter, a.ut, a.precision)
+        elif a.steg == "release":
+            r = release(a.beskrivning, a.vikter, a.ut)
         elif a.steg == "facit":
             r = mot_markering(a.paket, a.markering, a.vikter)
         else:

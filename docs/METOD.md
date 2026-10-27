@@ -3347,9 +3347,16 @@ räknas som märkning (B71).
   normerad med ImageNets medel och std. Utdatan är rutorna (cx, cy, b, h normerade) och logits
   för 300 frågor. Logit i hör till klass i (klubba, klubbhuvud, händer), och den fjärde används
   inte. Mot `predict` på tre provbilder ger en enkel skalning till 512 px och normeringen samma
-  konfidens (0,95 mot 0,95, 0,75 mot 0,74). Core ML körs inte i Linux, så jämförelsen med
-  PyTorch inom 0,5 px och tiden per slag kräver macOS eller telefonen. **räkning**, inte prövat
-  i Core ML.
+  konfidens (0,95 mot 0,95, 0,75 mot 0,74). Core ML körs inte i Linux. **räkning.**
+- **Releasen och provet** (B96): `formarkare.py release` vägrar en modell vars data inte är
+  öppen och gör releasens filer. Provet är **5 ritade bilder** (`ritad_provbild`: en figur med
+  armar, händer och ett skaft med huvud i olika vinklar). Datasetens bilder sprids inte vidare,
+  eftersom en ruta i golf-club-tracking visar en person och andras logotyper. PyTorch hittar
+  klubban och huvudet i alla fem (konfidens 0,87–0,95) och händerna i två (0,59–0,60).
+  Efterbehandlingen (`ur_utdata`, SwingLabKits `KlubbModell.detektioner`) tar varje fråga och
+  klass vars sigmoid når gränsen. Simulatorprovet (`SwingLabProvKlubbModell`) kräver att Core ML
+  i appen ger varje provruta ≥ 0,3 med samma klass, mitten inom **0,5 px** (research 7, S7-2) och
+  konfidensen inom **0,02**. **antagande** (0,02), och mätt först när `kompilera` kört.
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.
