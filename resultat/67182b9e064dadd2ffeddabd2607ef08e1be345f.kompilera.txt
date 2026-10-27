@@ -1,0 +1,10 @@
+67182b9e064dadd2ffeddabd2607ef08e1be345f s7-1-formarkare 2026-10-27T18:06:11Z run 40556764164 kompilera
+Xcode okänd · ingen simulator
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: ingen arkivlogg (föll ett steg före arkiveringen)
+
+== prov
+RÖTT: provet kördes inte
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC-steget kördes inte
