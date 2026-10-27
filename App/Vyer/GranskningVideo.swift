@@ -66,6 +66,8 @@ struct ShotReviewView: View {
     @State private var visarAnnan = false
     /// Den andra telefonens klipp kom utan klick: synken tar det väntade (MS31), och det sägs.
     @State private var annanUtanKlick = false
+    /// Stroboskopet för slaget visas (S7-2), valt i menyn.
+    @State private var visarStrob = false
 
     private var shot: ShotRecord? { pass?.shots.first { $0.id == shotID } }
 
@@ -135,6 +137,8 @@ struct ShotReviewView: View {
                                   onClose: close, onPlay: togglePlay, onStep: step, onScrub: { pause(); seek($0) },
                                   onPosition: jump, onOverlay: { overlayOn.toggle() }, onDetectionWrong: setWrong,
                                   onMarkClub: startMarking,
+                                  onClubTrail: KlubbModellKorning.finns && shot.measure?.positions["P1"] != nil
+                                      ? { pause(); visarStrob = true } : nil,
                                   vyval: annanKalla == nil ? nil : AnyView(vyval(pass.setup.view)),
                                   aspekt: annan ? annanKalla?.aspekt : nil)
                         .padding(.vertical, 8)
@@ -158,6 +162,9 @@ struct ShotReviewView: View {
         .background(Theme.ground, ignoresSafeAreaEdges: .all)
         .preferredColorScheme(.dark)
         .task { load() }
+        .fullScreenCover(isPresented: $visarStrob) {
+            KlubbStrobVy(passID: passID, shotID: shotID, onClose: { visarStrob = false })
+        }
         .onDisappear {
             if store.klubbaRaknar == klubbNyckel { store.avbrytKlubbBana() }
             player.pause()
@@ -687,6 +694,8 @@ struct ReviewContent<Surface: View>: View {
     var onDetectionWrong: (Bool) -> Void = { _ in }
     /// "Mark club" i menyn (S7a, båda vyerna); nil = ingen märkning (provets bilder).
     var onMarkClub: (() -> Void)? = nil
+    /// "Club trail" i menyn (S7-2): stroboskopet för slaget; nil = ingen modell i bygget eller inga positioner.
+    var onClubTrail: (() -> Void)? = nil
     /// Växlingen DTL/FO i ett parat pass (S6g, BESLUT B82); nil = en vy.
     var vyval: AnyView? = nil
     /// Bildens proportioner när den andra vyns video visas (hela bilden, inget utsnitt).
@@ -737,6 +746,9 @@ struct ReviewContent<Surface: View>: View {
                             Toggle("Detection wrong", isOn: Binding(get: { detectionWrong }, set: onDetectionWrong))
                             if let onMarkClub {
                                 Button("Mark club", action: onMarkClub)
+                            }
+                            if let onClubTrail {
+                                Button("Club trail", action: onClubTrail)
                             }
                         } label: {
                             meny

@@ -67,6 +67,8 @@ targets:
         NSCameraUsageDescription: SwingLab films your swing in slow motion. The video stays on the phone.
         NSMicrophoneUsageDescription: SwingLab records sound to find the click of impact. The sound stays on the phone.
         NSPhotoLibraryUsageDescription: SwingLab loads the slow-motion original from Photos to measure your swing.
+        # S7-2: "Save Image" ur delningen av stroboskopet; utan nyckeln kraschar appen vid sparningen.
+        NSPhotoLibraryAddUsageDescription: SwingLab saves the club trail image to Photos when you ask it to.
         # S6b, METOD MS17: CMMotionManager har en tillåtelse från iOS 27.2 (authorizationStatus);
         # utan nyckeln kan appen krascha vid frågan. Inte bekräftat i original, oprövat på iOS 27.2.
         NSMotionUsageDescription: SwingLab reads the phone's tilt to measure the swing in 3D.

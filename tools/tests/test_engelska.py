@@ -109,6 +109,8 @@ INTE_TEXT = {
     "2?", "checkmark",
     # Klubbmodellen i appen (S7-2, BESLUT B96): resursens namn och Core ML:s filändelse.
     "Klubbmodell", "mlmodelc",
+    # Stroboskopet (S7-2): positionen där svingen slutar och modellens klassnamn för huvudet.
+    "P9", "klubbhuvud",
 
     # Spåren i granskningen (S4f, BESLUT B70): symbolen före valet.
     "point.topleft.down.curvedto.point.bottomright.up",
@@ -180,7 +182,7 @@ class Engelska(unittest.TestCase):
     def test_fragorna_om_tillatelse_ar_engelska(self) -> None:
         projekt = (ROT / "project.yml").read_text(encoding="utf-8")
         rader = [r for r in projekt.splitlines() if "UsageDescription:" in r]
-        self.assertEqual(len(rader), 5)
+        self.assertEqual(len(rader), 6)
         for r in rader:
             self.assertIsNone(SVENSKA.search(r), r)
 

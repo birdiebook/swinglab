@@ -3375,6 +3375,14 @@ räknas som märkning (B71).
   av 303 rutor, s02 bakifrån 364 av 392. Ögat på bilderna visar en ren båge framifrån och
   öglan i toppen bakifrån, med några mörka bitar vid händerna i nedsvingen bakifrån. Bara för
   ögat, inget mått (B92). **antagande** (0,25, 28, 3), **mätt** (antalen).
+- **Stroboskopet i appen** (S7-2, Johannes 2026-10-27: "välja att testa det, inte på alla
+  slag"): "Club trail" i granskningens meny, bara när bygget har modellen och slaget har P1.
+  Det räknas först då och bara för det slaget, och bilden sparas inte i passet men går att dela.
+  `KlubbStrobLasare` läser rutorna från P1 till P9 en gång, upprätta i **halv** upplösning
+  (540 × 960, minnet), och skär ut kring händerna som PC:n. SwingLabKits `KlubbStrob` gör
+  kroppens höjd, utsnittet, lagren, medianbilden och filtret med samma fall som Python (B12).
+  Simulatorprovet prövar utsnittets koordinater (CoreGraphics räknar nerifrån) på provets
+  ritade bilder. Oprövat på telefonen: tiden per slag och bilden på riktiga klipp.
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.

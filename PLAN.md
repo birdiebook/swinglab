@@ -855,9 +855,10 @@ automatiskt inom 0,8° i median framifrån (p90 2,0°) och 2,1° bakifrån (MF7)
 till appen som en GitHub Release (B96: bara öppen data i träningen), och bygget hämtar den
 (`tools/hamta_klubbmodell.py`). I simulatorprovet ger Core ML samma rutor som PyTorch på
 ritade bilder, högst 0,24 px och 0,010 i konfidens från varandra (MF7).
-Stroboskopet (`formarkare.py strob`, MF7) visar detektionen: klubbhuvudet ur varje ruta i en
-bild och en video, på PC:n. Kvar: utsnittet kring händerna, skaftet och P6 på telefonen,
-måtten med källraden "automatic", stroboskopet i appen och tiden per slag på telefonen.
+Stroboskopet visar detektionen: klubbhuvudet ur varje ruta i en bild, på PC:n
+(`formarkare.py strob`, också video) och i appen ("Club trail" i granskningens meny, per slag,
+MF7). Kvar: skaftet och P6 på telefonen, måtten med källraden "automatic", och tiden per slag
+och stroboskopet på riktiga klipp på telefonen.
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor
 (Claude hjälper till att märka) och körd i appen som Core ML. Det finns inget

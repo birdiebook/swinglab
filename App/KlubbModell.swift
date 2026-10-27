@@ -36,8 +36,14 @@ final class KlubbModellKorning {
     /// Rutorna i en bild, i bildens px. Bilden skalas till modellens sida (sRGB), som PC:ns utsnitt
     /// skalas i formarkare.py. METOD MF7
     func detektioner(_ bild: CGImage, troskel: Double) throws -> [KlubbDetektion] {
+        try detektioner(rgba: Self.rgba(bild, sida: beskrivning.sida), troskel: troskel,
+                        bredd: Double(bild.width), hojd: Double(bild.height))
+    }
+
+    /// Rutorna i en bild som redan är RGBA i modellens sida (stroboskopets utsnitt), skalade
+    /// till `bredd` × `hojd` px.
+    func detektioner(rgba: [UInt8], troskel: Double, bredd: Double, hojd: Double) throws -> [KlubbDetektion] {
         let sida = beskrivning.sida
-        let rgba = Self.rgba(bild, sida: sida)
         let x = KlubbModell.indata(rgba: rgba, sida: sida, beskrivning: beskrivning)
         let arr = try MLMultiArray(shape: [1, 3, NSNumber(value: sida), NSNumber(value: sida)], dataType: .float32)
         x.withUnsafeBufferPointer { kalla in
@@ -50,9 +56,11 @@ final class KlubbModellKorning {
         guard let rutor = ut.featureValue(for: beskrivning.utdata.rutor)?.multiArrayValue,
               let logits = ut.featureValue(for: beskrivning.utdata.logits)?.multiArrayValue else { throw KorFel.utdata }
         return KlubbModell.detektioner(rutor: Self.floats(rutor), logits: Self.floats(logits),
-                                       klasser: beskrivning.klasser, troskel: troskel,
-                                       bredd: Double(bild.width), hojd: Double(bild.height))
+                                       klasser: beskrivning.klasser, troskel: troskel, bredd: bredd, hojd: hojd)
     }
+
+    /// Modellen finns i appen (bygget hämtade den), utan att ladda den.
+    static var finns: Bool { Bundle.main.url(forResource: "Klubbmodell", withExtension: "mlmodelc") != nil }
 
     /// Bildens pixlar som RGBA i sida × sida. En bild som redan har sidan och 8 bitars RGB(A)
     /// läses som den är (simulatorprovets PNG, så att provet mäter modellen och inte skalningen);

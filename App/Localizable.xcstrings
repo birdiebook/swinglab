@@ -144,6 +144,17 @@
         }
       }
     },
+    "Address and finish are missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address and finish are missing"
+          }
+        }
+      }
+    },
     "Alignment stick": {
       "extractionState": "manual",
       "localizations": {
@@ -958,6 +969,17 @@
         }
       }
     },
+    "No club head was found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No club head was found"
+          }
+        }
+      }
+    },
     "No sessions": {
       "extractionState": "manual",
       "localizations": {
@@ -1658,6 +1680,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The clip could not be saved."
+          }
+        }
+      }
+    },
+    "The club model is not in this build": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The club model is not in this build"
           }
         }
       }
