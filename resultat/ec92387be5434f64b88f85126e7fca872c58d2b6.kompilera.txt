@@ -1,0 +1,26 @@
+ec92387be5434f64b88f85126e7fca872c58d2b6 s7-1-formarkare 2026-10-27T19:14:44Z run 40566150934 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+RÖTT: arkiveringen gick inte igenom
+/Users/runner/work/swinglab/swinglab/App/KlubbStrobLasare.swift:175:87: error: type 'CGColorRenderingIntent' has no member 'defaultRenderingIntent'
+** ARCHIVE FAILED **
+
+== prov
+RÖTT: ingen sammanräkning i loggen (kompilerade det?)
+/Users/runner/work/swinglab/swinglab/App/KlubbStrobLasare.swift:175:87: error: type 'CGColorRenderingIntent' has no member 'defaultRenderingIntent'
+/Users/runner/work/swinglab/swinglab/App/KlubbStrobLasare.swift:175:87: error: type 'CGColorRenderingIntent' has no member 'defaultRenderingIntent'
+
+/Users/runner/work/swinglab/swinglab/App/KlubbStrobLasare.swift:175:87: error: type 'CGColorRenderingIntent' has no member 'defaultRenderingIntent'
+/Users/runner/work/swinglab/swinglab/App/KlubbStrobLasare.swift:175:87: error: type 'CGColorRenderingIntent' has no member 'defaultRenderingIntent'
+** TEST FAILED **
+== provets mätningar (påhittad film)
+== den andra telefonens bild (S2k, METOD MS35)
+== klubbmodellen (S7-2, BESLUT B96)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+RÖTT: PC:n läste inte appens paket
+ERROR: setUpClass (test_appens_paket.AppensPaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket/facit.json'
+ERROR: setUpClass (test_appens_paket.AppensParadePaket)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/swinglab_prov/paket-parat/facit.json'
+FAILED (errors=2)
