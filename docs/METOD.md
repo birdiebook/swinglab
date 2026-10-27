@@ -3304,6 +3304,30 @@ räknas som märkning (B71).
   Johannes märkning (80 rutor med hosel): **80 av 80** träffar, 68 med konfidens ≥ 0,5 (Nano på
   båda dataseten 31, Nano med händer 74 med 78 träffar). Storleken ger alltså mest säkrare
   konfidens; träffarna och huvudets avstånd till hoseln (4 %) är desamma. **mätt.**
+- **Måtten utan tryck** (`formarkare.py matt`, research 7 §4.2 steg 4–5): för varje mätt slag
+  körs varje ruta från P1 till P9 med utsnittet kring händerna genom en modell med händer.
+  Skaftet i rutan är greppet ur händerna → huvudets mitt (`skaft_serie`, båda med konfidens
+  ≥ 0,3, utan prövningen över tiden). Kroppens positioner (M28) tar rutan närmast, högst
+  **10 ms** bort. P2, P6 och P8 väljs ur skaftet mellan grannpositionerna (M45): framifrån rutan
+  där vinkeln går genom vågrätt åt svingens håll (`klubba.forslag_tid_skaft` mellan grannrutor),
+  bakifrån rutan där skaftet är kortast, med längden jämnad som median över **5** rutor. **P1
+  saknas** när skaftet inte pekar nedåt (vinkel −150° till −30°, M46 speglad): i s24 framifrån låg
+  kroppens P1 på en förberedelse med klubban rakt ut. Måtten räknas med samma `klubba.mat` som
+  för märkningen och skrivs i `klubba-auto-<vy>.json` (aldrig en markering, B71, B92). Kroppens
+  höjd för utsnittet är medianen av varje rutas egen höjd (minst 6 leder): över hela svingen
+  räknad blev den för stor med armarna uppe i finishen, och utsnittet tappade P6 bakifrån; med
+  den nya höjden är utsnittet **1,8 ×** kroppens höjd. Prövningen över tiden strök P6 bakifrån,
+  där huvudet rör sig snabbast i en båge förbi händerna, och används därför inte här.
+  **räkning** och **antagande** (10 ms, 5 rutor, P1:s spann).
+- **Provpasset utan tryck** (2026-10-27, Nano med händer): framifrån fick **18 av 18** slag P6
+  och alla mått (P1 i 17); P6 ur skaftet ligger i median 19 ms från förslaget mitt mellan P5 och
+  P7. Ögat på ark: skaftet följer klubban i P1–P8, P2 och P6 vågräta. Bakifrån 1 slag: P6 i
+  V-formens botten (skaftet 19 px), men där ligger huvudets mitt lika långt från hoseln som
+  skaftet är långt, så `skaft_plan_p6` bakifrån (30°; 4° på en för tidig ruta) bär inte förrän
+  punktmodellen ger hoseln. Mot märkningen med den nya höjden: framifrån 40 av 40, vinkeln 0,75°
+  (p90 2,0°); bakifrån 11 av 11, 2,3° (p90 4,2°, max 6,9°; förut en grov miss). Förslagsfilerna:
+  84 % framifrån, 96 % bakifrån. Facit för P6 saknas: Johannes märker P1, P5, P6 och P7 i minst
+  10 svingar per vy (§4.2), och provpasset har bara en sving bakifrån. **mätt.**
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.

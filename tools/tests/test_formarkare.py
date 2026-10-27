@@ -155,16 +155,20 @@ class Kontaktarket(unittest.TestCase):
 
     def test_kroppen_over_svingens_rutor(self) -> None:
         rutor = [[{"x": 500, "y": 400, "c": 0.9}, None, [0, 0, 0.1]], [[520, 1400, 0.9]]]
-        self.assertEqual(FM.kroppen(rutor), (1000.0, 510.0, 900.0))
+        self.assertEqual(FM.kroppen(rutor), (1000.0, 510.0, 900.0))     # för få leder per ruta
         self.assertIsNone(FM.kroppen([[None, [1, 1, 0.1]]]))
+        # Rutans egen höjd i median: armarna uppe i en ruta gör inte kroppen större.
+        sta = [[x, y, 0.9] for x, y in ((0, 0), (0, 100), (0, 200), (0, 300), (0, 400), (0, 1000))]
+        upp = [[x, y, 0.9] for x, y in ((0, -500), (0, 100), (0, 200), (0, 300), (0, 400), (0, 1000))]
+        self.assertEqual(FM.kroppen([sta, sta, upp])[0], 1000.0)
 
     def test_utsnittet_kring_handerna_annars_kroppen(self) -> None:
         leder = [None] * 13
         leder[5], leder[6] = [400, 1000, 0.9], {"x": 440, "y": 1020, "c": 0.8}
         kropp = (1000.0, 510.0, 900.0)
-        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920), (-330, 260, 1500))   # 1,5 × 1000 kring händerna
+        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920), (-480, 110, 1800))   # 1,8 × 1000 kring händerna
         leder[6] = [440, 1020, 0.1]                                                  # greppregeln: den som syns
-        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920)[:2], (-350, 250))
+        self.assertEqual(FM.utsnitt(leder, kropp, 1080, 1920)[:2], (-500, 100))
         self.assertEqual(FM.utsnitt([None] * 13, kropp, 1080, 1920), (-450, -60, 1920))  # kroppen, högst långsidan
 
     def test_utsnittet_fylls_med_svart_utanfor(self) -> None:
@@ -244,6 +248,57 @@ class MotMarkeringen(unittest.TestCase):
         self.assertEqual(s["klasser"], {"≥0.5": {"rutor": 1, "traff": 1}, "0.3–0.5": {"rutor": 2, "traff": 1},
                                         "<0.1": {"rutor": 1, "traff": 0}})
         self.assertEqual(s["avstand_median"], 0.03)
+
+
+class MattenUtanTryck(unittest.TestCase):
+    """Positionerna ur kroppen och skaftet (METOD M45, MF7)."""
+
+    @staticmethod
+    def _sving_fo():
+        # Framifrån, en högerspelare i speglad bild (x_tecken 1): skaftet vrider sig moturs i
+        # nedsvingen från 135° (P5) till 260° (P7) och går genom vågrätt (180°) vid t = 0,036.
+        serie = []
+        for k in range(10):
+            t = round(k / 100, 2)
+            v = math.radians(135 + 125 * k / 9)
+            g = (500.0, 800.0)
+            serie.append({"t": t, "g": g, "h": (g[0] + 300 * math.cos(v), g[1] - 300 * math.sin(v)),
+                          "kg": 0.9, "kh": 0.8})
+        return serie
+
+    def test_p6_framifran_dar_skaftet_gar_genom_vagratt(self) -> None:
+        a = FM.auto_positioner(self._sving_fo(), {"P5": 0.0, "P7": 0.09}, "fo", 1.0)
+        self.assertEqual(a["P6"]["t"], 0.03)          # vågrätt vid 0,0324: rutan närmast
+        self.assertEqual(a["P6"]["kalla"], "skaftet")
+        self.assertEqual((a["P5"]["kalla"], a["P7"]["t"]), ("kroppen", 0.09))
+
+    def test_p6_bakifran_dar_skaftet_ar_kortast(self) -> None:
+        langd = [300, 280, 200, 120, 60, 70, 140, 250, 300]
+        serie = [{"t": k / 100, "g": (500.0, 800.0), "h": (500.0, 800.0 + L), "kg": 0.9, "kh": 0.9}
+                 for k, L in enumerate(langd)]
+        serie[6]["h"] = (500.0, 801.0)                 # en ensam för kort ruta jämnas bort
+        a = FM.auto_positioner(serie, {"P5": 0.0, "P7": 0.08}, "dtl", 1.0)
+        self.assertEqual(a["P6"]["t"], 0.04)
+
+    def test_p1_saknas_nar_skaftet_inte_pekar_nedat(self) -> None:
+        serie = [{"t": 0.0, "g": (500.0, 800.0), "h": (520.0, 1200.0), "kg": 0.9, "kh": 0.9},
+                 {"t": 0.5, "g": (500.0, 800.0), "h": (900.0, 830.0), "kg": 0.9, "kh": 0.9}]
+        self.assertIn("P1", FM.auto_positioner(serie, {"P1": 0.0}, "fo", 1.0))
+        self.assertNotIn("P1", FM.auto_positioner(serie, {"P1": 0.5}, "fo", 1.0))   # skaftet åt sidan
+
+    def test_position_utan_ruta_saknas(self) -> None:
+        a = FM.auto_positioner(self._sving_fo()[:3], {"P1": 0.5, "P5": 0.0, "P7": 0.09}, "fo", 1.0)
+        self.assertNotIn("P1", a)                      # ingen ruta inom 10 ms
+        self.assertNotIn("P6", a)                      # skaftet passerar inte vågrätt i de rutor som finns
+
+    def test_serien_bara_med_bade_grepp_och_huvud(self) -> None:
+        rutor = [{"t": k / 240, "x0": 0, "y0": 0, "skala": 1.0, "kropp_hojd": 1000.0,
+                  "rad": [{"klass": "hander", "konfidens": 0.8, "bbox": [90, 90, 20, 20]}]
+                  + ([{"klass": "klubbhuvud", "konfidens": 0.7, "bbox": [95, 395, 10, 10]}] if k != 2 else [])}
+                 for k in range(5)]
+        s = FM.skaft_serie(rutor, 1080, 1920)
+        self.assertEqual([round(q["t"] * 240) for q in s], [0, 1, 3, 4])
+        self.assertEqual((s[0]["g"], s[0]["h"]), ((100.0, 100.0), (100.0, 400.0)))
 
 
 class Forslagsfilen(unittest.TestCase):

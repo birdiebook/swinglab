@@ -9,6 +9,7 @@ Förslaget är aldrig facit: bara det Johannes klickat räknas som märkning (B7
     python tools/pc/formarkare.py prov ~/swinglab-s7/trana --vikter <vikter.pth>
     python tools/pc/formarkare.py forslag <paket.zip> [fler] --vikter <vikter.pth> --ut ~/swinglab-s7/forslag
     python tools/pc/formarkare.py facit <paket.zip> [fler] --markering <klubba.json> --vikter <vikter.pth>
+    python tools/pc/formarkare.py matt <paket.zip> [fler] --vikter <vikter med händer> --ut ~/swinglab-s7/matt
 
 `bygg` läser bara mappar i COCO-format (Roboflows export) och lägger varje bild i träning,
 val eller prov **per scen**: bilder vars miniatyrer nästan är lika (samma video, samma
@@ -58,7 +59,8 @@ VAL_ANDEL = 0.10           # METOD MF7: andel för valet av vikter under tränin
 DELAR = ("train", "valid", "test")            # Roboflows mappnamn; test = provet
 TROSKEL = 0.30             # METOD MF7: modellens rutor med lägre konfidens ritas inte i kontaktarket
 UTSNITT_SKALA = 2.0        # METOD MF7: utsnittets sida kring kroppen (utan händer) = 2,0 × kroppens höjd
-HAND_SKALA = 1.5           # METOD MF7: utsnittets sida kring händerna = 1,5 × kroppens höjd
+HAND_SKALA = 1.8           # METOD MF7: utsnittets sida kring händerna = 1,8 × kroppens höjd (rutans egen, median)
+KROPP_MIN_LEDER = 6        # METOD MF7: en ruta räknas i kroppens höjd med minst så många leder
 HANDLEDER = (5, 6)         # handled_v och handled_h i filens ordning (format.LEDER_FIL)
 GRANNAR_RUTOR = 3          # METOD MF7: en säker granne söks högst så många rutor bort åt varje håll
 GRANNAR_TOL = (0.02, 0.25) # METOD MF7: avstånd från grannarnas linje: × kroppens höjd + × grannarnas avstånd
@@ -358,14 +360,23 @@ def _xyc(j) -> tuple[float, float, float]:
 
 
 def kroppen(leder_rutor: list[list], min_konfidens: float = 0.3) -> tuple[float, float, float] | None:
-    """(kroppens höjd, mitt x, mitt y) i px över svingens rutor: ledernas gemensamma ruta, höjden
-    dess största sida (lägst till högst led). None utan leder. METOD MF7"""
+    """(kroppens höjd, mitt x, mitt y) i px över svingens rutor. Höjden är medianen av varje rutas
+    egen höjd (lägst till högst led, rutor med minst KROPP_MIN_LEDER leder), så att den inte beror
+    på vilka rutor som är med: över hela svingen räknade, med armarna uppe i finishen, blev den för
+    stor och utsnittet för stort (provpassets DTL vid P6, 2026-10-27). Utan sådana rutor ledernas
+    gemensamma ruta. Mitten är den gemensamma rutans. None utan leder. METOD MF7"""
     p = [_xyc(j)[:2] for leder in leder_rutor for j in leder if j is not None and _xyc(j)[2] >= min_konfidens]
     if not p:
         return None
     a = np.array(p, float)
     (x0, y0), (x1, y1) = a.min(0), a.max(0)
-    return float(max(y1 - y0, x1 - x0)), float((x0 + x1) / 2), float((y0 + y1) / 2)
+    hojder = []
+    for leder in leder_rutor:
+        y = [_xyc(j)[1] for j in leder if j is not None and _xyc(j)[2] >= min_konfidens]
+        if len(y) >= KROPP_MIN_LEDER:
+            hojder.append(max(y) - min(y))
+    h = float(np.median(hojder)) if hojder else float(max(y1 - y0, x1 - x0))
+    return h, float((x0 + x1) / 2), float((y0 + y1) / 2)
 
 
 def hander(leder: list, min_konfidens: float = 0.3) -> tuple[float, float] | None:
@@ -818,6 +829,154 @@ def mot_markering(paket_filer: list[Path], markering: Path, vikter: Path) -> dic
     return ut
 
 
+# ---------------------------------------------------------------------------- måtten utan tryck
+
+KROPPENS = ("P1", "P3", "P4", "P5", "P7", "P9", "P10")   # METOD M28: positionerna ur kroppen
+POS_TOL_S = 0.010          # METOD MF7: en kroppsposition tar skaftet ur en ruta högst så långt bort
+P1_NEDAT = (-150.0, -30.0) # METOD MF7: skaftets vinkel vid P1 (M46, speglad) ska ligga här, nedåt mot bollen
+KORTAST_JAMNA = 5          # METOD MF7: skaftets längd bakifrån jämnas med medianen över så många rutor
+# METOD M45: rutorna mellan vilka skaftet söker P2, P6 och P8 (före, efter; reserv för före).
+SKAFT_FONSTER = {"P2": ("P1", "P3", "P4"), "P6": ("P5", "P7", "P4"), "P8": ("P7", "P9", "P10")}
+
+
+def skaft_serie(rutor: list[dict], lw: int, lh: int, grans: float | None = None) -> list[dict]:
+    """Skaftet i varje ruta ur `_svingens_rutor`: greppet ur händerna (`grepp_punkt`) och
+    klubbhuvudets mitt (`huvud_punkt`), var för sig med konfidens ≥ `grans` (MF8), i ledernas px:
+    [{"t", "g", "h", "kg", "kh"}] för rutorna där båda finns, i tidsordning. Huvudets mitt står för
+    hoseln (cirka 4 % av skaftet bort, MF7). Inte prövad över tiden (`over_tiden`): bakifrån vid P6
+    rör sig huvudet snabbast och i en skarp båge förbi händerna, och filtret strök just de rutorna
+    (provpassets DTL, 2026-10-27). METOD MF7"""
+    if not rutor:
+        return []
+    from .klubba_forslag import VISA_KONFIDENS
+    grans = VISA_KONFIDENS if grans is None else grans
+    skala = rutor[0]["skala"]
+    gr = [grepp_punkt(r["rad"], r["x0"], r["y0"], 1 / skala, 1 / skala, grans) for r in rutor]
+    hu = [huvud_punkt(r["rad"], r["x0"], r["y0"], 1 / skala, 1 / skala, lw, lh, grans) for r in rutor]
+    return [{"t": r["t"], "g": (g["x"], g["y"]), "h": (h["x"], h["y"]), "kg": g["konfidens"], "kh": h["konfidens"]}
+            for r, g, h in zip(rutor, gr, hu) if g is not None and h is not None]
+
+
+def _narmast(serie: list[dict], t: float, tol: float) -> dict | None:
+    if not serie:
+        return None
+    q = min(serie, key=lambda q: abs(q["t"] - t))
+    return q if abs(q["t"] - t) <= tol else None
+
+
+def auto_positioner(serie: list[dict], positioner: dict, vy: str, x_tecken: float,
+                    start: float | None = None) -> dict[str, dict]:
+    """Positionerna utan tryck: {position: skaftets ruta} ur skaftets serie. Kroppens
+    positioner (M28) tar rutan närmast kroppens tid, högst POS_TOL_S bort. P2, P6 och P8
+    definieras av skaftet (M45) mellan positionerna före och efter (SKAFT_FONSTER): framifrån
+    rutan där skaftets vinkel går genom vågrätt åt svingens håll (`klubba.forslag_tid_skaft`
+    mellan grannrutor), bakifrån rutan där skaftet är kortast (pekar mot kameran), med
+    längden jämnad över KORTAST_JAMNA rutor. P1 saknas när skaftet inte pekar nedåt (P1_NEDAT).
+    En position utan ruta saknas. METOD MF7"""
+    from . import klubba as KL
+    ut: dict[str, dict] = {}
+    for p in KROPPENS:
+        t = positioner.get(p)
+        q = _narmast(serie, t, POS_TOL_S) if t is not None else None
+        if q is not None:
+            ut[p] = {**q, "kalla": "kroppen"}
+    # P1 är adressen: pekar skaftet inte nedåt mot bollen är kroppens P1 en annan ruta (en
+    # förberedelse, s24 i provpasset), och P1 saknas hellre än blir fel.
+    if "P1" in ut:
+        g, h = ut["P1"]["g"], ut["P1"]["h"]
+        v = KL.riktning((x_tecken * g[0], g[1]), (x_tecken * h[0], h[1]))
+        if not P1_NEDAT[0] <= v <= P1_NEDAT[1]:
+            del ut["P1"]
+    for p, (fore, efter, reserv) in SKAFT_FONSTER.items():
+        ta = positioner.get(fore) if positioner.get(fore) is not None else positioner.get(reserv)
+        tb = positioner.get(efter) if positioner.get(efter) is not None else positioner.get(reserv)
+        if ta is None or tb is None or not tb > ta:
+            continue
+        inom = [q for q in serie if ta <= q["t"] <= tb]
+        if len(inom) < 2:
+            continue
+        if vy == "fo":
+            for a, b in zip(inom, inom[1:]):
+                marks = [{"position": KL.SKAFT_VAGRATT[p][0], "t": a["t"], "grepp": a["g"], "hosel": a["h"]},
+                         {"position": KL.SKAFT_VAGRATT[p][1], "t": b["t"], "grepp": b["g"], "hosel": b["h"]}]
+                t = KL.forslag_tid_skaft(p, marks, x_tecken, start if p == "P2" else None)
+                if t is not None:
+                    ut[p] = {**(a if abs(a["t"] - t) <= abs(b["t"] - t) else b), "kalla": "skaftet"}
+                    break
+        else:
+            langd = [math.dist(q["g"], q["h"]) for q in inom]
+            k = KORTAST_JAMNA // 2
+            jamn = [float(np.median(langd[max(0, i - k):i + k + 1])) for i in range(len(langd))]
+            ut[p] = {**inom[int(np.argmin(jamn))], "kalla": "skaftet"}
+    return ut
+
+
+def matt_utan_tryck(paket_filer: list[Path], vikter: Path, ut: Path, s3: Path | None = None) -> dict:
+    """Klubbmåtten utan tryck för varje mätt slag (S7-1, research 7 §4.2): skaftet i varje ruta
+    från P1 till P9 ur en modell med händer (`skaft_serie`), positionerna ur kroppen och skaftet
+    (`auto_positioner`) och måtten med samma `klubba.mat` som för Johannes markeringar. Skriver
+    <ut>/<pass>/klubba-auto-<vy>.json (aldrig en markering, B71, B92) och svarar en sammanfattning
+    per vy: hur många slag som fick P6 och varje mått, och P6 mot förslaget mitt mellan P5 och P7
+    (klubba.forslag_tid). METOD MF7"""
+    from . import analys as A
+    from . import format as fm
+    from . import klubba as KL
+    from . import paket as P
+    from . import s3_facit as S3F
+    ut = utanfor_repot(ut)
+    modell = ladda(vikter)
+    sammanfattning: dict = {}
+    for pf in paket_filer:
+        p = P.las(pf)
+        fsk = S3F.las_forskjutningar(p.pass_id, s3)
+        rader = {r["id"]: r for r in A.mat_paket(p, p.langd_m or 1.8) if "positioner" in r}
+        slag_ut = []
+        with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(pf) as z:
+            for s in p.slag:
+                if s.id not in rader or not (s.klipp and s.lederna and s.klick_i_klipp_s is not None):
+                    continue
+                pos = rader[s.id]["positioner"]
+                fran = pos.get("P1")
+                till = pos.get("P9") if pos.get("P9") is not None else pos.get("P10")
+                if fran is None or till is None:
+                    continue
+                klipp = Path(tmp) / f"{s.id}{Path(s.klipp).suffix}"
+                klipp.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
+                lw, lh = s.lederna["width"], s.lederna["height"]
+                rutor = _svingens_rutor(modell, klipp, s, fsk.get((p.fil, s.id), 0.0),
+                                        [("P1", fran - 0.02), ("P9", till + 0.02)], lw, lh)
+                serie = skaft_serie(rutor, lw, lh)
+                sv = fm.fran_dict(P.till_sving(p, s, p.langd_m or 1.8))
+                faser = rader[s.id].get("faser") or {}
+                auto = auto_positioner(serie, pos, p.vy, sv.x_tecken, faser.get("start"))
+                marks = [{"position": k, "t": v["t"], "grepp": v["g"], "hosel": v["h"]} for k, v in auto.items()]
+                pinne = p.serier[s.serie].riktpinne if s.serie in p.serier else None
+                matt = KL.mat(marks, p.vy, sv.x_tecken, lw, lh, sv, pinne=pinne)
+                forslag_p6 = KL.forslag_tid("P6", pos)
+                slag_ut.append({
+                    "slag": s.id, "rutor": len(rutor), "skaft": len(serie),
+                    "positioner": {k: {"t": round(v["t"], 4), "kalla": v["kalla"],
+                                       "grepp": [round(c, 1) for c in v["g"]], "hosel": [round(c, 1) for c in v["h"]],
+                                       "konfidens": [round(v["kg"], 3), round(v["kh"], 3)]} for k, v in auto.items()},
+                    "p6_mot_forslaget_ms": None if "P6" not in auto or forslag_p6 is None
+                    else round(1000 * (auto["P6"]["t"] - forslag_p6), 1),
+                    "matt": {k: round(v, 2) for k, v in matt.items()}})
+        mapp = ut / p.pass_id
+        mapp.mkdir(parents=True, exist_ok=True)
+        (mapp / f"klubba-auto-{p.vy}.json").write_text(json.dumps(
+            {"format": "swinglab-klubba-auto/1", "kalla": "modell", "facit": False, "pass": p.pass_id, "vy": p.vy,
+             "vikter": str(vikter), "slag": slag_ut}, ensure_ascii=False, indent=1), encoding="utf-8")
+        namn_ = KL.namn(p.vy)
+        sammanfattning[p.vy] = {
+            "slag": len(slag_ut),
+            "med_p6": sum(1 for x in slag_ut if "P6" in x["positioner"]),
+            "p6_mot_forslaget_ms_median": (round(float(np.median([abs(x["p6_mot_forslaget_ms"]) for x in slag_ut
+                                                                  if x["p6_mot_forslaget_ms"] is not None])), 1)
+                                           if any(x["p6_mot_forslaget_ms"] is not None for x in slag_ut) else None),
+            "matt": {m: sum(1 for x in slag_ut if m in x["matt"]) for m in namn_ if any(m in x["matt"] for x in slag_ut)}}
+    return sammanfattning
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="steg", required=True)
@@ -840,6 +999,11 @@ def main(argv=None) -> int:
     fa.add_argument("paket", nargs="+", type=Path)
     fa.add_argument("--markering", type=Path, required=True, help="swinglab-<pass>-klubba.json")
     fa.add_argument("--vikter", type=Path, required=True)
+    ma = sub.add_parser("matt")
+    ma.add_argument("paket", nargs="+", type=Path)
+    ma.add_argument("--vikter", type=Path, required=True, help="en modell med händer")
+    ma.add_argument("--ut", type=Path, required=True)
+    ma.add_argument("--s3", type=Path, help="S3:s s3.json (standard ~/swinglab-s3/<pass>/s3.json)")
     f = sub.add_parser("forslag")
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
@@ -856,6 +1020,8 @@ def main(argv=None) -> int:
             r = trana(a.mapp, a.ut, a.epoker, a.batch, a.ackum, a.fortsatt, a.storlek)
         elif a.steg == "prov":
             r = prova(a.mapp, a.vikter)
+        elif a.steg == "matt":
+            r = matt_utan_tryck(a.paket, a.vikter, a.ut, a.s3)
         elif a.steg == "facit":
             r = mot_markering(a.paket, a.markering, a.vikter)
         else:
