@@ -1,0 +1,20 @@
+e14b508302a1f2dd65e837d03bb832c469e7db85 s7-1-formarkare 2026-10-27T18:34:09Z run 40560644348
+== swift-release
+GRÖNT: 417 test, 0 fel, 40 s i testerna, bygget 127 s
+Långsammast (av 417):
+      3.2 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      3.0 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.9 s  TreDTests.testFigurenSomPython
+      2.5 s  TreDTests.testTelefonensVagSomPython
+      2.4 s  KlubbSparTests.testBananSomPython
+      1.5 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.3 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      1.2 s  TreDTests.testFigurensFilTurOchRetur
+      1.2 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.2 s  KlubbSparTests.testFeletMotSanningen
+      1.2 s  TreDTests.testKortet
+      1.2 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.1 s  TreDTests.testInreIFilenOchUppdateras
+      1.1 s  TreDTests.testUtanBrusSomPythonOchExakt
+
