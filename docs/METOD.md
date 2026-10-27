@@ -3328,6 +3328,18 @@ räknas som märkning (B71).
   (p90 2,0°); bakifrån 11 av 11, 2,3° (p90 4,2°, max 6,9°; förut en grov miss). Förslagsfilerna:
   84 % framifrån, 96 % bakifrån. Facit för P6 saknas: Johannes märker P1, P5, P6 och P7 i minst
   10 svingar per vy (§4.2), och provpasset har bara en sving bakifrån. **mätt.**
+- **Small med händer** (2026-10-27, golf-club-tracking med händer, 20 epoker, batch 4 med 4 i
+  ackumulering, 113 min): provet 0,544 (0,862) mot Nano med händer 0,468: klubba 0,635, klubbhuvud
+  **0,438** (0,354), händer **0,558** (0,482). 15 ms per bild. Mot märkningen (samma
+  utsnitt, `facit`): provpasset 51 av 51 träffar (50 med konfidens ≥ 0,5), framifrån vinkeln
+  0,76° i median (p90 1,75°, max 2,8°; Nano 0,75°, p90 2,0°), bakifrån 2,1° (p90 6,8°) med en
+  ruta fel 22° där Nano hade 6,9°. Oktobers 29 bakifrån-rutor: **29 av 29** (Nano 28) och
+  vinkeln 0,8° (p90 2,7°, **max 3,6°**) mot Nanos 1,3° med en grov miss på 41°. Utan tryck ger
+  Small samma P6 framifrån i alla 18 slag (0 ms skillnad), och måtten i P1–P6 skiljer
+  0,1–0,35° i median (max 1,6°) från Nanos. Modellerna skiljer sig i finishen (P7–P9, upp till
+  40° i P8, där klubban går bakom kroppen) och i P6 bakifrån (8 ms, skaftet mot kameran).
+  Small blir förmärkaren, eftersom den har säkrare huvud och händer och ingen grov miss i
+  oktober; Nano finns kvar för en snabbare körning. **mätt** (n är litet: 51 och 29 rutor).
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.
