@@ -1,33 +1,33 @@
-67182b9e064dadd2ffeddabd2607ef08e1be345f s7-1-formarkare 2026-10-27T18:29:32Z run 40558641041 kompilera
+446ea58d5a9fddb0cc6d1b5e4641704f74d9f179 s7-1-formarkare 2026-10-27T18:58:22Z run 40562010096 kompilera
 Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
 == arkiv (telefonen, Release, utan signering: TestFlights bygge)
 GRÖNT: ARCHIVE SUCCEEDED
 
 == prov
-GRÖNT: 55 test, 0 fel, 115 s i testerna
+GRÖNT: 55 test, 0 fel, 155 s i testerna
 Långsammast (av 55):
-     12.5 s  SwingLabProvForhandsbild.testBildenFranFoljarenTillDenStyrande
-     12.2 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
-      9.9 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+     17.8 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+     13.3 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
+     12.8 s  SwingLabProvForhandsbild.testBildenFranFoljarenTillDenStyrande
       9.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
+      7.7 s  SwingLabProvVyer.testSessionerOchMe
       7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
-      6.3 s  SwingLabProvVyer.testSessionerOchMe
-      3.8 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
-      3.6 s  SwingLabProvSlag.testSteg7VisionPaKlippet
-      3.3 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
-      3.2 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
-      3.1 s  SwingLabProvKlubbaForslag.testForslagenIMarkeringen
-      3.1 s  SwingLabProvPaket.testSteg8PaketetTillPC
-      2.8 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
-      2.4 s  SwingLabProvKlubbModell.testCoreMLSomPyTorch
-      2.3 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      6.6 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      5.4 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
+      5.2 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      5.1 s  SwingLabProvKlubba.testMarkeraKlubban
+      4.5 s  SwingLabProvKlubbaForslag.testForslagenIMarkeringen
+      3.8 s  SwingLabProvKlubbModell.testCoreMLSomPyTorch
+      3.7 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      3.5 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
+      3.1 s  SwingLabProvSlag.testSteg7VisionPaKlippet
 
 ** TEST SUCCEEDED **
 == provets mätningar (påhittad film)
 PROV: region SE, språk en
 PROV: String Catalog 194 texter i en.lproj
-PROV: förhandsbild kodning median 7.3 ms, max 62.7 ms (simulatorn)
-PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 7 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: förhandsbild kodning median 7.7 ms, max 83.1 ms (simulatorn)
+PROV: förhandsbild 43 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
 PROV: skrev andra-bild-mottagen.png
 PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
 PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
@@ -75,7 +75,7 @@ PROV: klubbmodell prov-04.png klubba PyTorch 0.882 Core ML 0.881, mitten 0.15 px
 PROV: klubbmodell prov-05.png klubba PyTorch 0.910 Core ML 0.911, mitten 0.21 px
 PROV: klubbmodell prov-05.png klubbhuvud PyTorch 0.875 Core ML 0.877, mitten 0.06 px
 PROV: klubbmodell prov-05.png hander PyTorch 0.591 Core ML 0.580, mitten 0.06 px
-PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 329 ms per bild i median (simulatorn)
+PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 484 ms per bild i median (simulatorn)
 PROV: framifrån P2 föreslås -0.8700 s ur skaftet (kroppens mitt -1.0492 s, starten -1.1371 s)
 PROV: framifrån P6 föreslås -0.1021 s ur skaftet (kroppens mitt -0.1044 s, starten -1.1371 s)
 PROV: framifrån P8 föreslås 0.3469 s ur skaftet (kroppens mitt 0.3060 s, starten -1.1371 s)
@@ -104,11 +104,11 @@ PROV: skrev klubba-forslag-godkant.png
 PROV: skrev klubba-forslag-rattat.png
 PROV: förslagen i märkningen: P1 godkänt med ✓, P3 greppet godkänt och hoseln rättad, P4 hoppad utan förslag
 PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
-PROV: link klocka θ 0.021 ms, osäkerhet 0.125 ms, 30 prov
+PROV: link klocka θ 0.051 ms, osäkerhet 0.237 ms, 30 prov
 PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
 PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
 PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
-PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 61.3 MB, topp 61.9 MB (+0.6 MB)
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 61.4 MB, topp 62.8 MB (+1.3 MB)
 PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495663 byte
 PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
 PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
@@ -137,12 +137,12 @@ PROV: skrev klubba-bana-p10.png
 PROV: klubbhuvudets bana bakifrån: 279 rutor, 206 interpolerade
 PROV: skrev klubba-bana-dtl.png
 PROV: spårets rutor: markören 255 i CropRect(x: 0.7037037037037037, y: 0.08333333333333333, width: 0.2222222222222222, height: 0.16666666666666669), bakgrunden 128
-PROV: TreD 4 slag på 0.44 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD 4 slag på 0.51 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
 PROV: TreD egen bunt ett slag 55724 byte
 PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
 PROV: TreD överföring 11 slag, bunten 607867 byte (55260 per slag) i 4 bitar, 2.1 s med ett tapp om 2 s
 PROV: TreD överföring utan tapp 0.03 s på loopback
-PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.02 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
+PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.28 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
 PROV: TreD tillbaka till följaren, tre_d.json 9096 byte
 PROV: granskningen P4 ["skaft_riktning_topp=gul", "brost_lyft_topp=gron", "huvud_mot_bollen_topp=ingen"]
 PROV: skrev band-granskning-p4.png (780×309 px)
@@ -185,8 +185,8 @@ PROV: skrev insp-lead-andra-bild-stor-utan-linjer.png, färger [] (andra kulöre
 PROV: skrev insp-installningar-andra-bild.png (1170×1824 px)
 PROV: skrev granskning-fo.png (1170×2178 px)
 == den andra telefonens bild (S2k, METOD MS35)
-PROV: förhandsbild kodning median 7.3 ms, max 62.7 ms (simulatorn)
-PROV: förhandsbild 48 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 7 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: förhandsbild kodning median 7.7 ms, max 83.1 ms (simulatorn)
+PROV: förhandsbild 43 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
 PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
 == klubbmodellen (S7-2, BESLUT B96)
 PROV: klubbmodell klubba-small-hander-2026-10-27-fp16, 5 ritade bilder, Core ML på simulatorns CPU
@@ -202,7 +202,7 @@ PROV: klubbmodell prov-04.png klubba PyTorch 0.882 Core ML 0.881, mitten 0.15 px
 PROV: klubbmodell prov-05.png klubba PyTorch 0.910 Core ML 0.911, mitten 0.21 px
 PROV: klubbmodell prov-05.png klubbhuvud PyTorch 0.875 Core ML 0.877, mitten 0.06 px
 PROV: klubbmodell prov-05.png hander PyTorch 0.591 Core ML 0.580, mitten 0.06 px
-PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 329 ms per bild i median (simulatorn)
+PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 484 ms per bild i median (simulatorn)
 
 == PC:n läser appens paket (tools/tests/test_appens_paket.py)
 GRÖNT: paket.py och session.py läste paketen som appen skrev

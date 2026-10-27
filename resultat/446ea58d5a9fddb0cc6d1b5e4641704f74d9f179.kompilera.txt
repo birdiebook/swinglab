@@ -1,0 +1,221 @@
+446ea58d5a9fddb0cc6d1b5e4641704f74d9f179 s7-1-formarkare 2026-10-27T18:58:22Z run 40562010096 kompilera
+Xcode 26.6 · E839A11B-51B4-4AD3-ACF4-A53B95B7C957 iPhone 17 Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5
+== arkiv (telefonen, Release, utan signering: TestFlights bygge)
+GRÖNT: ARCHIVE SUCCEEDED
+
+== prov
+GRÖNT: 55 test, 0 fel, 155 s i testerna
+Långsammast (av 55):
+     17.8 s  SwingLabProvGranskning.testGranskningenOchPassetsMatt
+     13.3 s  SwingLabProvVyer.testVideoMellanTvaTelefoner
+     12.8 s  SwingLabProvForhandsbild.testBildenFranFoljarenTillDenStyrande
+      9.1 s  SwingLabProvTreDLink.testSyftetPartnernOchNej
+      7.7 s  SwingLabProvVyer.testSessionerOchMe
+      7.4 s  SwingLabProvLink.testTvaTelefonerOverLoopback
+      6.6 s  SwingLabProvKlubba.testMarkeraKlubbanFramifran
+      5.4 s  SwingLabProvSpar.testKlubbhuvudetsBanaIGranskningen
+      5.2 s  SwingLabProvPaket.testMinnetMedEttStortKlipp
+      5.1 s  SwingLabProvKlubba.testMarkeraKlubban
+      4.5 s  SwingLabProvKlubbaForslag.testForslagenIMarkeringen
+      3.8 s  SwingLabProvKlubbModell.testCoreMLSomPyTorch
+      3.7 s  SwingLabProvRedigering.testFonstretOchUtsnittetGenomAnalysen
+      3.5 s  SwingLabProvTreDLink.testTvaTelefonerForOverEttPassOchRaknar
+      3.1 s  SwingLabProvSlag.testSteg7VisionPaKlippet
+
+** TEST SUCCEEDED **
+== provets mätningar (påhittad film)
+PROV: region SE, språk en
+PROV: String Catalog 194 texter i en.lproj
+PROV: förhandsbild kodning median 7.7 ms, max 83.1 ms (simulatorn)
+PROV: förhandsbild 43 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: skrev andra-bild-mottagen.png
+PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
+PROV: granskningen måtten: sway ["-2.00", "-4.00", "-6.00", "-9.00"], problem ["-", "-", "-", "-"], längd 1.8 antagen true
+PROV: granskningen passet: sway −5.0 cm, 7 kort med tal
+PROV: skrev passet-matt.png
+PROV: granskningen positionerna: P1 ruta 180 t -1.375 mot -1.378, P2 saknas, P3 ruta 288 t -0.700 mot -0.703, P4 ruta 351 t -0.308 mot -0.309, P5 ruta 369 t -0.195 mot -0.191, P6 saknas, P7 ruta 399 t -0.008 mot -0.009, P8 saknas, P9 ruta 501 t 0.630 mot 0.629, P10 ruta 575 t 1.092 mot 1.091
+PROV: granskningen rutan vid klicket ljus 1.000, rutan före 0.545
+PROV: skrev granskning-video.png
+PROV: skrev granskning-utan-leder.png
+PROV: skrev granskning-video-p7.png
+PROV: spåren vid P4: händerna (99.8, 238.7) mot handledernas mitt (99.9, 238.7), [352, 289] punkter, 13 leder
+PROV: skrev granskning-spar-p4.png
+PROV: skrev granskning-spar-p7.png
+PROV: granskningen Detection wrong: sway −5.0 → −4.0, slag 7i · 4 → 7i · 3
+PROV: skrev passet-detection-wrong.png
+PROV: skrev granskning-detection-wrong.png
+PROV: granskningen hel: markören (488.5, 178.0) px, leden (488.9, 177.9) px, väntat (488.9, 177.8) i 600×1067
+PROV: granskningen ruta: markören (378.0, 355.5) px, leden (377.7, 355.6) px, väntat (377.8, 355.7) i 600×1067
+PROV: granskningen sned: markören (482.0, 264.0) px, leden (484.0, 264.0) px, väntat (484.0, 264.0) i 600×636
+PROV: aac klick ["0.99938 (491)", "2.19946 (531)"]
+PROV: aac i filen aac 44100.0 Hz 2 kanaler
+PROV: aac ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm första tiderna ["0.000000", "0.005000", "0.013333", "0.016667", "0.025000", "0.030000", "0.038333", "0.041667", "0.050000", "0.055000", "0.063333", "0.066667"]
+PROV: lpcm stegen i 10 µs: ["333×128", "500×128", "833×255"]
+PROV: lpcm rutor 512, rutnät 240.0, saknas 0.3324641460234684, största hål 0.008333333333333748
+PROV: lpcm transform (0.0, 1.0, -1.0, 0.0) 480×270 → exif 6
+PROV: lpcm klick ["0.99956 (537)", "2.19960 (571)"]
+PROV: lpcm ljud 153600 prov à 48 kHz (spåret 153600), första provet 0.0 s, 6 bitar, luckor 0 (0 fyllda, 0 överhoppade)
+PROV: lpcm vita rutor [1.0, 2.2], grå medel 0.5019607843137238
+PROV: kvitto fps 240 · Dropped 33% · Frames 512 · Clicks 2 · MB/min 7 · Length 0:03
+PROV: kvittots dom: ["The phone dropped 33% of the frames: close other apps"]
+PROV: kvittots dom (bra): 240 fps · 2 swings heard
+PROV: ljusprov ISO 800 good · Flicker 0.5% good · Frames 240 fps, 33% dropped tooDark · Brightness 50% good
+PROV: lucka luckor 0, 0 prov fyllda, 0 överhoppade, 153600 prov (spåret 153600); klick ["0.99956", "2.19960"]
+PROV: klubbmodell klubba-small-hander-2026-10-27-fp16, 5 ritade bilder, Core ML på simulatorns CPU
+PROV: klubbmodell prov-01.png klubba PyTorch 0.951 Core ML 0.950, mitten 0.24 px
+PROV: klubbmodell prov-01.png klubbhuvud PyTorch 0.919 Core ML 0.919, mitten 0.15 px
+PROV: klubbmodell prov-02.png klubbhuvud PyTorch 0.880 Core ML 0.882, mitten 0.11 px
+PROV: klubbmodell prov-02.png klubba PyTorch 0.877 Core ML 0.877, mitten 0.03 px
+PROV: klubbmodell prov-03.png klubba PyTorch 0.920 Core ML 0.918, mitten 0.07 px
+PROV: klubbmodell prov-03.png klubbhuvud PyTorch 0.893 Core ML 0.894, mitten 0.12 px
+PROV: klubbmodell prov-03.png hander PyTorch 0.599 Core ML 0.598, mitten 0.05 px
+PROV: klubbmodell prov-04.png klubbhuvud PyTorch 0.897 Core ML 0.898, mitten 0.03 px
+PROV: klubbmodell prov-04.png klubba PyTorch 0.882 Core ML 0.881, mitten 0.15 px
+PROV: klubbmodell prov-05.png klubba PyTorch 0.910 Core ML 0.911, mitten 0.21 px
+PROV: klubbmodell prov-05.png klubbhuvud PyTorch 0.875 Core ML 0.877, mitten 0.06 px
+PROV: klubbmodell prov-05.png hander PyTorch 0.591 Core ML 0.580, mitten 0.06 px
+PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 484 ms per bild i median (simulatorn)
+PROV: framifrån P2 föreslås -0.8700 s ur skaftet (kroppens mitt -1.0492 s, starten -1.1371 s)
+PROV: framifrån P6 föreslås -0.1021 s ur skaftet (kroppens mitt -0.1044 s, starten -1.1371 s)
+PROV: framifrån P8 föreslås 0.3469 s ur skaftet (kroppens mitt 0.3060 s, starten -1.1371 s)
+PROV: klubban framifrån: 20 tryck för P1–P10 utan steg, ingen riktpinne
+PROV: klubban framifrån P1–P10: P1 -95.00, P2 178.00, P3 130.00, P4 10.00, P5 100.00, P6 178.00, P7 -104.00, P8 2.00, P9 80.00, P10 –; toppen 10.00, armen P5 100.23, P6 115.34, lutningen 14.00
+PROV: granskningen framifrån vid P7: ["Shaft lean +14.0"]
+PROV: skrev klubba-fo-granskning.png
+PROV: skrev klubba-fo-markera.png
+PROV: klubban: 19 tryck för P1–P10 utan steg (P8 hoppad), ringen vid P1
+PROV: klubban P1–P10: P1 -60.00, P2 -35.00, P3 100.00, P4 -75.00, P5 95.00, P6 60.00, P7 -58.00, P8 –, P9 110.00, P10 170.00; skaftplan 60.00, P6 mot planet 36.91
+PROV: skrev klubba-granskning.png
+PROV: skrev klubba-guide-1.png
+PROV: skrev klubba-guide-2.png
+PROV: skrev klubba-guide-3.png
+PROV: skrev klubba-riktpinne.png
+PROV: skrev klubba-greppet.png
+PROV: glaset förstorar 3.000× ovanpå zoomen 2.50× (ytan 258.8 pt bred, glaset 124 pt, 17 × 17 px i glaset)
+PROV: skrev klubba-klubbhuvudet.png
+PROV: skrev klubba-klar.png
+PROV: märkningen S7c: guiden 3 bilder, riktpinnens steg, P4 inzoomad 2.50×, Top of backswing (P4) · 3 of 10
+PROV: klubban i passet: 7i · 2 · 1 with club marked; kort ["Clubhead to plane +36.9 (DTL · P6)"]
+PROV: skrev klubba-passet.png
+PROV: förslagen: 913 rutor för s01 hämtade; vyn, passet och bredden avvisade med fältet
+PROV: skrev klubba-forslag.png
+PROV: skrev klubba-forslag-godkant.png
+PROV: skrev klubba-forslag-rattat.png
+PROV: förslagen i märkningen: P1 godkänt med ✓, P3 greppet godkänt och hoseln rättad, P4 hoppad utan förslag
+PROV: link efter Continue: par 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms
+PROV: link klocka θ 0.051 ms, osäkerhet 0.237 ms, 30 prov
+PROV: link tapp 3 s mitt i serien: start 1, stopp 1 efter återanslutningen
+PROV: link par 6 av 6, förskjutning 0.4123 s (känd 0.4123), median |rest| 0.80 ms, klocka efter, osäker nej
+PROV: fel fil: att_jobba_pa: format: must start with swinglab-att-jobba-pa/
+PROV: minnet: klippet 400 MB, paketet 400.0 MB, fotavtrycket före 61.4 MB, topp 62.8 MB (+1.3 MB)
+PROV: paket med klipp ["manifest.json", "enhet.json", "par.json", "klubba.json", "slag/s01.json", "slag/s02.json", "klipp/s01.mov", "klipp/s02.mov"], 1495663 byte
+PROV: s01 klick 0.9996 s, i klippet 0.6996 s, klippet 2.2000 s
+PROV: s02 klick 2.1996 s, i klippet 1.8996 s, klippet 2.7000 s
+PROV: lodlinjen i paketet utan klipp [-0.0691, -0.9879, -0.1392] (orientering 6); med klipp ingen (simulatorn)
+PROV: s01 Swift backen_sway_topp -5.999 cm (satt -6.0), 58 mått
+PROV: s02 Swift backen_sway_topp -3.999 cm (satt -4.0), 58 mått
+PROV: redigeraren markören: EXIF 6 → (0.815, 0.167) ljus 1.000, som EXIF 8 0.545, utan vridning 0.545
+PROV: redigeraren analysen: slag ["s01 2.200 swing"], frågor ["1.100–2.300", "1.100–3.200"]
+PROV: redigeraren lederna: 336 rutor, 0 leder utanför rutan, 146 rutor där händerna lämnat rutan, höfterna x 135.000 px
+PROV: redigeraren utskurna rutan 135×240 från origo (0.0, 0.0), markören vid (0.630, 0.333) ljus 1.000, y speglat 0.545, nedanför 0.545
+PROV: redigeraren miniatyren 212×336, axlarna ["(0.699, 0.198)", "(0.557, 0.198)"]
+PROV: importens kvitto fps 240 good · Dropped 33% good · Frames 512 good · Clicks 2 good · MB/min 2 good · Length 0:03 good
+PROV: vägen import → analys: domar under analysen [0, 1, 2], steg [Capture.AnalysisStep.sparse(0), Capture.AnalysisStep.sparse(1), Capture.AnalysisStep.dense(0), Capture.AnalysisStep.clip(0)]
+PROV: kedjan avbruten: Shot 1 could not be analyzed: The operation couldn’t be completed. (SwingLabProv.ProvFel error 1.), steg [Capture.AnalysisStep.sparse(0), Capture.AnalysisStep.sparse(1)]
+PROV: kedjan klar: ["s01 swing 400 rutor klick i klipp 0.9996", "s02 swing 512 rutor klick i klipp 2.1996"], ms/ruta 1.0, linjerna vid t = -0.0079
+PROV: klipp längd 1.5000 s, 260 rutor, första 0.0, klick ["0.49956"], vita ["0.50000"], klicket mot väntat -0.44 ms, märkt false
+PROV: steg 7 klippets rutor: 260 i filen, 240 inom 0–1,5 s, sista 1.6166666666666667
+PROV: steg 7 läsningen: 240 rutor till anropet av 240 avkodade (240 i klippet), lagrad 480×270, orientering 6, upprätt 270×480
+PROV: steg 7 Vision i simulatorn: com.apple.Vision kod 9: Unable to setup request in VNDetectHumanBodyPoseRequest
+PROV: steg 7 analysen med Vision: Shot 1 could not be analyzed: Unable to setup request in VNDetectHumanBodyPoseRequest, domar ["-", "-"]
+PROV: Club i dtl: chippet klart (126 av 279 interpolerade), planet true, rader vid P6: ["skaft_plan_p6"]
+PROV: Club i fo: chippet klart (126 av 279 interpolerade), planet false, rader vid P6: ["skaft_arm_p6"]
+PROV: klubbhuvudets bana framifrån: 279 rutor, 126 interpolerade
+PROV: skrev klubba-bana-p6.png
+PROV: skrev klubba-bana-p10.png
+PROV: klubbhuvudets bana bakifrån: 279 rutor, 206 interpolerade
+PROV: skrev klubba-bana-dtl.png
+PROV: spårets rutor: markören 255 i CropRect(x: 0.7037037037037037, y: 0.08333333333333333, width: 0.2222222222222222, height: 0.16666666666666669), bakgrunden 128
+PROV: TreD 4 slag på 0.51 s i simulatorn, största avvikelse mot Python 5.981348749628523e-11°
+PROV: TreD egen bunt ett slag 55724 byte
+PROV: TreD passvyn kopplar inte till inspelningen eller fel partner; ett annat pass får nej (["pass"])
+PROV: TreD överföring 11 slag, bunten 607867 byte (55260 per slag) i 4 bitar, 2.1 s med ett tapp om 2 s
+PROV: TreD överföring utan tapp 0.03 s på loopback
+PROV: TreD på telefonens väg (2D-faserna och bunten) 10 slag på 1.28 s i simulatorn, största avvikelse mot Python 6.53e-11° per slag
+PROV: TreD tillbaka till följaren, tre_d.json 9096 byte
+PROV: granskningen P4 ["skaft_riktning_topp=gul", "brost_lyft_topp=gron", "huvud_mot_bollen_topp=ingen"]
+PROV: skrev band-granskning-p4.png (780×309 px)
+PROV: band-granskning-p4 bandets färger ["gron", "gul"]
+PROV: skrev band-granskning-p6-klubba.png (780×140 px)
+PROV: band-granskning-p6-klubba bandets färger ["rod"]
+PROV: band ["sway_topp=gron", "tempo=gron", "early_extension=rod/over", "tappad_hallning=rod/over", "backens_resa_framat=gul", "sway_gap=rod/under", "reverse_spine=gron", "chicken_wing=ingen", "over_the_top=gul", "bojd_framre_arm=ingen", "brost_bojning_adress_spridning=ingen", "brost_bojning_traff_spridning=ingen"]
+PROV: S4h FO ["sway_gap", "backens_resa_framat", "sway_topp", "tempo", "reverse_spine"] · fler ["chicken_wing", "bojd_framre_arm"]; DTL ["early_extension", "tappad_hallning", "over_the_top", "tempo"] · fler ["brost_bojning_adress_spridning", "brost_bojning_traff_spridning"]
+PROV: skrev band-passet-fo.png (780×2760 px)
+PROV: band-passet-fo bandets färger ["gron", "gul", "rod"]
+PROV: skrev band-passet-dtl.png (780×2365 px)
+PROV: band-passet-dtl bandets färger ["gron", "gul", "rod"]
+PROV: skrev passet-fler.png (780×3672 px)
+PROV: passet-fler bandets färger ["gron", "gul", "rod"]
+PROV: skrev passet-focus.png (780×2760 px)
+PROV: passet-focus bandets färger ["gron", "gul", "rod"]
+PROV: skrev band-nyckel.png (780×797 px)
+PROV: band-nyckel bandets färger ["gron", "gul", "rod"]
+PROV: driver ["sway_topp=gron", "tempo=gron", "early_extension=rod", "tappad_hallning=ingen", "backens_resa_framat=ingen", "sway_gap=ingen", "reverse_spine=gron", "chicken_wing=ingen", "over_the_top=gul", "bojd_framre_arm=ingen", "brost_bojning_adress_spridning=ingen", "brost_bojning_traff_spridning=ingen"]
+PROV: skrev band-passet-driver.png (780×1544 px)
+PROV: band-passet-driver bandets färger ["gron"]
+PROV: Ask Claude 10892 byte i urklippet, pass ["20261110-110000", "20261113-110000"]
+PROV: skrev claude-blad.png (1170×2639 px)
+PROV: Paste from Claude: Focus ["sway_topp"], accent ["sway_topp"]
+PROV: skrev claude-passet.png (780×6252 px)
+PROV: Claude-felet på enkel engelska: Claude's reply can't be used: the swing thought has digits. Ask Claude to try again.
+PROV: skrev claude-fel.png (1170×454 px)
+PROV: skrev claude-fel-detaljer.png (1170×509 px)
+PROV: ogiltigt svar: saker[0].ovning.tanke: no digits; fel pass: pass: is not this session
+PROV: skrev claude-blad-ersatt.png (1170×2729 px)
+PROV: en fil finns: Use frågar, Cancel sparar inget, Replace skriver över
+PROV: skrev claude-blad-aldre.png (1170×2722 px)
+PROV: ett äldre pass: sparat som att_jobba_pa-20261110-110000.json, Focus kvar 20261113-110000
+PROV: skrev insp-lead-andra-bild.png, färger ["gron", "rod"] (andra kulörer 0 av 329160)
+PROV: skrev insp-lead-andra-bild-varning.png, färger ["gron", "gul", "rod"] (andra kulörer 0 av 329160)
+PROV: skrev insp-lead-andra-bild-text.png, färger ["gron", "gul", "rod"] (andra kulörer 0 av 146380)
+PROV: skrev insp-lead-andra-bild-spelar-in.png, färger ["rod"] (andra kulörer 0 av 329160)
+PROV: skrev insp-lead-andra-bild-stor.png, färger [] (andra kulörer 0 av 329160)
+PROV: skrev insp-lead-andra-bild-stor-utan-linjer.png, färger [] (andra kulörer 0 av 329160)
+PROV: skrev insp-installningar-andra-bild.png (1170×1824 px)
+PROV: skrev granskning-fo.png (1170×2178 px)
+== den andra telefonens bild (S2k, METOD MS35)
+PROV: förhandsbild kodning median 7.7 ms, max 83.1 ms (simulatorn)
+PROV: förhandsbild 43 skickade på 4 s, 12.0 bilder/s hos Lead, fördröjning median 9 ms, 7.0 kB per bild (0.90 Mbit/s), högst 1 i flykt, 360×640 px
+PROV: förhandsbild pausad under inspelningen, 6 bilder/s varm, borta vid tappet och tillbaka
+== klubbmodellen (S7-2, BESLUT B96)
+PROV: klubbmodell klubba-small-hander-2026-10-27-fp16, 5 ritade bilder, Core ML på simulatorns CPU
+PROV: klubbmodell prov-01.png klubba PyTorch 0.951 Core ML 0.950, mitten 0.24 px
+PROV: klubbmodell prov-01.png klubbhuvud PyTorch 0.919 Core ML 0.919, mitten 0.15 px
+PROV: klubbmodell prov-02.png klubbhuvud PyTorch 0.880 Core ML 0.882, mitten 0.11 px
+PROV: klubbmodell prov-02.png klubba PyTorch 0.877 Core ML 0.877, mitten 0.03 px
+PROV: klubbmodell prov-03.png klubba PyTorch 0.920 Core ML 0.918, mitten 0.07 px
+PROV: klubbmodell prov-03.png klubbhuvud PyTorch 0.893 Core ML 0.894, mitten 0.12 px
+PROV: klubbmodell prov-03.png hander PyTorch 0.599 Core ML 0.598, mitten 0.05 px
+PROV: klubbmodell prov-04.png klubbhuvud PyTorch 0.897 Core ML 0.898, mitten 0.03 px
+PROV: klubbmodell prov-04.png klubba PyTorch 0.882 Core ML 0.881, mitten 0.15 px
+PROV: klubbmodell prov-05.png klubba PyTorch 0.910 Core ML 0.911, mitten 0.21 px
+PROV: klubbmodell prov-05.png klubbhuvud PyTorch 0.875 Core ML 0.877, mitten 0.06 px
+PROV: klubbmodell prov-05.png hander PyTorch 0.591 Core ML 0.580, mitten 0.06 px
+PROV: klubbmodell störst 0.24 px och 0.010 i konfidens; 484 ms per bild i median (simulatorn)
+
+== PC:n läser appens paket (tools/tests/test_appens_paket.py)
+GRÖNT: paket.py och session.py läste paketen som appen skrev
+PAKET: med-klipp klubba.json: 6 rutor lästa av markera_klubba.py och paket.py
+PAKET: utan-klipp klubba.json: 6 rutor lästa av markera_klubba.py och paket.py
+PAKET: s01 klippet avkodat med OpenCV: 352 rutor, sista vid 2.1917 s; telefonens längd 2.2000 s
+PAKET: s02 klippet avkodat med OpenCV: 432 rutor, sista vid 2.6917 s; telefonens längd 2.7000 s
+PAKET: med-klipp/swinglab-20261024-133012-fo.zip läst av paket.py: 2 slag, 2 klipp
+PAKET: utan-klipp lodlinjen [-0.0691, -0.9879, -0.1392] läst av paket.py
+PAKET: utan-klipp/swinglab-20261024-133012-fo.zip läst av paket.py: 2 slag, 0 klipp
+PAKET: med-klipp genom session.py: 2 slag mätta, 125 mått lika Swifts (största skillnad 2.1e-12), s01 sway i toppen -6.00 cm, s02 sway i toppen -4.00 cm
+PAKET: utan-klipp genom session.py: 2 slag mätta, 125 mått lika Swifts (största skillnad 2.1e-12), s01 sway i toppen -6.00 cm, s02 sway i toppen -4.00 cm
+PAKET: parat FO s01 klippet från den styrande avkodat: 1138 rutor, sista vid 4.7383 s, klicket i klippet 2.2495 s
+PAKET: parat FO s02 klippet från den styrande avkodat: 1560 rutor, sista vid 6.4967 s, klicket i klippet 4.0088 s
+PAKET: parat FO s03 klippet från den styrande avkodat: 1502 rutor, sista vid 6.2550 s, klicket i klippet 4.0085 s
+PAKET: parat swinglab-20261024-133012-dtl.zip (4 slag) och swinglab-20261024-133012-fo.zip (3 slag, 3 klipp) lästa av paket.py
