@@ -3364,6 +3364,17 @@ räknas som märkning (B71).
   kravet på 0,5 px. Arkivet för telefonen byggdes med modellen inkompilerad. Tiden var 329 ms per
   bild i median på simulatorns CPU. Det säger inget om telefonens Neural Engine, där tiden per
   slag mäts. **mätt.**
+- **Stroboskopet** (`formarkare.py strob`, 2026-10-27, Johannes idé efter ett klipp med
+  klubbhuvudets "plan"): klubbhuvudet ur varje ruta från P1 till P9 (Small med händer, utsnittet
+  kring händerna, konfidens ≥ 0,3) klistras in i grundbilden vid P1. Videon lägger på dem efter
+  hand och går 8 gånger långsammare. Bara pixlar i huvudets ruta (vidgad **0,25**) som skiljer
+  sig mer än **28** från både grundbilden och svingens medianbild (25 rutor) klistras in. Mot bara
+  grundbilden följde klubban i adressen och kroppen där den stod med bakifrån, som gräs- och
+  himmelsrutor. Ett huvud längre än **3** rutdiagonaler från båda grannarna, när de ligger
+  närmare varandra, tas bort: handsken i en ruta i s06. Provpasset: s06 framifrån 285 huvuden
+  av 303 rutor, s02 bakifrån 364 av 392. Ögat på bilderna visar en ren båge framifrån och
+  öglan i toppen bakifrån, med några mörka bitar vid händerna i nedsvingen bakifrån. Bara för
+  ögat, inget mått (B92). **antagande** (0,25, 28, 3), **mätt** (antalen).
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.

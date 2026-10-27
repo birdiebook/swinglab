@@ -372,6 +372,42 @@ class CoreML(unittest.TestCase):
                 FM.till_coreml(v, Path(tmp) / "ut", "int8", modell=self._Modell())
 
 
+class Stroboskopet(unittest.TestCase):
+    """Huvudet ur en ruta in i grundbilden (S7-2): bara det som skiljer sig, och inga ensamma hopp."""
+
+    @staticmethod
+    def _bilder():
+        bas = np.full((100, 100, 3), 120, np.uint8)
+        bas[60:70, 60:90] = 30                       # klubban i adressen, bara i grundbilden
+        median = np.full((100, 100, 3), 120, np.uint8)
+        ram = median.copy()
+        ram[20:30, 20:30] = 250                      # huvudet i rutan
+        ram[62:68, 62:88] = 120                      # där klubban stod syns gräset
+        return bas, median, ram
+
+    def test_bara_huvudet_klistras_in(self) -> None:
+        bas, median, ram = self._bilder()
+        lager = FM.strob_lager(ram, bas, [20, 20, 10, 10], median)
+        bild = bas.copy()
+        FM.strob_lagg(bild, lager)
+        self.assertEqual(bild[25, 25].tolist(), [250, 250, 250])
+        self.assertEqual(bild[15, 15].tolist(), [120, 120, 120])     # bakgrunden runt huvudet är orörd
+
+    def test_medianen_stoppar_halet_efter_adressen(self) -> None:
+        bas, median, ram = self._bilder()
+        box = [62, 62, 26, 6]                                          # en ruta över adressens klubba
+        utan = FM.strob_lager(ram, bas, box)
+        self.assertIsNotNone(utan)                                     # bara mot grundbilden: gräset följer med
+        self.assertIsNone(FM.strob_lager(ram, bas, box, median))       # mot medianen också: inget
+
+    def test_ensamt_hopp_tas_bort(self) -> None:
+        huvud = {n: [10.0 * n, 0.0, 8.0, 8.0] for n in range(6)}
+        huvud[3] = [10.0 * 3, 200.0, 8.0, 8.0]                         # handsken i en ruta
+        self.assertEqual(FM.strob_ensamma(huvud), {3})
+        snabb = {n: [40.0 * n, 0.0, 8.0, 8.0] for n in range(4)}       # snabba men jämna steg står kvar
+        self.assertEqual(FM.strob_ensamma(snabb), set())
+
+
 class Forslagsfilen(unittest.TestCase):
     """S7d:s format (METOD MF8, BESLUT B93): huvudets mitt, aldrig hoseln eller greppet."""
 

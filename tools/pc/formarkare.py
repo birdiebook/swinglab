@@ -12,6 +12,7 @@ Förslaget är aldrig facit: bara det Johannes klickat räknas som märkning (B7
     python tools/pc/formarkare.py matt <paket.zip> [fler] --vikter <vikter med händer> --ut ~/swinglab-s7/matt
     python tools/pc/formarkare.py coreml --vikter <vikter.pth> --ut ~/swinglab-s7/coreml   # till telefonen (S7-2)
     python tools/pc/formarkare.py release ~/swinglab-s7/coreml/<namn>.json --vikter <vikter.pth> --ut ~/swinglab-s7/release
+    python tools/pc/formarkare.py strob <paket.zip> --slag s06 --vikter <vikter med händer> --ut ~/swinglab-s7/strob
 
 `bygg` läser bara mappar i COCO-format (Roboflows export) och lägger varje bild i träning,
 val eller prov **per scen**: bilder vars miniatyrer nästan är lika (samma video, samma
@@ -1147,6 +1148,162 @@ def release(beskrivning: Path, vikter: Path, ut: Path, modell=None) -> dict:
             "prov": [{"fil": b["fil"], "rutor": len(b["detektioner"])} for b in bilder]}
 
 
+# ---------------------------------------------------------------------------- stroboskopet
+STROB_MARGINAL = 0.25    # huvudets ruta vidgas så mycket åt varje håll innan pixlarna jämförs
+STROB_SKILLNAD = 28      # en pixel är huvudets när någon färg skiljer mer än så (0–255)
+STROB_MEDIAN = 25        # rutor jämnt över svingen i medianbilden (bakgrunden utan klubban)
+STROB_HOPP = 3.0         # ett huvud längre bort än så många rutstorlekar från båda grannarna är ett fel
+
+
+def strob_ensamma(huvud: dict[int, list[float]], hopp: float = STROB_HOPP) -> set[int]:
+    """Rutorna vars huvud är ett ensamt hopp: längre än `hopp` × rutans diagonal från både
+    föregående och nästa huvud, medan de två ligger närmare varandra än så. Modellen tar ibland
+    handsken för huvudet i en enstaka ruta (provpassets s06, 2026-10-27)."""
+    nr = sorted(huvud)
+    mitt = {n: (huvud[n][0] + huvud[n][2] / 2, huvud[n][1] + huvud[n][3] / 2) for n in nr}
+    ut = set()
+    for a, b, c in zip(nr, nr[1:], nr[2:]):
+        g = hopp * math.hypot(huvud[b][2], huvud[b][3])
+        if math.dist(mitt[a], mitt[b]) > g and math.dist(mitt[b], mitt[c]) > g and math.dist(mitt[a], mitt[c]) < g:
+            ut.add(b)
+    return ut
+STROB_FPS = 30           # videons bilder per sekund: 240 bilder/s blir 8 gånger långsammare
+
+
+def strob_lager(ram: np.ndarray, bas: np.ndarray, box: list[float], median: np.ndarray | None = None,
+                marginal: float = STROB_MARGINAL, skillnad: int = STROB_SKILLNAD) -> tuple | None:
+    """Klubbhuvudet ur en ruta som ett lager att klistra in: (x0, y0, pixlar, mask). Rutan
+    `box` (x, y, b, h i bildens px) vidgas med `marginal`, och masken är pixlarna där rutan
+    skiljer sig både från grundbilden `bas` och från svingens medianbild `median` (samma kamera,
+    samma plats), rensad från enstaka pixlar. Bakgrunden följer alltså inte med, och inte heller
+    det som bara skiljer grundbilden från bakgrunden: klubban i adressen och kroppen där den
+    stod (bakifrån, 2026-10-27). None när inget skiljer sig."""
+    import cv2
+    h, w = bas.shape[:2]
+    x, y, b, hh = box
+    x0, y0 = max(0, int(x - marginal * b)), max(0, int(y - marginal * hh))
+    x1, y1 = min(w, int(x + b + marginal * b) + 1), min(h, int(y + hh + marginal * hh) + 1)
+    if x1 <= x0 or y1 <= y0:
+        return None
+    del_ram, del_bas = ram[y0:y1, x0:x1], bas[y0:y1, x0:x1]
+    def skiljer(a: np.ndarray) -> np.ndarray:
+        return np.abs(del_ram.astype(np.int16) - a.astype(np.int16)).max(axis=2) > skillnad
+    mask = skiljer(del_bas)
+    if median is not None:
+        mask &= skiljer(median[y0:y1, x0:x1])
+    mask = mask.astype(np.uint8)
+    k = np.ones((3, 3), np.uint8)
+    mask = cv2.dilate(cv2.morphologyEx(mask, cv2.MORPH_OPEN, k), k)
+    if not mask.any():
+        return None
+    return x0, y0, del_ram.copy(), mask.astype(bool)
+
+
+def strob_lagg(bild: np.ndarray, lager: tuple) -> None:
+    """Klistrar in ett lager (`strob_lager`) i bilden, på plats."""
+    x0, y0, pix, mask = lager
+    del_bild = bild[y0:y0 + pix.shape[0], x0:x0 + pix.shape[1]]
+    del_bild[mask] = pix[mask]
+
+
+def _h264(fil: Path) -> None:
+    """OpenCV:s mp4v spelas inte på alla telefoner: koda om till H.264 när ffmpeg finns."""
+    import shutil
+    import subprocess
+    if shutil.which("ffmpeg") is None:
+        return
+    tmp = fil.with_suffix(".h264.mp4")
+    r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(fil), "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                        "-crf", "20", "-movflags", "+faststart", str(tmp)], capture_output=True)
+    if r.returncode == 0 and tmp.is_file():
+        tmp.replace(fil)
+
+
+def strob(paket: Path, slag_id: str, vikter: Path, ut: Path, s3: Path | None = None, bas_lage: str = "P1",
+          steg: int = 1, video: bool = True) -> dict:
+    """Stroboskopet för ett slag: klubbhuvudet ur varje `steg`:e ruta från P1 till P9 (modellen
+    med utsnittet kring händerna, konfidens ≥ VISA_KONFIDENS) inklistrat i grundbilden vid
+    `bas_lage`. Skriver <ut>/<pass>-<slag>-strob.jpg och, med `video`, -strob.mp4 där huvudena
+    läggs på efter hand över klippets egna rutor. Bara för ögat, inget mått (B92). S7-2"""
+    import cv2
+    from . import analys as A
+    from . import klipp as KLP
+    from . import klubba_forslag as KF
+    from . import paket as P
+    from . import s3_facit as S3F
+    ut = utanfor_repot(ut)
+    ut.mkdir(parents=True, exist_ok=True)
+    p = P.las(paket)
+    s = next((x for x in p.slag if x.id == slag_id), None)
+    if s is None or not (s.klipp and s.lederna and s.klick_i_klipp_s is not None):
+        raise FormFel(f"{slag_id}: slaget saknas eller saknar klipp och leder")
+    rader = {r["id"]: r for r in A.mat_paket(p, p.langd_m or 1.8) if "positioner" in r}
+    pos = rader.get(slag_id, {}).get("positioner") or {}
+    till = pos.get("P9") if pos.get("P9") is not None else pos.get("P10")
+    if pos.get("P1") is None or till is None or pos.get(bas_lage) is None:
+        raise FormFel(f"{slag_id}: P1, P9 eller {bas_lage} saknas i analysen")
+    fsk = S3F.las_forskjutningar(p.pass_id, s3).get((p.fil, slag_id), 0.0)
+    lw, lh = s.lederna["width"], s.lederna["height"]
+    modell = ladda(vikter)
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(paket) as z:
+        klipp = Path(tmp) / f"{slag_id}{Path(s.klipp).suffix}"
+        klipp.write_bytes(P.las_ur_zip(z, p.fil, s.klipp))
+        rutor = _svingens_rutor(modell, klipp, s, fsk, [("P1", pos["P1"]), ("P9", till)], lw, lh)
+        huvud: dict[int, list[float]] = {}
+        for r in rutor[::max(1, steg)]:
+            kand = [d for d in r["rad"] if d["klass"] == "klubbhuvud" and d["konfidens"] >= KF.VISA_KONFIDENS]
+            if kand:
+                bx, by, bw, bh = max(kand, key=lambda d: d["konfidens"])["bbox"]
+                huvud[r["nr"]] = [bx + r["x0"], by + r["y0"], bw, bh]
+        for nr in strob_ensamma(huvud):
+            del huvud[nr]
+        bas_nr = min(rutor, key=lambda r: abs(r["t"] - pos[bas_lage]))["nr"]
+        forsta, sista = rutor[0]["nr"], rutor[-1]["nr"]
+        # Två varv i klippet, så att bara huvudenas lager ligger i minnet: grundbilden och
+        # medianbildens rutor, sedan rutorna en i taget.
+        valda = {forsta + round(i * (sista - forsta) / (STROB_MEDIAN - 1)) for i in range(STROB_MEDIAN)}
+        bas, prov = None, []
+        for nr, (_, b) in enumerate(KLP.ramar(klipp, lw, lh)):
+            if nr == bas_nr:
+                bas = b
+            if nr in valda:
+                prov.append(b)
+            if nr >= max(sista, bas_nr):
+                break
+        if bas is None:
+            raise FormFel(f"{slag_id}: grundbilden vid {bas_lage} gick inte att läsa")
+        median = np.median(np.stack(prov), axis=0).astype(np.uint8) if len(prov) >= 3 else None
+        del prov
+        namn = f"{p.pass_id}-{slag_id}-strob"
+        h, w = bas.shape[:2]
+        vw = cv2.VideoWriter(str(ut / f"{namn}.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), STROB_FPS, (w, h)) if video else None
+        lager: list = []
+        for nr, (_, ram) in enumerate(KLP.ramar(klipp, lw, lh)):
+            if nr > sista:
+                break
+            if nr < forsta:
+                continue
+            if nr in huvud:
+                l = strob_lager(ram, bas, huvud[nr], median)
+                if l is not None:
+                    lager.append(l)
+            if vw is not None:
+                b = ram.copy()
+                for l in lager:
+                    strob_lagg(b, l)
+                vw.write(cv2.cvtColor(b, cv2.COLOR_RGB2BGR))
+        bild = bas.copy()
+        for l in lager:
+            strob_lagg(bild, l)
+        cv2.imwrite(str(ut / f"{namn}.jpg"), cv2.cvtColor(bild, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 90])
+        svar = {"bild": str(ut / f"{namn}.jpg"), "rutor": len(rutor), "huvuden": len(lager), "bas": bas_lage}
+        if vw is not None:
+            vw.release()
+            svar["video"] = str(ut / f"{namn}.mp4")
+            _h264(ut / f"{namn}.mp4")
+    return svar
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="steg", required=True)
@@ -1182,6 +1339,15 @@ def main(argv=None) -> int:
     rl.add_argument("beskrivning", type=Path, help="<namn>.json bredvid Core ML-paketet (formarkare.py coreml)")
     rl.add_argument("--vikter", type=Path, required=True)
     rl.add_argument("--ut", type=Path, required=True)
+    st = sub.add_parser("strob")
+    st.add_argument("paket", type=Path)
+    st.add_argument("--slag", required=True, help="slagets id i paketet, t.ex. s06")
+    st.add_argument("--vikter", type=Path, required=True)
+    st.add_argument("--ut", type=Path, required=True)
+    st.add_argument("--s3", type=Path, help="S3:s s3.json (standard ~/swinglab-s3/<pass>/s3.json)")
+    st.add_argument("--bas", default="P1", help="grundbildens position (P1–P10)")
+    st.add_argument("--var", type=int, default=1, help="var n:e ruta")
+    st.add_argument("--utan-video", action="store_true")
     f = sub.add_parser("forslag")
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
@@ -1204,6 +1370,8 @@ def main(argv=None) -> int:
             r = till_coreml(a.vikter, a.ut, a.precision)
         elif a.steg == "release":
             r = release(a.beskrivning, a.vikter, a.ut)
+        elif a.steg == "strob":
+            r = strob(a.paket, a.slag, a.vikter, a.ut, a.s3, a.bas, a.var, not a.utan_video)
         elif a.steg == "facit":
             r = mot_markering(a.paket, a.markering, a.vikter)
         else:
