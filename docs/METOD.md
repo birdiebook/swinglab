@@ -3356,7 +3356,14 @@ räknas som märkning (B71).
   Efterbehandlingen (`ur_utdata`, SwingLabKits `KlubbModell.detektioner`) tar varje fråga och
   klass vars sigmoid når gränsen. Simulatorprovet (`SwingLabProvKlubbModell`) kräver att Core ML
   i appen ger varje provruta ≥ 0,3 med samma klass, mitten inom **0,5 px** (research 7, S7-2) och
-  konfidensen inom **0,02**. **antagande** (0,02), och mätt först när `kompilera` kört.
+  konfidensen inom **0,02**. **antagande** (0,02).
+- **Core ML i appen mot PyTorch** (`kompilera` 2026-10-27, release
+  `klubbmodell-small-hander-2026-10-27-fp16`, Xcode 26.6, iPhone 17 Pro-simulatorn med iOS 26.5,
+  bara CPU): alla 12 provrutor hittades med samma klass. Mitten låg högst **0,24 px** från
+  PyTorchs, och konfidensen skilde högst **0,010** (händerna 0,591 mot 0,580). FP16 håller alltså
+  kravet på 0,5 px. Arkivet för telefonen byggdes med modellen inkompilerad. Tiden var 329 ms per
+  bild i median på simulatorns CPU. Det säger inget om telefonens Neural Engine, där tiden per
+  slag mäts. **mätt.**
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.

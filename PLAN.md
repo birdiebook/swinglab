@@ -853,7 +853,8 @@ automatiskt inom 0,8° i median framifrån (p90 2,0°) och 2,1° bakifrån (MF7)
 **S7-2, modellen på telefonen (2026-10-27, samma gren):** RF-DETR Small med händer (mAP 0,544,
 29 av 29 rutor i oktober, MF7) blir Core ML i FP16 (55 MB) med `formarkare.py coreml`. Den förs
 till appen som en GitHub Release (B96: bara öppen data i träningen), och bygget hämtar den
-(`tools/hamta_klubbmodell.py`). Simulatorprovet jämför Core ML med PyTorch på ritade bilder.
+(`tools/hamta_klubbmodell.py`). I simulatorprovet ger Core ML samma rutor som PyTorch på
+ritade bilder, högst 0,24 px och 0,010 i konfidens från varandra (MF7).
 Kvar: utsnittet kring händerna, skaftet och P6 på telefonen, måtten med källraden "automatic"
 och tiden per slag på telefonen.
 
