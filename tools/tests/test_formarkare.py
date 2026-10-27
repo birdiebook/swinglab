@@ -301,6 +301,51 @@ class MattenUtanTryck(unittest.TestCase):
         self.assertEqual((s[0]["g"], s[0]["h"]), ((100.0, 100.0), (100.0, 400.0)))
 
 
+class CoreML(unittest.TestCase):
+    """Exporten till telefonen (S7-2): beskrivningen bredvid paketet och dataregeln."""
+
+    class _Modell:
+        class_names = ["klubba", "klubbhuvud", "hander"]
+
+        class model:
+            resolution = 512
+
+        def export(self, output_dir, output_name, **kw):
+            self.kw = kw
+            p = Path(output_dir) / f"{output_name}.mlpackage"
+            p.mkdir()
+            return p
+
+    def _vikter(self, tmp: Path) -> Path:
+        (tmp / "trana").mkdir()
+        (tmp / "trana" / "delning.json").write_text(json.dumps({"kallor": ["golf-club-tracking"]}))
+        v = tmp / "vikter-small-hander"
+        v.mkdir()
+        (v / "training_config.json").write_text(json.dumps({"dataset_dir": str(tmp / "trana")}))
+        (v / "modell.json").write_text(json.dumps({"storlek": "small"}))
+        (v / "best.pth").write_bytes(b"")
+        return v / "best.pth"
+
+    def test_beskrivningen(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self._Modell()
+            r = FM.till_coreml(self._vikter(Path(tmp)), Path(tmp) / "ut", modell=m)
+            b = json.loads(Path(r["beskrivning"]).read_text(encoding="utf-8"))
+            self.assertTrue(r["modell"].startswith("klubba-small-hander-") and r["modell"].endswith("-fp16"))
+            self.assertEqual((b["format"], b["klasser"], b["indata"]["form"]),
+                             (FM.COREML_FORMAT, ["klubba", "klubbhuvud", "hander"], [1, 3, 512, 512]))
+            self.assertEqual(b["data"][0]["licens"], "CC BY 4.0")         # namnangivelsen i appen (B92)
+            self.assertEqual((m.kw["format"], m.kw["coreml_precision"]), ("coreml", "float16"))
+
+    def test_repot_och_fel_precision_nekas(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            v = self._vikter(Path(tmp))
+            with self.assertRaises(FM.FormFel):
+                FM.till_coreml(v, REPO / "x", modell=self._Modell())
+            with self.assertRaises(FM.FormFel):
+                FM.till_coreml(v, Path(tmp) / "ut", "int8", modell=self._Modell())
+
+
 class Forslagsfilen(unittest.TestCase):
     """S7d:s format (METOD MF8, BESLUT B93): huvudets mitt, aldrig hoseln eller greppet."""
 

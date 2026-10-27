@@ -10,6 +10,7 @@ Förslaget är aldrig facit: bara det Johannes klickat räknas som märkning (B7
     python tools/pc/formarkare.py forslag <paket.zip> [fler] --vikter <vikter.pth> --ut ~/swinglab-s7/forslag
     python tools/pc/formarkare.py facit <paket.zip> [fler] --markering <klubba.json> --vikter <vikter.pth>
     python tools/pc/formarkare.py matt <paket.zip> [fler] --vikter <vikter med händer> --ut ~/swinglab-s7/matt
+    python tools/pc/formarkare.py coreml --vikter <vikter.pth> --ut ~/swinglab-s7/coreml   # till telefonen (S7-2)
 
 `bygg` läser bara mappar i COCO-format (Roboflows export) och lägger varje bild i träning,
 val eller prov **per scen**: bilder vars miniatyrer nästan är lika (samma video, samma
@@ -977,6 +978,36 @@ def matt_utan_tryck(paket_filer: list[Path], vikter: Path, ut: Path, s3: Path | 
     return sammanfattning
 
 
+# ---------------------------------------------------------------------------- till telefonen (S7-2)
+COREML_FORMAT = "swinglab-klubba-coreml/1"
+IMAGENET = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))   # RF-DETR:s normering, samma som i träningen
+
+
+def till_coreml(vikter: Path, ut: Path, precision: str = "float16", modell=None) -> dict:
+    """Vikterna som Core ML (`.mlpackage`, rfdetr:s egen export via torch.export och coremltools 9)
+    och en beskrivning bredvid (`<namn>.json`) som telefonen läser: indatans storlek och normering,
+    utdatans ordning och klasserna i logitordning. Utdatan är rutorna (1 × 300 × 4, cx, cy, b, h
+    normerade 0–1) och logits (1 × 300 × klasser + 1; logit i är `klasser[i]`, den sista används
+    inte). Konfidensen är logitens sigmoid. Kräver Linux (WSL2) eller macOS. METOD MF7, S7-2"""
+    if precision not in ("float16", "float32"):
+        raise FormFel(f"--precision: float16 eller float32, inte {precision}")
+    ut = utanfor_repot(ut)
+    ut.mkdir(parents=True, exist_ok=True)
+    version, data = modell_info(vikter)
+    modell = modell if modell is not None else ladda(vikter)
+    namn = f"klubba-{version}-{'fp16' if precision == 'float16' else 'fp32'}"
+    paket = modell.export(output_dir=str(ut), format="coreml", coreml_precision=precision,
+                          output_name=namn, verbose=False)
+    sida = int(modell.model.resolution)
+    beskr = {"format": COREML_FORMAT, "modell": namn, "precision": precision, "data": data,
+             "indata": {"form": [1, 3, sida, sida], "fargordning": "RGB", "skala": 1 / 255,
+                        "medel": list(IMAGENET[0]), "std": list(IMAGENET[1])},
+             "utdata": ["rutor", "logits"], "rutor": "cx, cy, b, h normerade 0-1",
+             "klasser": list(modell.class_names)}
+    (ut / f"{namn}.json").write_text(json.dumps(beskr, indent=1, ensure_ascii=False), encoding="utf-8")
+    return {"paket": str(paket), "beskrivning": str(ut / f"{namn}.json"), "modell": namn}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="steg", required=True)
@@ -1004,6 +1035,10 @@ def main(argv=None) -> int:
     ma.add_argument("--vikter", type=Path, required=True, help="en modell med händer")
     ma.add_argument("--ut", type=Path, required=True)
     ma.add_argument("--s3", type=Path, help="S3:s s3.json (standard ~/swinglab-s3/<pass>/s3.json)")
+    cm = sub.add_parser("coreml")
+    cm.add_argument("--vikter", type=Path, required=True)
+    cm.add_argument("--ut", type=Path, required=True)
+    cm.add_argument("--precision", default="float16", help="float16 (telefonen) eller float32")
     f = sub.add_parser("forslag")
     f.add_argument("paket", nargs="+", type=Path)
     f.add_argument("--vikter", type=Path, required=True)
@@ -1022,6 +1057,8 @@ def main(argv=None) -> int:
             r = prova(a.mapp, a.vikter)
         elif a.steg == "matt":
             r = matt_utan_tryck(a.paket, a.vikter, a.ut, a.s3)
+        elif a.steg == "coreml":
+            r = till_coreml(a.vikter, a.ut, a.precision)
         elif a.steg == "facit":
             r = mot_markering(a.paket, a.markering, a.vikter)
         else:

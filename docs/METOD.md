@@ -3340,6 +3340,16 @@ räknas som märkning (B71).
   40° i P8, där klubban går bakom kroppen) och i P6 bakifrån (8 ms, skaftet mot kameran).
   Small blir förmärkaren, eftersom den har säkrare huvud och händer och ingen grov miss i
   oktober; Nano finns kvar för en snabbare körning. **mätt** (n är litet: 51 och 29 rutor).
+- **Till telefonen** (`formarkare.py coreml`, S7-2, 2026-10-27): rfdetr 1.11:s egen export
+  (torch.export → coremltools 9.0, BSD-3) gör Small med händer till `.mlpackage` i FP16,
+  **55 MB** (FP32 110 MB), iOS 16 och senare, med en beskrivning bredvid
+  (`swinglab-klubba-coreml/1`). Indatan är 1 × 3 × 512 × 512 i RGB, skalad till 0–1 och
+  normerad med ImageNets medel och std. Utdatan är rutorna (cx, cy, b, h normerade) och logits
+  för 300 frågor. Logit i hör till klass i (klubba, klubbhuvud, händer), och den fjärde används
+  inte. Mot `predict` på tre provbilder ger en enkel skalning till 512 px och normeringen samma
+  konfidens (0,95 mot 0,95, 0,75 mot 0,74). Core ML körs inte i Linux, så jämförelsen med
+  PyTorch inom 0,5 px och tiden per slag kräver macOS eller telefonen. **räkning**, inte prövat
+  i Core ML.
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.
