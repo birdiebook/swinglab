@@ -172,6 +172,6 @@ enum KlubbStrobLasare {
         return CGImage(width: b.bredd, height: b.hojd, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: b.bredd * 4,
                        space: CGColorSpace(name: CGColorSpace.sRGB)!,
                        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-                       provider: data, decode: nil, shouldInterpolate: true, intent: .defaultRenderingIntent)
+                       provider: data, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
     }
 }
