@@ -3,8 +3,8 @@ import XCTest
 @testable import Capture
 
 // S7-2: stroboskopet (METOD MF7). Samma fall som Stroboskopet i tools/tests/test_formarkare.py
-// (BESLUT B12): bara huvudet klistras in, medianen stoppar hålet efter adressen, och ett ensamt
-// hopp tas bort. Utsnittet kring händerna som formarkare.utsnitt.
+// (BESLUT B12): bara huvudet klistras in, inte hålet efter adressen eller kroppen som flyttat sig,
+// och ett ensamt hopp tas bort. Utsnittet kring händerna som formarkare.utsnitt.
 
 final class KlubbStrobTests: XCTestCase {
     private static func fylld(_ v: UInt8, _ n: Int = 100) -> RGBABild {
@@ -15,33 +15,71 @@ final class KlubbStrobTests: XCTestCase {
         for yy in y { for xx in x { for c in 0..<3 { b.pixlar[(yy * b.bredd + xx) * 4 + c] = v } } }
     }
 
-    private static func bilder() -> (bas: RGBABild, median: RGBABild, ram: RGBABild) {
-        var bas = fylld(120)
-        malad(&bas, x: 60..<90, y: 60..<70, 30)          // klubban i adressen, bara i grundbilden
+    private static func bilder() -> (fore: RGBABild, efter: RGBABild, median: RGBABild, ram: RGBABild) {
+        var fore = fylld(120)
+        malad(&fore, x: 60..<90, y: 60..<70, 30)         // klubban i adressen, bara i rutan före
         let median = fylld(120)
         var ram = median
         malad(&ram, x: 20..<30, y: 20..<30, 250)         // huvudet i rutan
         malad(&ram, x: 62..<88, y: 62..<68, 120)         // där klubban stod syns gräset
-        return (bas, median, ram)
+        return (fore, median, median, ram)
     }
 
-    private static func lager(_ box: [Double], median: Bool) -> StrobLager? {
-        let (bas, med, ram) = bilder()
-        guard let r = KlubbStrob.ruta(box, bredd: 100, hojd: 100) else { return nil }
-        return KlubbStrob.lager(pixlar: KlubbStrob.del(ram, x0: r.x0, y0: r.y0, bredd: r.bredd, hojd: r.hojd),
-                                x0: r.x0, y0: r.y0, bredd: r.bredd, hojd: r.hojd, bas: bas, median: median ? med : nil)
+    private static func lager(_ ram: RGBABild, _ box: [Double], _ referenser: [RGBABild?]) -> StrobLager? {
+        guard let r = KlubbStrob.ruta(box, bredd: ram.bredd, hojd: ram.hojd) else { return nil }
+        func del(_ b: RGBABild) -> [UInt8] { KlubbStrob.del(b, x0: r.x0, y0: r.y0, bredd: r.bredd, hojd: r.hojd) }
+        return KlubbStrob.lager(pixlar: del(ram), x0: r.x0, y0: r.y0, bredd: r.bredd, hojd: r.hojd,
+                                referenser: referenser.map { $0.map(del) })
     }
 
     func testBaraHuvudetKlistrasIn() throws {
-        var bild = Self.bilder().bas
-        KlubbStrob.lagg(try XCTUnwrap(Self.lager([20, 20, 10, 10], median: true)), i: &bild)
+        let (fore, efter, median, ram) = Self.bilder()
+        var bild = fore
+        KlubbStrob.lagg(try XCTUnwrap(Self.lager(ram, [20, 20, 10, 10], [fore, efter, median])), i: &bild)
         XCTAssertEqual(Array(bild.pixlar[((25 * 100 + 25) * 4)..<((25 * 100 + 25) * 4 + 3)]), [250, 250, 250])
         XCTAssertEqual(Array(bild.pixlar[((15 * 100 + 15) * 4)..<((15 * 100 + 15) * 4 + 3)]), [120, 120, 120])
     }
 
-    func testMedianenStopparHaletEfterAdressen() {
-        XCTAssertNotNil(Self.lager([62, 62, 26, 6], median: false))   // bara mot grundbilden: gräset följer med
-        XCTAssertNil(Self.lager([62, 62, 26, 6], median: true))       // mot medianen också: inget
+    func testHaletEfterAdressenKlistrasInteIn() {
+        let (fore, efter, median, ram) = Self.bilder()
+        XCTAssertNotNil(Self.lager(ram, [62, 62, 26, 6], [fore]))                  // bara mot rutan före: gräset följer med
+        XCTAssertNil(Self.lager(ram, [62, 62, 26, 6], [fore, efter, median]))      // skiljer sig bara från en av tre
+    }
+
+    func testKroppenSomFlyttatSigKlistrasInteIn() {
+        // Himlen där axeln stod vid adressen (appen, 2026-10-28): bara medianen har jackan.
+        let himmel = Self.fylld(200)
+        var jacka = himmel
+        Self.malad(&jacka, x: 40..<80, y: 40..<80, 20)
+        XCTAssertNil(Self.lager(himmel, [50, 50, 10, 10], [himmel, himmel, jacka]))
+        XCTAssertNotNil(Self.lager(himmel, [50, 50, 10, 10], [nil, nil, jacka]))
+    }
+
+    func testHuvudetOverSkaftetStarKvar() throws {
+        let b = Self.bilder()
+        var fore = b.fore
+        Self.malad(&fore, x: 24..<26, y: 20..<30, 250)    // skaftet genom huvudets plats i rutan före
+        let l = try XCTUnwrap(Self.lager(b.ram, [20, 20, 10, 10], [fore, b.efter, b.median]))
+        XCTAssertTrue(l.mask[(25 - l.y0) * l.bredd + (25 - l.x0)])
+    }
+
+    func testDelenUrMedianbildenIHalvUpplosning() {
+        var halv = Self.fylld(0, 4)
+        Self.malad(&halv, x: 1..<2, y: 2..<3, 99)                          // pixeln (1, 2) i halv upplösning
+        let d = KlubbStrob.del(halv, x0: 2, y0: 4, bredd: 2, hojd: 2, skala: 0.5)
+        XCTAssertEqual([d[0], d[4], d[8], d[12]], [99, 99, 99, 99])        // (2…3, 4…5) i hel är (1, 2) i halv
+        XCTAssertEqual(KlubbStrob.del(halv, x0: 6, y0: 6, bredd: 4, hojd: 4, skala: 0.5).count, 64)   // utanför: kanten
+    }
+
+    func testGrannarnaArRutornaDarHuvudetVarNagonAnnanstans() {
+        let huvud: [Int: [Double]] = [0: [0, 0, 10, 10], 1: [4, 0, 10, 10], 2: [8, 0, 10, 10], 3: [30, 0, 10, 10],
+                                      4: [60, 0, 10, 10]]
+        let g = KlubbStrob.grannar(huvud, bredd: 100, hojd: 100)
+        XCTAssertEqual(g[0]?.fore, nil)
+        XCTAssertEqual(g[0]?.efter, 3)
+        XCTAssertEqual(g[3]?.fore, 2)
+        XCTAssertEqual(g[3]?.efter, 4)
+        XCTAssertEqual(g[4]?.efter, nil)
     }
 
     func testEnsamtHoppTasBort() {

@@ -857,7 +857,8 @@ till appen som en GitHub Release (B96: bara öppen data i träningen), och bygge
 ritade bilder, högst 0,24 px och 0,010 i konfidens från varandra (MF7).
 Stroboskopet visar detektionen: klubbhuvudet ur varje ruta i en bild, på PC:n
 (`formarkare.py strob`, också video) och i appen ("Club trail" i granskningens meny, per slag,
-MF7). Kvar: skaftet och P6 på telefonen, måtten med källraden "automatic", och tiden per slag
+som film i loop och bild, MF7). Lagren jämförs med rutorna före och efter där huvudet var någon
+annanstans, så att kroppen som flyttat sig inte följer med (2026-10-28). Kvar: skaftet och P6 på telefonen, måtten med källraden "automatic", och tiden per slag
 och stroboskopet på riktiga klipp på telefonen.
 
 En detektor för grepp, skaft och klubbhuvud, tränad på PC:n på egna rutor

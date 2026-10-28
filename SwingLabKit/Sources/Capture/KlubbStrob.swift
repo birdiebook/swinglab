@@ -1,7 +1,7 @@
 import Foundation
 
 // Stroboskopet (PLAN S7-2, METOD MF7): klubbhuvudet ur varje ruta från P1 till P9 inklistrat i
-// grundbilden, så att detektionen syns. Samma utsnitt, lager, medianbild och filter som
+// grundbilden, så att detektionen syns. Samma utsnitt, grannar, lager, medianbild och filter som
 // `strob` i tools/pc/formarkare.py (BESLUT B12). Bara för ögat, inget mått (B92). Appen läser
 // rutorna och kör modellen (App/KlubbStrobLasare.swift); här finns det som går att pröva utan Mac.
 
@@ -29,8 +29,10 @@ public struct StrobLager: Equatable, Sendable {
 public enum KlubbStrob {
     /// Huvudets ruta vidgas så mycket åt varje håll innan pixlarna jämförs. METOD MF7
     public static let marginal = 0.25
-    /// En pixel är huvudets när någon färg skiljer mer än så (0–255). METOD MF7
+    /// En pixel skiljer sig när någon färg skiljer mer än så (0–255). METOD MF7
     public static let skillnad = 28
+    /// En pixel är huvudets när den skiljer sig från så många referenser (före, efter, medianen). METOD MF7
+    public static let roster = 2
     /// Rutor jämnt över svingen i medianbilden. METOD MF7
     public static let medianRutor = 25
     /// Ett huvud längre bort än så många rutdiagonaler från båda grannarna är ett fel. METOD MF7
@@ -133,22 +135,59 @@ public enum KlubbStrob {
         return ut
     }
 
-    /// Huvudet ur en ruta som ett lager: pixlarna i delen (x0, y0, bredd, höjd) som skiljer sig
-    /// mer än `skillnad` både från grundbilden och från medianbilden, rensade från enstaka pixlar
-    /// (öppning och vidgning med 3 × 3, som OpenCV). nil när inget skiljer sig. Som `strob_lager`.
-    public static func lager(pixlar: [UInt8], x0: Int, y0: Int, bredd: Int, hojd: Int, bas: RGBABild,
-                             median: RGBABild?, skillnad: Int = skillnad) -> StrobLager? {
-        var mask = [Bool](repeating: false, count: bredd * hojd)
+    /// För varje huvud den närmaste rutan (nyckeln) före och efter vars huvud, vidgat med
+    /// `marginal`, inte når huvudets vidgade ruta. Där syns det som låg bakom huvudet, med kroppen
+    /// nästan där den står i rutan. Som `strob_grannar` i formarkare.py.
+    public static func grannar(_ huvud: [Int: [Double]], bredd: Int, hojd: Int, marginal: Double = marginal)
+        -> [Int: (fore: Int?, efter: Int?)] {
+        var rutor: [Int: (x0: Int, y0: Int, bredd: Int, hojd: Int)] = [:]
+        for (n, b) in huvud { rutor[n] = ruta(b, bredd: bredd, hojd: hojd, marginal: marginal) }
+        let nr = rutor.keys.sorted()
+        func fri(_ a: Int, _ b: Int) -> Bool {
+            let p = rutor[a]!, q = rutor[b]!
+            return p.x0 + p.bredd <= q.x0 || q.x0 + q.bredd <= p.x0 || p.y0 + p.hojd <= q.y0 || q.y0 + q.hojd <= p.y0
+        }
+        var ut: [Int: (fore: Int?, efter: Int?)] = [:]
+        for (i, n) in nr.enumerated() {
+            ut[n] = (nr[..<i].reversed().first { fri($0, n) }, nr[(i + 1)...].first { fri($0, n) })
+        }
+        return ut
+    }
+
+    /// En del av bilden i en större bilds px: bilden `b` är `skala` gånger den större (appens
+    /// medianbild i halv upplösning), och varje pixel tar närmaste pixel nedåt.
+    public static func del(_ b: RGBABild, x0: Int, y0: Int, bredd: Int, hojd: Int, skala: Double) -> [UInt8] {
+        var ut = [UInt8](repeating: 0, count: bredd * hojd * 4)
         for y in 0..<hojd {
+            let yy = min(b.hojd - 1, max(0, Int(Double(y0 + y) * skala)))
             for x in 0..<bredd {
-                let i = (y * bredd + x) * 4
-                let j = ((y0 + y) * bas.bredd + x0 + x) * 4
-                func skiljer(_ a: [UInt8]) -> Bool {
-                    max(abs(Int(pixlar[i]) - Int(a[j])), abs(Int(pixlar[i + 1]) - Int(a[j + 1])),
-                        abs(Int(pixlar[i + 2]) - Int(a[j + 2]))) > skillnad
-                }
-                mask[y * bredd + x] = skiljer(bas.pixlar) && (median.map { skiljer($0.pixlar) } ?? true)
+                let xx = min(b.bredd - 1, max(0, Int(Double(x0 + x) * skala)))
+                let i = (y * bredd + x) * 4, j = (yy * b.bredd + xx) * 4
+                ut[i] = b.pixlar[j]; ut[i + 1] = b.pixlar[j + 1]; ut[i + 2] = b.pixlar[j + 2]; ut[i + 3] = b.pixlar[j + 3]
             }
+        }
+        return ut
+    }
+
+    /// Huvudet ur en ruta som ett lager: pixlarna i delen (x0, y0, bredd, höjd) som skiljer sig
+    /// mer än `skillnad` från minst `roster` av referenserna, samma del av rutan före och efter
+    /// där huvudet var någon annanstans (`grannar`) och av medianbilden; med färre referenser
+    /// krävs alla. Rensade från enstaka pixlar (öppning och vidgning med 3 × 3, som OpenCV). nil
+    /// utan referenser eller när inget skiljer sig. Som `strob_lager`.
+    public static func lager(pixlar: [UInt8], x0: Int, y0: Int, bredd: Int, hojd: Int, referenser: [[UInt8]?],
+                             skillnad: Int = skillnad, roster: Int = roster) -> StrobLager? {
+        let ref = referenser.compactMap { $0 }.filter { $0.count == pixlar.count }
+        guard !ref.isEmpty else { return nil }
+        let krav = min(roster, ref.count)
+        var mask = [Bool](repeating: false, count: bredd * hojd)
+        for p in mask.indices {
+            let i = p * 4
+            var r = 0
+            for a in ref where max(abs(Int(pixlar[i]) - Int(a[i])), abs(Int(pixlar[i + 1]) - Int(a[i + 1])),
+                                   abs(Int(pixlar[i + 2]) - Int(a[i + 2]))) > skillnad {
+                r += 1
+            }
+            mask[p] = r >= krav
         }
         mask = vidga(vidga(krymp(mask, bredd, hojd), bredd, hojd), bredd, hojd)
         guard mask.contains(true) else { return nil }

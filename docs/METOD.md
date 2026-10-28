@@ -3368,21 +3368,35 @@ räknas som märkning (B71).
   klubbhuvudets "plan"): klubbhuvudet ur varje ruta från P1 till P9 (Small med händer, utsnittet
   kring händerna, konfidens ≥ 0,3) klistras in i grundbilden vid P1. Videon lägger på dem efter
   hand och går 8 gånger långsammare. Bara pixlar i huvudets ruta (vidgad **0,25**) som skiljer
-  sig mer än **28** från både grundbilden och svingens medianbild (25 rutor) klistras in. Mot bara
-  grundbilden följde klubban i adressen och kroppen där den stod med bakifrån, som gräs- och
-  himmelsrutor. Ett huvud längre än **3** rutdiagonaler från båda grannarna, när de ligger
-  närmare varandra, tas bort: handsken i en ruta i s06. Provpasset: s06 framifrån 285 huvuden
-  av 303 rutor, s02 bakifrån 364 av 392. Ögat på bilderna visar en ren båge framifrån och
-  öglan i toppen bakifrån, med några mörka bitar vid händerna i nedsvingen bakifrån. Bara för
-  ögat, inget mått (B92). **antagande** (0,25, 28, 3), **mätt** (antalen).
+  sig mer än **28** från minst **2** av tre referenser klistras in: samma del av rutan före och
+  rutan efter där huvudet (vidgat) var någon annanstans (`strob_grannar`), och svingens
+  medianbild (25 rutor); med färre referenser krävs alla. Ett huvud längre än **3**
+  rutdiagonaler från båda grannarna, när de ligger närmare varandra, tas bort: handsken i en
+  ruta i s06. Provpasset (2026-10-27, då mot grundbilden och medianen): s06 framifrån 285
+  huvuden av 303 rutor, s02 bakifrån 364 av 392. Ögat visade en ren båge framifrån och öglan i
+  toppen bakifrån, med några mörka bitar vid händerna i nedsvingen bakifrån. Bara för ögat,
+  inget mått (B92). **antagande** (0,25, 28, 2, 3), **mätt** (antalen).
+- **Grannarna i stället för grundbilden** (2026-10-28, Johannes bild från appen bakifrån: "den
+  fångade inte klubban korrekt genom svingen"). Mot grundbilden och medianen följde kroppen med
+  där den flyttat sig sedan adressen: himmel i rutor på jackan där axeln stod vid P1 (medianen
+  har jackan, rutan har himlen), och bitarna vid händerna ovan. Rutorna före och efter visar vad
+  som låg bakom huvudet med kroppen nästan där den står, i nedsvingen en eller två rutor bort;
+  medianen är den tredje rösten, så att skaftet som just passerat (bara i en granne) inte
+  skär hål i huvudet. Fallen (himlen på jackan, hålet efter adressen, skaftet genom huvudet) i
+  båda språken (B12). **Oprövat** på riktiga klipp: PC:n på provpasset och appen på telefonen.
 - **Stroboskopet i appen** (S7-2, Johannes 2026-10-27: "välja att testa det, inte på alla
   slag"): "Club trail" i granskningens meny, bara när bygget har modellen och slaget har P1.
-  Det räknas först då och bara för det slaget, och bilden sparas inte i passet men går att dela.
-  `KlubbStrobLasare` läser rutorna från P1 till P9 en gång, upprätta i **halv** upplösning
-  (540 × 960, minnet), och skär ut kring händerna som PC:n. SwingLabKits `KlubbStrob` gör
-  kroppens höjd, utsnittet, lagren, medianbilden och filtret med samma fall som Python (B12).
-  Simulatorprovet prövar utsnittets koordinater (CoreGraphics räknar nerifrån) på provets
-  ritade bilder. Oprövat på telefonen: tiden per slag och bilden på riktiga klipp.
+  Det räknas först då och bara för det slaget, och sparas inte i passet men går att dela.
+  `KlubbStrobLasare` läser rutorna från P1 till P9 i **full** upplösning i tre varv: huvudena
+  (utsnittet kring händerna som PC:n), lagren mot grannarna, och filmen (H.264, 30 bilder/s,
+  i appens tillfälliga mapp), som visas i loop med bilden som val bredvid (Johannes
+  2026-10-28: "vill se det som film"). Bara medianbilden är i **halv** upplösning (25 rutor,
+  minnet), och dess del läses med närmaste pixel (`KlubbStrob.del(skala:)`). Den första
+  versionen räknade allt i halv upplösning, så huvudena blev grova rutor i bilden.
+  SwingLabKits `KlubbStrob` gör kroppens höjd, utsnittet, grannarna, lagren, medianbilden och
+  filtret med samma fall som Python (B12). Simulatorprovet prövar utsnittets koordinater
+  (CoreGraphics räknar nerifrån) på provets ritade bilder. Oprövat på telefonen: tiden per
+  slag, filmen och bilden på riktiga klipp.
 - **Nästa:** en spärr för skaftets längd mot adressens bakifrån (som M61:s radie), greppet in i
   förslagsfilen (`grepp`, kräver ett beslut: MF8 väntade på punktmodellen) och modellen tränad på
   Johannes märkta rutor, bakifrån först.

@@ -123,6 +123,8 @@ INTE_TEXT = {
     "gearshape", "exclamationmark.triangle",
     # Den andra telefonens bild (S2k, BESLUT B90): stängknappens symbol och kön.
     "xmark", "swinglab.forhandsbild",
+    # Stroboskopets film (S7-2): filnamnet i den tillfälliga mappen.
+    "club-trail-\\(…).mp4",
 }
 
 

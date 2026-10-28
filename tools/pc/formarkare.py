@@ -1150,8 +1150,9 @@ def release(beskrivning: Path, vikter: Path, ut: Path, modell=None) -> dict:
 
 # ---------------------------------------------------------------------------- stroboskopet
 STROB_MARGINAL = 0.25    # huvudets ruta vidgas så mycket åt varje håll innan pixlarna jämförs
-STROB_SKILLNAD = 28      # en pixel är huvudets när någon färg skiljer mer än så (0–255)
+STROB_SKILLNAD = 28      # en pixel skiljer sig när någon färg skiljer mer än så (0–255)
 STROB_MEDIAN = 25        # rutor jämnt över svingen i medianbilden (bakgrunden utan klubban)
+STROB_ROSTER = 2         # en pixel är huvudets när den skiljer sig från så många referenser (före, efter, medianen)
 STROB_HOPP = 3.0         # ett huvud längre bort än så många rutstorlekar från båda grannarna är ett fel
 
 
@@ -1170,28 +1171,57 @@ def strob_ensamma(huvud: dict[int, list[float]], hopp: float = STROB_HOPP) -> se
 STROB_FPS = 30           # videons bilder per sekund: 240 bilder/s blir 8 gånger långsammare
 
 
-def strob_lager(ram: np.ndarray, bas: np.ndarray, box: list[float], median: np.ndarray | None = None,
-                marginal: float = STROB_MARGINAL, skillnad: int = STROB_SKILLNAD) -> tuple | None:
-    """Klubbhuvudet ur en ruta som ett lager att klistra in: (x0, y0, pixlar, mask). Rutan
-    `box` (x, y, b, h i bildens px) vidgas med `marginal`, och masken är pixlarna där rutan
-    skiljer sig både från grundbilden `bas` och från svingens medianbild `median` (samma kamera,
-    samma plats), rensad från enstaka pixlar. Bakgrunden följer alltså inte med, och inte heller
-    det som bara skiljer grundbilden från bakgrunden: klubban i adressen och kroppen där den
-    stod (bakifrån, 2026-10-27). None när inget skiljer sig."""
-    import cv2
-    h, w = bas.shape[:2]
+def strob_ruta(box: list[float], bredd: int, hojd: int, marginal: float = STROB_MARGINAL) -> tuple | None:
+    """Huvudets ruta `box` (x, y, b, h i bildens px) vidgad med `marginal`, som (x0, y0, x1, y1)
+    inom bilden; None när inget blir kvar."""
     x, y, b, hh = box
     x0, y0 = max(0, int(x - marginal * b)), max(0, int(y - marginal * hh))
-    x1, y1 = min(w, int(x + b + marginal * b) + 1), min(h, int(y + hh + marginal * hh) + 1)
-    if x1 <= x0 or y1 <= y0:
+    x1, y1 = min(bredd, int(x + b + marginal * b) + 1), min(hojd, int(y + hh + marginal * hh) + 1)
+    return None if x1 <= x0 or y1 <= y0 else (x0, y0, x1, y1)
+
+
+def strob_grannar(huvud: dict[int, list[float]], bredd: int, hojd: int,
+                  marginal: float = STROB_MARGINAL) -> dict[int, tuple[int | None, int | None]]:
+    """För varje huvud den närmaste rutan före och efter vars huvud (vidgat) inte når huvudets
+    vidgade ruta. Där syns det som låg bakom huvudet, med kroppen nästan där den står i rutan:
+    i nedsvingen en eller två rutor bort. Mot bara grundbilden och medianen följde de delar av
+    kroppen med som hade flyttat sig sedan adressen, som himmel på jackan (appen, 2026-10-28)."""
+    rutor = {n: strob_ruta(b, bredd, hojd, marginal) for n, b in huvud.items()}
+    nr = sorted(n for n, r in rutor.items() if r is not None)
+
+    def fri(a: tuple, b: tuple) -> bool:
+        return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+
+    ut = {}
+    for i, n in enumerate(nr):
+        fore = next((m for m in reversed(nr[:i]) if fri(rutor[m], rutor[n])), None)
+        efter = next((m for m in nr[i + 1:] if fri(rutor[m], rutor[n])), None)
+        ut[n] = (fore, efter)
+    return ut
+
+
+def strob_lager(ram: np.ndarray, box: list[float], referenser: list[np.ndarray | None],
+                marginal: float = STROB_MARGINAL, skillnad: int = STROB_SKILLNAD,
+                roster: int = STROB_ROSTER) -> tuple | None:
+    """Klubbhuvudet ur en ruta som ett lager att klistra in: (x0, y0, pixlar, mask). Rutan
+    `box` (x, y, b, h i bildens px) vidgas med `marginal`, och masken är pixlarna där rutan
+    skiljer sig från minst `roster` av referenserna (hela bilder, samma kamera och plats): rutan
+    före och rutan efter där huvudet var någon annanstans (`strob_grannar`), och svingens
+    medianbild. Med färre referenser än `roster` krävs alla. Det som bara skiljer sig från
+    en referens följer alltså inte med: kroppen som flyttat sig (bara medianen), klubban i
+    adressen och skaftet som just passerat (bara grannen). Rensad från enstaka pixlar.
+    None utan referenser eller när inget skiljer sig."""
+    import cv2
+    h, w = ram.shape[:2]
+    r = strob_ruta(box, w, h, marginal)
+    ref = [a for a in referenser if a is not None]
+    if r is None or not ref:
         return None
-    del_ram, del_bas = ram[y0:y1, x0:x1], bas[y0:y1, x0:x1]
-    def skiljer(a: np.ndarray) -> np.ndarray:
-        return np.abs(del_ram.astype(np.int16) - a.astype(np.int16)).max(axis=2) > skillnad
-    mask = skiljer(del_bas)
-    if median is not None:
-        mask &= skiljer(median[y0:y1, x0:x1])
-    mask = mask.astype(np.uint8)
+    x0, y0, x1, y1 = r
+    del_ram = ram[y0:y1, x0:x1]
+    roster_i = sum((np.abs(del_ram.astype(np.int16) - a[y0:y1, x0:x1].astype(np.int16)).max(axis=2) > skillnad)
+                   .astype(np.uint8) for a in ref)
+    mask = (roster_i >= min(roster, len(ref))).astype(np.uint8)
     k = np.ones((3, 3), np.uint8)
     mask = cv2.dilate(cv2.morphologyEx(mask, cv2.MORPH_OPEN, k), k)
     if not mask.any():
@@ -1259,8 +1289,8 @@ def strob(paket: Path, slag_id: str, vikter: Path, ut: Path, s3: Path | None = N
             del huvud[nr]
         bas_nr = min(rutor, key=lambda r: abs(r["t"] - pos[bas_lage]))["nr"]
         forsta, sista = rutor[0]["nr"], rutor[-1]["nr"]
-        # Två varv i klippet, så att bara huvudenas lager ligger i minnet: grundbilden och
-        # medianbildens rutor, sedan rutorna en i taget.
+        # Flera varv i klippet, så att inte svingen ligger i minnet: grundbilden och medianbildens
+        # rutor, sedan lagren och sist videon.
         valda = {forsta + round(i * (sista - forsta) / (STROB_MEDIAN - 1)) for i in range(STROB_MEDIAN)}
         bas, prov = None, []
         for nr, (_, b) in enumerate(KLP.ramar(klipp, lw, lh)):
@@ -1276,28 +1306,47 @@ def strob(paket: Path, slag_id: str, vikter: Path, ut: Path, s3: Path | None = N
         del prov
         namn = f"{p.pass_id}-{slag_id}-strob"
         h, w = bas.shape[:2]
-        vw = cv2.VideoWriter(str(ut / f"{namn}.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), STROB_FPS, (w, h)) if video else None
-        lager: list = []
+        # Lagren: varje huvud mot rutorna före och efter där huvudet var någon annanstans. En ruta
+        # hålls bara tills de huvuden som behöver den har sina tre rutor.
+        grannar = strob_grannar(huvud, w, h)
+        behov: dict[int, list[int]] = {}
+        for k, (fo, ef) in grannar.items():
+            for n in (k, fo, ef):
+                if n is not None:
+                    behov.setdefault(n, []).append(k)
+        delar: dict[int, dict] = {k: {} for k in grannar}
+        lager: dict[int, tuple] = {}
         for nr, (_, ram) in enumerate(KLP.ramar(klipp, lw, lh)):
             if nr > sista:
                 break
-            if nr < forsta:
-                continue
-            if nr in huvud:
-                l = strob_lager(ram, bas, huvud[nr], median)
+            for k in behov.get(nr, []):
+                delar[k][nr] = ram
+            for k in [k for k in behov.get(nr, []) if len(delar[k]) == len({k, *grannar[k]} - {None})]:
+                fo, ef = grannar[k]
+                l = strob_lager(delar[k][k], huvud[k], [delar[k].get(fo), delar[k].get(ef), median])
                 if l is not None:
-                    lager.append(l)
-            if vw is not None:
+                    lager[k] = l
+                del delar[k]
+        if video:
+            vw = cv2.VideoWriter(str(ut / f"{namn}.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), STROB_FPS, (w, h))
+            pa: list = []
+            for nr, (_, ram) in enumerate(KLP.ramar(klipp, lw, lh)):
+                if nr > sista:
+                    break
+                if nr < forsta:
+                    continue
+                if nr in lager:
+                    pa.append(lager[nr])
                 b = ram.copy()
-                for l in lager:
+                for l in pa:
                     strob_lagg(b, l)
                 vw.write(cv2.cvtColor(b, cv2.COLOR_RGB2BGR))
         bild = bas.copy()
-        for l in lager:
-            strob_lagg(bild, l)
+        for k in sorted(lager):
+            strob_lagg(bild, lager[k])
         cv2.imwrite(str(ut / f"{namn}.jpg"), cv2.cvtColor(bild, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 90])
         svar = {"bild": str(ut / f"{namn}.jpg"), "rutor": len(rutor), "huvuden": len(lager), "bas": bas_lage}
-        if vw is not None:
+        if video:
             vw.release()
             svar["video"] = str(ut / f"{namn}.mp4")
             _h264(ut / f"{namn}.mp4")

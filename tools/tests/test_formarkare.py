@@ -373,32 +373,57 @@ class CoreML(unittest.TestCase):
 
 
 class Stroboskopet(unittest.TestCase):
-    """Huvudet ur en ruta in i grundbilden (S7-2): bara det som skiljer sig, och inga ensamma hopp."""
+    """Huvudet ur en ruta in i grundbilden (S7-2): bara det som skiljer sig från rutorna före och
+    efter och från medianen, och inga ensamma hopp."""
 
     @staticmethod
     def _bilder():
-        bas = np.full((100, 100, 3), 120, np.uint8)
-        bas[60:70, 60:90] = 30                       # klubban i adressen, bara i grundbilden
+        fore = np.full((100, 100, 3), 120, np.uint8)
+        fore[60:70, 60:90] = 30                      # klubban i adressen, bara i rutan före
         median = np.full((100, 100, 3), 120, np.uint8)
         ram = median.copy()
         ram[20:30, 20:30] = 250                      # huvudet i rutan
         ram[62:68, 62:88] = 120                      # där klubban stod syns gräset
-        return bas, median, ram
+        efter = median.copy()
+        return fore, efter, median, ram
 
     def test_bara_huvudet_klistras_in(self) -> None:
-        bas, median, ram = self._bilder()
-        lager = FM.strob_lager(ram, bas, [20, 20, 10, 10], median)
-        bild = bas.copy()
+        fore, efter, median, ram = self._bilder()
+        lager = FM.strob_lager(ram, [20, 20, 10, 10], [fore, efter, median])
+        bild = fore.copy()
         FM.strob_lagg(bild, lager)
         self.assertEqual(bild[25, 25].tolist(), [250, 250, 250])
         self.assertEqual(bild[15, 15].tolist(), [120, 120, 120])     # bakgrunden runt huvudet är orörd
 
-    def test_medianen_stoppar_halet_efter_adressen(self) -> None:
-        bas, median, ram = self._bilder()
+    def test_halet_efter_adressen_klistras_inte_in(self) -> None:
+        fore, efter, median, ram = self._bilder()
         box = [62, 62, 26, 6]                                          # en ruta över adressens klubba
-        utan = FM.strob_lager(ram, bas, box)
-        self.assertIsNotNone(utan)                                     # bara mot grundbilden: gräset följer med
-        self.assertIsNone(FM.strob_lager(ram, bas, box, median))       # mot medianen också: inget
+        self.assertIsNotNone(FM.strob_lager(ram, box, [fore]))         # bara mot rutan före: gräset följer med
+        self.assertIsNone(FM.strob_lager(ram, box, [fore, efter, median]))   # skiljer sig bara från en av tre
+
+    def test_kroppen_som_flyttat_sig_klistras_inte_in(self) -> None:
+        """Himlen där axeln stod vid adressen (appen, 2026-10-28): medianen har jackan, rutorna
+        före och efter har redan himlen. Bara en av tre röster."""
+        himmel = np.full((100, 100, 3), 200, np.uint8)
+        jacka = himmel.copy()
+        jacka[40:80, 40:80] = 20
+        self.assertIsNone(FM.strob_lager(himmel, [50, 50, 10, 10], [himmel, himmel, jacka]))
+        self.assertIsNotNone(FM.strob_lager(himmel, [50, 50, 10, 10], [None, None, jacka]))   # bara medianen: med
+
+    def test_huvudet_over_skaftet_star_kvar(self) -> None:
+        """Skaftet som just passerat ligger i rutan före: två röster av tre räcker."""
+        fore, efter, median, ram = self._bilder()
+        fore[20:30, 24:26] = 250                                       # skaftet genom huvudets plats
+        lager = FM.strob_lager(ram, [20, 20, 10, 10], [fore, efter, median])
+        self.assertTrue(lager[3][25 - lager[1], 25 - lager[0]])
+
+    def test_grannarna_ar_rutorna_dar_huvudet_var_nagon_annanstans(self) -> None:
+        huvud = {0: [0.0, 0, 10, 10], 1: [4.0, 0, 10, 10], 2: [8.0, 0, 10, 10], 3: [30.0, 0, 10, 10],
+                 4: [60.0, 0, 10, 10]}
+        g = FM.strob_grannar(huvud, 100, 100)
+        self.assertEqual(g[0], (None, 3))          # 1 och 2 överlappar fortfarande
+        self.assertEqual(g[3], (2, 4))
+        self.assertEqual(g[4], (3, None))
 
     def test_ensamt_hopp_tas_bort(self) -> None:
         huvud = {n: [10.0 * n, 0.0, 8.0, 8.0] for n in range(6)}
