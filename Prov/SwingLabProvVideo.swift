@@ -109,7 +109,9 @@ extension SwingLabProvVyer {
         let foljKlipp = KlippKoppling(passID: id, store: foljStore)
         styrKlipp.start(link: styr)
         foljKlipp.start(link: folj)
-        XCTAssertTrue(foljStore.originalenBehovs(foljPass), "följaren behåller inspelningen")
+        // Mot passets egen dag: de sju dagarna (Originalen.tidsgrans) ska inte löpa ut för provet
+        // (det fallerade från 2026-10-31, en vecka efter `dag`).
+        XCTAssertTrue(foljStore.originalenBehovs(foljPass, nu: dag), "följaren behåller inspelningen")
         let start = Date()
         folj.start()
         defer { folj.stop() }
@@ -164,7 +166,8 @@ extension SwingLabProvVyer {
                      Overforing.antal(hel.count), Date().timeIntervalSince(t2)))
         let ok6 = await vanta(10) { foljStore.begaran(id)?.alltFramme == true }
         XCTAssertTrue(ok6)
-        XCTAssertFalse(foljStore.originalenBehovs(try XCTUnwrap(foljStore.load(id))), "allt framme: originalen får gå")
+        XCTAssertFalse(foljStore.originalenBehovs(try XCTUnwrap(foljStore.load(id)), nu: dag),
+                       "allt framme: originalen får gå")
         XCTAssertFalse(FileManager.default.fileExists(atPath: foljStore.url(KlippBegaran.utskickMapp, in: id).path),
                        "de skurna klippen är borta")
 

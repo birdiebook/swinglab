@@ -567,10 +567,11 @@ final class Store {
 
     /// Följaren behåller hela inspelningen tills den styrande kvitterat att alla klipp kommit fram,
     /// men inte för alltid (BESLUT B80, B84, `Originalen`).
-    func originalenBehovs(_ pass: PassState) -> Bool {
+    /// `nu` = klockan som de sju dagarna räknas mot (provet ger passets egen dag).
+    func originalenBehovs(_ pass: PassState, nu: Date = Date()) -> Bool {
         Originalen.behovs(roll: pass.setup.role, begaran: begaran(pass.id),
                           utanVideo: FileManager.default.fileExists(atPath: url(KlippBegaran.utanVideoFil, in: pass.id).path),
-                          skapad: pass.created)
+                          skapad: pass.created, nu: nu)
     }
 
     /// Följaren: den styrande saknar klippen (en äldre app), så originalen behövs inte för den.
