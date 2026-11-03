@@ -121,6 +121,46 @@ class Brus(unittest.TestCase):
             self.assertAlmostEqual(r["matt"][k], facit[k], delta=1.5)
 
 
+class SynligaSegment(unittest.TestCase):
+    """En vinkel i en led räknas bara när båda segmenten syns i bild. METOD M52"""
+
+    def test_bojning_synlig(self) -> None:
+        import numpy as np
+        a0, m0, c0 = np.array([0.0, -1.0]), np.array([0.0, 0.0]), np.array([0.0, 1.0])
+        self.assertAlmostEqual(M.bojning_synlig(a0, m0, c0, a0, m0, c0), 0.0, places=9)
+        kort = np.array([0.0, -0.69])                                 # 69 % av adressens längd
+        self.assertTrue(np.isnan(M.bojning_synlig(kort, m0, c0, a0, m0, c0)))
+        nog = np.array([0.0, -0.71])
+        self.assertAlmostEqual(M.bojning_synlig(nog, m0, c0, a0, m0, c0), 0.0, places=9)
+        self.assertTrue(np.isnan(M.bojning_synlig(a0, m0, c0, m0, m0, c0)))   # inget segment i adressen
+
+    def _arm_vid_toppen(self, andel: float) -> dict:
+        """FO-svingen med främre armen förkortad till `andel` kring toppen (handleden kvar,
+        axeln och armbågen dras mot den) och armbågen flyttad 6 % av armen åt sidan: en rak arm
+        som pekar bort från kameran, med ett litet fel i armbågen."""
+        import numpy as np
+        from pc import format as fm
+        from pc.format import ARMBAGE_F, AXEL_F, HANDLED_F
+        d, _ = sving(vy="fo")
+        s = fm.fran_dict(d)
+        topp = M.mat(s)["faser"]["topp"]
+        xy = s.xy.copy()
+        for k in np.flatnonzero(np.abs(s.t - topp) <= 0.12):
+            w, a, e = xy[k, HANDLED_F], xy[k, AXEL_F], xy[k, ARMBAGE_F]
+            arm = a - w
+            sida = np.array([-arm[1], arm[0]]) / np.hypot(*arm) * 0.06 * np.hypot(*arm)
+            xy[k, AXEL_F] = w + andel * (a - w)
+            xy[k, ARMBAGE_F] = w + andel * (e - w) + sida * andel
+        s.xy = xy
+        return M.mat(s)["matt"]
+
+    def test_forkortad_arm_vid_toppen_saknas(self) -> None:
+        self.assertNotIn("framre_armbage_topp", self._arm_vid_toppen(0.45))
+
+    def test_hel_arm_med_samma_fel_mats(self) -> None:
+        self.assertIn("framre_armbage_topp", self._arm_vid_toppen(1.0))
+
+
 class Granserna(unittest.TestCase):
     def test_lucka_langre_an_max_lucka_saknas_kortare_interpoleras(self) -> None:
         r = mat(vy="fo", dolj=[["hoft_v", 2.135, 2.265], ["nasa", 2.175, 2.225]])

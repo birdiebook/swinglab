@@ -259,6 +259,12 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(Matt.bojning(Punkt(0, -1), Punkt(0, 0), Punkt(0, 1)), 0, accuracy: 1e-12)
         XCTAssertEqual(Matt.bojning(Punkt(0, -1), Punkt(0, 0), Punkt(1, 0)), 90, accuracy: 1e-12)
         XCTAssertTrue(Matt.bojning(Punkt(0, 0), Punkt(0, 0), Punkt(1, 0)).isNaN)
+        // Ett segment kortare i bild än 70 % av adressens: vinkeln saknas. METOD M52
+        let a0 = Punkt(0, -1), m0 = Punkt(0, 0), c0 = Punkt(0, 1)
+        XCTAssertEqual(Matt.bojningSynlig(a0, m0, c0, a0, m0, c0), 0, accuracy: 1e-9)
+        XCTAssertTrue(Matt.bojningSynlig(Punkt(0, -0.69), m0, c0, a0, m0, c0).isNaN)
+        XCTAssertEqual(Matt.bojningSynlig(Punkt(0, -0.71), m0, c0, a0, m0, c0), 0, accuracy: 1e-9)
+        XCTAssertTrue(Matt.bojningSynlig(a0, m0, c0, m0, m0, c0).isNaN)
         XCTAssertEqual(Matt.vinkelFranLod(Punkt(0, 0), Punkt(1, -1)), 45, accuracy: 1e-12)     // y nedåt
         XCTAssertEqual(Matt.linjensLutning(fram: Punkt(1, -1), bak: Punkt(0, 0)), 45, accuracy: 1e-12)
     }

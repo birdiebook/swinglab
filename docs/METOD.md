@@ -294,7 +294,8 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
 
 - `bakre_kna_<fas>`: bakre höft–knä–fotled, **böjningen i grader, 0 = rakt
   ben**. Adress, topp, träff. Bakifrån ligger bakre benet närmast kameran.
-  Portat från Golf SG (`knavinkel`).
+  Portat från Golf SG (`knavinkel`). Saknas när låret eller underbenet syns under
+  70 % av sin längd i adressen (M52).
 
 ## M12 — Bakre armbågen vid toppen (DTL, flying elbow)
 
@@ -437,9 +438,12 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
 - `framre_armbage_topp`: främre axel–armbåge–handled, **böjningen i grader,
   0 = rak arm**. Handleden är armens egen: greppregeln (M1) ersätter en dold
   handled med den andra, vilket duger för händernas läge men inte för en vinkel
-  i armbågen. Är den främre handleden dold saknas måttet. För en högerspelare vänsterarmen. Framifrån ligger armen
-  ungefär i bildens plan vid toppen; förkortningen gör vinkeln osäker, därför
-  egen baslinje. GolfTEC: 76° mot 10° är en demonstratör, ingen elev och ingen
+  i armbågen. Är den främre handleden dold saknas måttet. För en högerspelare vänsterarmen. Antagandet att armen
+  ligger ungefär i bildens plan vid toppen höll inte: med driver och full vridning
+  pekar den främre armen bort från kameran och syns kraftigt förkortad, och ett
+  litet fel i armbågen blev tiotals grader (riktigt pass 2026-11-03). Måttet saknas
+  därför när ett segment syns under 70 % av sin längd i adressen (**M52**). Egen
+  baslinje. GolfTEC: 76° mot 10° är en demonstratör, ingen elev och ingen
   norm (**tillverkare, läst i original**, research 5c §1b).
 
 ## M23 — Chicken wing (FO)
@@ -448,6 +452,7 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   egna handleden) ur ledernas medel över **träffen +0,05…+0,15 s**. **antagande:** fönstret ligger efter
   bollen men före att armarna viker naturligt mot finishen; ett medel över
   fönstret tål enstaka suddiga rutor. HackMotion anger inga tal. Egen baslinje.
+  Segmenten mäts mot adressen som i M52; efter träffen syns armen nästan hel.
 
 ## M24 — Stansens bredd (FO)
 
@@ -659,7 +664,7 @@ tal; med 0,8 px brus står spridningen per rad.
 ## M33 — Främre knäets böjning (DTL)
 
 - `framre_kna_<fas>`: främre höft–knä–fotled, böjningen i grader, **0 = rakt
-  ben**, som M11. Adress, topp, träff (P1, P4, P7). Sportsbox: Lead Knee
+  ben**, som M11, med samma spärr (M52). Adress, topp, träff (P1, P4, P7). Sportsbox: Lead Knee
   Flexion, som finns (läst i original, research 5a) men räknar 180° = rakt led, inte
   0. Knäets sträckning mot träffen är det intressanta.
 - **Vyn:** böjningen ligger i bildens plan bakifrån, inte framifrån (där sker
@@ -1646,7 +1651,8 @@ värden i `CaptureTests`.
 - **Ändras fönstret eller utsnittet** (MS13) tas måtten och märkningen bort med
   lederna.
 - **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
-  posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e, **4**
+  sedan ledvinklarna bara räknas när segmenten syns, M52): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
   öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
   om med en äldre app. **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
@@ -2790,6 +2796,32 @@ som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (res
 - **Synken:** en parabel med en granne utan värde ger toppen själv, och en synk som inte
   är ett tal ger förra värdet. `synk_ms`, `sampson_px`, vinkeln och
   `lodlinje_mot_vagrata` blir aldrig NaN (den sista står bara med när den är ett tal).
+
+## M52 — Ledvinklar bara när segmenten syns (2D)
+
+- **Regeln:** en ledvinkel (axel–armbåge–handled, höft–knä–fotled) räknas bara när
+  **båda segmenten** syns i bild till minst **70 %** av sin längd i adressen
+  (adressens fönster, som skalan i M2). Annars saknas måttet, i stället för ett tal.
+  Gäller M11, M22, M23 (ledernas medel över fönstret), M29 (`framre_armbage_p3`)
+  och M33. `bojning_synlig` i `matt.py`, `Matt.bojningSynlig` i Swift.
+- **Varför:** en rak led syns rak i bild hur den än är vriden (tre punkter på en
+  linje hamnar på en linje), men när segmentet pekar mot eller från kameran blir
+  det kort i bild, och posemodellens fel i en punkt förstärks ungefär med
+  1 / andelen. Framifrån vid toppen med driver syntes främre armen till under
+  hälften av sin längd, och armbågspunkten låg några cm från linjen axel–handled
+  (konfidens 0,3–0,6, den bakre armbågen samtidigt ≈ 0,16): vinkeln blev tiotals
+  grader på en rak arm (riktigt pass 2026-11-03; talen står inte här, dataregeln).
+- **Gränsen 70 %:** förstärkningen högst ≈ 1,4. **antagande** tills fler pass prövats.
+  Efter träffen (M23) syntes armen nästan hel på samma pass, så chicken wing mäts.
+- **Bortvalt:** att räkna böjen ur avståndet axel–handled mot armens längd (utan
+  armbågen) ger en stor böj på en förkortad rak arm; att flytta punkten gissar ett
+  tal. Böjen vid toppen mäts rätt i 3D med två kameror (`tre_d/sving.py` har
+  armbågarna), en senare etapp.
+- **Mätningens version 4** (MS14): slag mätta med en äldre mäts om.
+- **Provat:** `test_matt.SynligaSegment` (gränsen, och en påhittad sving med en rak
+  förkortad arm och 6 % fel i armbågen: saknas förkortad, mäts hel) och
+  `MattTests.testVinklarna`.
+
 ## M60 — Spåren i granskningen (S4f)
 
 Ett spår är en punkts bana genom hela slaget i granskningen (PLAN S4f, BESLUT B70). Det är

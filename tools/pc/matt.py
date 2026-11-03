@@ -47,8 +47,9 @@ BEN = HOFTHOJD - FOTLEDSHOJD     # höftmitt–fotledsmitt, FO
 
 CHICKEN = (0.05, 0.15)           # METOD M23: s efter träffen
 HANDBANA_NIVAER = (0.25, 0.50, 0.75)   # METOD M13: andel av höjden från adress till topp
+SEGMENT_MIN = 0.70               # METOD M52: kortare segment i bild än så mot adressen = vinkeln i leden mäts inte
 AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
-MATVERSION = 3                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen
+MATVERSION = 4                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen, 4 = synliga segment (M52)
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")
@@ -94,6 +95,19 @@ def bojning(a: np.ndarray, mitt: np.ndarray, c: np.ndarray) -> float:
         return math.nan
     cos = (u[0] * v[0] + u[1] * v[1]) / (nu * nv)
     return 180.0 - math.degrees(math.acos(max(-1.0, min(1.0, cos))))
+
+
+def bojning_synlig(a: np.ndarray, mitt: np.ndarray, c: np.ndarray,
+                   a0: np.ndarray, mitt0: np.ndarray, c0: np.ndarray) -> float:
+    """Ledens böjning (som `bojning`), men NaN när ett av de två segmenten syns kortare i
+    bild än SEGMENT_MIN av sin längd i adressen (a0, mitt0, c0): segmentet pekar då mot
+    eller från kameran, och några cm fel i en punkt blir tiotals grader. En rak led syns
+    rak i bild hur den än är vriden, men felet i punkterna förstärks. METOD M52"""
+    for p, q, p0, q0 in ((a, mitt, a0, mitt0), (c, mitt, c0, mitt0)):
+        l0 = math.hypot(p0[0] - q0[0], p0[1] - q0[1])
+        if not (l0 > 0 and math.hypot(p[0] - q[0], p[1] - q[1]) >= SEGMENT_MIN * l0):
+            return math.nan
+    return bojning(a, mitt, c)
 
 
 def arm_mot_axlar(axel_f: np.ndarray, axel_b: np.ndarray, hand: np.ndarray) -> float:
@@ -191,6 +205,11 @@ def mat(s: Sving) -> dict:
         """Förflyttningen från adressen i cm; axel 1 vänds så att + är uppåt."""
         return tecken * (L(p, fas)[axel] - L(p, "adress")[axel]) * cm
 
+    def led(a: np.ndarray, mitt: np.ndarray, c: np.ndarray, fas: str) -> float:
+        """Böjningen i fasen, bara när båda segmenten syns i bild. METOD M52"""
+        return bojning_synlig(L(a, fas), L(mitt, fas), L(c, fas), L(a, "adress"), L(mitt, "adress"),
+                              L(c, "adress"))
+
     m: dict[str, float] = {}
     if s.vy == "dtl":
         for fz in FASER:                                             # METOD M6
@@ -203,7 +222,7 @@ def mat(s: Sving) -> dict:
             m[f"huvud_lyft_{fz}"] = flytt(N, 1, fz, -1.0)            # METOD M8
             m[f"brost_thrust_{fz}"] = flytt(C, 0, fz)                # METOD M10
         for fz in ("adress", "topp", "traff"):                       # METOD M11
-            m[f"bakre_kna_{fz}"] = bojning(L(b[:, HOFT_B], fz), L(b[:, KNA_B], fz), L(b[:, FOTLED_B], fz))
+            m[f"bakre_kna_{fz}"] = led(b[:, HOFT_B], b[:, KNA_B], b[:, FOTLED_B], fz)   # METOD M52
         # Bakre överarmen mot lodlinjen nedåt, + bort från bollen. METOD M12
         d = L(b[:, ARMBAGE_B], "topp") - L(b[:, AXEL_B], "topp")
         m["bakre_armbage_topp"] = math.degrees(math.atan2(-d[0], d[1]))
@@ -222,7 +241,7 @@ def mat(s: Sving) -> dict:
             m[f"backen_bojning_{fz}"] = (vinkel_fran_lod(L(P, fz), L(C, fz))
                                          + vinkel_fran_lod(L(b[:, KNA_B], fz), L(b[:, HOFT_B], fz))) / 2
         for fz in ("adress", "topp", "traff"):                       # METOD M33
-            m[f"framre_kna_{fz}"] = bojning(L(b[:, HOFT_F], fz), L(b[:, KNA_F], fz), L(b[:, FOTLED_F], fz))
+            m[f"framre_kna_{fz}"] = led(b[:, HOFT_F], b[:, KNA_F], b[:, FOTLED_F], fz)   # METOD M52
         # Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
         m["hand_djup_topp"] = flytt(G, 0, "topp")
         # Främre armen mot axellinjen vid toppen, + över axelplanet; bara när axellinjen
@@ -247,12 +266,12 @@ def mat(s: Sving) -> dict:
         m["hander_fore_adress_traff"] = flytt(G, 0, "traff")                              # METOD M20
         m["hander_fore_backen_traff"] = (L(G, "traff")[0] - L(P, "traff")[0]) * cm
         m["backen_resa_framat"] = m["backen_sway_traff"] - m["backen_sway_topp"]         # METOD M21
-        m["framre_armbage_topp"] = bojning(L(b[:, AXEL_F], "topp"), L(b[:, ARMBAGE_F], "topp"),
-                                           L(hand_f, "topp"))                             # METOD M22
+        m["framre_armbage_topp"] = led(b[:, AXEL_F], b[:, ARMBAGE_F], hand_f, "topp")      # METOD M22, METOD M52
         a0, a1 = s.t_klick + CHICKEN[0], s.t_klick + CHICKEN[1]                          # METOD M23
-        m["framre_armbage_efter_traff"] = bojning(F.medel(t, b[:, AXEL_F], a0, a1),
-                                                  F.medel(t, b[:, ARMBAGE_F], a0, a1),
-                                                  F.medel(t, hand_f, a0, a1))
+        m["framre_armbage_efter_traff"] = bojning_synlig(F.medel(t, b[:, AXEL_F], a0, a1),
+                                                         F.medel(t, b[:, ARMBAGE_F], a0, a1),
+                                                         F.medel(t, hand_f, a0, a1), L(b[:, AXEL_F], "adress"),
+                                                         L(b[:, ARMBAGE_F], "adress"), L(hand_f, "adress"))
         fot = L(b[:, FOTLED_F], "adress") - L(b[:, FOTLED_B], "adress")                  # METOD M24
         axl = L(b[:, AXEL_F], "adress") - L(b[:, AXEL_B], "adress")
         axelbredd = math.hypot(axl[0], axl[1])
@@ -261,8 +280,9 @@ def mat(s: Sving) -> dict:
         if pos["P3"] is not None:
             p3 = pos["P3"]
             m["backen_sway_p3"] = (F.vid(t, P, p3)[0] - L(P, "adress")[0]) * cm
-            m["framre_armbage_p3"] = bojning(F.vid(t, b[:, AXEL_F], p3), F.vid(t, b[:, ARMBAGE_F], p3),
-                                             F.vid(t, hand_f, p3))
+            m["framre_armbage_p3"] = bojning_synlig(F.vid(t, b[:, AXEL_F], p3), F.vid(t, b[:, ARMBAGE_F], p3),
+                                                    F.vid(t, hand_f, p3), L(b[:, AXEL_F], "adress"),
+                                                    L(b[:, ARMBAGE_F], "adress"), L(hand_f, "adress"))
         if pos["P5"] is not None:
             m["backen_resa_p5"] = (F.vid(t, P, pos["P5"])[0] - L(P, "topp")[0]) * cm
         m["huvud_backen_finish"] = (L(N, "finish")[0] - L(P, "finish")[0]) * cm

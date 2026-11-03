@@ -40,6 +40,8 @@ public enum Matt {
     public static let chicken = (fran: 0.05, till: 0.15)
     /// Andel av höjden från adress till topp. METOD M13
     public static let handbanaNivaer = [0.25, 0.50, 0.75]
+    /// Kortare segment i bild än så mot adressen = vinkeln i leden mäts inte. METOD M52
+    public static let segmentMin = 0.70
     /// Kortare axellinje i bild vid toppen, cm = axlarna skymmer varandra. METOD M39
     public static let axlarMinCm = 15.0
 
@@ -99,6 +101,19 @@ public enum Matt {
         guard nu > 0 && nv > 0 else { return .nan }
         let cosv = (u.x * v.x + u.y * v.y) / (nu * nv)
         return 180.0 - grader(acos(max(-1.0, min(1.0, cosv))))
+    }
+
+    /// Ledens böjning (som `bojning`), men NaN när ett av de två segmenten syns kortare i
+    /// bild än `segmentMin` av sin längd i adressen (a0, mitt0, c0): segmentet pekar då mot
+    /// eller från kameran, och några cm fel i en punkt blir tiotals grader. En rak led syns
+    /// rak i bild hur den än är vriden, men felet i punkterna förstärks. METOD M52
+    public static func bojningSynlig(_ a: Punkt, _ mitt: Punkt, _ c: Punkt,
+                                     _ a0: Punkt, _ mitt0: Punkt, _ c0: Punkt) -> Double {
+        for (p, q, p0, q0) in [(a, mitt, a0, mitt0), (c, mitt, c0, mitt0)] {
+            let l0 = (p0 - q0).langd
+            guard l0 > 0 && (p - q).langd >= segmentMin * l0 else { return .nan }
+        }
+        return bojning(a, mitt, c)
     }
 
     /// Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel → den
@@ -186,6 +201,10 @@ public enum Matt {
                                    bakre: Positioner.armensHojd(axel: led(.axelB), handled: handB))
 
         func L(_ p: [Punkt], _ fas: Fas) -> Punkt { Faser.lage(t, p, f, fas) }
+        /// Böjningen i fasen, bara när båda segmenten syns i bild. METOD M52
+        func synligLed(_ a: [Punkt], _ mitt: [Punkt], _ c: [Punkt], _ fas: Fas) -> Double {
+            bojningSynlig(L(a, fas), L(mitt, fas), L(c, fas), L(a, .adress), L(mitt, .adress), L(c, .adress))
+        }
 
         // Skalan: segmentet som ligger i bildens plan i adressen. METOD M2
         let seg: Punkt
@@ -220,7 +239,7 @@ public enum Matt {
                 m["brost_thrust_\(fz.rawValue)"] = flyttX(C, fz)                     // METOD M10
             }
             for fz in [Fas.adress, .topp, .traff] {                                 // METOD M11
-                m["bakre_kna_\(fz.rawValue)"] = bojning(L(led(.hoftB), fz), L(led(.knaB), fz), L(led(.fotledB), fz))
+                m["bakre_kna_\(fz.rawValue)"] = synligLed(led(.hoftB), led(.knaB), led(.fotledB), fz)   // METOD M52
             }
             // Bakre överarmen mot lodlinjen nedåt, + bort från bollen. METOD M12
             let d = L(led(.armbageB), .topp) - L(led(.axelB), .topp)
@@ -242,7 +261,7 @@ public enum Matt {
                                                      + vinkelFranLod(L(led(.knaB), fz), L(led(.hoftB), fz))) / 2
             }
             for fz in [Fas.adress, .topp, .traff] {                                 // METOD M33
-                m["framre_kna_\(fz.rawValue)"] = bojning(L(led(.hoftF), fz), L(led(.knaF), fz), L(led(.fotledF), fz))
+                m["framre_kna_\(fz.rawValue)"] = synligLed(led(.hoftF), led(.knaF), led(.fotledF), fz)   // METOD M52
             }
             // Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
             m["hand_djup_topp"] = flyttX(G, .topp)
@@ -273,20 +292,21 @@ public enum Matt {
             m["hander_fore_adress_traff"] = flyttX(G, .traff)                                       // METOD M20
             m["hander_fore_backen_traff"] = (L(G, .traff).x - L(P, .traff).x) * cm
             m["backen_resa_framat"] = m["backen_sway_traff"]! - m["backen_sway_topp"]!             // METOD M21
-            m["framre_armbage_topp"] = bojning(L(led(.axelF), .topp), L(led(.armbageF), .topp),
-                                               L(handF, .topp))                                    // METOD M22
+            m["framre_armbage_topp"] = synligLed(led(.axelF), led(.armbageF), handF, .topp)       // METOD M22, METOD M52
             let a0 = s.tKlick + chicken.fran, a1 = s.tKlick + chicken.till                        // METOD M23
-            m["framre_armbage_efter_traff"] = bojning(Faser.medel(t, led(.axelF), a0, a1),
-                                                      Faser.medel(t, led(.armbageF), a0, a1),
-                                                      Faser.medel(t, handF, a0, a1))
+            m["framre_armbage_efter_traff"] = bojningSynlig(Faser.medel(t, led(.axelF), a0, a1),
+                                                            Faser.medel(t, led(.armbageF), a0, a1),
+                                                            Faser.medel(t, handF, a0, a1), L(led(.axelF), .adress),
+                                                            L(led(.armbageF), .adress), L(handF, .adress))
             let fot = L(led(.fotledF), .adress) - L(led(.fotledB), .adress)                        // METOD M24
             let axl = L(led(.axelF), .adress) - L(led(.axelB), .adress)
             m["stans_bredd"] = axl.langd > 0 ? fot.langd / axl.langd : .nan
             // Måtten vid positionerna som inte är en fas. METOD M29
             if let p3 = pos.p3 {
                 m["backen_sway_p3"] = (Faser.vid(t, P, p3).x - L(P, .adress).x) * cm
-                m["framre_armbage_p3"] = bojning(Faser.vid(t, led(.axelF), p3), Faser.vid(t, led(.armbageF), p3),
-                                                 Faser.vid(t, handF, p3))
+                m["framre_armbage_p3"] = bojningSynlig(Faser.vid(t, led(.axelF), p3), Faser.vid(t, led(.armbageF), p3),
+                                                       Faser.vid(t, handF, p3), L(led(.axelF), .adress),
+                                                       L(led(.armbageF), .adress), L(handF, .adress))
             }
             if let p5 = pos.p5 {
                 m["backen_resa_p5"] = (Faser.vid(t, P, p5).x - L(P, .topp).x) * cm
