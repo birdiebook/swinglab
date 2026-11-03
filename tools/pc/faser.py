@@ -123,13 +123,16 @@ class Faser:
     start_osaker: bool = False   # starten finns men bär inte tempot (METOD M40)
 
 
-def _start_ur_handerna(t: np.ndarray, G: np.ndarray, topp: float, ok: np.ndarray) -> float | None:
+def _start_ur_handerna(t: np.ndarray, G: np.ndarray, topp: float, ok: np.ndarray) -> tuple[float | None, bool]:
     """Sista gången före toppen som händerna var inom 5 % av vägen från adressläget
-    (händerna lägst). METOD M4"""
+    (händerna lägst), och om adressen var stilla: händerna inom samma tröskel från
+    adressläget under hela STILLA_S fram till det, med minst STILLA_RUTOR rutor och hela
+    fönstret i klippet. Utan en stilla adress har klippet
+    börjat efter att baksvingen kommit igång, och starten är osäker. METOD M4"""
     fore = np.where(ok & (t >= topp - MAX_BAKSVING_S) & (t <= topp))[0]
     gt = vid(t, G, topp)
     if len(fore) == 0 or not np.isfinite(gt).all():
-        return None
+        return None, False
     k_lag = fore[int(np.argmax(G[fore, 1]))]           # händerna lägst = adressläget
     r = G[k_lag]
     troskel = TROSKEL_ANDEL * float(np.hypot(*(gt - r)))
@@ -141,8 +144,13 @@ def _start_ur_handerna(t: np.ndarray, G: np.ndarray, topp: float, ok: np.ndarray
         k0, k1 = seq[m], seq[m + 1]
         s = float(t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0]))
         if topp - s >= MIN_BAKSVING_S:
-            return s
-    return None
+            tr = t[k_lag]
+            alla = np.where(ok)[0]
+            fonst = alla[(t[alla] >= tr - STILLA_S) & (t[alla] <= tr)]
+            dist = np.hypot(G[fonst, 0] - r[0], G[fonst, 1] - r[1])
+            hela = tr - STILLA_S >= t[alla[0]]               # fönstret ryms i klippet
+            return s, bool(hela and len(fonst) >= STILLA_RUTOR and np.all(dist <= troskel))
+    return None, False
 
 
 def _adressens_fonster(t: np.ndarray, B: np.ndarray, topp: float):
@@ -224,10 +232,11 @@ def hitta_faser(t: np.ndarray, G: np.ndarray, t_klick: float, pose: np.ndarray |
     if pose is not None:
         start, osaker = start_ur_posen(t, pose, topp)
         if start is None:                              # posen räcker inte: händerna, och bakifrån
-            start = _start_ur_handerna(t, G, topp, ok)  # är en sådan start, eller ingen, osäker
+            start, _ = _start_ur_handerna(t, G, topp, ok)   # är en sådan start, eller ingen, osäker
             osaker = True
     else:
-        start = _start_ur_handerna(t, G, topp, ok)
+        start, stilla = _start_ur_handerna(t, G, topp, ok)
+        osaker = start is not None and not stilla       # ingen stilla adress i klippet. METOD M4
 
     s0 = start if start is not None else topp - TOPP_ADRESS_S
     return Faser(start=start, topp=topp, traff=float(t_klick),

@@ -102,6 +102,22 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   järn). Uppmätt: inom 3 ms från figurens start. Fixturen `dtl_kort` (0,25 s)
   ger ingen start och inget tempo. **Bakifrån (DTL) tas starten ur posen i
   stället (M40);** framifrån (FO) gäller definitionen här.
+- **Stilla adress (FO):** starten ur händerna är **osäker** (tempot och baksvingens tid
+  saknas, M5) om händerna inte legat inom samma tröskel (5 %) från adressläget under
+  hela **0,10 s** fram till det (M40:s `STILLA_S`, minst 3 rutor), med hela fönstret i
+  klippet. Annars har klippet börjat efter att baksvingen kommit igång: framifrån
+  sjunker händerna lite i takeawayn, adressläget (händerna lägst) hamnar mitt i den och
+  starten blir för sen. Sett på ett riktigt pass med driver (2026-11-03): klippet började
+  med händerna redan i rörelse, och tempot blev långt under Sportsbox på samma sving
+  (talen står inte här, dataregeln). **antagande** om gränsen.
+  `test_faser.StillaAdress`. Mätningens version 5 (MS14).
+- **Toppen med driver, öppen fråga:** händerna kan stå nästan still högst upp medan
+  klubban fortsätter, och händernas högsta punkt hamnade då tidigt på platån, före
+  vändningen, på samma pass. Toppen som vändningen (sista gången händerna
+  var inom en andel av vägen under sin högsta punkt) prövades och valdes bort tills
+  vidare: på påhittade svingar höjde den tempot 0,3–0,5 mot figurens (som räknar med
+  händernas högsta punkt), och på passet var resultatet känsligt för andelen.
+  Prövas mot Sportsbox på fler pass, och mot klubbans topp (M49).
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -197,7 +213,8 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
 ## M5 — Tempot
 
 - tempo = (topp − start) / (träff − topp), baksvingen och nedsvingen i s.
-  Båda vyerna. Saknas starten, eller är den osäker (M40), saknas tempot och baksvingens
+  Båda vyerna. Saknas starten, eller är den osäker (M40, eller utan stilla adress
+  framifrån, M4), saknas tempot och baksvingens
   tid; nedsvingens tid (`nedsving_s` = träff − topp) räknas ändå, eftersom den inte
   beror på starten (S1e).
 - **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), gult inom golvet 0,2 och rött
@@ -1652,7 +1669,8 @@ värden i `CaptureTests`.
   lederna.
 - **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
   posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e, **4**
-  sedan ledvinklarna bara räknas när segmenten syns, M52): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  sedan ledvinklarna bara räknas när segmenten syns, M52, **5** sedan en start utan stilla
+  adress framifrån är osäker, M4): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
   öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
   om med en äldre app. **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
@@ -2807,10 +2825,10 @@ som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (res
 - **Varför:** en rak led syns rak i bild hur den än är vriden (tre punkter på en
   linje hamnar på en linje), men när segmentet pekar mot eller från kameran blir
   det kort i bild, och posemodellens fel i en punkt förstärks ungefär med
-  1 / andelen. Framifrån vid toppen med driver syntes främre armen till under
-  hälften av sin längd, och armbågspunkten låg några cm från linjen axel–handled
-  (konfidens 0,3–0,6, den bakre armbågen samtidigt ≈ 0,16): vinkeln blev tiotals
-  grader på en rak arm (riktigt pass 2026-11-03; talen står inte här, dataregeln).
+  1 / andelen. Framifrån vid toppen med driver syntes främre armen kraftigt
+  förkortad och armbågspunkten låg en bit från linjen axel–handled, med låg
+  konfidens: vinkeln blev tiotals grader på en rak arm (riktigt pass 2026-11-03;
+  talen står inte här, dataregeln).
 - **Gränsen 70 %:** förstärkningen högst ≈ 1,4. **antagande** tills fler pass prövats.
   Efter träffen (M23) syntes armen nästan hel på samma pass, så chicken wing mäts.
 - **Bortvalt:** att räkna böjen ur avståndet axel–handled mot armens längd (utan

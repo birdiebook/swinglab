@@ -162,7 +162,11 @@ public enum Faser {
 
     /// Sista gången före toppen som händerna var inom 5 % av vägen från adressläget
     /// (händerna lägst). METOD M4
-    static func startUrHanderna(_ t: [Double], _ g: [Punkt], topp: Double) -> Double? {
+    /// Starten ur händerna (som `tools/pc/faser.py`), och om adressen var stilla: händerna
+    /// inom samma tröskel från adressläget under hela `stillaS` fram till det, med minst
+    /// `stillaRutor` rutor och hela fönstret i klippet.
+    /// Utan en stilla adress har klippet börjat efter att baksvingen kommit igång. METOD M4
+    static func startUrHanderna(_ t: [Double], _ g: [Punkt], topp: Double) -> (start: Double, stilla: Bool)? {
         var fore: [Int] = []
         for k in t.indices where g[k].hel && t[k] >= topp - maxBaksvingS && t[k] <= topp {
             fore.append(k)
@@ -180,7 +184,13 @@ public enum Faser {
         guard let m = d.lastIndex(where: { $0 <= troskel }), m < seq.count - 1 else { return nil }
         let k0 = seq[m], k1 = seq[m + 1]
         let s = t[k0] + (troskel - d[m]) / (d[m + 1] - d[m]) * (t[k1] - t[k0])
-        return topp - s >= minBaksvingS ? s : nil
+        guard topp - s >= minBaksvingS else { return nil }
+        let tr = t[kLag]
+        let alla = t.indices.filter { g[$0].hel }
+        let fonst = alla.filter { t[$0] >= tr - stillaS && t[$0] <= tr }
+        let hela = tr - stillaS >= t[alla[0]]                         // fönstret ryms i klippet
+        let stilla = hela && fonst.count >= stillaRutor && fonst.allSatisfy { (g[$0] - r).langd <= troskel }
+        return (s, stilla)
     }
 
     /// Adressen bakifrån: det fönster om stillaS, med början mellan toppen −
@@ -307,11 +317,12 @@ public enum Faser {
                 start = p.start
                 osaker = p.osaker
             } else {                                                 // posen räcker inte: händerna, och bakifrån
-                start = startUrHanderna(t, g, topp: topp)            // är en sådan start, eller ingen, osäker
+                start = startUrHanderna(t, g, topp: topp)?.start     // är en sådan start, eller ingen, osäker
                 osaker = true
             }
-        } else {
-            start = startUrHanderna(t, g, topp: topp)
+        } else if let h = startUrHanderna(t, g, topp: topp) {
+            start = h.start
+            osaker = !h.stilla                                       // ingen stilla adress i klippet. METOD M4
         }
 
         let s0 = start ?? (topp - toppAdressS)

@@ -133,6 +133,41 @@ def _mat_dold(**args) -> tuple[dict, dict]:
     return M.mat(fm.fran_dict(d)), facit
 
 
+class StillaAdress(unittest.TestCase):
+    """Framifrån: börjar klippet efter att baksvingen kommit igång finns ingen stilla adress,
+    och starten är osäker (tempot saknas) i stället för för sen. Händerna sjunker lite i
+    början av baksvingen, så adressläget (händerna lägst) hamnar mitt i den. METOD M4"""
+
+    TOPP = 1.1
+
+    @classmethod
+    def _hander(cls, stilla_s: float) -> tuple[np.ndarray, np.ndarray]:
+        """Händerna 0,85 s från adressen till toppen, med `stilla_s` stilla adress först."""
+        t = np.arange(0.0, cls.TOPP + 0.1, 1 / 240)
+        u = np.clip((t - stilla_s) / 0.85, 0.0, 1.0)                  # 0 i adressen, 1 i toppen
+        x = 680.0 - 320.0 * u
+        y = 1040.0 + 40.0 * u - 370.0 * u ** 2                          # sjunker först, sedan upp
+        return t, np.stack([x, y], axis=1)
+
+    def test_handerna_ror_sig_fran_forsta_rutan(self) -> None:
+        t, G = self._hander(0.0)
+        start, stilla = F._start_ur_handerna(t, G, 0.85, np.ones(len(t), bool))
+        self.assertIsNotNone(start)
+        self.assertFalse(stilla)
+
+    def test_stilla_adress_fore_starten(self) -> None:
+        t, G = self._hander(0.25)
+        start, stilla = F._start_ur_handerna(t, G, 0.25 + 0.85, np.ones(len(t), bool))
+        self.assertIsNotNone(start)
+        self.assertTrue(stilla)
+
+    def test_pa_en_hel_sving_ar_starten_saker(self) -> None:
+        from _hjalp import mat
+        r = mat(vy="fo")
+        self.assertFalse(r["faser"]["start_osaker"])
+        self.assertIn("tempo", r["matt"])
+
+
 class StartenBakifran(unittest.TestCase):
     """Bakifrån går takeawayn mot kameran och syns knappt, och står kameran över
     händerna ser de ut att sjunka först (METOD M40). Påhittade 3D-svingar sedda

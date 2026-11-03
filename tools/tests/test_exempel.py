@@ -56,7 +56,7 @@ class Exemplet(unittest.TestCase):
         analys = self.hist / "pass" / P1 / "analys.json"
         a = json.loads(analys.read_text(encoding="utf-8"))
         self.assertEqual(a["format"], "swinglab-analys/1")
-        self.assertEqual(a["matversion"], 4)                      # METOD M40, S1e, M52
+        self.assertEqual(a["matversion"], 5)                      # METOD M40, S1e, M52, M4
         self.assertEqual((a["forra"], a["baslinje"]["pass"]), (None, []))
         self.assertEqual(sum(1 for r in a["slag"] if "matt" in r), 16)
         self.assertEqual((a["tempo_vy"], a["session"]["alla"]["tempo"]["n"]), ("fo", 8))   # aldrig 16

@@ -255,6 +255,26 @@ final class MattTests: XCTestCase {
         XCTAssertTrue(Matt.namnFO.contains("backen_resa_framat"))
     }
 
+    /// Händerna 0,85 s från adressen till toppen, sjunker först, med `stilla` s stilla adress
+    /// före. Samma som `test_faser.StillaAdress`. METOD M4
+    private func hander(stilla: Double, topp: Double) -> ([Double], [Punkt]) {
+        let t = stride(from: 0.0, to: topp + 0.1, by: 1.0 / 240).map { $0 }
+        let g = t.map { ti -> Punkt in
+            let u = min(max((ti - stilla) / 0.85, 0), 1)
+            return Punkt(680 - 320 * u, 1040 + 40 * u - 370 * u * u)
+        }
+        return (t, g)
+    }
+
+    func testStartenUtanStillaAdressArOsaker() throws {
+        let (t0, g0) = hander(stilla: 0, topp: 0.85)
+        let h0 = try XCTUnwrap(Faser.startUrHanderna(t0, g0, topp: 0.85))
+        XCTAssertFalse(h0.stilla)
+        let (t1, g1) = hander(stilla: 0.25, topp: 1.1)
+        let h1 = try XCTUnwrap(Faser.startUrHanderna(t1, g1, topp: 1.1))
+        XCTAssertTrue(h1.stilla)
+    }
+
     func testVinklarna() {
         XCTAssertEqual(Matt.bojning(Punkt(0, -1), Punkt(0, 0), Punkt(0, 1)), 0, accuracy: 1e-12)
         XCTAssertEqual(Matt.bojning(Punkt(0, -1), Punkt(0, 0), Punkt(1, 0)), 90, accuracy: 1e-12)
