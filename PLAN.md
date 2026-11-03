@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S3b · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -291,6 +291,46 @@ tidsförskjutning skattad per slag, lederna per led, fas och vy, S1:s mått på 
 parade per slag, det som avgör B5 överst (simulerade trösklar, bootstrap av slagen) och
 kontaktark, till `~/swinglab-s3/<pass>/`. Provat med en påhittad modell och en riktig kort
 film; väntar på riktiga paket med klipp.
+
+## S3b — Mätfel: hitta dem systematiskt (Johannes 2026-11-03)
+
+Två mätfel hittades för hand på ett riktigt driverpass: främre armbågen i toppen
+(METOD M52) och tempot (METOD M4). Målet är att sådana fel hittas av sig själva, och
+att ett mått hellre saknas än är fel. Fyra lager, billigast först. Varje fel som
+hittas blir en påhittad sving som återskapar det, plus en rad i METOD.
+
+**1. Rimlighet per sving (en kamera).** En kvalitetsflagga per mått ur kontroller som
+inte kräver facit: segment längre i bild än i adressen (punkten fel) eller kraftigt
+kortare (M52), hopp mellan rutor, låg konfidens på måttets egna leder, vänster och
+höger som byter plats, och faser som inte går ihop (stilla adress, baksvingens längd,
+toppen på en platå). Ett flaggat mått saknas eller märks i stället för att visas som
+ett tal. **Klart när:** varje mått i katalogen har sina kontroller i båda räknarna
+(Python och Swift), med en påhittad sving per kontroll, och appen och Claudes underlag
+visar varför ett mått saknas.
+
+**2. Ögat på prickarna.** Paket med klipp, så att kontaktarket (METOD MT7) blir av.
+Skillen svinganalys kontrollerar rutan i bild innan ett avvikande eller flaggat mått
+blir ett råd. I granskningen kan Johannes säga att prickarna är fel för ett visst mått
+(som "Detection wrong", men per mått), och det sparas som data. **Klart när:** skillen
+har regeln, och märkningen per mått finns i appen och följer med i paketet.
+
+**3. Två kameror som facit.** Samma mått i 3D (S6) mot varje vys 2D-mått, sving för
+sving: felbudgeten per mått, fas och klubba på riktiga svingar (som `S6_FELBUDGET`
+på påhittade). Trianguleringens återprojektionsfel per led pekar ut vilken vy som ritat
+fel punkt. Båda vyerna bygger på samma posemodell, så där båda ser dåligt (armarna i
+toppen) är 3D också osäkert. **Klart när:** tabellen finns för minst 20 svingar per
+klubbtyp (järn, driver), och varje mått med större fel än sitt spann har en spärr
+eller saknas i den vyn.
+
+**4. Andra åsikter.** Sportsbox på samma video: utan premium ger den svingfelen
+(Diagnose) och tempot, så jämförelsen gäller vilka fel som hittas och tempot.
+MediaPipe på samma klipp är S3. Ingen av dem är sanningen, men en systematisk
+oenighet visar var vi ska leta. Tabellen med Johannes tal bor privat i Golf SG
+(dataregeln), repot får slutsatsen. **Klart när:** 10 driversvingar och 10 med järn
+är jämförda, och varje systematisk skillnad är förklarad eller rättad.
+
+**Öppet från 2026-11-03:** toppen med driver på händernas platå (METOD M4), och
+klipp som börjar för sent före träffen med driver (minst 2 s behövs).
 
 ## S4 — Vyn
 
