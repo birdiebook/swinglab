@@ -84,8 +84,8 @@ extension SwingLabProvVyer {
         // 1. Ask Claude: frågan med mätningarna i urklippet (BESLUT B97), samma som ClaudeUnderlag.
         UIPasteboard.general.string = ""
         let skapad = Tal.dag(2026, 11, 13, timme: 20)
-        let fragan = try XCTUnwrap(await ClaudeApp.fraga(passID: nuID, store: store, katalog: k, skapad: skapad),
-                                   "Ask Claude kopierade inget")
+        let kopieradFraga = await ClaudeApp.fraga(passID: nuID, store: store, katalog: k, skapad: skapad)
+        let fragan = try XCTUnwrap(kopieradFraga, "Ask Claude kopierade inget")
         let passen = try ids.map { try XCTUnwrap(store.load($0)) }
         XCTAssertTrue(passen.allSatisfy { p in p.shots.allSatisfy { $0.measure?.ok == true } }, "mätta och sparade")
         let u = try XCTUnwrap(ClaudeKontext.underlag(nu: passen[1], alla: passen, filer: [], katalog: k, skapad: skapad))
