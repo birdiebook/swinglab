@@ -131,6 +131,7 @@ class Exemplet(unittest.TestCase):
                                       "--claude-text"])
             self.assertEqual(kod, 0, text)
             self.assertIn(P1, (Path(ut) / "claude-text.txt").read_text(encoding="utf-8"))
+            self.assertIn(P1, (Path(ut) / "claude-fraga.txt").read_text(encoding="utf-8"))
 
     def test_langden_ur_det_paket_som_bar_den(self) -> None:
         # Ofta bär bara den styrande telefonens paket längden, och det står inte alltid först.

@@ -7,7 +7,7 @@
 public enum ClaudeKallor {
     /// Reglerna ur skillen svinganalys, kortade (avsnitten claude-appen).
     public static let instruktion = #"""
-**Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude") och klistrat in
+**Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude for focus") och klistrat in
 den här. Datan längst ned är räknad på telefonen med samma regler och fältnamn som på
 PC:n, för passets `klubba` och de tidigare passen med samma klubba, vy och längd:
 `kandidater` och `bedomning` ur analysen (felen som inte är gröna; `visat` är talet som
@@ -130,6 +130,20 @@ standing", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 
 - **Säga att något är rörlighet** utan treregeln, eller säga "är" i stället för
   "troligen".
+"""#
+
+    /// Frågan till Claude-appen (BESLUT B97): den korta texten före passets mätningar.
+    public static let fraga = #"""
+Analysera mitt svingpass i SwingLab. Talen nedan är mätta av appen, sving för sving. Räkna gärna på dem, men skatta inget nytt ur bilder eller leder, och hitta inte på gränser.
+
+Svara kort på svenska, det viktigaste först:
+1. Vad sticker ut, mot gränsen och mot mina tidigare pass?
+2. Vad hänger troligen ihop (orsak → följd), och vad är grundorsaken?
+3. En sak att öva härnäst (högst tre), med en övning ur `ovningar` och en tanke om vad klubban, bollen eller ett föremål ska göra.
+
+Säg till när svingarna är för få för att dra en slutsats. Skriver jag passets vanligaste miss efter texten väger den tyngst.
+
+Fälten: `varden` är måttet per sving i passets ordning och `median` appens median (null under tre svingar). `status` är appens färg mot `gront`, och `gransens_sort` säger om gränsen är kontrollerad i original, inte läst i original eller min egen baslinje. `tidigare` är medianerna i mina tidigare pass med samma klubba (passen står överst), `kedjor` är kända par orsak → följd och `ovar_nu` det jag övar på nu.
 """#
 
     /// tools/pc/kedjor.json, ordagrant.

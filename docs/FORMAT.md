@@ -681,7 +681,9 @@ Rapporten till Johannes står i chatten, inte i filen, och får vara svensk.
 
 ## Underlaget till Claude-appen (S5b)
 
-"Ask Claude" på telefonen och `session.py --claude-text` på PC:n skriver samma text
+Ett tryck på "Ask Claude" ger frågan med passets mätningar (BESLUT B97, METOD MT13, PC:n
+`claude-fraga.txt`). "Ask Claude for focus" (ett långt tryck) och `session.py --claude-text`
+på PC:n (`claude-text.txt`) skriver samma text
 (BESLUT B52–B55, METOD MT11): `# SwingLab: Att jobba på efter passet <pass>`, skillens
 avsnitt `claude-appen`, och `## Datan` med ett kodblock ```` ```json ```` som bär ett objekt
 med fälten i den här ordningen:

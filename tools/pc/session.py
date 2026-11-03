@@ -11,8 +11,9 @@ Som kommando läser den telefonens paket och skriver passets analys (S5):
 Ett paket per telefon (vy) och pass. Analysen och kontaktarken hamnar i
 `data/historik/pass/<pass>/` (gitignorerad); baslinjen och förra passet tas ur
 historiken om `--forra` inte anges. `--ut <mapp>` skriver dit i stället och
-lämnar historiken orörd. `--claude-text` skriver också `claude-text.txt`: samma
-underlag som "Ask Claude" på telefonen (S5b), att klistra in i Claude-appen.
+lämnar historiken orörd. `--claude-text` skriver också `claude-fraga.txt`, samma fråga
+som "Ask Claude" på telefonen (BESLUT B97), och `claude-text.txt`, reglerna och mallarna
+för en fil till Focus (S5b), båda att klistra in i Claude-appen.
 """
 from __future__ import annotations
 
@@ -233,6 +234,12 @@ def main(argv=None) -> int:
         else:
             text = U.ur_historik(rot, pass_id, skapad)
         (ut / "claude-text.txt").write_text(text, encoding="utf-8")
+        # Frågan med bara mätningarna (BESLUT B97), som "Ask Claude" på telefonen nu kopierar.
+        if a.ut:
+            fraga = U.fraga_text(U.fraga_data(A.ren(analys), [], []))
+        else:
+            fraga = U.fraga_ur_historik(rot, pass_id)
+        (ut / "claude-fraga.txt").write_text(fraga, encoding="utf-8")
 
     matta = [r for r in analys["slag"] if "matt" in r]
     print(f"Pass {pass_id}: {len(matta)} slag mätta av {len(analys['slag'])}"
@@ -265,7 +272,8 @@ def main(argv=None) -> int:
     _skriv_telefon(t.get("telefon"))
     print(f"Skrev {ut / 'analys.json'}")
     if a.claude_text:
-        print(f"Skrev {ut / 'claude-text.txt'} (klistra in i Claude-appen)")
+        print(f"Skrev {ut / 'claude-fraga.txt'} (frågan, klistra in i Claude-appen) och "
+              f"{ut / 'claude-text.txt'} (reglerna och mallarna, för en fil till Focus)")
     return 0
 
 

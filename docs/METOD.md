@@ -2382,6 +2382,28 @@ facitet för den. Numreringen MK hålls skild från M, MS och MT. Simuleringen b
 valen står i [S6_FELBUDGET.md](S6_FELBUDGET.md); talen där är påhittade svingar
 med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 
+## MT13 — Frågan till Claude-appen ("Ask Claude", BESLUT B97)
+
+- Texten är rubriken, en kort fråga på svenska (`underlag.FRAGA`, i appen
+  `ClaudeKallor.fraga`) och passets mätningar som kompakt JSON i ett kodblock, i samma form
+  som MT11 (`skriv`). Inga regler, inga mallar och ingen fil att fylla i.
+- **Datan:** `svingar` per vy; `tidigare` = de **5** senaste tidigare passen med samma klubba
+  och längd (BESLUT B56); `matt` = varje aktivt fel i katalogens ordning med `varden` (måttet
+  per sving i passets ordning, avrundat som det visas, MT3; för `bada` ur tempots vy, MT9),
+  `median` (analysens, null under tre svingar, M25), `status`, `gront` och `gult` (avrundade som
+  måttet), `gransens_sort` (`kontrollerad`, `inte_last_i_original` = B10, `egen_baslinje`,
+  `ingen_an`), `baslinje` och `mot_forra` när de finns, `tidigare` = analysens median i varje
+  tidigare pass, och `ovningar` (katalogens och kedjornas texter) för gula, röda och okända fel.
+  Ett mått utan tal, nu och i de tidigare passen (en vy som aldrig filmats), står inte med.
+  `kedjor` = kedjornas par orsak → följd mellan måtten som står med; `ovar_nu` = minnets
+  aktuella övningar (inte avslutade) med text, steg, läge och "klart när".
+  **antagande** (5 tidigare pass = MT11:s 6 med passet självt).
+- **Storleken:** frågan utan datan högst **2 KiB**, och hela texten under 60 % av MT11:s text
+  för samma historik (`test_underlag.py`, `ClaudeTests`). Ett typiskt pass ≈ 7,5 kB mot
+  ≈ 15 kB. **antagande** (Johannes 2026-11-03: ren data och en kort fråga).
+- **Python är facit:** `facit_fraga` för varje historik i `claude_facit.json`, och `fragor`
+  med en sving framifrån (passet 2026-11-03: analysen tom, talet per sving finns).
+
 ## MK1 — Parningen av slagen
 
 - Den styrande telefonens `par.json` (S2g, MS10) ger per serie följarens serie och

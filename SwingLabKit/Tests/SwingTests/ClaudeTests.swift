@@ -85,6 +85,30 @@ final class ClaudeTests: XCTestCase {
         }
     }
 
+    /// "Ask Claude" (BESLUT B97): frågan med passets mätningar är Pythons, tecken för tecken, i
+    /// varje historik och i fallet med en sving (`fragor`).
+    func testFraganArPythons() throws {
+        XCTAssertEqual(ClaudeKallor.fraga.isEmpty, false)
+        let fall = try XCTUnwrap(Self.facit["historiker"]?.somLista) + (try XCTUnwrap(Self.facit["fragor"]?.somLista))
+        for h in fall {
+            let namn = h["namn"]?.somText ?? ""
+            let u = try underlag(h)
+            let python = h["fraga"]?.somText ?? ""
+            XCTAssertEqual(u.fraga, python, "\(namn): \(skillnad(u.fraga, python))")
+            XCTAssertLessThan(u.fraga.utf8.count, max(u.text.utf8.count, 1), namn)
+        }
+    }
+
+    /// Passet med en sving: medianen saknas men talet per sving följer med (BESLUT B97).
+    func testFraganMedEnSving() throws {
+        let h = try XCTUnwrap(Self.facit["fragor"]?.somLista?.first)
+        let d = try underlag(h).fragaData
+        XCTAssertEqual(d["svingar"]?["fo"]?.somTal, 1)
+        let sway = try XCTUnwrap(d["matt"]?.somLista?.first { $0["fel"] == .text("sway_topp") })
+        XCTAssertEqual(sway["varden"]?.somLista?.count, 1)
+        XCTAssertEqual(sway["median"], .null)
+    }
+
     /// Svarstexterna: samma godkända och samma felkoder som Python, i varje historik.
     func testSvarenSomPython() throws {
         var antal = 0

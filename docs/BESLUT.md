@@ -1078,6 +1078,8 @@ B47 och s6c börjar på B48.
   --claude-text`). **S5b-2 (byggt, B60):** knapparna och simulatorprovet.
 - **Omprövas:** efter de första passen tolkade i Claude-appen: jämför valet med skillens
   fulla väg på PC:n (`session.py --claude-text` ger samma text).
+- **Ändras av B97** (2026-11-03): ett tryck på "Ask Claude" ger frågan med mätningarna; texten
+  här kopieras med ett långt tryck ("Ask Claude for focus").
 
 ## B53 — Texten byggs ur skillen, och telefonen räknar som PC:n
 *2026-10-23 · gäller · PLAN.md S5b*
@@ -2069,3 +2071,26 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   hämtar ur (en hemlighet till och ingen nytta när datat är öppet), och en server (B3).
 - **Omprövas:** när en modell tränas på Johannes svingar, eller om ett dataset visar sig ha
   bilder med oklar rätt (B92).
+
+## B97 — "Ask Claude" ger passets mätningar och en kort fråga; reglerna bakom ett långt tryck
+*2026-11-03 · prövas · Johannes beslut 2026-11-03 · METOD MT13 · ändrar B52, B55*
+
+- **Varför:** passet 2026-11-03 (drivern, en sving framifrån) gav en text på ≈ 6 kB där nästan
+  allt var regler och datan var tom: analysen hade inga kandidater och inga mallar, och Claude
+  får inte mäta själv (B2). "Ask Claude" blev en formaterare, inte en analys. Johannes ville ha
+  ren data och en kort fråga, så att analysen görs i Claude.
+- **Valt:** ett tryck på "Ask Claude" kopierar **frågan** (`ClaudeUnderlag.fraga`, `underlag.py
+  fraga_text`): en kort fråga på svenska och varje mått med talet per sving, appens median och
+  färg, gränsen med sin sort, de tidigare passens medianer, kedjornas par och det som övas nu
+  (MT13). Ett **långt tryck** ("Ask Claude for focus") kopierar texten ur B52 och B55, med
+  reglerna och mallarna, för en fil som "Paste from Claude" kan ta emot. PC:n skriver båda
+  (`session.py --claude-text`: `claude-fraga.txt` och `claude-text.txt`).
+- **B2 gäller:** talen är appens. Claude räknar på dem och tolkar, men skattar inget ur bilder
+  eller leder, och det som sparas i Focus går fortfarande genom kontrollen (B54).
+- **Bortvalt:** att ta bort regeltexten (då finns ingen väg till Focus från telefonen); en
+  tredje knapp på raden (B60: raden ska vara tyst); att skicka frågan bara när analysen har
+  kandidater (då blir pass med få svingar tomma igen).
+- **Kostnad:** frågans svar sparas inte i appen; vill Johannes spara ett val tar han det långa
+  trycket. Det långa trycket syns inte på raden.
+- **Omprövas:** efter några pass med frågan: om Claudes val skiljer sig från skillens, eller om
+  Johannes saknar Focus från frågan.

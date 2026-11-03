@@ -21,6 +21,7 @@ from pc import underlag as U
 INSTR_MAX = 8 * 1024       # METOD MT11: instruktionen, byte
 DATA_TYPISKT = 7680        # METOD MT11: datan för ett typiskt pass, 8 KiB med marginal
 TEXT_MAX = 24 * 1024       # METOD MT11: hela texten, även det värsta fallet i facit
+FRAGA_MAX = 2 * 1024       # METOD MT13: frågan utan datan, byte
 
 
 def _kor(main, argv) -> tuple[int, str]:
@@ -60,6 +61,58 @@ class Instruktionen(unittest.TestCase):
         """BESLUT B53: appens källa är skillens och kedjornas text, ordagrant."""
         self.assertEqual(U.KALLOR_SWIFT.read_text(encoding="utf-8"), U.swift_kalla(),
                          "kör python3 tools/pc/underlag.py --swift")
+
+
+
+class Fragan(unittest.TestCase):
+    """BESLUT B97: "Ask Claude" ger passets mätningar och en kort fråga, utan regler och mallar."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.hist = {**U.facit_historiker(), **U.facit_fragor()}
+        cls.fraga = {n: U.facit_fraga(h) for n, h in cls.hist.items()}
+
+    def test_kort_fraga_och_data(self) -> None:
+        t = self.fraga["typiskt"]
+        self.assertTrue(t.startswith(U.FRAGA_RUBRIK + "20261120-180000\n\n" + U.FRAGA + "\n\n```json\n"))
+        self.assertTrue(t.endswith("\n```\n"))
+        self.assertLessEqual(len(U.FRAGA.encode()), FRAGA_MAX)
+        d = _data(t)
+        self.assertEqual(list(d), ["pass", "datum", "klubba", "svingar", "tidigare", "matt", "kedjor", "ovar_nu"])
+        # Halva den gamla texten eller mindre, för varje historik.
+        for namn, f in self.fraga.items():
+            if namn in self.hist and namn != "fa":
+                self.assertLess(len(f.encode()), len(U.facit_text(self.hist[namn]).encode()) * 0.6, namn)
+
+    def test_talen_per_sving(self) -> None:
+        d = _data(self.fraga["typiskt"])
+        sway = next(m for m in d["matt"] if m["fel"] == "sway_topp")
+        self.assertEqual(len(sway["varden"]), d["svingar"]["fo"])
+        self.assertEqual(len(sway["tidigare"]), len(d["tidigare"]))
+        self.assertEqual(len(d["tidigare"]), U.FRAGA_TIDIGARE)
+        self.assertEqual(sway["gransens_sort"], "kontrollerad")
+        self.assertIn("ovningar", sway)
+        # Ett grönt mått står med, men utan övningar.
+        gron = [m for m in d["matt"] if m["status"] == "gron"]
+        self.assertTrue(gron)
+        self.assertTrue(all("ovningar" not in m for m in gron))
+        self.assertIn("egen_baslinje", {m["gransens_sort"] for m in d["matt"]})
+        self.assertEqual(d["ovar_nu"][0]["fel"], "sway_topp")
+        self.assertIn(["sway_topp", "reverse_spine"], d["kedjor"])
+
+    def test_en_sving(self) -> None:
+        """Passet 2026-11-03: en sving framifrån gav en tom analys. Frågan bär talet ändå."""
+        d = _data(self.fraga["fa"])
+        self.assertEqual(d["svingar"], {"dtl": 0, "fo": 1})
+        sway = next(m for m in d["matt"] if m["fel"] == "sway_topp")
+        self.assertEqual((len(sway["varden"]), sway["median"]), (1, None))
+        self.assertIsNotNone(sway["tidigare"][0])
+        # DTL filmades aldrig: de måtten står inte med.
+        self.assertTrue(all(m["vy"] != "dtl" for m in d["matt"]))
+
+    def test_fragan_pa_pc(self) -> None:
+        kod, ut = _kor(U.main, ["--facit-fraga", "fa"])
+        self.assertEqual((kod, ut), (0, self.fraga["fa"]))
 
 
 class Datan(unittest.TestCase):
@@ -290,6 +343,9 @@ class PCvagen(unittest.TestCase):
             self.assertEqual(kod, 0, ut)
             d2 = _data((hist / "pass" / p2 / "claude-text.txt").read_text(encoding="utf-8"))
             self.assertEqual(d2["ovningar"][0]["lage"], "fortsatt")
+            # Frågan (BESLUT B97) bär samma övning som det som övas nu.
+            f2 = _data((hist / "pass" / p2 / "claude-fraga.txt").read_text(encoding="utf-8"))
+            self.assertEqual([o["fel"] for o in f2["ovar_nu"]], ["sway_topp"])
             m2 = next(x for x in d2["mallar"] if x["fel"] == "sway_topp")
             self.assertEqual((m2["klart_nar"], m2["steg_val"]), (m["klart_nar"], ["langsamt_med_foremal", "halv_fart"]))
             # Ett trasigt svar stoppar med fältet.

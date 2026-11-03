@@ -67,7 +67,9 @@ Lägg paketen i `data/inkorg/` (eller där Johannes säger att de ligger).
 ## I Claude-appen: texten från telefonen (S5b)
 
 Tolkningen går också att göra i Claude-appen på telefonen, utan PC och utan API-nyckel
-(BESLUT B52). Appen kopierar en text ("Ask Claude") med reglerna nedan och passets data,
+(BESLUT B52). Ett tryck på "Ask Claude" kopierar bara en kort fråga och passets mätningar
+(BESLUT B97, METOD MT13), utan reglerna. Ett långt tryck ("Ask Claude for focus") kopierar
+en text med reglerna nedan och passets data,
 räknad på telefonen; Johannes klistrar in den i Claude-appen och kopierar svaret tillbaka
 ("Paste from Claude"), där det kontrolleras som på PC:n. Texten är avsnitten mellan
 markörerna `claude-appen`, ordagrant och i den ordning de står: `python3
@@ -76,7 +78,7 @@ tools/pc/underlag.py --swift` för över dem till appen, och ett prov fäller en
 pröva mot skillens fulla väg.
 
 <!-- claude-appen -->
-**Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude") och klistrat in
+**Claude-appen.** Johannes har kopierat texten i SwingLab ("Ask Claude for focus") och klistrat in
 den här. Datan längst ned är räknad på telefonen med samma regler och fältnamn som på
 PC:n, för passets `klubba` och de tidigare passen med samma klubba, vy och längd:
 `kandidater` och `bedomning` ur analysen (felen som inte är gröna; `visat` är talet som

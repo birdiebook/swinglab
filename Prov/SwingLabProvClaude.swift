@@ -81,15 +81,22 @@ extension SwingLabProvVyer {
         let nuID = ids[1]
         func focusTanke() -> String? { store.focus?.saker.first?.ovning.tanke }
 
-        // 1. Ask Claude: texten i urklippet, samma som ClaudeUnderlag för samma pass.
+        // 1. Ask Claude: frågan med mätningarna i urklippet (BESLUT B97), samma som ClaudeUnderlag.
         UIPasteboard.general.string = ""
         let skapad = Tal.dag(2026, 11, 13, timme: 20)
-        let kopierad = await ClaudeApp.fraga(passID: nuID, store: store, katalog: k, skapad: skapad)
-        let text = try XCTUnwrap(kopierad, "Ask Claude kopierade inget")
-        XCTAssertEqual(UIPasteboard.general.string, text, "urklippet")
+        let fragan = try XCTUnwrap(await ClaudeApp.fraga(passID: nuID, store: store, katalog: k, skapad: skapad),
+                                   "Ask Claude kopierade inget")
         let passen = try ids.map { try XCTUnwrap(store.load($0)) }
         XCTAssertTrue(passen.allSatisfy { p in p.shots.allSatisfy { $0.measure?.ok == true } }, "mätta och sparade")
         let u = try XCTUnwrap(ClaudeKontext.underlag(nu: passen[1], alla: passen, filer: [], katalog: k, skapad: skapad))
+        XCTAssertEqual(UIPasteboard.general.string, u.fraga, "urklippet är frågan för passet")
+        XCTAssertTrue(fragan.hasPrefix(ClaudeUnderlag.fragaRubrik + nuID))
+        print("PROV: Ask Claude \(fragan.utf8.count) byte (frågan)")
+
+        // 1b. Långt tryck: reglerna och mallarna för en fil till Focus.
+        let kopierad = await ClaudeApp.fraga(passID: nuID, store: store, katalog: k, fraga: .fokus, skapad: skapad)
+        let text = try XCTUnwrap(kopierad, "Ask Claude for focus kopierade inget")
+        XCTAssertEqual(UIPasteboard.general.string, text, "urklippet")
         XCTAssertEqual(UIPasteboard.general.string, u.text, "urklippet är ClaudeUnderlag för passet")
         XCTAssertTrue(text.hasPrefix(ClaudeUnderlag.rubrik + nuID))
         XCTAssertEqual(u.analyser.map(\.pass), ids)

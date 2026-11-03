@@ -5,8 +5,9 @@ import UniformTypeIdentifiers
 import Swing
 import Capture
 
-// Claude-appen på telefonen (S5b-2, BESLUT B52, B60): "Ask Claude" kopierar underlaget för ett
-// pass till urklippet, och "Paste from Claude" läser svaret, kontrollerar det som PC:n (B54) och
+// Claude-appen på telefonen (S5b-2, BESLUT B52, B60, B97): "Ask Claude" kopierar frågan med
+// passets mätningar till urklippet, ett långt tryck reglerna och mallarna för en fil till Focus,
+// och "Paste from Claude" läser svaret, kontrollerar det som PC:n (B54) och
 // visar sakerna i ett blad innan de sparas. Raden sitter i passet och på Today (det senaste
 // passet). Formspråket är B13: text i gråskala, ingen ikon, inget värdeord. METOD MS18
 
@@ -31,10 +32,14 @@ enum ClaudeApp {
         return (r.pass, r.earlier + [r.pass])
     }
 
+    /// Vad "Ask Claude" kopierar: frågan med mätningarna (ett tryck, BESLUT B97) eller reglerna
+    /// och mallarna för en fil till Focus (ett långt tryck, BESLUT B52).
+    enum Fraga: Sendable { case matningar, fokus }
+
     /// Underlaget och texten för passet, räknade utanför huvudtråden: `ClaudeKontext.underlag` med
     /// passet `nu` uttryckligen och de hämtade filerna, som den bara läser för passen i
     /// sammanhanget (BESLUT B56). nil när passet saknas eller inte har några slag som räknas.
-    static func underlag(passID: String, store: Store, katalog: Katalog,
+    static func underlag(passID: String, store: Store, katalog: Katalog, fraga: Fraga = .matningar,
                          skapad: Date = Date()) async -> (underlag: ClaudeUnderlag, text: String)? {
         guard let p = await passen(passID, store: store) else { return nil }
         let nu = p.nu, alla = p.alla
@@ -42,7 +47,7 @@ enum ClaudeApp {
         return await Task.detached(priority: .userInitiated) { () -> (underlag: ClaudeUnderlag, text: String)? in
             guard let u = ClaudeKontext.underlag(nu: nu, alla: alla, filer: Store.readingFocus(root: root),
                                                  katalog: katalog, skapad: skapad) else { return nil }
-            return (u, u.text)
+            return (u, fraga == .fokus ? u.text : u.fraga)
         }.value
     }
 
@@ -55,11 +60,14 @@ enum ClaudeApp {
         return UIPasteboard.general.changeCount
     }
 
-    /// "Ask Claude" i ett steg (provet): underlaget i urklippet. Svarar texten, eller nil när det
-    /// inte finns något att fråga om. Knapparna gör samma två steg, med en kontroll emellan.
+    /// "Ask Claude" i ett steg (provet): frågan, eller med `.fokus` reglerna, i urklippet. Svarar
+    /// texten, eller nil när det inte finns något att fråga om. Knapparna gör samma två steg, med
+    /// en kontroll emellan.
     @discardableResult
-    static func fraga(passID: String, store: Store, katalog: Katalog, skapad: Date = Date()) async -> String? {
-        guard let u = await underlag(passID: passID, store: store, katalog: katalog, skapad: skapad) else { return nil }
+    static func fraga(passID: String, store: Store, katalog: Katalog, fraga: Fraga = .matningar,
+                      skapad: Date = Date()) async -> String? {
+        guard let u = await underlag(passID: passID, store: store, katalog: katalog, fraga: fraga,
+                                     skapad: skapad) else { return nil }
         kopiera(u.text)
         return u.text
     }
@@ -150,15 +158,19 @@ struct ClaudeRad: View {
     /// Claude-appen går att öppna (`ClaudeApp.kanOppnas`) och texten är kopierad.
     var oppna: Bool
     var fraga: () -> Void
+    /// Ett långt tryck på "Ask Claude": reglerna och mallarna för en fil till Focus (BESLUT B97).
+    var fragaFokus: () -> Void
     var klistra: () -> Void
     var oppnaClaude: () -> Void
     @State private var visaDetaljer: Bool
 
     init(lage: Lage = .vila, oppna: Bool = false, visaDetaljer: Bool = false, fraga: @escaping () -> Void = {},
-         klistra: @escaping () -> Void = {}, oppnaClaude: @escaping () -> Void = {}) {
+         fragaFokus: @escaping () -> Void = {}, klistra: @escaping () -> Void = {},
+         oppnaClaude: @escaping () -> Void = {}) {
         self.lage = lage
         self.oppna = oppna
         self.fraga = fraga
+        self.fragaFokus = fragaFokus
         self.klistra = klistra
         self.oppnaClaude = oppnaClaude
         _visaDetaljer = State(initialValue: visaDetaljer)
@@ -178,6 +190,9 @@ struct ClaudeRad: View {
 
     @ViewBuilder private var knappar: some View {
         Button("Ask Claude", action: fraga)
+            .contextMenu {
+                Button("Ask Claude for focus", action: fragaFokus)
+            }
         Button("Paste from Claude", action: klistra)
     }
 
@@ -370,7 +385,8 @@ struct ClaudeKnappar: View {
     static let bekraftelseSekunder = 3.0
 
     var body: some View {
-        ClaudeRad(lage: lage, oppna: oppna, fraga: fraga, klistra: klistra,
+        ClaudeRad(lage: lage, oppna: oppna, fraga: { fraga(.matningar) }, fragaFokus: { fraga(.fokus) },
+                  klistra: klistra,
                   oppnaClaude: { UIApplication.shared.open(ClaudeApp.url) })
             // Medan ett paket skrivs (Send to PC) ändras inga pass (PassMeasures sparar mått).
             .disabled(!store.exporting.isEmpty)
@@ -412,7 +428,7 @@ struct ClaudeKnappar: View {
         AccessibilityNotification.Announcement(text).post()
     }
 
-    private func fraga() {
+    private func fraga(_ vad: ClaudeApp.Fraga) {
         guard lage != .arbetar, let k = AppKatalog.katalog else { return }
         avbryt()
         let id = passID
@@ -420,7 +436,7 @@ struct ClaudeKnappar: View {
         lage = .arbetar
         oppna = false
         jobb = Task {
-            let u = await ClaudeApp.underlag(passID: id, store: store, katalog: k)
+            let u = await ClaudeApp.underlag(passID: id, store: store, katalog: k, fraga: vad)
             guard !Task.isCancelled, jobbID == id else { return }
             jobbID = nil
             guard let u else {

@@ -474,7 +474,9 @@ någon fil behövt redigeras för hand.
 ## S5b — Claude på telefonen (Johannes 2026-10-23)
 
 Claudes tolkning ska också gå att göra på mobilen, utan PC och utan API-nyckel, med
-abonnemanget (BESLUT B52). "Ask Claude" i passet kopierar en text: skillens regler (avsnitten
+abonnemanget (BESLUT B52). Sedan B97 (2026-11-03) kopierar ett tryck på "Ask Claude" bara en kort
+fråga och passets mätningar (METOD MT13); texten nedan kopieras med ett långt tryck ("Ask Claude
+for focus"): skillens regler (avsnitten
 `claude-appen` i SKILL.md, B53) och passets data räknad på telefonen, med en mall per fel
 som går att välja (B55). Johannes klistrar in den i Claude-appen. "Paste from Claude" läser
 svaret, tar det sista kodblocket och kontrollerar det som PC:n (B54); godkänt blir det Focus

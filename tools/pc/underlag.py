@@ -320,6 +320,134 @@ def ur_historik(rot: Path, pass_id: str, skapad: str) -> str:
     return text(underlag(H.enheter(rot, till=pass_id), pass_id, H.att_jobba_pa(rot), skapad))
 
 
+
+# --- frågan: passets mätningar och en kort fråga (BESLUT B97) ---------------------------
+
+FRAGA_RUBRIK = "# SwingLab: passet "
+FRAGA_TIDIGARE = HISTORIK_PASS - 1   # METOD MT13: de tidigare passen i frågan
+FRAGA = """Analysera mitt svingpass i SwingLab. Talen nedan är mätta av appen, sving för sving. Räkna gärna på dem, men skatta inget nytt ur bilder eller leder, och hitta inte på gränser.
+
+Svara kort på svenska, det viktigaste först:
+1. Vad sticker ut, mot gränsen och mot mina tidigare pass?
+2. Vad hänger troligen ihop (orsak → följd), och vad är grundorsaken?
+3. En sak att öva härnäst (högst tre), med en övning ur `ovningar` och en tanke om vad klubban, bollen eller ett föremål ska göra.
+
+Säg till när svingarna är för få för att dra en slutsats. Skriver jag passets vanligaste miss efter texten väger den tyngst.
+
+Fälten: `varden` är måttet per sving i passets ordning och `median` appens median (null under tre svingar). `status` är appens färg mot `gront`, och `gransens_sort` säger om gränsen är kontrollerad i original, inte läst i original eller min egen baslinje. `tidigare` är medianerna i mina tidigare pass med samma klubba (passen står överst), `kedjor` är kända par orsak → följd och `ovar_nu` det jag övar på nu."""
+
+
+def _gransens_sort(b: dict) -> str:
+    """Gränsens sort (steg H i skillen): katalogens gräns läst i original, inte läst (B10), den
+    egna baslinjen eller ingen än. METOD MT13"""
+    if b["spann"] is not None:
+        kn = b.get("klart_nar")
+        return "inte_last_i_original" if kn is not None and kn.get("markning") == "B10" else "kontrollerad"
+    return "egen_baslinje" if b.get("baslinje") is not None else "ingen_an"
+
+
+def _spann(m: str, s: list | None) -> list | None:
+    """Ett band avrundat som måttet (METOD MT3), så att 3,3 inte står som 3,3000000000000003."""
+    return None if s is None else [A.avrunda(m, x) for x in s]
+
+
+def _ovningstexter(fid: str, katalog: dict, kedjor: dict) -> list[str]:
+    k = next(f for f in katalog["fel"] if f["id"] == fid)
+    ut = [k["ovning"]]
+    for x in kedjor["ovningar"]:
+        if x["fel"] == fid and x["text"] not in ut:
+            ut.append(x["text"])
+    return ut
+
+
+def fraga_data(analys: dict, enh: list[dict], ovningar: list[dict], katalog: dict | None = None,
+               kedjor: dict | None = None) -> dict:
+    """Passets mätningar till frågan (BESLUT B97): varje aktivt mått med talet per sving,
+    appens median, färg och gräns med sort, medianerna i de tidigare passen, kedjorna mellan
+    måtten och det som övas nu. Ett mått utan tal, nu och i de tidigare passen, står inte med.
+    Inga regler och inga mallar. METOD MT13"""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or A.las_kedjor()
+    pass_id = analys["pass"]
+    K = {f["id"]: f for f in katalog["fel"]}
+    sv = analys.get("svingar") or A.svingar_for(analys, analys.get("huvudklubba"))
+    tidigare = sorted((u for u in enh if u["pass"] < pass_id), key=A._ordning)[-FRAGA_TIDIGARE:]
+    matt = []
+    for b in analys["bedomning"]:
+        if b["status"] == "av" or b["id"] not in K:
+            continue
+        m = b["matt"]
+        vy = analys["tempo_vy"] if b["vy"] == "bada" else b["vy"]
+        varden = [A.avrunda(m, s["matt"][m]) for s in sv
+                  if s["vy"] == vy and m in s["matt"] and math.isfinite(s["matt"][m])]
+        rad = {"fel": b["id"], "namn": K[b["id"]]["namn"], "vy": b["vy"], "matt": m, "enhet": b["enhet"],
+               "varden": varden, "median": b["visat"], "status": b["status"], "gront": _spann(m, b["spann"])}
+        if b.get("gult") is not None:
+            rad["gult"] = _spann(m, b["gult"])
+        rad["gransens_sort"] = _gransens_sort(b)
+        if b.get("baslinje") is not None:
+            rad["baslinje"] = b["baslinje"]
+        if b.get("mot_forra") is not None:
+            rad["mot_forra"] = b["mot_forra"]
+        tid = []
+        for u in tidigare:
+            x = next((y for y in u["bedomning"] if y["id"] == b["id"]), None)
+            tid.append(None if x is None else x["visat"])
+        if not varden and all(x is None for x in tid):
+            continue   # en vy som inte filmats, nu eller förut
+        rad["tidigare"] = tid
+        if b["status"] in ("gul", "rod", "okand"):
+            rad["ovningar"] = _ovningstexter(b["id"], katalog, kedjor)
+        matt.append(rad)
+    ids = {r["fel"] for r in matt}
+    par = []
+    for k in kedjor["kedjor"]:
+        p = [k["orsak"], k["foljd"]]
+        if k["orsak"] in ids and k["foljd"] in ids and p not in par:
+            par.append(p)
+    ovar = []
+    for o in ovningar:
+        if not o["aktuell"] or o["lage"] == "avslutad":
+            continue
+        alt = _alternativ(o["fel"], o["ovning_id"], katalog, kedjor) if o["fel"] in K else None
+        ovar.append({"fel": o["fel"], "ovning": alt["text"] if alt else o["ovning_id"], "steg": o["steg"],
+                     "lage": o["lage"], "klart_nar": {"villkor": o["klart_nar"]["villkor"],
+                                                      "grans": o["klart_nar"]["grans"]}})
+    return {
+        "pass": pass_id,
+        "datum": _datum(pass_id).isoformat(),
+        "klubba": analys.get("klubba_id", analys.get("huvudklubba")),
+        "svingar": {vy: sum(1 for s in sv if s["vy"] == vy) for vy in ("dtl", "fo")},
+        "tidigare": [u["pass"] for u in tidigare],
+        "matt": matt,
+        "kedjor": par,
+        "ovar_nu": ovar,
+    }
+
+
+def fraga_underlag(enh: list[dict], nu: str, docs: list[dict], katalog: dict | None = None,
+                   kedjor: dict | None = None) -> dict:
+    """Frågans data för passet `nu`, ur samma sammanhang och minne som `underlag` (BESLUT B56)."""
+    katalog = katalog or KAT.las()
+    kedjor = kedjor or A.las_kedjor()
+    ctx = H.sammanhang(enh, nu)
+    nu_u = next(u for u in ctx if u["huvud"] and u["pass"] == nu)
+    huvudpass = {u["pass"] for u in ctx if u["huvud"]}
+    docs = [d for d in docs if d["pass"] in huvudpass]
+    ov = H.ovningar_ur(ctx, docs, till=nu, fore=nu, kedjor=kedjor)
+    return fraga_data(nu_u, ctx, ov, katalog, kedjor)
+
+
+def fraga_text(d: dict) -> str:
+    """Frågan: rubriken, den korta frågan och mätningarna i ett kodblock (BESLUT B97)."""
+    return FRAGA_RUBRIK + d["pass"] + "\n\n" + FRAGA + "\n\n```json\n" + skriv(d) + "\n```\n"
+
+
+def fraga_ur_historik(rot: Path, pass_id: str) -> str:
+    """Frågan för ett pass i historiken på PC:n (`session.py --claude-fraga`)."""
+    return fraga_text(fraga_underlag(H.enheter(rot, till=pass_id), pass_id, H.att_jobba_pa(rot)))
+
+
 # --- påhittade passhistoriker (facit för Swift) ------------------------------------------
 
 def analysera_historik(historik: dict, katalog: dict | None = None, kedjor: dict | None = None) -> list[dict]:
@@ -343,6 +471,11 @@ def _nu(historik: dict) -> str:
 
 def facit_data(historik: dict) -> dict:
     return underlag(analysera_historik(historik), _nu(historik), historik["att_jobba_pa"], historik["skapad"])
+
+
+def facit_fraga(historik: dict) -> str:
+    """Frågan för passet `nu` (annars det senaste) i en påhittad historik (BESLUT B97)."""
+    return fraga_text(fraga_underlag(analysera_historik(historik), _nu(historik), historik["att_jobba_pa"]))
 
 
 def facit_text(historik: dict, instr: str | None = None) -> str:
@@ -556,6 +689,17 @@ def facit_historiker() -> dict[str, dict]:
     return ut
 
 
+def facit_fragor() -> dict[str, dict]:
+    """Påhittade historiker bara för frågan (BESLUT B97), utan svar:
+
+    - `fa`: en sving framifrån med drivern efter ett pass med fyra, så att medianen saknas men
+      talet per sving finns."""
+    rng = random.Random(97)
+    return {"fa": {"pass": [_pass(rng, "20261102-203825", {"fo": 4}, {"backen_sway_topp": -6.0}, klubba="dr"),
+                            _pass(rng, "20261103-114927", {"fo": 1}, {"backen_sway_topp": -6.0}, klubba="dr")],
+                   "att_jobba_pa": [], "skapad": "2026-11-03T11:50:20+01:00"}}
+
+
 def _svar_text(fil: dict, fore: str = "", efter: str = "", markning: str = "json", indrag: int | None = None) -> str:
     return fore + "```" + markning + "\n" + json.dumps(fil, ensure_ascii=False, indent=indrag) + "\n```" + efter
 
@@ -757,10 +901,13 @@ def facit() -> dict:
     indata, Pythons text och svaren med Pythons felkoder."""
     katalog, kedjor = KAT.las(), A.las_kedjor()
     ut = {"instruktion": instruktion(), "kodblock": [[k, AJP.kodblock(k)] for k in KODBLOCK],
-          "avrundning": [[m, v, A.avrunda(m, v)] for m, v in AVRUNDNING], "historiker": []}
+          "avrundning": [[m, v, A.avrunda(m, v)] for m, v in AVRUNDNING], "historiker": [],
+          "fragor": [{"namn": n, "historik": dict(h, nu=_nu(h)), "fraga": facit_fraga(h)}
+                     for n, h in facit_fragor().items()]}
     for namn, h in facit_historiker().items():
         u, ov = facit_kontext(h)
-        rad = {"namn": namn, "historik": dict(h, nu=_nu(h)), "text": facit_text(h), "svar": []}
+        rad = {"namn": namn, "historik": dict(h, nu=_nu(h)), "text": facit_text(h), "fraga": facit_fraga(h),
+               "svar": []}
         for snamn, s in facit_svar(namn, h):
             d, fel = AJP.las_svar(s, u, ov, katalog, kedjor)
             rad["svar"].append({"namn": snamn, "text": s, "godkand": d is not None, "fel": AJP.koder(fel)})
@@ -794,6 +941,9 @@ def swift_kalla() -> str:
         "    /// Reglerna ur skillen svinganalys, kortade (avsnitten claude-appen).",
         "    public static let instruktion = " + _raa(instruktion()),
         "",
+        "    /// Frågan till Claude-appen (BESLUT B97): den korta texten före passets mätningar.",
+        "    public static let fraga = " + _raa(FRAGA),
+        "",
         "    /// tools/pc/kedjor.json, ordagrant.",
         "    public static let kedjor = " + _raa(A.KEDJOR.read_text(encoding="utf-8").rstrip("\n")),
         "}",
@@ -805,6 +955,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--swift", action="store_true", help="skriv ClaudeKallor.swift och claude_facit.json")
     ap.add_argument("--facit-text", help="skriv ut texten för en påhittad historik (typiskt, forsta, byt)")
+    ap.add_argument("--facit-fraga", help="skriv ut frågan för en påhittad historik (BESLUT B97)")
     a = ap.parse_args(argv)
     if a.swift:
         KALLOR_SWIFT.parent.mkdir(parents=True, exist_ok=True)
@@ -815,7 +966,10 @@ def main(argv=None) -> int:
     if a.facit_text:
         print(facit_text(facit_historiker()[a.facit_text]), end="")
         return 0
-    ap.error("ange --swift eller --facit-text")
+    if a.facit_fraga:
+        print(facit_fraga({**facit_historiker(), **facit_fragor()}[a.facit_fraga]), end="")
+        return 0
+    ap.error("ange --swift, --facit-text eller --facit-fraga")
     return 2
 
 

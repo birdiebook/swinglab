@@ -1,6 +1,8 @@
 import Foundation
 
-/// Underlaget till Claude-appen (S5b, BESLUT B52): texten som "Ask Claude" kopierar. Den är
+/// Underlaget till Claude-appen (S5b, BESLUT B52). "Ask Claude" kopierar `fraga`: en kort fråga
+/// och passets mätningar (BESLUT B97). `text` är reglerna och mallarna för en fil till Focus, som
+/// ett långt tryck på "Ask Claude" kopierar. Den är
 /// skillens regler (`ClaudeKallor.instruktion`, avsnitten claude-appen i SKILL.md) och passets
 /// data som kompakt JSON, räknad på telefonen. Samma text som `tools/pc/underlag.py` ger för
 /// samma passhistorik, tecken för tecken (BESLUT B12, BESLUT B53). Svaret tillbaka läses med
@@ -255,6 +257,92 @@ public struct ClaudeUnderlag: Sendable {
             ("fil", .o([("format", .text(AttJobbaPaKontroll.format)), ("pass", .text(a.pass)),
                         ("skapad", .text(skapad))])),
             ("mallar", mallar()),
+        ])
+    }
+
+    // MARK: frågan (underlag.py fraga_data, BESLUT B97)
+
+    public static let fragaRubrik = "# SwingLab: passet "
+    /// De tidigare passen i frågan. METOD MT13
+    public static let fragaTidigare = historikPass - 1
+
+    /// "Ask Claude": rubriken, den korta frågan och passets mätningar i ett kodblock, utan
+    /// regler och mallar (BESLUT B97). Samma text som `fraga_text` i underlag.py.
+    public var fraga: String {
+        Self.fragaRubrik + analys.pass + "\n\n" + ClaudeKallor.fraga + "\n\n```json\n" + fragaData.skriv() + "\n```\n"
+    }
+
+    /// Gränsens sort (steg H i skillen). METOD MT13
+    static func gransensSort(_ b: Passanalys.Rad) -> String {
+        if b.spann != nil { return b.klartNar?.markning == "B10" ? "inte_last_i_original" : "kontrollerad" }
+        return b.baslinje != nil ? "egen_baslinje" : "ingen_an"
+    }
+
+    /// Ett band avrundat som måttet (METOD MT3).
+    static func spann(_ m: String, _ s: [Double?]?) -> JSONVarde {
+        guard let s else { return .null }
+        return .lista(s.map { JSONVarde.d(Avrundning.avrunda(m, $0)) })
+    }
+
+    func ovningstexter(_ fid: String) -> [String] {
+        guard let k = katalog.fel.first(where: { $0.id == fid }) else { return [] }
+        var ut = [k.ovning]
+        for x in kedjor.ovningar where x.fel == fid && !ut.contains(x.text) { ut.append(x.text) }
+        return ut
+    }
+
+    /// Passets mätningar till frågan, fält för fält som `fraga_data` i underlag.py. METOD MT13
+    public var fragaData: JSONVarde {
+        let a = analys
+        var K: [String: Katalog.Fel] = [:]
+        for f in katalog.fel { K[f.id] = f }
+        let tidigare = Array(analyser.filter { $0.pass < a.pass }.sorted(by: Passanalys.fore).suffix(Self.fragaTidigare))
+        var matt: [JSONVarde] = []
+        var ids = Set<String>()
+        for b in a.bedomning {
+            guard b.status != .av, let k = K[b.id] else { continue }
+            let m = b.matt
+            let vy = b.vy == "bada" ? a.tempoVy : b.vy
+            let varden = a.slag.filter { $0.vy.rawValue == vy }.compactMap { $0.matt[m] }.filter(\.isFinite)
+                .compactMap { Avrundning.avrunda(m, $0) }
+            let tid: [Double?] = tidigare.map { u in u.rad(b.id)?.visat }
+            if varden.isEmpty && tid.allSatisfy({ $0 == nil }) { continue }
+            var p: [(String, JSONVarde)] = [
+                ("fel", .text(b.id)), ("namn", .text(k.namn)), ("vy", .text(b.vy)), ("matt", .text(m)),
+                ("enhet", .text(b.enhet)), ("varden", .lista(varden.map { JSONVarde.tal($0) })), ("median", .d(b.visat)),
+                ("status", .text(b.status.rawValue)), ("gront", Self.spann(m, b.spann)),
+            ]
+            if b.gult != nil { p.append(("gult", Self.spann(m, b.gult))) }
+            p.append(("gransens_sort", .text(Self.gransensSort(b))))
+            if let bas = b.baslinje {
+                p.append(("baslinje", .o([("median", .d(bas.median)), ("sd", .d(bas.sd)), ("n", .i(bas.n))])))
+            }
+            if let mf = b.motForra { p.append(("mot_forra", .o([("skillnad", .d(mf.skillnad)), ("tydlig", .bool(mf.tydlig))]))) }
+            p.append(("tidigare", .lista(tid.map { JSONVarde.d($0) })))
+            if [.gul, .rod, .okand].contains(b.status) { p.append(("ovningar", .texter(ovningstexter(b.id)))) }
+            matt.append(.o(p))
+            ids.insert(b.id)
+        }
+        var par: [[String]] = []
+        for k in kedjor.kedjor where ids.contains(k.orsak) && ids.contains(k.foljd) {
+            let x = [k.orsak, k.foljd]
+            if !par.contains(x) { par.append(x) }
+        }
+        let ovar: [JSONVarde] = ovningar.filter { $0.aktuell && $0.lage != "avslutad" }.map { o in
+            let text = K[o.fel] != nil ? alternativ(o.fel, o.ovningId)?["text"]?.somText : nil
+            return .o([("fel", .text(o.fel)), ("ovning", .text(text ?? o.ovningId)), ("steg", .text(o.steg)),
+                       ("lage", .text(o.lage)), ("klart_nar", .o([("villkor", .text(o.villkor)), ("grans", o.grans)]))])
+        }
+        return .o([
+            ("pass", .text(a.pass)),
+            ("datum", .text(Self.dag(a.pass))),
+            ("klubba", .t(a.klubba)),
+            ("svingar", .o([("dtl", .i(a.slag.filter { $0.vy == .dtl }.count)),
+                            ("fo", .i(a.slag.filter { $0.vy == .fo }.count))])),
+            ("tidigare", .texter(tidigare.map(\.pass))),
+            ("matt", .lista(matt)),
+            ("kedjor", .lista(par.map { JSONVarde.texter($0) })),
+            ("ovar_nu", .lista(ovar)),
         ])
     }
 
