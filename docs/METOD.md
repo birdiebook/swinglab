@@ -2398,7 +2398,7 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   `kedjor` = kedjornas par orsak → följd mellan måtten som står med; `ovar_nu` = minnets
   aktuella övningar (inte avslutade) med text, steg, läge och "klart när".
   **antagande** (5 tidigare pass = MT11:s 6 med passet självt).
-- **Storleken:** frågan utan datan högst **2 KiB**, och hela texten under 60 % av MT11:s text
+- **Storleken:** frågan utan datan högst **512 byte** (Johannes 2026-11-03: en kort text som får igång analysen), och hela texten under 60 % av MT11:s text
   för samma historik (`test_underlag.py`, `ClaudeTests`). Ett typiskt pass ≈ 7,5 kB mot
   ≈ 15 kB. **antagande** (Johannes 2026-11-03: ren data och en kort fråga).
 - **Python är facit:** `facit_fraga` för varje historik i `claude_facit.json`, och `fragor`

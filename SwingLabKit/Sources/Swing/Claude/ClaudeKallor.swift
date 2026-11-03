@@ -134,16 +134,7 @@ standing", inte "Keep your hip still"). Högst 60 tecken, inga siffror.
 
     /// Frågan till Claude-appen (BESLUT B97): den korta texten före passets mätningar.
     public static let fraga = #"""
-Analysera mitt svingpass i SwingLab. Talen nedan är mätta av appen, sving för sving. Räkna gärna på dem, men skatta inget nytt ur bilder eller leder, och hitta inte på gränser.
-
-Svara kort på svenska, det viktigaste först:
-1. Vad sticker ut, mot gränsen och mot mina tidigare pass?
-2. Vad hänger troligen ihop (orsak → följd), och vad är grundorsaken?
-3. En sak att öva härnäst (högst tre), med en övning ur `ovningar` och en tanke om vad klubban, bollen eller ett föremål ska göra.
-
-Säg till när svingarna är för få för att dra en slutsats. Skriver jag passets vanligaste miss efter texten väger den tyngst.
-
-Fälten: `varden` är måttet per sving i passets ordning och `median` appens median (null under tre svingar). `status` är appens färg mot `gront`, och `gransens_sort` säger om gränsen är kontrollerad i original, inte läst i original eller min egen baslinje. `tidigare` är medianerna i mina tidigare pass med samma klubba (passen står överst), `kedjor` är kända par orsak → följd och `ovar_nu` det jag övar på nu.
+Analysera mitt svingpass. Talen är mätta av appen per sving (`varden`), med gränsen och mina tidigare pass. Vad sticker ut, vad hänger ihop och vad ska jag öva? Svara kort på svenska.
 """#
 
     /// tools/pc/kedjor.json, ordagrant.

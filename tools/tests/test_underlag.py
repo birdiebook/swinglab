@@ -21,7 +21,7 @@ from pc import underlag as U
 INSTR_MAX = 8 * 1024       # METOD MT11: instruktionen, byte
 DATA_TYPISKT = 7680        # METOD MT11: datan för ett typiskt pass, 8 KiB med marginal
 TEXT_MAX = 24 * 1024       # METOD MT11: hela texten, även det värsta fallet i facit
-FRAGA_MAX = 2 * 1024       # METOD MT13: frågan utan datan, byte
+FRAGA_MAX = 512           # METOD MT13: frågan utan datan, byte
 
 
 def _kor(main, argv) -> tuple[int, str]:
