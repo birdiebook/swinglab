@@ -341,6 +341,14 @@ orsakerna står i frågan till Claude (MT13). Påhittade svingar med inlagda fel
 gräns mot riktiga pass (järn och driver), och rensningens antal på ett riktigt pass mot
 kontaktarket (hur ofta slår den till, och har den rätt?).
 
+**Kalibrerat och andra åsikten (grenen `s3-andra-asikt`, 2026-11-05):** lager 1 kört på passet
+från 2026-10-24 (järn 7). Rensningen slår till nästan bara i genomsvingen framifrån, och tio
+granskade händelser var alla Visions fel (METOD M53). Platåns gräns föreslås till 0,15 s, men
+sätts först när ett driverpass mätts (M4). Lager 4 har ett verktyg: ViTPose-B tränad bara på
+COCO mot Vision på samma klipp (`tools/pc/andra_asikt.py`, METOD MF9, BESLUT B100; RTMPose ur
+model zoo bär AIC i backbonen). Första körningen: ViTPose fel om bakre armbågen i toppen
+framifrån, Vision fel i genomsvingen. Kvar: driverpasset genom båda, och Sportsbox.
+
 ## S4 — Vyn
 
 Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,

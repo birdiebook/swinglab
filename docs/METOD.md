@@ -126,6 +126,14 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   andra signal (händernas vändning i x bakifrån, armens vinkel framifrån); gränsen sätts
   först när platån mätts på riktiga pass med järn och driver, eftersom den påhittade profilen
   redan ligger där. **antagande** (2 %). `test_rensa.ToppensPlata`.
+- **Platån på ett riktigt pass (2026-11-05, kalibreringen av S3b lager 1):** passet från
+  2026-10-24 (järn 7, båda vyerna; talen står i Golf SG, dataregeln). Framifrån låg platån över
+  0,08 s för nästan alla järnslag, men under 0,15 s för alla; bakifrån mättes bara ett slag. En
+  gräns på 0,08 s skulle alltså larma på vanliga järnslag. **Förslag:** gränsen **0,15 s**, över
+  alla järnslag på passet och de påhittade svingarna (≈ 0,08–0,11 s); en bredare platå avgörs med
+  den andra signalen. Inget driverpass har mätts med lager 1 än, så gränsen sätts först när
+  driverns platå mätts på samma sätt: hamnar den också under 0,15 s behövs ingen spärr, hamnar
+  den över skiljer gränsen driver från järn. **antagande** tills dess; ingen spärr i koden.
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -2904,6 +2912,33 @@ testFasernaBerorInteAvLangden`, `test_rensa.OberoendeAvLangden`).
   utan felen; en ensam växling rättas inte), och fixturerna `fo_fel` och `dtl_fel`
   (vänsterspelaren) med samma rensning i Python och Swift (`MattTests`). De 14 äldre
   fixturerna ger samma tal som före rensningen. Mätningens version 6 (MS14).
+- **Kalibrerat på ett riktigt pass (2026-11-05):** passet från 2026-10-24 (järn 7, båda
+  vyerna), med grenens `session.py` och ett eget skript utanför repot; talen står i Golf SG
+  (dataregeln). Inget driverpass än.
+  - **Var:** framifrån slår rensningen till nästan bara i genomsvingen, mellan träffen och
+    finishens fönster, där armarna korsar varandra över huvudet och axlarna ligger nästan över
+    varandra i bild. Där byts axlarna och armarna i korta stycken, och bakre armbågen, bakre
+    handleden och axlarna får spikar. Före träffen tas bara enstaka rutor bort; bakifrån bara
+    några spikar på främre axeln i baksvingen och nedsvingen. Måtten rörs därför knappt:
+    finishens fönster (M4) börjar efter de flesta rensade rutorna.
+  - **Granskat i bild:** tio händelser, spridda över typ och led (sex byten, fyra spikar), med
+    klippets ruta före, mittrutan och rutan efter och den rensade leden markerad. **Alla tio
+    var Visions fel:** sidorna bytta i några rutor medan rutorna före och efter var överens,
+    eller en axel eller armbåge som hoppat till fel ställe (bröstet, andra axeln, bakom huvudet)
+    och tillbaka. Ingen verklig rörelse togs bort. Byten i armgruppen flyttar handlederna nästan
+    inte i finishen, eftersom de ligger ihop på greppet.
+  - **Ensamma växlingar** (`byten_oklara`) blev några per pass, mest axlarna framifrån. De
+    rättas inte, som avsett.
+  - **Slutsats:** gränserna står kvar. Gränsen för bytena (sidorna minst 0,2 bål isär) släpper
+    igenom det mesta i finishen och fångar ändå bytena där; bland de granskade larmade ingen
+    verklig rörelse.
+    Prövas igen på ett driverpass och på ett pass med fler slag bakifrån.
+- **Mått som saknas på samma pass:** varje slag som stoppade på "händerna syns inte före
+  träffen" hade domen `osaker` och en kropp i bild i under hälften av rutorna (ingen spelare
+  framför kameran, inget mätfel). Bland de mätta slagen framifrån saknades främre armbågen
+  efter träffen oftast (`segment_kort`, M52: armen pekar mot eller från kameran), armbågen i
+  toppen ibland (`segment_kort`, någon gång `segment_langt`) och tempot för ungefär en tredjedel
+  (starten osäker eller saknas, stilla adress, M4).
 
 ## M60 — Spåren i granskningen (S4f)
 
@@ -3577,3 +3612,55 @@ Samma regler i `tools/pc/klubba_forslag.py` och SwingLabKits `KlubbForslagFil` o
   rättats sparas aldrig som punkt, inte heller på en hoppad position. **räkning.**
 - **Storleken:** högst **20 MB** (cirka 400 rutor per slag i 40 slag med fyra punkter); filer
   med förslag för varje ruta är normalfallet. **antagande.**
+
+## MF9 — Andra åsikten: ViTPose mot Vision (S3b lager 4)
+
+ViTPose-B tränad bara på COCO (BESLUT B100, B98) körs på samma klipp som telefonens Vision,
+och lederna jämförs ruta för ruta (`tools/pc/andra_asikt.py`). Ingen av dem är sanningen; en
+systematisk oenighet visar var vi ska titta i bild (PLAN S3b lager 4).
+
+- **Personrutan** tas ur Visions leder i rutan närmast klipprutans tid (inom **0,05 s**, med S3:s
+  förskjutning när den finns, MF1): lederna som syns (minst **6**), **15 %** av rutans största
+  sida åt varje håll och **12 %** av höjden till uppåt, eftersom näsan är Visions översta punkt.
+  Ingen egen detektor: rtmlibs standarddetektor är tränad på Human-Art (NC) och transformers
+  exempel tar RT-DETR, som inte behövs. En ruta där Vision inte ser kroppen får inga ViTPose-leder.
+  **antagande** (marginalerna; ViTPose skalar rutan till 256 × 192 och tål en lös ruta).
+- **Punkterna:** COCO:s 17 → filens 13 (näsan, axlarna, armbågarna, handlederna, höfterna,
+  knäna, fotlederna), under konfidensen **0,3** saknad (M1). Tiderna paras som i S3 (MF1, ur
+  handledernas banor kring nedsvingen); ett tvetydigt slag jämförs inte.
+- **Avståndet** per led och fas (MF2:s faser ur Visions mätning), i **bålens längd i bild** (M53),
+  som median och 90:e percentil, och andelen **grova** (minst 0,25 bål, M53:s spik).
+- **Rycket** i handlederna och armbågarna, för båda på samma parade rutor: andra differensen,
+  med ojämna steg räknad som farten som ändras, gånger rutnätets steg i kvadrat, i bål. Bara där
+  båda stegen ligger inom ±50 % av rutnätets steg. Vitt brus σ ger ≈ 1,2·√6·σ; en jämn
+  svingrörelse nästan inget. **räkning.**
+- **Rensningen** (M53) räknas på båda ledsatserna, så att det syns vilken modell som byter sidor
+  och spikar var.
+- **Provat:** `test_andra_asikt` (personrutan, COCO-ordningen, rycket på brus och jämn rörelse,
+  luckorna, avståndet per led och fas med kända skillnader, rensningen för båda, och hela kedjan
+  på de påhittade paketen: förskjutningen hittas, en skillnad på 12 px i en axel hamnar i främre
+  axeln och ingen annanstans, de sparade lederna återanvänds utan modell, en mapp i repot vägras).
+
+**Första körningen (2026-11-05):** passet från 2026-10-24, 18 slag framifrån (det enda mätta slaget
+bakifrån jämfördes inte: tidsparningen var tvetydig). Talen står utanför repot (dataregeln).
+
+- **Oftast överens:** medianen mellan modellerna ligger kring 0,05–0,1 bål för de flesta leder
+  och faser, alltså några centimeter. Höfterna och knäna skiljer mest i adressen, lika över
+  slagen: olika definition av punkten, inget fel.
+- **ViTPose fel i toppen framifrån:** där de är som mest oense (bakre armbågen i baksvingen och
+  början av nedsvingen) lägger ViTPose bakre armbågen vid främre axeln, på andra sidan huvudet,
+  medan Vision har den nedanför händerna på bakre sidan, där den hör hemma. Samma sak i alla
+  granskade slag. Bakre armbågen i toppen, med armen vikt och händerna över huvudet, är en pose
+  som COCO har lite av.
+- **Vision fel i genomsvingen:** där bakre handleden skiljer mest efter träffen ligger Visions
+  punkt på huvudet och ViTPose på greppet, med båda händerna. Det stämmer med M53: Vision byter
+  sidor och kastar armarnas punkter i genomsvingen; ViTPose bytte nästan aldrig sidor (en
+  ruta mot drygt hundra för Vision), men har sina egna spikar, mest i armbågarna, främre
+  handleden och näsan.
+- **Rycket:** ViTPose är inte lugnare än Vision. Handlederna lika, armbågarna något mer ryckiga
+  med ViTPose. Ingen av dem jämnar ut över tiden.
+- **Slutsats:** ViTPose ersätter inte Vision, men är en användbar andra åsikt i de faser där
+  Vision har sina kända svagheter (genomsvingen). Där de skiljer mer än 0,25 bål har en av dem
+  fel; vilken avgörs i bild. Inga gränser i mätningen ändras av detta. Nästa steg: ett
+  driverpass och fler slag bakifrån, och att låta granskningen (lager 2) visa rutor där
+  modellerna är oense.

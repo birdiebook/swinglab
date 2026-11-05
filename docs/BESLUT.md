@@ -2128,3 +2128,28 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   om vidareförsäljning följer med).
 - **Omprövas:** bara om något blir kritiskt beroende av riktiga rörelser och ingen öppen källa
   finns.
+
+## B100 — Andra åsikten om lederna: ViTPose-B tränad bara på COCO, inte RTMPose
+*2026-11-05 · gäller · Johannes val 2026-11-05 · PLAN.md S3b lager 4 · METOD MF9 · följer B92 och B98*
+
+- **Frågan:** research S3b föreslog RTMPose-m eller -l, tränad bara på COCO ur MMPose model zoo
+  (Apache-2.0), körd med rtmlib och ONNX. Kontrollen 2026-11-05 visade att **ingen** av MMPose
+  RTMPose-vikter för kroppen är tränad bara på COCO: de fyra som tränats på COCO
+  (`rtmpose-t/s/m/l_8xb256-420e_coco-256x192`) startar från en backbone som först tränats för
+  pose på AIC + COCO (`cspnext-*_udp-aic-coco_210e`, i konfigurationens `init_cfg`), vilket
+  syns i checkpointens namn (`…simcc-coco_pt-aic-coco…`). AIC får bara användas för forskning,
+  och B98 öppnar bara för förträning på ImageNet.
+- **Valt:** **ViTPose-B** med den klassiska avkodaren, tränad bara på COCO train2017 (originalets
+  `vitpose-b.pth`, raden "single-task training" i ViTPose README), MAE-förtränad på ImageNet
+  (B98). Apache-2.0. Hämtas som `usyd-community/vitpose-base` och körs med transformers och
+  PyTorch på GPU:n. Personrutan tas ur Visions leder, ingen egen detektor (inte rtmlibs, som är
+  tränad på Human-Art, och inte RT-DETR ur transformers exempel).
+- **Bortvalt:** RTMPose ur model zoo (AIC i backbonen); att träna RTMPose-m på COCO själv från
+  CSPNeXt på ImageNet (flera dygn på 2080 Ti); `vitpose-base-coco-aic-mpii` och ViTPose+ (AIC och
+  fler dataset). Hugging Face-kortet för `vitpose-base-simple` räknar upp AIC och MPII, men det
+  gäller modellfamiljen; konverteringsskriptet i transformers knyter `vitpose-base(-simple)` till
+  originalets COCO-vikter och de andra till egna filer.
+- **Kostnad:** PyTorch och transformers på PC:n (en egen miljö utanför repot), ingen ONNX.
+  Verktyget körs bara på PC:n; inget av det följer med appen.
+- **Omprövas:** om MMPose publicerar RTMPose tränad bara på COCO, eller om en andra åsikt ska in
+  i appen (då behövs en modell som går att köra på telefonen).
