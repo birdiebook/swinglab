@@ -14,9 +14,19 @@ public struct Infoblad: Equatable, Sendable, Identifiable {
     /// Källan ur `status` och `kalla`: "Assumption, own baseline". Visas i grått efter
     /// `Texter.kallaRubrik`.
     public let kalla: String
+    /// Varför måttet saknas (S3b lager 1, BESLUT B109): raderna står först, före vad och varför,
+    /// eftersom det är vad trycket på "Not measured" frågar. Tom när inget saknas. METOD MS21, MS22
+    public var saknas: [String] = []
 
     /// För `sheet(item:)`: namnet och raderna (två blad med samma text är samma blad).
-    public var id: String { [namn, vad, varfor, tecken, kalla].joined(separator: "\n") }
+    public var id: String { ([namn] + saknas + [vad, varfor, tecken, kalla]).joined(separator: "\n") }
+
+    /// Samma blad med raderna om varför måttet saknas överst.
+    public func medSaknas(_ rader: [String]) -> Infoblad {
+        var b = self
+        b.saknas = rader
+        return b
+    }
 
     public init(namn: String, vad: String, varfor: String, tecken: String, kalla: String) {
         self.namn = namn
@@ -83,8 +93,8 @@ public struct Infoblad: Equatable, Sendable, Identifiable {
         return ut
     }
 
-    /// Bladet i ord för VoiceOver.
+    /// Bladet i ord för VoiceOver: varför måttet saknas först, som på skärmen.
     public var upplasning: String {
-        "\(namn). \(vad) \(varfor) \(tecken). \(Texter.kallaRubrik): \(kalla)"
+        "\(namn). " + saknas.map { "\($0) " }.joined() + "\(vad) \(varfor) \(tecken). \(Texter.kallaRubrik): \(kalla)"
     }
 }

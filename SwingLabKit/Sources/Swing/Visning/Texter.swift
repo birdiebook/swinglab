@@ -373,6 +373,42 @@ public enum Texter {
     /// VoiceOver för ett mått som saknas i passet: "Swing tempo, not measured".
     public static let ejMatt = "not measured"
 
+    // MARK: varför ett mått saknas (PLAN S3b lager 1, BESLUT B109, METOD MS21, MS22)
+
+    /// Passets kort när måttet saknas i en del av svingarna: "Measured in 5 of 8 swings".
+    public static func mattI(_ n: Int, av: Int) -> String { "Measured in \(n) of \(av) swings" }
+    /// Kortet när måttet saknas i alla svingar: "Not measured in any of the 8 swings".
+    public static func ejMattIAlla(_ av: Int) -> String {
+        av == 1 ? "Not measured in the swing" : "Not measured in any of the \(av) swings"
+    }
+    /// Infobladet för ett slag i granskningen: orsaken, eller bara att det saknas (mätt före
+    /// version 6, eller ett mått utan kontroll).
+    public static func ejMattISlaget(_ orsak: String) -> String { "Not measured in this swing: \(orsak)." }
+    public static let ejMattISlagetUtanOrsak = "Not measured in this swing."
+    /// Infobladet i passet, en rad per orsak: "2 swings: the clip starts after the takeaway began."
+    public static func orsakRad(_ n: Int, _ orsak: String) -> String { "\(svingar(n)): \(orsak)." }
+    /// Svingarna utan kod när andra har en.
+    public static let ingenOrsak = "no reason recorded"
+    /// Kroppsdelen som ledvinkeln bygger på (METOD M52), i måttnamnens ord ("Lead elbow bend").
+    public static let framreArm = "lead arm"
+    public static let bakreArm = "trail arm"
+    public static let framreBen = "lead leg"
+    public static let bakreBen = "trail leg"
+    /// Segmenten (METOD M52): kort i bild (pekar mot eller från kameran), längre än i adressen
+    /// (en punkt är fel), en punkt saknas. Utan känd kroppsdel den allmänna texten.
+    public static func orsakMotKameran(_ del: String) -> String { "the \(del) pointed toward or away from the camera" }
+    public static func orsakPunktFel(_ del: String) -> String { "a point on the \(del) looked wrong" }
+    public static func orsakPunktSaknas(_ del: String) -> String { "a point on the \(del) was not found" }
+    public static let orsakMotKameranAllman = "an arm or leg pointed toward or away from the camera"
+    public static let orsakPunktFelAllman = "a tracked point looked wrong"
+    public static let orsakPunktSaknasAllman = "a tracked point was not found"
+    /// Baksvingens start (METOD M4, M40): framifrån ingen stilla adress i klippet, bakifrån osäker.
+    public static let orsakKlippetSent = "the clip starts after the takeaway began"
+    public static let orsakStartOklar = "the backswing start was unclear from behind"
+    public static let orsakStartSaknas = "the backswing start was not found"
+    /// En kod som den här versionen av appen inte har någon text för: aldrig koden (BESLUT B94).
+    public static let orsakOkand = "the measurement looked unreliable"
+
     /// Gränsen är ett antagande byggt på en tillverkares tal (sway_topp, METOD M15).
     public static let antagandeFran = "Assumption from"
 

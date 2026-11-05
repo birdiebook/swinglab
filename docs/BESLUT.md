@@ -2128,3 +2128,45 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   om vidareförsäljning följer med).
 - **Omprövas:** bara om något blir kritiskt beroende av riktiga rörelser och ingen öppen källa
   finns.
+
+## B109 — Varför ett mått saknas: att det saknas där talet skulle stå, orsaken ett tryck bort
+*2026-11-05 · prövas · arkitektens val medan Johannes var borta (PLAN S3b lager 1, "appen visar varför ett mått saknas") · METOD MS21, MS22 · VISION · B13, B41, B94*
+
+- **Varför:** S3b lager 1 är klart när appen visar varför ett mått saknas. Förut stod "—" på
+  granskningens rad och i passets kort (eller inget alls), utan skäl, och ett kort sa inte att
+  medianen bara byggde på en del av svingarna. Bara tempot hade en orsak, i infobladets källrad
+  (METOD M40). Mätningen skriver sedan version 6 en kod per slag och mått (M52, M4, M40).
+- **Valt:**
+  - **Där talet skulle stå, att det saknas:** granskningens rad säger "Not measured" (grått, inget
+    spann, sist bland raderna). Passets kort säger under talet "Measured in 5 of 8 swings", eller
+    "—" och "Not measured in any of the 8 swings". Inget när alla svingar har talet.
+  - **Varför, ett tryck bort, överst i måttets infoblad** (B41: bladet är platsen för text som
+    beskriver): en mening på enkel engelska för slaget ("Not measured in this swing: the lead arm
+    pointed toward or away from the camera."), och i passet en rad per orsak med antalet svingar.
+    Kroppsdelen ur måttet (lead arm, trail leg), starten olika framifrån ("the clip starts after
+    the takeaway began") och bakifrån ("the backswing start was unclear from behind").
+  - **Koden visas aldrig** (B94); en okänd kod får en allmän text. Ett slag mätt före version 6
+    har ingen kod och får bara "Not measured in this swing."
+  - **Samma ord och samma tryck i båda vyerna:** raden och kortet säger att det saknas, bladet
+    varför. Ingen ny symbol och ingen färg: läget (prick, ring, triangel, B87) gäller bandet.
+  - Med orsakerna ersätter bladet tempots källrad ur M40, så att orsaken står en gång.
+- **Bortvalt:**
+  - **Orsaken som grå rad under namnet i granskningen** (som "after impact"): syns utan tryck,
+    men lägger en mening på ytan (B13 regel 5) och säger samma sak två gånger med bladet. En fråga
+    till Johannes efter första passet.
+  - **En egen symbol för "saknas"**, en fjärde form bredvid prick, ring och triangel: kräver en
+    rad till i nyckeln, och gult betyder redan "kan vara mätfel" (B87).
+  - **Ett kort överst i passet** ("2 measures missing"): det viktiga först är Focus och de röda
+    måtten (B94), inte mätningens problem; varje kort säger sitt.
+  - **Dölja raden när måttet saknas:** då syns inte att det saknas, och just det är frågan.
+  - **Koden eller måttets gräns i texten** ("segment_kort", "70 %"): intern, och talet är
+    METOD:s, inte spelarens (B94).
+  - **Räkna svingarna också i pass utan orsakerna** (äldre `Pass`, Demo): ett antal utan skäl i
+    bladet; räkningen följer orsakerna, och appens pass bär dem alltid.
+  - **Klubbans källa och spridningen räknas inte:** svingarna utan markering saknar inget, och
+    spridningen är ett tal för passet.
+- **Kostnad:** en rad till på kort där något saknas; skälet kräver ett tryck; en text per kod i
+  Texter (en ny kod i mätningen kräver en ny rad, annars den allmänna texten). Raderna och
+  korten med "—" i de befintliga bilderna kan ändras när deras påhittade pass saknar mått.
+- **Omprövas:** när Johannes läst ett pass med saknade mått på telefonen (PLAN S3b lager 1), och
+  när lager 2 märker mått per slag ("Detection wrong" per mått), som kan behöva samma plats.

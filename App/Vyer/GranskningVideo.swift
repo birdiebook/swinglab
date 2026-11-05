@@ -645,7 +645,8 @@ struct ShotReviewView: View {
 }
 
 /// Måtten under videon: slagets vid positionen, i slagets vy (METOD M29, MS15). `ovas` =
-/// felen i Att jobba på: deras rader bär accenten (BESLUT B31).
+/// felen i Att jobba på: deras rader bär accenten (BESLUT B31). Ett mått som saknas i slaget
+/// säger det, med mätningens orsak i infobladet (S3b lager 1, BESLUT B109, METOD MS21).
 enum ReviewRows {
     static func rows(pass: PassState, shot: ShotRecord, position: String, baseline: [String: [Double]],
                      ovas: Set<String> = []) -> [Positionsrad] {
@@ -654,7 +655,7 @@ enum ReviewRows {
         return Lageordning.sortera(Positionsmatt.rader(k, vy: pass.setup.view, position: position, varden: m.values,
                                                        baslinje: baseline, ovas: ovas,
                                                        flyktpunktAntagen: m.klubbaFlyktpunktAntagen == true,
-                                                       klubba: pass.setup.club))
+                                                       klubba: pass.setup.club, saknas: m.missing))
     }
 }
 
@@ -969,9 +970,33 @@ struct ReviewTimeline: View {
 }
 
 /// En rad under videon: namnet (i accenten när det övas, BESLUT B31), märkningen, spannet
-/// kompakt och talet med enheten.
+/// kompakt och talet med enheten. Saknas måttet i slaget står "Not measured" där talet skulle
+/// stå, och ett tryck öppnar infobladet med varför (S3b lager 1, BESLUT B109, METOD MS21).
 struct PositionsradVy: View {
     let rad: Positionsrad
+
+    @ViewBuilder private var varde: some View {
+        if rad.ejMatt {
+            // Bryts hellre än kortas vid stor text (research 8 punkt 10).
+            Text("Not measured")
+                .typsnitt(13, .medium)
+                .foregroundStyle(Theme.secondary)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 70, alignment: .trailing)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: rad.enhet == "°" ? 0 : 3) {
+                Text(rad.varde)
+                    .typsnitt(15, .medium, siffror: true)
+                    .foregroundStyle(rad.varde == "—" ? Theme.tertiary : Theme.text)
+                if !rad.enhet.isEmpty && rad.varde != "—" {
+                    Text(rad.enhet)
+                        .typsnitt(11)
+                        .foregroundStyle(Theme.tertiary)
+                }
+            }
+            .frame(minWidth: 70, alignment: .trailing)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -995,17 +1020,7 @@ struct PositionsradVy: View {
                     .frame(width: 84)
             }
             LageSymbol(lage: rad.lage, storlek: 10)              // BESLUT B87
-            HStack(alignment: .firstTextBaseline, spacing: rad.enhet == "°" ? 0 : 3) {
-                Text(rad.varde)
-                    .typsnitt(15, .medium, siffror: true)
-                    .foregroundStyle(rad.varde == "—" ? Theme.tertiary : Theme.text)
-                if !rad.enhet.isEmpty && rad.varde != "—" {
-                    Text(rad.enhet)
-                        .typsnitt(11)
-                        .foregroundStyle(Theme.tertiary)
-                }
-            }
-            .frame(minWidth: 70, alignment: .trailing)
+            varde
         }
         .padding(.vertical, 7)
         .frame(minHeight: 38)

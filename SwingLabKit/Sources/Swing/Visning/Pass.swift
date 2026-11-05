@@ -15,9 +15,13 @@ public struct Pass: Sendable {
     public let klubbMarkerade: Int
     /// 3D ur två telefoner (S6c-2): passets median per 3D-mått, när passet har 3D. METOD MK7
     public let treD: [String: TreDMedian]
+    /// Varför mått saknas, per sving i samma ordning som `svingar`: mått → mätningens kod
+    /// (`ShotMeasure.missing`, S3b lager 1), tomt för en sving utan koder. nil = passet bär inte
+    /// orsakerna (ett äldre eller påhittat pass): korten räknar då inte svingarna. METOD MS22
+    public var saknas: [[String: String]]?
 
     public init(datum: Date, klubba: String, svingar: [SvingMatt], serie1: Int = 0, osakerStart: Int = 0,
-                klubbMarkerade: Int = 0, treD: [String: TreDMedian] = [:]) {
+                klubbMarkerade: Int = 0, treD: [String: TreDMedian] = [:], saknas: [[String: String]]? = nil) {
         self.datum = datum
         self.klubba = klubba
         self.svingar = svingar
@@ -25,6 +29,7 @@ public struct Pass: Sendable {
         self.osakerStart = osakerStart
         self.klubbMarkerade = klubbMarkerade
         self.treD = treD
+        self.saknas = saknas
     }
 
     /// Slagen: den telefon som såg flest.

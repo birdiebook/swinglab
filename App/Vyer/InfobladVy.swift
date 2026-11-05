@@ -3,7 +3,8 @@ import Swing
 
 /// Infobladet (BESLUT B41): måttets namn och fyra rader (vad, varför, tecknet och källan
 /// i grått), svartvitt enligt design/README. Den enda platsen med beskrivande text; ett
-/// blad (sheet) i halv höjd öppnas med ett tryck på en måttrad eller ⓘ.
+/// blad (sheet) i halv höjd öppnas med ett tryck på en måttrad eller ⓘ. Saknas måttet står
+/// varför först, skilt från resten med en tunn linje (S3b lager 1, BESLUT B109, METOD MS21, MS22).
 struct InfobladVy: View {
     let blad: Infoblad
 
@@ -13,6 +14,18 @@ struct InfobladVy: View {
                 .typsnitt(22, .semibold)
                 .foregroundStyle(Theme.text)
                 .padding(.bottom, 4)
+            if !blad.saknas.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(blad.saknas.enumerated()), id: \.offset) { i, rad in
+                        Text(verbatim: rad)
+                            .typsnitt(16, i == 0 ? .semibold : .regular, siffror: true)
+                            .foregroundStyle(Theme.text)
+                    }
+                }
+                .padding(.bottom, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+            }
             Text(verbatim: blad.vad)
                 .typsnitt(16)
                 .foregroundStyle(Theme.text)

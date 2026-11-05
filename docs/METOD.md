@@ -212,7 +212,9 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   infobladets källrad slutar med "no tempo when the start is unclear from behind".
   Har bara en del av slagen osäker start är tempot medianen av de övriga. Svartvitt
   och utan värdeord (BESLUT B13). VoiceOver säger "Swing tempo, not measured"
-  (`Texter.ejMatt`).
+  (`Texter.ejMatt`). Sedan S3b lager 1 bär passet orsakerna per sving (mätningens version
+  6): då säger kortet hur många svingar som har tempot och bladet varför, och källraden
+  står inte också där (MS22).
 - **Två telefoner:** när båda vyerna filmar tar 3D-måtten redan FO:s start (MK6),
   och tempot tas ur en vy (MT9). Det behövs ingen ny väg för starten.
 - **Oprovat på telefonen:** riktiga DTL-pass, waggle och forward press (en waggle
@@ -1970,6 +1972,78 @@ tolkar efter. Numreringen MT hålls skild från M (mätningen) och MS
   frågan (också med felet), en FO- och en DTL-session med 3D-kortet, raderingens filer, att det
   raderade passet inte skrivs igen, och Me.
 
+## MS21 — Varför ett mått saknas: slaget i granskningen (S3b lager 1)
+
+Appen säger varför ett mått saknas (PLAN S3b lager 1, BESLUT B109). Inget räknas nytt: orsaken är
+mätningens kod per slag och mått (`ShotMeasure.missing` ur `Kvalitet.saknas`, sedan mätningens
+version 6), och här står bara hur den visas. Logiken i SwingLabKit (`Saknas`, `Positionsmatt`,
+Texter), prövad i `SaknasTests`. Python har ingen motsvarighet: urklippet till Claude bär redan
+koderna och antalen (MT13), och inget som PC:n läser ändras (B12).
+
+- **Raden:** ett aktivt mått vid positionen utan tal i slaget säger **"Not measured"** där talet
+  skulle stå, i grått, utan spann och utan läge. Det står därför sist bland raderna (M63). Ett
+  avstängt mått är "—" som förut, och klubbans mått visas bara på ett slag där klubban är
+  markerad (M29), också som förut. **räkning.**
+- **Orsaken, ett tryck bort:** infobladet (B41) börjar med en mening före vad, varför, tecknet och
+  källan, skild från dem med en tunn linje: "Not measured in this swing: the lead arm pointed toward
+  or away from the camera." Utan kod (slaget mättes före version 6, eller måttet har ingen kontroll
+  som skriver en orsak) bara "Not measured in this swing." VoiceOver: "Lead elbow bend, not
+  measured, the lead arm pointed toward or away from the camera".
+- **Koderna i ord** (`Saknas.orsak`, Texter), med kroppsdelen ur måttets namn (`framre_armbage` lead
+  arm, `bakre_kna` trail leg, `framre_kna` lead leg, M52) och starten ur slagets vy:
+
+  | Kod | Varifrån | Text |
+  |---|---|---|
+  | `segment_kort` | M52: under 70 % av adressens längd | the lead arm pointed toward or away from the camera |
+  | `segment_langt` | M52: över 115 % av adressens längd | a point on the lead arm looked wrong |
+  | `led_saknas` | M52: en punkt saknas i fasen eller adressen | a point on the lead arm was not found |
+  | `start_osaker` FO | M4: ingen stilla adress i klippet | the clip starts after the takeaway began |
+  | `start_osaker` DTL | M40: skakig adress, lucka, för få leder | the backswing start was unclear from behind |
+  | `start_saknas` | M4, M40 | the backswing start was not found |
+
+  Utan känd kroppsdel en allmän text ("a tracked point looked wrong"). En kod som appen inte har
+  någon text för (en nyare mätning) blir "the measurement looked unreliable": koden visas aldrig
+  (B94). **räkning.**
+- **Varför FO-starten heter klippet:** M4:s villkor är en stilla adress i 0,10 s före adressläget,
+  med hela fönstret i klippet; det riktiga pass där regeln kom till (2026-11-03) började med
+  händerna redan i rörelse. En waggle utan stilla adress ger samma kod. **antagande** om vad som
+  är vanligast.
+- **Vad som provas var.** Linux (`SaknasTests`): varje kod i båda vyerna och för varje kroppsdel,
+  ingen kod och en okänd kod, inga understreck eller svenska i texterna, raderna vid P4 och P9 med
+  och utan kod, ordningen, ett avstängt mått och bladets mening. Simulatorn
+  (`Prov/SwingLabProvSaknas.swift`): appens `ReviewRows` på påhittade slag, bilderna
+  `saknas-granskning` (P4 med orsak, P9 mätt före version 6), `saknas-granskning-stor`,
+  `saknas-blad-slag` och `saknas-blad-slag-utan-orsak`.
+
+## MS22 — Varför ett mått saknas: passets kort (S3b lager 1)
+
+- **Räkningen** (`Saknas.pass`): svingarna i kortets grupp (vyn, eller alla för tempot, som
+  `Pass.grupp`) med ett tal för måttet, mot alla svingar i gruppen. Bara när passet bär orsakerna
+  (`Pass.saknas`: appens `countedMissing`, samma slag och ordning som `countedSwings`), och bara för
+  ett **aktivt fel som mäts i svingen**: inte klubbans källa (over the top på klubbans plan, B88,
+  där svingarna utan markering inte saknar något), inte spridningen mellan slagen (M44) och inte
+  klubbens kort (deras rubrik har redan n). Ett äldre eller påhittat pass utan orsakerna visar
+  inget nytt. **räkning.**
+- **Kortet:** under talet, efter "vs", en grå rad: **"Measured in 5 of 8 swings"**. Saknas måttet i
+  alla svingar står "—" och **"Not measured in any of the 8 swings"** ("Not measured in the swing"
+  med ett slag). Inget när alla svingar har talet. Medianen, spannet och läget är som förut, på
+  svingarna med talet (M25, M62); ett kort utan tal ligger kvar under "More measures (n)" (M63).
+  **räkning.**
+- **Infobladet** börjar med raden som mening och sedan en rad per orsak med antalet svingar, flest
+  först, vid lika antal i kodernas ordning (`segment_kort`, `segment_langt`, `led_saknas`,
+  `start_osaker`, `start_saknas`), och samma text en gång (FO och DTL i samma grupp slås ihop när
+  texten är densamma): "2 swings: the clip starts after the takeaway began." Svingar utan kod står
+  sist, "1 swing: no reason recorded.", men bara när någon annan sving har en kod; utan någon kod
+  står bara raden. **räkning.**
+- **Tempot och M40:** källraden "no tempo when the start is unclear from behind" (M40) gäller bara
+  ett pass utan orsakerna. Med dem står orsaken överst i bladet i stället, så att den inte står två
+  gånger. VoiceOver: "Swing tempo, Not measured in any of the 6 swings".
+- **Vad som provas var.** Linux (`SaknasTests`): räkningen, ordningen och sammanslagningen,
+  ett slag, raden i alla svingar, utan orsakerna som förut, tempot bakifrån utan M40:s rad, klubbans
+  källa och ett avstängt fel. Simulatorn (`Prov/SwingLabProvSaknas.swift`): appens
+  `PassShotsView.visning` på ett påhittat FO- och DTL-pass, bilderna `saknas-passet-fo`,
+  `saknas-passet-dtl`, `saknas-blad-tempo`, `saknas-blad-chicken-wing` och `saknas-blad-tempo-dtl`.
+
 ## MS30 — Klippen mellan telefonerna (S6g)
 
 - **Fönstret:** från **4 s** före till **2,5 s** efter träffen i följarens fil (Johannes
@@ -2860,7 +2934,8 @@ som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (res
 - **Orsaken följer med** (`kvalitet.saknas`): `led_saknas` (en punkt saknas i fasen eller i
   adressen), `segment_kort` eller `segment_langt`, så att appen och Claudes underlag kan säga
   varför vinkeln saknas. Provat: `test_rensa.LangaSegment` (armbågen 20 cm fel i 0,2 s kring
-  toppen ger `segment_langt`) och fixturen `fo_lang_arm` i båda språken.
+  toppen ger `segment_langt`) och fixturen `fo_lang_arm` i båda språken. Hur appen visar den:
+  MS21 (granskningen) och MS22 (passets kort).
 
 ## M53 — Rensningen före mätningen: byten och spikar (S3b lager 1)
 
