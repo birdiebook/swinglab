@@ -282,23 +282,30 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
     låsta miljön, kopierar det dit, tar bort referenser vars skärm inte längre ritas och
     committar till grenen. Bara ur ett grönt prov.
   - **Jämförelsen** är swift-snapshot-testings bildjämförelse (MIT, 1.19.7, bara i provmålet):
-    **varje** punkt (precision 1) inom ΔE 2 (perceptualPrecision 0,98), MS40. Den körs för sig
-    efter resten av provet (`-only-testing`) och läser hela galleriet, så att nya provfiler
-    kommer med utan en krok i varje fil.
+    punkterna inom ΔE 2 (perceptualPrecision 0,98), utom högst 0,001 % av dem (precision
+    0,99999) för glasets brus i appens riktiga fönster (MS40). Den körs för sig efter resten av
+    provet (`-only-testing`) och läser hela galleriet, så att nya provfiler kommer med utan en
+    krok i varje fil.
   - **Ändrad skärm = RÖTT,** med referensen, den nya och skillnaden bredvid varandra i
     `resultat/<sha>.skillnad.<namn>.png` och en rad i sammanfattningen. **Ny skärm utan
     referens = GULT**, inte rött: den får sin referens vid nästa inspelning. RÖTT stoppar
     TestFlight (B20), GULT gör det inte.
   - **Matrisen** (MS41): sex huvudskärmar i tre textstorlekar och mörkt/ljust, ett kontaktark per
     skärm. Den jämförs inte; den är till för ögat.
+- **Prövat 2026-11-05:** en avsiktlig ändring (rubriken på Me utan sin tracking, b56beb6) gav
+  RÖTT med rätt skärm och ram (run 42121876809), PLAN S4i.
 - **Bortvalt:** referenser inspelade lokalt (ingen Mac); precision 0,99 som researchen
-  föreslog (en ändrad siffra är ≈0,03 % av en skärm och hade gått igenom); en egen gren för
+  föreslog (en ändrad siffra är ≈0,03 % av en skärm och hade gått igenom); precision 1 (fälldes
+  av glasets brus i `startvy` utan att något ändrats); ΔE 3 i stället (mindre marginal mot
+  bruset, ΔE 2,17, än 0,001 % ger); en egen gren för
   referenserna (de hör till koden: en gren som ändrar en skärm bär sin nya referens);
   `assertSnapshot` i varje provfil (tolv ställen som ritar, och en ny provfil hade glömts);
   Prefire (`#Preview` → snapshot: galleriet har redan påhittad data per skärm); matrisen som
   referenser (fler MB för det som är till för ögat).
 - **Kostnad:** ≈19 MB PNG i repot vid första inspelningen, sedan bara bilderna som ändras (git
-  sparar en bytelik bild en gång). En avsiktlig ändring av en skärm kräver en inspelning (en
+  sparar en bytelik bild en gång). Jämförelsen är en egen körning av xcodebuild (≈1–4 min, mest
+  start av simulatorn); simulatorn startas därför medan arkivet byggs, och provet byggs bara för
+  arm64, som det körs i (x86_64 byggdes för ingenting). En avsiktlig ändring av en skärm kräver en inspelning (en
   kompilera-körning, ≈15 min) innan kompilera är grönt och TestFlight kan byggas. Ett byte av
   avbild, Xcode eller simulator är en egen commit med en ny inspelning.
 - **Omprövas:** när avbilden tappar Xcode 26.6 eller iOS 26.5 (byt alla tre i samma commit och

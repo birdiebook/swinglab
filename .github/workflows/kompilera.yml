@@ -106,6 +106,9 @@ jobs:
           echo "== simulatorn" >> miljo.txt
           cat sim.env | tee -a miljo.txt
           grep '^SIM=' sim.env | cut -d= -f2- > sim.txt
+          # Simulatorn startar medan arkivet byggs: annars gick 1–5 min före första provet, och
+          # en gång till före jämförelsen (2026-11-05).
+          nohup xcrun simctl boot "$(grep '^UDID=' sim.env | cut -d= -f2)" > "$RUNNER_TEMP/boot.log" 2>&1 &
 
       - name: XcodeGen 2.46.0 (låst version, kontrollerad summa)
         run: |
@@ -144,9 +147,15 @@ jobs:
         run: |
           set -o pipefail
           echo "$SIM ($UDID)"
+          # Väntar tills simulatorn som startades i miljöns steg är uppe, och säger hur länge.
+          SECONDS=0
+          xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1 || true
+          echo "simulatorn uppe efter ytterligare ${SECONDS} s"
+          # Bara arm64 (ONLY_ACTIVE_ARCH): provet körs i arm64-simulatorn, och Release byggde
+          # annars x86_64 också, för ingenting.
           xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
-            -destination "id=$UDID" -skip-testing:SwingLabProv/SwingLabProvReferenser \
-            ENABLE_TESTABILITY=YES 2>&1 | tee prov.log
+            -destination "platform=iOS Simulator,id=$UDID,arch=arm64" -skip-testing:SwingLabProv/SwingLabProvReferenser \
+            ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES 2>&1 | tee prov.log
 
       # PLAN S4i, BESLUT B100, METOD MS40: galleriet mot Prov/Referenser, i en egen körning av
       # samma bygge. Bara i den låsta miljön, och inte när referenserna spelas in.
@@ -163,8 +172,8 @@ jobs:
             exit 1
           fi
           xcodebuild test-without-building -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
-            -destination "id=$UDID" -only-testing:SwingLabProv/SwingLabProvReferenser \
-            ENABLE_TESTABILITY=YES 2>&1 | tee referenser.log
+            -destination "platform=iOS Simulator,id=$UDID,arch=arm64" -only-testing:SwingLabProv/SwingLabProvReferenser \
+            ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES 2>&1 | tee referenser.log
 
       # BESLUT B100: referenserna spelas in i den låsta miljön, bara ur ett grönt prov, och
       # committas till grenen som kompilera kördes på (GITHUB_TOKEN: startar inget nytt flöde).

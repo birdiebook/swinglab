@@ -1,7 +1,7 @@
 // SKÄRMBILDERNA MOT REFERENSERNA (PLAN S4i, BESLUT B100, METOD MS40). Galleriet som resten
 // av simulatorprovet ritar till /tmp/swinglab_prov/<namn>.png jämförs med referenserna i
-// Prov/Referenser/<namn>.png, med swift-snapshot-testings bildjämförelse (MIT): varje punkt
-// inom ΔE 2 (perceptualPrecision 0,98), i alla punkter (precision 1).
+// Prov/Referenser/<namn>.png, med swift-snapshot-testings bildjämförelse (MIT): punkterna
+// inom ΔE 2 (perceptualPrecision 0,98), utom högst 0,001 % av dem (precision 0,99999).
 //
 // Körs av kompilera.yml EFTER resten av provet, i en egen körning (-only-testing), så att
 // alla bilder finns när den börjar; i huvudkörningen hoppas den över (-skip-testing).
@@ -21,9 +21,9 @@ final class SwingLabProvReferenser: XCTestCase {
 
     static let galleri = "/tmp/swinglab_prov"
     static let skillnad = "/tmp/swinglab_prov/skillnad"
-    /// Andelen punkter som måste stämma: alla, så att en ändrad siffra (≈0,04 % av en skärm) fäller.
-    /// METOD MS40
-    static let precision: Float = 1
+    /// Andelen punkter som måste stämma: alla utom 0,001 % (≈30 på en hel skärm), mot glasets brus
+    /// i flikraden (`startvy`, 2 punkter); en ändrad siffra (≈0,03 %) fäller ändå. METOD MS40
+    static let precision: Float = 0.99999
     /// Hur nära en punkt måste vara: 1 − ΔE/100, alltså ΔE ≤ 2 (bibliotekets 98–99 %). METOD MS40
     static let perceptuell: Float = 0.98
     /// Bilder som inte jämförs, med skälet. Tom: galleriet är bytelikt mellan körningar (MS40).
@@ -49,6 +49,7 @@ final class SwingLabProvReferenser: XCTestCase {
 
         let diffing = Diffing<UIImage>.image(precision: Self.precision, perceptualPrecision: Self.perceptuell, scale: 1)
         var lika: [String] = [], andrade: [String] = [], nya: [String] = [], detaljer: [String] = []
+        var inomToleransen: [String] = []
         for namn in bilder.sorted() {
             if let varfor = Self.undantag[namn] {
                 detaljer.append("undantag \(namn): \(varfor)")
@@ -58,11 +59,22 @@ final class SwingLabProvReferenser: XCTestCase {
                 nya.append(namn)
                 continue
             }
-            let ny = try XCTUnwrap(UIImage(contentsOfFile: "\(Self.galleri)/\(namn).png"), "\(namn).png gick inte att läsa")
-            let ref = try XCTUnwrap(UIImage(contentsOfFile: Self.referenser.appendingPathComponent("\(namn).png").path),
-                                    "referensen \(namn).png gick inte att läsa")
-            guard let fel = diffing.diffV2(ref, ny) else {
+            let nyData = try Data(contentsOf: URL(fileURLWithPath: "\(Self.galleri)/\(namn).png"))
+            let refData = try Data(contentsOf: Self.referenser.appendingPathComponent("\(namn).png"))
+            if nyData == refData {
                 lika.append(namn)
+                continue
+            }
+            let ny = try XCTUnwrap(UIImage(data: nyData), "\(namn).png gick inte att läsa")
+            let ref = try XCTUnwrap(UIImage(data: refData), "referensen \(namn).png gick inte att läsa")
+            guard let fel = diffing.diffV2(ref, ny) else {
+                // Lika inom toleransen men inte bytelika: hur mycket, så att bruset syns över tid.
+                lika.append(namn)
+                var hur = ""
+                if let a = Bildpunkter(ref), let b = Bildpunkter(ny), let s = a.skillnad(mot: b, grans: 0) {
+                    hur = " (\(s.antal) punkter skiljer, högst \(s.storst) av 255)"
+                }
+                inomToleransen.append(namn + hur)
                 continue
             }
             andrade.append(namn)
@@ -96,7 +108,8 @@ final class SwingLabProvReferenser: XCTestCase {
             print("REFERENS:   bilderna: resultat/<sha>.skillnad.<namn>.png (referensen, den nya och skillnaden)")
             print("REFERENS:   avsiktligt? spela in: kompilera med spela_in (BESLUT B100)")
         } else if jamforda > 0 {
-            print("REFERENS: GRÖNT: \(lika.count) av \(jamforda) skärmar lika referensen (ΔE ≤ 2 i varje punkt)")
+            print("REFERENS: GRÖNT: \(lika.count) av \(jamforda) skärmar lika referensen "
+                  + "(\(lika.count - inomToleransen.count) bytelika, \(inomToleransen.count) inom ΔE 2)")
         } else {
             print("REFERENS: GULT: ingen skärm jämförd, referenserna saknas (spelas in med spela_in)")
         }
@@ -107,6 +120,7 @@ final class SwingLabProvReferenser: XCTestCase {
             print("REFERENS: GULT: \(borta.count) referenser utan bild (skärmen ritades inte): \(Self.lista(borta))")
         }
         for d in detaljer { print("REFERENS:   \(d)") }
+        for d in inomToleransen { print("REFERENS:   inom toleransen: \(d)") }
         XCTAssertTrue(andrade.isEmpty, "skärmar ändrade mot referensen: \(andrade.joined(separator: ", "))")
     }
 
@@ -170,11 +184,11 @@ struct Bildpunkter {
         data = px
     }
 
-    /// Punkterna där någon kanal skiljer mer än `grans` av 255, och rutan runt dem (px, rad 0
-    /// överst); nil när storlekarna skiljer. METOD MS40
-    func skillnad(mot andra: Bildpunkter, grans: Int = 8) -> (antal: Int, ruta: CGRect?)? {
+    /// Punkterna där någon kanal skiljer mer än `grans` av 255, rutan runt dem (px, rad 0 överst)
+    /// och den största skillnaden i en kanal; nil när storlekarna skiljer. METOD MS40
+    func skillnad(mot andra: Bildpunkter, grans: Int = 8) -> (antal: Int, ruta: CGRect?, storst: Int)? {
         guard bredd == andra.bredd, hojd == andra.hojd else { return nil }
-        var antal = 0, x0 = Int.max, y0 = Int.max, x1 = -1, y1 = -1
+        var antal = 0, x0 = Int.max, y0 = Int.max, x1 = -1, y1 = -1, storst = 0
         let n = bredd * hojd, w = bredd
         data.withUnsafeBufferPointer { a in
             andra.data.withUnsafeBufferPointer { b in
@@ -187,6 +201,7 @@ struct Bildpunkter {
                         let dk = ak > bk ? ak - bk : bk - ak
                         if dk > d { d = dk }
                     }
+                    if d > storst { storst = d }
                     if d > grans {
                         antal += 1
                         let x = i % w, y = i / w
@@ -200,6 +215,6 @@ struct Bildpunkter {
             }
         }
         let ruta: CGRect? = antal > 0 ? CGRect(x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1) : nil
-        return (antal, ruta)
+        return (antal, ruta, storst)
     }
 }
