@@ -106,9 +106,6 @@ jobs:
           echo "== simulatorn" >> miljo.txt
           cat sim.env | tee -a miljo.txt
           grep '^SIM=' sim.env | cut -d= -f2- > sim.txt
-          # Simulatorn startar medan arkivet byggs: annars gick 1–5 min före första provet, och
-          # en gång till före jämförelsen (2026-11-05).
-          nohup xcrun simctl boot "$(grep '^UDID=' sim.env | cut -d= -f2)" > "$RUNNER_TEMP/boot.log" 2>&1 &
 
       - name: XcodeGen 2.46.0 (låst version, kontrollerad summa)
         run: |
@@ -139,23 +136,28 @@ jobs:
 
       - name: Bygg för simulatorn och kör provet (Release med ENABLE_TESTABILITY, som Idunn)
         id: prov
-        # Körs även när arkiveringen föll, så att resultatet visar båda. Jämförelsen med
-        # referenserna körs efteråt för sig (nästa steg), när hela galleriet är ritat.
+        # Körs även när arkiveringen föll, så att resultatet visar båda.
         # !cancelled(), inte always(): always() körde provet också i en körning som en nyare
         # push avbrutit, och då sparade cancel-in-progress ingen tid (2026-11-05).
         if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
         run: |
           set -o pipefail
           echo "$SIM ($UDID)"
-          # Väntar tills simulatorn som startades i miljöns steg är uppe, och säger hur länge.
-          SECONDS=0
-          xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1 || true
-          echo "simulatorn uppe efter ytterligare ${SECONDS} s"
-          # Bara arm64 (ONLY_ACTIVE_ARCH): provet körs i arm64-simulatorn, och Release byggde
-          # annars x86_64 också, för ingenting.
-          xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
-            -destination "platform=iOS Simulator,id=$UDID,arch=arm64" -skip-testing:SwingLabProv/SwingLabProvReferenser \
-            ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES 2>&1 | tee prov.log
+          MAL="platform=iOS Simulator,id=$UDID,arch=arm64"
+          {
+            # Bygget först, utan simulator: en startad simulator tog CPU från bygget (tre kärnor)
+            # och gjorde det tre–fyra gånger långsammare (2026-11-05). Bara arm64
+            # (ONLY_ACTIVE_ARCH): provet körs i arm64-simulatorn, och Release byggde x86_64 också.
+            xcodebuild build-for-testing -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
+              -destination "$MAL" ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES &&
+            # Simulatorn startas här och inte av xcodebuild: då står den kvar till jämförelsen
+            # (BESLUT B100), som annars väntade 2–3 min på en ny start.
+            { SECONDS=0; xcrun simctl boot "$UDID" || true; xcrun simctl bootstatus "$UDID" -b > /dev/null
+              echo "simulatorn uppe på ${SECONDS} s"; } &&
+            xcodebuild test-without-building -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
+              -destination "$MAL" -skip-testing:SwingLabProv/SwingLabProvReferenser \
+              ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES
+          } 2>&1 | tee prov.log
 
       # PLAN S4i, BESLUT B100, METOD MS40: galleriet mot Prov/Referenser, i en egen körning av
       # samma bygge. Bara i den låsta miljön, och inte när referenserna spelas in.
@@ -186,7 +188,7 @@ jobs:
             if [ "${LAST:-nej}" != "ja" ]; then
               echo "REFERENS: RÖTT: spelas inte in, simulatorn är inte den låsta: ${SIM:-ingen}"; exit 1
             fi
-            if ! grep -q '\*\* TEST SUCCEEDED \*\*' prov.log; then
+            if ! grep -q '\*\* TEST EXECUTE SUCCEEDED \*\*' prov.log; then
               echo "REFERENS: RÖTT: spelas inte in, provet föll"; exit 1
             fi
             mkdir -p Prov/Referenser
@@ -250,7 +252,12 @@ jobs:
               echo "RÖTT: provet kördes inte"
             else
               python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
-              grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
+              # Bygget och provet är två körningar (TEST BUILD, TEST EXECUTE); testflight.yml läser
+              # "** TEST SUCCEEDED **", som betyder att båda gick igenom.
+              if grep -q '\*\* TEST BUILD SUCCEEDED \*\*' prov.log && grep -q '\*\* TEST EXECUTE SUCCEEDED \*\*' prov.log; then
+                echo "** TEST SUCCEEDED **"
+              fi
+              grep -E 'error:|\*\* TEST (BUILD |EXECUTE )?(FAILED|SUCCEEDED) \*\*' prov.log | head -20 || true
             fi
             echo
             # PLAN S4i, BESLUT B100, METOD MS40.
@@ -266,7 +273,7 @@ jobs:
                   echo "RÖTT: inspelningen gick inte igenom"
                   tail -5 referenser.log
                 fi
-              elif ! grep -q '\*\* TEST SUCCEEDED \*\*' referenser.log; then
+              elif ! grep -q '\*\* TEST EXECUTE SUCCEEDED \*\*' referenser.log; then
                 echo "RÖTT: jämförelsen föll"
                 grep -E 'error:|\*\* TEST FAILED \*\*' referenser.log | head -10 || true
               fi

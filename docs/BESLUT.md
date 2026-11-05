@@ -303,9 +303,11 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   Prefire (`#Preview` → snapshot: galleriet har redan påhittad data per skärm); matrisen som
   referenser (fler MB för det som är till för ögat).
 - **Kostnad:** ≈19 MB PNG i repot vid första inspelningen, sedan bara bilderna som ändras (git
-  sparar en bytelik bild en gång). Jämförelsen är en egen körning av xcodebuild (≈1–4 min, mest
-  start av simulatorn); simulatorn startas därför medan arkivet byggs, och provet byggs bara för
-  arm64, som det körs i (x86_64 byggdes för ingenting). En avsiktlig ändring av en skärm kräver en inspelning (en
+  sparar en bytelik bild en gång). Jämförelsen är en egen körning av xcodebuild (≈30 s när
+  simulatorn redan är uppe). Därför byggs provet först (`build-for-testing`, bara arm64, som det
+  körs i: x86_64 byggdes för ingenting), sedan startas simulatorn av flödet och står kvar genom
+  provet och jämförelsen. En simulator som startades medan arkivet byggdes gjorde bygget tre–fyra
+  gånger långsammare (tre kärnor, 2026-11-05). En avsiktlig ändring av en skärm kräver en inspelning (en
   kompilera-körning, ≈15 min) innan kompilera är grönt och TestFlight kan byggas. Ett byte av
   avbild, Xcode eller simulator är en egen commit med en ny inspelning.
 - **Omprövas:** när avbilden tappar Xcode 26.6 eller iOS 26.5 (byt alla tre i samma commit och
