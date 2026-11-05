@@ -2167,7 +2167,7 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   - **Klubbans källa och spridningen räknas inte:** svingarna utan markering saknar inget, och
     spridningen är ett tal för passet.
 - **Kostnad:** en rad till på kort där något saknas; skälet kräver ett tryck; en text per kod i
-  Texter (en ny kod i mätningen kräver en ny rad, annars den allmänna texten). Raderna och
-  korten med "—" i de befintliga bilderna kan ändras när deras påhittade pass saknar mått.
+  Texter (en ny kod i mätningen kräver en ny rad, annars den allmänna texten). Simulatorprovets
+  tidigare bilder är oförändrade (115 av 115 byte för byte): deras påhittade slag har alla mått.
 - **Omprövas:** när Johannes läst ett pass med saknade mått på telefonen (PLAN S3b lager 1), och
   när lager 2 märker mått per slag ("Detection wrong" per mått), som kan behöva samma plats.
