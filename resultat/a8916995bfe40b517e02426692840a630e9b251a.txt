@@ -1,0 +1,20 @@
+a8916995bfe40b517e02426692840a630e9b251a ci-ui 2026-11-05T23:02:08Z run 42126061750
+== swift-release
+GRÖNT: 430 test, 0 fel, 27 s i testerna, bygget 76 s
+Långsammast (av 430):
+      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.8 s  TreDTests.testFigurenSomPython
+      1.4 s  TreDTests.testTelefonensVagSomPython
+      1.4 s  KlubbSparTests.testBananSomPython
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      0.8 s  KlubbSparTests.testFeletMotSanningen
+      0.8 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.7 s  TreDTests.testFigurensFilTurOchRetur
+      0.7 s  TreDTests.testVinklarnaForEnVansterspelare
+      0.7 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      0.7 s  TreDTests.testInreIFilenOchUppdateras
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.6 s  TreDTests.testUtanBrusSomPythonOchExakt
+
