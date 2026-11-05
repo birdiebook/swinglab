@@ -293,7 +293,8 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   - **Matrisen** (MS41): sex huvudskärmar i tre textstorlekar och mörkt/ljust, ett kontaktark per
     skärm. Den jämförs inte; den är till för ögat.
 - **Prövat 2026-11-05:** en avsiktlig ändring (rubriken på Me utan sin tracking, b56beb6) gav
-  RÖTT med rätt skärm och ram (run 42121876809), PLAN S4i.
+  RÖTT med rätt skärm och ram (run 42121876809), och återställningen grönt (run 42130165284),
+  PLAN S4i.
 - **Bortvalt:** referenser inspelade lokalt (ingen Mac); precision 0,99 som researchen
   föreslog (en ändrad siffra är ≈0,03 % av en skärm och hade gått igenom); precision 1 (fälldes
   av glasets brus i `startvy` utan att något ändrats); ΔE 3 i stället (mindre marginal mot

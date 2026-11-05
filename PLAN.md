@@ -519,6 +519,16 @@ användarinput" (iOS-CI). BESLUT B100, METOD MS40–MS41.
 3. **Matrisen:** sex huvudskärmar i standard, xxxLarge och AX3, mörkt och ljust, som
    `resultat/<sha>.matris.<namn>.png` (`SwingLabProvMatris`).
 
+**Prövat 2026-11-05 (kompilera på grenen `ci-ui`).** Referenserna inspelade ur run 42117865310
+(commit 1afa9af, 115 bilder). En avsiktlig ändring, rubriken på Me utan sin tracking (b56beb6),
+gav RÖTT i run 42121876809: "ändrad me: 0.027 % av punkterna i (137, 110)–(183, 159) px", med
+referensen, den nya och skillnaden i `resultat/b56beb6….skillnad.me.png`. Återställd i 7f1f952;
+run 42130165284 (4caebf7) är grön: 115 av 115 lika, 114 bytelika och `startvy` inom toleransen.
+Samma körning visade glasets brus i flikraden (`startvy`), som gav toleransen 0,001 % (MS40).
+
+**Matrisens första fynd:** i AX3 bryts "paired" mitt i ordet ("pair/ed") i Sessions, och
+"Down the line" tar tre rader; ljust och mörkt är lika (0,0 %) i alla sex skärmar.
+
 **Kvar:** XCUITest med `performAccessibilityAudit` över skärmarna (ett UI-provmål, och påhittade
 pass i appen: en startparameter som pekar Store på provets mapp), och flödesprov med tryck.
 
