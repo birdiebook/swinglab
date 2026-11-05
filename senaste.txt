@@ -1,20 +1,20 @@
-b02a08cc50b43e4f7885c61347cd3d9d8d227984 s3b-lager1-visning 2026-11-05T22:52:24Z run 42124649345
+779b33dc138debc45b009afd93b0582cdc291631 ci-ui 2026-11-05T23:01:54Z run 42125959207
 == swift-release
-GRÖNT: 440 test, 0 fel, 37 s i testerna, bygget 118 s
-Långsammast (av 440):
-      2.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      2.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.7 s  TreDTests.testFigurenSomPython
-      2.3 s  TreDTests.testTelefonensVagSomPython
-      2.1 s  KlubbSparTests.testBananSomPython
-      1.4 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.4 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.1 s  TreDTests.testFigurensFilTurOchRetur
-      1.1 s  TreDTests.testVinklarnaForEnVansterspelare
-      1.1 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
-      1.1 s  KlubbSparTests.testFeletMotSanningen
-      1.0 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      1.0 s  TreDTests.testKortet
-      1.0 s  TreDTests.testUtanBrusSomPythonOchExakt
-      1.0 s  TreDTests.testInreIFilenOchUppdateras
+GRÖNT: 430 test, 0 fel, 32 s i testerna, bygget 98 s
+Långsammast (av 430):
+      2.6 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.5 s  TreDTests.testFigurenSomPython
+      2.4 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      2.0 s  KlubbSparTests.testBananSomPython
+      2.0 s  TreDTests.testTelefonensVagSomPython
+      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      1.2 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      1.0 s  KlubbSparTests.testFeletMotSanningen
+      1.0 s  TreDTests.testFigurensFilTurOchRetur
+      1.0 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.0 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.9 s  TreDTests.testKortet
+      0.9 s  TreDTests.testUtanBrusSomPythonOchExakt
+      0.9 s  TreDTests.testInreIFilenOchUppdateras
 
