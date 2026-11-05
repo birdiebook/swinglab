@@ -27,7 +27,7 @@ struct JagVy: View {
 
     private var rubrik: some View {
         Text("Me")
-            .tracking(0)
+            .tracking(-0.6)
             .typsnitt(30, .semibold)
             .foregroundStyle(Theme.text)
     }
