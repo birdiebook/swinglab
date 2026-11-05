@@ -89,6 +89,7 @@ aldrig värdet, så att ett fel går att klistra in utan att data följer med.
 | `faser` | `start` (s eller `null`), `topp`, `traff` (METOD M4), och `start_osaker` (bool): bakifrån saknas starten eller bär den inget tempo; framifrån alltid `false` (METOD M40). |
 | `positioner` | `P1`, `P3`, `P4`, `P5`, `P7`, `P9`, `P10`: tiden i s, eller `null` när positionen saknas (armen blev aldrig vågrät, eller passagen låg i en lucka, METOD M28). P1 och P10 är fönstrens mitt. P3 kan ligga upp till en ruta efter toppen och P5 en ruta före (rutparet över toppen). I analysen och på telefonen dessutom `P2`, `P6` och `P8` när klubban är markerad där: rutan Johannes valde (S7a, METOD M45). |
 | `matt` | Måtten per namn (METOD M5–M24, M29, M30–M39). Ett mått som inte gick att räkna står inte med. Enheten följer namnet (`tools/pc/analys.py` `enhet`, Swift `Avrundning.enhet`): cm, grader, s, ms (`_ms`), m/s (`fart`) och °/s (`vinkelfart`). |
+| `kvalitet` | `rensning` (`byten`, `byten_oklara`, `spikar`, METOD M53), `topp_plata_s` (METOD M4), `saknas` (mått som saknas → orsaken, METOD M52, M5), `varningar` (mått som visas men är osäkra → orsakerna, sorterade, METOD M54) och kontrollernas tal när de går att räkna: `topp_andra_s` (M55), `traff_hojd` (M57) och `handfart_kvot` (M58). |
 
 Måttens namn och vilka vyer som ger dem: `MATT_DTL` och `MATT_FO` i
 `tools/pc/matt.py` (Swift: `Matt.namn`). Tecknen står i varje METOD-rad.
@@ -462,9 +463,9 @@ följarslag som har ett klipp). PC:n läser det som följarens eget.
 | `pass`, `skapad`, `spelhand`, `spelarens_langd_m`, `klubbor` | passet |
 | `huvudklubba` | huvudklubbans id (flest mätta slag): fälten nedan från `tempo_vy` till `kandidater` gäller den, och "Att jobba på" gäller den (BESLUT B56) |
 | `delar[]` | de andra klubborna i passet, var och en med `klubba` och samma fält från `tempo_vy` till `kandidater`, bedömd mot sin egen baslinje |
-| `matversion` | måttens version (`matt.MATVERSION`; 2 = METOD M40, 3 = M41–M43, spridningen); saknas = 1, kör session.py igen |
+| `matversion` | måttens version (`matt.MATVERSION`; 2 = METOD M40, 3 = M41–M43, spridningen, 4 = M52, 5 = M4:s stilla adress, 6 = M53 och M52:s långa segment, 7 = varningarna, M54); saknas = 1, kör session.py igen |
 | `paket[]` | `fil`, `vy`, antal `slag` och `klipp` |
-| `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat` |
+| `slag[]` | per slag: `id`, `vy`, `serie`, `klubba`, `dom`, `plats`, `forsta_serien` (bool), och antingen `faser`, `positioner`, `cm_per_px`, `matt` (som `matt.mat`), `fel` (varför det inte gick att mäta) eller `utelamnat`. Mätta slag bär dessutom `saknas`, `varningar` och `rensning` när något finns, och `kontroller` (kontrollernas tal ur `kvalitet`, `matt.KONTROLLER`, för kalibreringen; METOD M54) |
 | `tempo_vy` | vyn som gruppen `alla` tas ur: flest slag med tempo (METOD MT9) |
 | `session` | `dtl`, `fo` och `alla` (bara `tempo_vy`), sammanfattade som METOD M25 |
 | `forsta_serien` | samma sammanfattning för första serien: de fem första mätta slagen i serie 1 (METOD MT2) |

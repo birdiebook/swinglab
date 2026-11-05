@@ -341,6 +341,21 @@ orsakerna står i frågan till Claude (MT13). Påhittade svingar med inlagda fel
 gräns mot riktiga pass (järn och driver), och rensningens antal på ett riktigt pass mot
 kontaktarket (hur ofta slår den till, och har den rätt?).
 
+**Byggt (grenen `s3b-lager1-fler`, 2026-11-05): varningarna.** Ett mått som visas men är osäkert
+bär sina orsaker i `kvalitet.varningar` (METOD M54, BESLUT B106), i båda räknarna, i analysens
+rader, i `ShotMeasure.warnings` och i frågan till Claude (efter `saknas`). Fem kontroller ur
+researchens tabell: toppens andra signal när platån är bred (M55, armens vinkel framifrån och
+händernas vändning i sidled bakifrån; toppen står kvar, B107), luckor i måttets egna leder kring
+dess ögonblick (M56), klicket mot händernas lägsta punkt (M57), handens toppfart mot en smalare
+utjämning (M58) och orimliga fastider (M59). Adressens symmetri byggdes inte: den varnade på 18
+av 20 rena 3D-svingar (M59). Kontrollernas tal följer med i analysen (`kontroller`), så att
+gränserna kan kalibreras. Fem påhittade svingar med felen (`fo_topp_plata`, `dtl_topp_plata`,
+`fo_lucka_topp`, `dtl_dold_klick`, `fo_fartfel`); de 17 äldre ger samma tal. Mätningens version 7
+(B108). Kvar: gränserna mot riktiga pass (platån 0,08 s och toppens 0,05 s, särskilt bakifrån där
+händerna vänder i sidled 0,04–0,06 s efter sin högsta punkt på 3D-modellen; luckornas 20 %, som
+skymda leder i 3D-modellen når; klickets 10 %; fartens 0,85; fastiderna), och varningarna i
+appens granskning.
+
 ## S4 — Vyn
 
 Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,

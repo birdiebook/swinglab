@@ -117,15 +117,19 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   var inom en andel av vägen under sin högsta punkt) prövades och valdes bort tills
   vidare: på påhittade svingar höjde den tempot 0,3–0,5 mot figurens (som räknar med
   händernas högsta punkt), och på passet var resultatet känsligt för andelen.
-  Prövas mot Sportsbox på fler pass, och mot klubbans topp (M49).
+  Prövas mot Sportsbox på fler pass, och mot klubbans topp (M49). Sedan S3b lager 1 varnas
+  tempot, baksvingen och nedsvingen (`topp_osaker`) när platån är bred och en andra signal
+  (armens vinkel framifrån, händernas vändning i sidled bakifrån) ligger mer än 0,05 s från
+  toppen (M55); toppen står kvar (BESLUT B107).
 - **Toppens platå (2026-11-05, S3b lager 1), mäts men spärrar inget än:** hur länge
   händerna står inom **2 %** av vägen adress → topp från sin högsta punkt, från rutan närmast
   toppen och utåt (högst 0,3 s åt vardera hållet, inte över en lucka längre än 0,10 s).
   Följer med som `kvalitet.topp_plata_s`. På de påhittade svingarna ≈ 0,08–0,11 s
   (smoothstep-profilen). Research S3b föreslår att en platå bredare än 0,08 s avgörs med en
-  andra signal (händernas vändning i x bakifrån, armens vinkel framifrån); gränsen sätts
-  först när platån mätts på riktiga pass med järn och driver, eftersom den påhittade profilen
-  redan ligger där. **antagande** (2 %). `test_rensa.ToppensPlata`.
+  andra signal (händernas vändning i x bakifrån, armens vinkel framifrån). Sedan 2026-11-05
+  görs det med forskningens 0,08 s (M55, varnar bara); den påhittade profilen ligger redan där,
+  så gränsen prövas när platån mätts på riktiga pass med järn och driver (platån följer med i
+  analysens `kontroller`, M54). **antagande** (2 %). `test_rensa.ToppensPlata`.
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -225,7 +229,8 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   framifrån, M4), saknas tempot och baksvingens
   tid; nedsvingens tid (`nedsving_s` = träff − topp) räknas ändå, eftersom den inte
   beror på starten (S1e). Orsaken följer med i `kvalitet.saknas`: `start_saknas` eller
-  `start_osaker` (S3b lager 1).
+  `start_osaker` (S3b lager 1). Ett tempo som visas kan bära varningar (M54): `topp_osaker`
+  (M55), `luckor_kring_fasen` (M56), `traff_osaker` (M57) och `fas_orimlig` (M59).
 - **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), gult inom golvet 0,2 och rött
   längre bort (M62, BESLUT B87; förut aldrig rött). **tillverkare, läst i original**
   (research 5c §5). Blast definierar
@@ -753,7 +758,8 @@ tal; med 0,8 px brus står spridningen per rad.
 - **Osäkert (BESLUT B11):** farten kräver skarp bild, alltså inspelning i
   appen med låst slutartid; Kamera-appens slowmotion suddar händerna i
   nedsvingen. **Oprovat på telefonen**; katalogen märker måtten `oprovad`.
-  Bruset drar toppen uppåt (största värdet av brusiga punkter).
+  Bruset drar toppen uppåt (största värdet av brusiga punkter). En topp som krymper mycket med
+  utjämningen varnas `filterkanslig` (M58).
 - Uppmätt utan brus (frön 0–19): −0,6 % i snitt (anpassningen rundar toppen),
   största 0,06 m/s på ≈ 7,2; tiden sd 3 ms, största 6 ms, eftersom toppen är
   flack. Med 0,8 px brus: +0,2 %, sd 0,06 m/s; tiden sd 7 ms, största 18 ms. Med
@@ -1679,9 +1685,13 @@ värden i `CaptureTests`.
 - **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
   posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e, **4**
   sedan ledvinklarna bara räknas när segmenten syns, M52, **5** sedan en start utan stilla
-  adress framifrån är osäker, M4, **6** sedan rensningen, M53, och för långa segment, M52): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  adress framifrån är osäker, M4, **6** sedan rensningen, M53, och för långa segment, M52,
+  **7** sedan varningarna, M54, fast inga tal ändrades, BESLUT B108): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
   öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
   om med en äldre app. **räkning.**
+- **Orsakerna och varningarna:** slaget sparar `missing` (mått → orsaken, M52, M5) och
+  `warnings` (mått → orsakerna, M54), båda nil när de är tomma, och frågan till Claude räknar dem
+  per mått (`Slagrad`, MT13). **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
   samma sving, samma sving som filformatet, längden och den antagna skalan, slag som
   inte går att mäta, passets median med och utan "Detection wrong", omätningen, gamla
@@ -2425,7 +2435,10 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   per sving i passets ordning, avrundat som det visas, MT3; för `bada` ur tempots vy, MT9),
   `saknas` när måttet saknas i någon sving med en känd orsak (orsaken → antal svingar, sorterat:
   `led_saknas`, `segment_kort`, `segment_langt` ur M52, `start_saknas`, `start_osaker` ur M5;
-  S3b lager 1, 2026-11-05; slag mätta före version 6 har inga orsaker), `median` (analysens, null under tre svingar, M25), `status`, `gront` och `gult` (avrundade som
+  S3b lager 1, 2026-11-05; slag mätta före version 6 har inga orsaker), `varningar` (direkt efter
+  `saknas`) när måttet visas men är osäkert i någon sving (orsaken → antal svingar där det visas,
+  sorterat: `fas_orimlig`, `filterkanslig`, `luckor_kring_fasen`, `topp_osaker`,
+  `traff_osaker`, M54; slag mätta före version 7 har inga), `median` (analysens, null under tre svingar, M25), `status`, `gront` och `gult` (avrundade som
   måttet), `gransens_sort` (`kontrollerad`, `inte_last_i_original` = B10, `egen_baslinje`,
   `ingen_an`), `baslinje` och `mot_forra` när de finns, `tidigare` = analysens median i varje
   tidigare pass, och `ovningar` (katalogens och kedjornas texter) för gula, röda och okända fel.
@@ -2437,7 +2450,8 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
   för samma historik (`test_underlag.py`, `ClaudeTests`). Ett typiskt pass ≈ 7,5 kB mot
   ≈ 15 kB. **antagande** (Johannes 2026-11-03: ren data och en kort fråga).
 - **Python är facit:** `facit_fraga` för varje historik i `claude_facit.json`, och `fragor`
-  med en sving framifrån (passet 2026-11-03: analysen tom, talet per sving finns).
+  med en sving framifrån (passet 2026-11-03: analysen tom, talet per sving finns), orsakerna
+  (`saknas`) och varningarna (`varningar`: tempot med både `saknas` och två orsaker).
 
 ## MK1 — Parningen av slagen
 
@@ -2991,9 +3005,9 @@ toppen är fortfarande händernas högsta punkt och träffen klicket (BESLUT B10
 - **Provat:** `fo_lucka_topp` (främre handleden borta 45 ms vid toppen) varnar armbågens vinkel
   men inte händernas mått; `fo_luckor` varnar huvudet vid toppen (näsan borta 0,05 s) och
   `fo_lucka_arm` armbågen vid P3. **Uppmätt på 3D-modellen** med posemodellens brus "bra"
-  (skymda leder): varning på 19 av 20 svingar i båda vyerna, framifrån bäckenets mått vid toppen
-  (höfterna saknas i 14–23 % av rutorna) och bakifrån främre knäets (27–32 %). Hur ofta det
-  händer på riktiga pass avgör gränsen.
+  (skymda leder får låg konfidens): varning på 19 av 20 svingar i båda vyerna, framifrån på
+  bäckenets mått vid toppen (höfterna saknas i 14–23 % av rutorna över klippet) och bakifrån på
+  främre knäets (knäet och fotleden 27–32 %). Hur ofta det händer på riktiga pass avgör gränsen.
 
 ## M57 — Träffen: klicket mot videon (traff_osaker)
 
@@ -3004,14 +3018,15 @@ toppen är fortfarande händernas högsta punkt och träffen klicket (BESLUT B10
   genomsvingen, farterna och fönstren från toppen till klicket (`matt.traffens_matt`). Inte
   baksvingen och finishen (fönstret 1,0–1,2 s efter flyttar sig lite). **antagande.**
 - **Varför händernas lägsta punkt och inte toppfarten:** händerna är som lägst nära träffen för
-  alla svingar (armens båge runt axeln), medan handens toppfart kommer 50–190 ms före träffen
-  beroende på svingen (Sportsbox tour 69 ms, M35; 3D-modellen 110–134 ms, figuren ≈ 175 ms).
-- **Uppmätt på 3D-modellen** (10 svingar per fall): rätt klick ≤ 0,05 även med brus "typiskt";
-  klicket 0,05 s sent 0,15–0,28, 0,05 s tidigt 0,08–0,12 framifrån men 0,04–0,09 bakifrån
-  (missas), och ±0,10 s alltid över 0,30. Figuren står still vid träffen (±0,04 s) och ger
-  under 0,02 även med klicket 0,10 s fel; därför är fixturen 3D-svingen `dtl_dold_klick`
-  (klicket 60 ms sent, 0,32), och `fo_nara_traff` (klicket 0,16 s före figurens träff) varnar
-  också (0,32).
+  alla svingar (armens båge runt axeln), medan handens toppfart kommer olika långt före träffen
+  beroende på svingen: 69 ms för tour med driver (Sportsbox, M35), 110–134 ms på 3D-modellen och
+  148–194 ms på figuren.
+- **Uppmätt på 3D-modellen:** rätt klick under 0,06 (20 svingar per vy, också med brus
+  "typiskt"); med klicket flyttat (10 svingar per fall) 0,05 s sent 0,15–0,28, 0,05 s tidigt
+  0,08–0,12 framifrån men 0,04–0,09 bakifrån (missas), och ±0,10 s alltid över 0,30. Figuren står
+  still vid träffen (±0,04 s) och ger under 0,03 med klicket 0,10 s sent (0,06–0,14 tidigt);
+  därför är fixturen 3D-svingen `dtl_dold_klick` (klicket 60 ms sent, 0,32), och `fo_nara_traff`
+  (klicket 0,16 s före figurens träff) varnar också (0,32).
 - **Klicket är fortfarande träffen** (±7 ms, M4; BESLUT B107). Varningen säger att klicket och
   videon inte går ihop: fel klick (ett annat ljud), eller fel synk mellan ljud och bild.
 

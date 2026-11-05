@@ -2128,3 +2128,55 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   om vidareförsäljning följer med).
 - **Omprövas:** bara om något blir kritiskt beroende av riktiga rörelser och ingen öppen källa
   finns.
+
+## B106 — Ett osäkert mått visas med en varning; ett mått som är fel saknas
+*2026-11-05 · prövas · S3b lager 1, utan Johannes (han har inte sett det) · METOD M54–M59 · bygger på B12*
+
+- **Varför:** målet för S3b är att ett mått hellre saknas än är fel. Men de flesta kontrollerna
+  utan facit ger inget bevis för att talet är fel, bara att det är osäkert: en bred platå vid
+  toppen, luckor kring fasen, ett klick som inte går ihop med videon. Att ta bort talet där hade
+  tagit bort det mesta av drivertempot på en okalibrerad gräns.
+- **Valt:** två sorter. **Saknas** (`kvalitet.saknas`, orsaken) när talet inte kan stämma: ett
+  segment längre än i adressen, en osäker start (M52, M5). **Varnas** (`kvalitet.varningar`,
+  mått → orsakerna) när talet visas men kan vara fel: fem kontroller (M55–M59). Varningarna
+  följer med i analysens rader, `ShotMeasure.warnings` och frågan till Claude (antalet svingar per
+  orsak, direkt efter `saknas`), med kontrollernas tal för kalibreringen. Ett varnat tal räknas i
+  medianen och bandet som förut.
+- **Bortvalt:** att låta varnade mått saknas (gränserna är antaganden; ett falskt larm tar bort
+  ett riktigt tal); en kvalitetspoäng per mått (svårare att tolka än en orsak, och appen visar
+  inga poäng, B13); att visa varningarna i appen nu (granskningen visar orsakerna i ett eget
+  steg, PLAN S3b).
+- **Kostnad:** Claude får tolka "osäkert", och medianen kan bära ett fel tal. Kontrollerna kostar
+  lite räkning per sving (den smalare utjämningen bara kring toppfarten).
+- **Omprövas:** när kontrollerna mätts på riktiga pass: en kontroll som nästan alltid har rätt om
+  ett fel tal flyttas till `saknas`, en som larmar för ofta får en ny gräns eller tas bort.
+
+## B107 — Toppen och träffen behåller sina definitioner; de andra signalerna varnar
+*2026-11-05 · prövas · S3b lager 1, utan Johannes · METOD M4, M55, M57*
+
+- **Varför:** toppen som händernas högsta punkt hamnade tidigt på platån med driver (M4, öppen
+  fråga), och en andra signal kan säga när. Men signalerna är inte prövade på riktiga svingar,
+  och bakifrån vänder händerna i sidled systematiskt 0,04–0,06 s efter sin högsta punkt på
+  3D-modellen, också utan brus (M55): de mäter olika saker.
+- **Valt:** toppen är fortfarande händernas högsta punkt och träffen klicket. Den andra signalen
+  (armens vinkel framifrån, händernas vändning i sidled bakifrån) och händernas lägsta punkt kring
+  klicket ger bara varningar (`topp_osaker`, `traff_osaker`) och sina tal (`topp_andra_s`,
+  `traff_hojd`).
+- **Bortvalt:** toppen som vändningen (M4: tempot 0,3–0,5 högre än figurens, och känsligt för
+  andelen), medlet av signalerna, och träffen ur videon i stället för klicket (±7 ms mot en
+  ruta och en båge).
+- **Omprövas:** mot Sportsbox på drivern (S3b lager 4), och mot klubbans topp när Johannes
+  markerat P4 på riktiga pass (M49, M45).
+
+## B108 — Mätningens version 7 för varningarna, fast inga tal ändras
+*2026-11-05 · prövas · S3b lager 1, utan Johannes · METOD MS14, M54*
+
+- **Varför:** förut ändrades versionen bara när ett tal ändrades (B47: klubbmåtten, ingen
+  ommätning). Ett pass mätt med version 6 har inga varningar och ser rent ut, också drivern
+  2026-11-03 som platåns kontroll (M55) kom ur.
+- **Valt:** `matt.MATVERSION` och `ShotMeasuring.version` blir 7. Telefonen mäter om slagen när
+  passet öppnas och PC:n listar passen att köra om (`historik.py`, `kor_om`), som vid varje
+  ny version. Inget tal ändras (de 17 äldre fixturerna ger samma tal).
+- **Bortvalt:** att behålla 6 och bara ge nya pass varningar.
+- **Kostnad:** en ommätning av varje pass en gång (på telefonen utanför huvudtråden, MS14).
+- **Omprövas:** inte; nästa ändring av kontrollerna som ger andra varningar får version 8.
