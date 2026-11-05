@@ -18,7 +18,8 @@ final class MattTests: XCTestCase {
     func testVarjeSvingGerPythonsTal() throws {
         XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
                                                        "fo_kort_arm", "fo_lucka_arm", "dtl_vanster", "fo_lucka_fart",
-                                                       "fo_nara_traff", "dtl_dold", "dtl_osaker", "dtl_utan_pose"])
+                                                       "fo_nara_traff", "dtl_dold", "dtl_osaker", "dtl_utan_pose",
+                                                       "fo_fel", "dtl_fel", "fo_lang_arm"])
         var jamforda = 0
         var positioner = 0
         for f in Fixturer.svingar {
@@ -32,6 +33,15 @@ final class MattTests: XCTestCase {
                 jamforda += 1
             }
             XCTAssertTrue(Self.lika(r.cmPerPx, python.cmPerPx), "\(f.namn): skalan")
+            // Rensningen, toppens platå och orsakerna, som i Python. METOD M53, M4, M52
+            XCTAssertEqual(r.kvalitet.rensning.byten, python.kvalitet.rensning.byten, "\(f.namn): byten")
+            XCTAssertEqual(r.kvalitet.rensning.bytenOklara, python.kvalitet.rensning.bytenOklara, "\(f.namn): oklara")
+            XCTAssertEqual(r.kvalitet.rensning.spikar, python.kvalitet.rensning.spikar, "\(f.namn): spikar")
+            XCTAssertEqual(r.kvalitet.saknas, python.kvalitet.saknas, "\(f.namn): saknas")
+            XCTAssertEqual(r.kvalitet.toppPlataS == nil, python.kvalitet.toppPlataS == nil, "\(f.namn): platån")
+            if let a = r.kvalitet.toppPlataS, let b = python.kvalitet.toppPlataS {
+                XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): platån")
+            }
             XCTAssertEqual(r.faser.topp, python.faser.topp, accuracy: Self.tid, "\(f.namn): toppen")
             XCTAssertEqual(r.faser.traff, python.faser.traff, "\(f.namn): träffen")
             XCTAssertEqual(r.faser.start == nil, python.faser.start == nil, "\(f.namn): starten")
@@ -50,13 +60,14 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (58 + 50 + 45 + 36 + 48 + 36 + 55 + 54 + 45 + 55 + 57 + 45 + 43 + 37 = 664;
+        // (58 + 50 + 45 + 36 + 48 + 36 + 55 + 54 + 45 + 55 + 57 + 45 + 43 + 37 + 58 + 44 + 57 = 823;
         // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna;
         // S1e: recentreringen och skiftet framifrån, bäckenets lägsta punkt och lyftet in i
         // träffen i båda vyerna, utom där höften saknas i fönstret, och nedsvingens tid
-        // också utan säker start) och positionerna (14 × 7 − 6 saknade = 92).
-        XCTAssertEqual(jamforda, 664)
-        XCTAssertEqual(positioner, 92)
+        // också utan säker start; M53: fo_fel, dtl_fel och fo_lang_arm efter rensningen) och
+        // positionerna (17 × 7 − 6 saknade = 113).
+        XCTAssertEqual(jamforda, 823)
+        XCTAssertEqual(positioner, 113)
     }
 
     func testDePahittadeFormerna() throws {

@@ -36,7 +36,8 @@ if __package__ in (None, ""):
 from . import katalog as KAT  # noqa: E402
 from . import matt as M  # noqa: E402
 from . import session as S  # noqa: E402
-from .format import FRAN_FIL, LEDER_FIL, las  # noqa: E402
+from . import rensa as RE  # noqa: E402
+from .format import FRAN_FIL, LEDER, LEDER_FIL, las  # noqa: E402
 
 ROT = Path(__file__).resolve().parents[2]
 FIXTURFIL = ROT / "SwingLabKit" / "Tests" / "SwingTests" / "Fixturer.swift"
@@ -443,19 +444,22 @@ def facit_s1e(figur, p: dict, langd_cm: float, vy: str) -> dict:
 def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0.0, langd_m: float = 1.80,
           dolj: tuple = (), saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2,
           start: float | None = None, konf: dict | None = None, klick: float | None = None,
-          **andra) -> tuple[dict, dict]:
+          spikar: tuple = (), byten: tuple = (), **andra) -> tuple[dict, dict]:
     """(svingen som dict i filformatet, facit). `dolj` = [(led i filen, ta, tb)]
     ger låg konfidens och skräpkoordinater i fönstret. `start` flyttar
     baksvingens start (s), `konf` = {led i filen: konfidens} sätter en leds
     konfidens i alla rutor. `klick` flyttar bara mätningens träff (t_klick), inte
     figurens: handens toppfart hamnar då nära träffen (METOD M35); bara farternas
-    facit räknas mot den. `andra` byter parametrar."""
+    facit räknas mot den. `spikar` = [(led internt, t, rutor, dx cm, dy cm)] flyttar leden i
+    så många rutor från t (en spik, METOD M53), `byten` = [(grupp, ta, tb)] byter gruppens
+    främre och bakre punkter i fönstret (rensa.GRUPPER). `andra` byter parametrar."""
     global TIDER
     if start is not None:
         gamla = TIDER
         TIDER = dict(TIDER, start=start)
         try:
-            return sving(vy, hand, seed, brus_px, langd_m, dolj, saknas, fran, decimaler, None, konf, klick, **andra)
+            return sving(vy, hand, seed, brus_px, langd_m, dolj, saknas, fran, decimaler, None, konf, klick,
+                         spikar, byten, **andra)
         finally:
             TIDER = gamla
     p = dict(FO if vy == "fo" else DTL)
@@ -475,6 +479,16 @@ def sving(vy: str = "fo", hand: str = "hoger", seed: int = 1, brus_px: float = 0
     if brus_px:
         x = x + rng.normal(0, brus_px, x.shape)
         y = y + rng.normal(0, brus_px, y.shape)
+    for namn, ta, tb in byten:                         # METOD M53: sidorna byter plats
+        fonst = (t >= ta) & (t <= tb)
+        for f, b in RE.GRUPPER[namn]:
+            for v in (x, y):
+                v[fonst, f], v[fonst, b] = v[fonst, b].copy(), v[fonst, f].copy()
+    for namn, t0, rutor, dx, dy in spikar:             # METOD M53: punkten kastas bort
+        j = LEDER.index(namn)
+        k = int(np.searchsorted(t, t0))
+        x[k:k + rutor, j] += tecken * dx * K_PX
+        y[k:k + rutor, j] -= dy * K_PX
     konfidens = rng.uniform(0.55, 1.0, L.shape[:2])
     karta = FRAN_FIL[hand]
     rutor = []
@@ -656,6 +670,20 @@ FIXTURSVINGAR = {
     # tas ur händerna (M4) och är osäker (METOD M40).
     "dtl_utan_pose": ("dtl", "hoger", 24, 0.8, (("armbage_v", 0.0, 9.9), ("armbage_h", 0.0, 9.9),
                                                 ("axel_v", 2.10, 2.30)), {}),
+    # Rensningen (METOD M53): fyra spikar (handleden vid toppen, höften i träffen, armbågen
+    # tre rutor, näsan) och tre korta byten (armarna, benen, höfterna) som tas bort.
+    "fo_fel": ("fo", "hoger", 25, 0.8, (), {
+        "spikar": (("handled_f", 2.20, 2, 30, 0), ("hoft_f", 2.50, 1, 0, -20), ("armbage_f", 2.35, 3, -25, 10),
+                   ("nasa", 1.00, 1, 15, 0)),
+        "byten": (("armar", 1.40, 1.45), ("ben", 2.60, 2.62), ("hofter", 3.00, 3.10))}),
+    # Vänsterspelaren bakifrån: ett kort byte av armarna, en spik i bakre knäet och en i
+    # bakre handleden; och ett byte av armarna i finishen som aldrig byts tillbaka (räknas, rättas inte).
+    "dtl_fel": ("dtl", "vanster", 26, 0.8, (), {
+        "spikar": (("kna_b", 2.30, 1, 0, 25), ("handled_b", 1.20, 2, -30, 10)),
+        "byten": (("armar", 1.90, 1.95), ("armar", 3.30, 9.9))}),
+    # Främre armbågen 20 cm fel i 0,3 s kring toppen (för länge för en spik): ett segment syns
+    # längre än i adressen, och vinkeln saknas med orsaken (METOD M52).
+    "fo_lang_arm": ("fo", "hoger", 27, 0.8, (), {"spikar": (("armbage_f", 2.05, 48, 0, -20),)}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 
@@ -669,7 +697,8 @@ def fixtursving(namn: str) -> str:
 
 def resultat_json(text: str) -> dict:
     r = M.mat(las(text))
-    return {"cm_per_px": r["cm_per_px"], "faser": r["faser"], "positioner": r["positioner"], "matt": r["matt"]}
+    return {"cm_per_px": r["cm_per_px"], "faser": r["faser"], "positioner": r["positioner"], "matt": r["matt"],
+            "kvalitet": r["kvalitet"]}
 
 
 def session_fixtur() -> dict:

@@ -53,8 +53,9 @@ public enum ShotMeasuring {
     public static let assumedHeightM = 1.80
     /// Mätningens version: ett slag mätt med en äldre mäts om. 2 = starten bakifrån ur
     /// posen (METOD M40), 3 = M41–M43 och spridningen (S1e), 4 = synliga segment (METOD M52),
-    /// 5 = stilla adress framifrån (METOD M4). Samma som PC:ns `matt.MATVERSION`. METOD MS14
-    public static let version = 5
+    /// 5 = stilla adress framifrån (METOD M4), 6 = rensningen (METOD M53) och för långa
+    /// segment (METOD M52). Samma som PC:ns `matt.MATVERSION`. METOD MS14
+    public static let version = 6
     /// Längderna som går att välja i appen, cm (inom formatets 1,0–2,5 m). METOD MS14
     public static let heightChoicesCm = 140...210
 

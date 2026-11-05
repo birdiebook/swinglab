@@ -39,14 +39,38 @@ struct PythonSving: Decodable {
         }
     }
 
+    /// Rensningen, toppens platå och orsakerna (METOD M53, M4, M52).
+    struct Kvalitet: Decodable {
+        struct Rensning: Decodable {
+            let byten: [String: Int]
+            let bytenOklara: [String: Int]
+            let spikar: [String: Int]
+
+            enum CodingKeys: String, CodingKey {
+                case byten, spikar
+                case bytenOklara = "byten_oklara"
+            }
+        }
+
+        let rensning: Rensning
+        let toppPlataS: Double?
+        let saknas: [String: String]
+
+        enum CodingKeys: String, CodingKey {
+            case rensning, saknas
+            case toppPlataS = "topp_plata_s"
+        }
+    }
+
     let cmPerPx: Double
     let faser: Tider
     let positioner: Positioner
     let matt: [String: Double]
+    let kvalitet: Kvalitet
 
     enum CodingKeys: String, CodingKey {
         case cmPerPx = "cm_per_px"
-        case faser, positioner, matt
+        case faser, positioner, matt, kvalitet
     }
 }
 

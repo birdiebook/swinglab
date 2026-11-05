@@ -28,6 +28,7 @@ Vridningen och X-factor ingår inte: de kräver två kameror (PLAN S6) och räkn
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 
 import numpy as np
@@ -35,6 +36,7 @@ import numpy as np
 from . import faser as F
 from . import farter as FA
 from . import positioner as PO
+from . import rensa as RE
 from .format import (ARMBAGE_B, ARMBAGE_F, AXEL_B, AXEL_F, FOTLED_B, FOTLED_F, HANDLED_B, HANDLED_F,
                      HOFT_B, HOFT_F, KNA_B, KNA_F, NASA, Sving)
 
@@ -48,8 +50,11 @@ BEN = HOFTHOJD - FOTLEDSHOJD     # höftmitt–fotledsmitt, FO
 CHICKEN = (0.05, 0.15)           # METOD M23: s efter träffen
 HANDBANA_NIVAER = (0.25, 0.50, 0.75)   # METOD M13: andel av höjden från adress till topp
 SEGMENT_MIN = 0.70               # METOD M52: kortare segment i bild än så mot adressen = vinkeln i leden mäts inte
+SEGMENT_MAX = 1.15               # METOD M52: längre än så mot adressen = en punkt är fel (ett stelt segment kan inte växa)
+PLATA_ANDEL = 0.02               # METOD M4: toppens platå = händerna inom 2 % av vägen adress → topp från toppen
+PLATA_SOK_S = 0.30               # METOD M4: platån söks högst så långt från toppen åt vardera hållet
 AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
-MATVERSION = 5                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen, 4 = synliga segment (M52), 5 = stilla adress (M4)
+MATVERSION = 6                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen, 4 = synliga segment (M52), 5 = stilla adress (M4), 6 = rensningen (M53) och för långa segment (M52)
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")
@@ -97,17 +102,62 @@ def bojning(a: np.ndarray, mitt: np.ndarray, c: np.ndarray) -> float:
     return 180.0 - math.degrees(math.acos(max(-1.0, min(1.0, cos))))
 
 
-def bojning_synlig(a: np.ndarray, mitt: np.ndarray, c: np.ndarray,
-                   a0: np.ndarray, mitt0: np.ndarray, c0: np.ndarray) -> float:
-    """Ledens böjning (som `bojning`), men NaN när ett av de två segmenten syns kortare i
-    bild än SEGMENT_MIN av sin längd i adressen (a0, mitt0, c0): segmentet pekar då mot
-    eller från kameran, och några cm fel i en punkt blir tiotals grader. En rak led syns
-    rak i bild hur den än är vriden, men felet i punkterna förstärks. METOD M52"""
+def segment_orsak(a: np.ndarray, mitt: np.ndarray, c: np.ndarray,
+                  a0: np.ndarray, mitt0: np.ndarray, c0: np.ndarray) -> str | None:
+    """Varför ledens vinkel inte kan mätas, eller None: "led_saknas" (en punkt saknas i
+    fasen eller i adressen), "segment_kort" (ett segment syns kortare i bild än
+    SEGMENT_MIN av sin längd i adressen: det pekar mot eller från kameran och felet i en
+    punkt förstärks) eller "segment_langt" (längre än SEGMENT_MAX: ett stelt segment kan
+    inte växa i bild, så en punkt är fel). Det korta före det långa. METOD M52"""
+    kvoter = []
     for p, q, p0, q0 in ((a, mitt, a0, mitt0), (c, mitt, c0, mitt0)):
         l0 = math.hypot(p0[0] - q0[0], p0[1] - q0[1])
-        if not (l0 > 0 and math.hypot(p[0] - q[0], p[1] - q[1]) >= SEGMENT_MIN * l0):
-            return math.nan
+        l1 = math.hypot(p[0] - q[0], p[1] - q[1])
+        if not (math.isfinite(l0) and math.isfinite(l1) and l0 > 0):
+            return "led_saknas"
+        kvoter.append(l1 / l0)
+    if any(not (k >= SEGMENT_MIN) for k in kvoter):
+        return "segment_kort"
+    if any(k > SEGMENT_MAX for k in kvoter):
+        return "segment_langt"
+    return None
+
+
+def bojning_synlig(a: np.ndarray, mitt: np.ndarray, c: np.ndarray,
+                   a0: np.ndarray, mitt0: np.ndarray, c0: np.ndarray) -> float:
+    """Ledens böjning (som `bojning`), men NaN när segment_orsak ger en orsak: ett
+    segment syns för kort (pekar mot eller från kameran) eller för långt (en punkt är fel)
+    mot adressen. En rak led syns rak i bild hur den än är vriden, men felet i punkterna
+    förstärks. METOD M52"""
+    if segment_orsak(a, mitt, c, a0, mitt0, c0) is not None:
+        return math.nan
     return bojning(a, mitt, c)
+
+
+def topp_plata(t: np.ndarray, G: np.ndarray, f: F.Faser) -> float | None:
+    """Toppens platå i s: hur länge händerna står inom PLATA_ANDEL av vägen adress → topp
+    från sin högsta punkt, räknat från rutan närmast toppen och utåt åt båda hållen (högst
+    PLATA_SOK_S, och inte över en lucka längre än MAX_LUCKA_S). Med driver kan händerna stå
+    nästan still medan klubban fortsätter, och toppen hamna tidigt på platån. Mäts och
+    visas; ingen spärr än (METOD M4, öppen fråga). None när vägen inte går att räkna."""
+    y_topp = F.vid(t, G, f.topp)[1]
+    y_adr = F.lage(t, G, f, "adress")[1]
+    vag = y_adr - y_topp
+    if not (math.isfinite(vag) and vag > 0):
+        return None
+    ok = np.where(np.isfinite(G).all(axis=1) & (np.abs(t - f.topp) <= PLATA_SOK_S))[0]
+    if len(ok) == 0:
+        return None
+    k0 = int(np.argmin(np.abs(t[ok] - f.topp)))
+    grans = PLATA_ANDEL * vag
+    if not (G[ok[k0], 1] - y_topp <= grans):
+        return 0.0
+    lo = hi = k0
+    while lo > 0 and t[ok[lo]] - t[ok[lo - 1]] <= F.MAX_LUCKA_S and G[ok[lo - 1], 1] - y_topp <= grans:
+        lo -= 1
+    while hi < len(ok) - 1 and t[ok[hi + 1]] - t[ok[hi]] <= F.MAX_LUCKA_S and G[ok[hi + 1], 1] - y_topp <= grans:
+        hi += 1
+    return float(t[ok[hi]] - t[ok[lo]])
 
 
 def arm_mot_axlar(axel_f: np.ndarray, axel_b: np.ndarray, hand: np.ndarray) -> float:
@@ -172,8 +222,12 @@ def _korsning(t: np.ndarray, G: np.ndarray, a: float, b: float, niva: float, upp
 def mat(s: Sving) -> dict:
     """Måtten för en sving: {"vy", "hand", "cm_per_px", "faser", "positioner", "matt"}.
     Ett mått som inte går att räkna (leden saknas i fasen, positionen saknas)
-    står inte med."""
+    står inte med. "kvalitet" säger vad rensningen gjorde (METOD M53), toppens platå
+    (METOD M4) och varför vissa mått saknas (METOD M52, M5)."""
     t = s.t
+    # Byten och spikar bort först, sedan räknas allt på de rensade lederna. METOD M53
+    xy, rensning = RE.rensa(t, s.xy, s.langd_m)
+    s = dataclasses.replace(s, xy=xy)
     b = F.jamna(t, F.grepp_regel(s.xy))
     # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
     hand_f = F.jamna(t, s.xy[:, HANDLED_F])
@@ -205,12 +259,21 @@ def mat(s: Sving) -> dict:
         """Förflyttningen från adressen i cm; axel 1 vänds så att + är uppåt."""
         return tecken * (L(p, fas)[axel] - L(p, "adress")[axel]) * cm
 
-    def led(a: np.ndarray, mitt: np.ndarray, c: np.ndarray, fas: str) -> float:
-        """Böjningen i fasen, bara när båda segmenten syns i bild. METOD M52"""
-        return bojning_synlig(L(a, fas), L(mitt, fas), L(c, fas), L(a, "adress"), L(mitt, "adress"),
-                              L(c, "adress"))
-
     m: dict[str, float] = {}
+    saknas: dict[str, str] = {}
+
+    def synlig(namn: str, a, mitt, c, a0, mitt0, c0) -> None:
+        """Vinkeln i leden som måttet `namn`, eller orsaken till att den saknas. METOD M52"""
+        orsak = segment_orsak(a, mitt, c, a0, mitt0, c0)
+        if orsak is None:
+            m[namn] = bojning(a, mitt, c)
+        else:
+            saknas[namn] = orsak
+
+    def led(namn: str, a: np.ndarray, mitt: np.ndarray, c: np.ndarray, fas: str) -> None:
+        """Böjningen i fasen, bara när båda segmenten syns rimligt i bild. METOD M52"""
+        synlig(namn, L(a, fas), L(mitt, fas), L(c, fas), L(a, "adress"), L(mitt, "adress"), L(c, "adress"))
+
     if s.vy == "dtl":
         for fz in FASER:                                             # METOD M6
             m[f"brost_bojning_{fz}"] = vinkel_fran_lod(L(P, fz), L(C, fz))
@@ -222,7 +285,7 @@ def mat(s: Sving) -> dict:
             m[f"huvud_lyft_{fz}"] = flytt(N, 1, fz, -1.0)            # METOD M8
             m[f"brost_thrust_{fz}"] = flytt(C, 0, fz)                # METOD M10
         for fz in ("adress", "topp", "traff"):                       # METOD M11
-            m[f"bakre_kna_{fz}"] = led(b[:, HOFT_B], b[:, KNA_B], b[:, FOTLED_B], fz)   # METOD M52
+            led(f"bakre_kna_{fz}", b[:, HOFT_B], b[:, KNA_B], b[:, FOTLED_B], fz)      # METOD M52
         # Bakre överarmen mot lodlinjen nedåt, + bort från bollen. METOD M12
         d = L(b[:, ARMBAGE_B], "topp") - L(b[:, AXEL_B], "topp")
         m["bakre_armbage_topp"] = math.degrees(math.atan2(-d[0], d[1]))
@@ -241,7 +304,7 @@ def mat(s: Sving) -> dict:
             m[f"backen_bojning_{fz}"] = (vinkel_fran_lod(L(P, fz), L(C, fz))
                                          + vinkel_fran_lod(L(b[:, KNA_B], fz), L(b[:, HOFT_B], fz))) / 2
         for fz in ("adress", "topp", "traff"):                       # METOD M33
-            m[f"framre_kna_{fz}"] = led(b[:, HOFT_F], b[:, KNA_F], b[:, FOTLED_F], fz)   # METOD M52
+            led(f"framre_kna_{fz}", b[:, HOFT_F], b[:, KNA_F], b[:, FOTLED_F], fz)     # METOD M52
         # Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
         m["hand_djup_topp"] = flytt(G, 0, "topp")
         # Främre armen mot axellinjen vid toppen, + över axelplanet; bara när axellinjen
@@ -266,12 +329,11 @@ def mat(s: Sving) -> dict:
         m["hander_fore_adress_traff"] = flytt(G, 0, "traff")                              # METOD M20
         m["hander_fore_backen_traff"] = (L(G, "traff")[0] - L(P, "traff")[0]) * cm
         m["backen_resa_framat"] = m["backen_sway_traff"] - m["backen_sway_topp"]         # METOD M21
-        m["framre_armbage_topp"] = led(b[:, AXEL_F], b[:, ARMBAGE_F], hand_f, "topp")      # METOD M22, METOD M52
+        led("framre_armbage_topp", b[:, AXEL_F], b[:, ARMBAGE_F], hand_f, "topp")          # METOD M22, METOD M52
         a0, a1 = s.t_klick + CHICKEN[0], s.t_klick + CHICKEN[1]                          # METOD M23
-        m["framre_armbage_efter_traff"] = bojning_synlig(F.medel(t, b[:, AXEL_F], a0, a1),
-                                                         F.medel(t, b[:, ARMBAGE_F], a0, a1),
-                                                         F.medel(t, hand_f, a0, a1), L(b[:, AXEL_F], "adress"),
-                                                         L(b[:, ARMBAGE_F], "adress"), L(hand_f, "adress"))
+        synlig("framre_armbage_efter_traff", F.medel(t, b[:, AXEL_F], a0, a1), F.medel(t, b[:, ARMBAGE_F], a0, a1),
+               F.medel(t, hand_f, a0, a1), L(b[:, AXEL_F], "adress"), L(b[:, ARMBAGE_F], "adress"),
+               L(hand_f, "adress"))
         fot = L(b[:, FOTLED_F], "adress") - L(b[:, FOTLED_B], "adress")                  # METOD M24
         axl = L(b[:, AXEL_F], "adress") - L(b[:, AXEL_B], "adress")
         axelbredd = math.hypot(axl[0], axl[1])
@@ -280,9 +342,9 @@ def mat(s: Sving) -> dict:
         if pos["P3"] is not None:
             p3 = pos["P3"]
             m["backen_sway_p3"] = (F.vid(t, P, p3)[0] - L(P, "adress")[0]) * cm
-            m["framre_armbage_p3"] = bojning_synlig(F.vid(t, b[:, AXEL_F], p3), F.vid(t, b[:, ARMBAGE_F], p3),
-                                                    F.vid(t, hand_f, p3), L(b[:, AXEL_F], "adress"),
-                                                    L(b[:, ARMBAGE_F], "adress"), L(hand_f, "adress"))
+            synlig("framre_armbage_p3", F.vid(t, b[:, AXEL_F], p3), F.vid(t, b[:, ARMBAGE_F], p3),
+                   F.vid(t, hand_f, p3), L(b[:, AXEL_F], "adress"), L(b[:, ARMBAGE_F], "adress"),
+                   L(hand_f, "adress"))
         if pos["P5"] is not None:
             m["backen_resa_p5"] = (F.vid(t, P, pos["P5"])[0] - L(P, "topp")[0]) * cm
         m["huvud_backen_finish"] = (L(N, "finish")[0] - L(P, "finish")[0]) * cm
@@ -332,8 +394,13 @@ def mat(s: Sving) -> dict:
         m["baksving_s"] = bak
         if ned > 0:
             m["tempo"] = bak / ned
+    else:                                                            # METOD M5: varför tempot saknas
+        orsak = "start_saknas" if f.start is None else "start_osaker"
+        saknas["tempo"] = saknas["baksving_s"] = orsak
 
+    matt = {k: float(v) for k, v in m.items() if v is not None and math.isfinite(v)}
+    kvalitet = {"rensning": rensning, "topp_plata_s": topp_plata(t, G, f),
+                "saknas": {k: v for k, v in sorted(saknas.items()) if k not in matt}}
     return {"vy": s.vy, "hand": s.hand, "cm_per_px": cm,
             "faser": {"start": f.start, "topp": f.topp, "traff": f.traff, "start_osaker": f.start_osaker},
-            "positioner": pos,
-            "matt": {k: float(v) for k, v in m.items() if v is not None and math.isfinite(v)}}
+            "positioner": pos, "matt": matt, "kvalitet": kvalitet}

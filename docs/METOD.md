@@ -118,6 +118,14 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   vidare: på påhittade svingar höjde den tempot 0,3–0,5 mot figurens (som räknar med
   händernas högsta punkt), och på passet var resultatet känsligt för andelen.
   Prövas mot Sportsbox på fler pass, och mot klubbans topp (M49).
+- **Toppens platå (2026-11-05, S3b lager 1), mäts men spärrar inget än:** hur länge
+  händerna står inom **2 %** av vägen adress → topp från sin högsta punkt, från rutan närmast
+  toppen och utåt (högst 0,3 s åt vardera hållet, inte över en lucka längre än 0,10 s).
+  Följer med som `kvalitet.topp_plata_s`. På de påhittade svingarna ≈ 0,08–0,11 s
+  (smoothstep-profilen). Research S3b föreslår att en platå bredare än 0,08 s avgörs med en
+  andra signal (händernas vändning i x bakifrån, armens vinkel framifrån); gränsen sätts
+  först när platån mätts på riktiga pass med järn och driver, eftersom den påhittade profilen
+  redan ligger där. **antagande** (2 %). `test_rensa.ToppensPlata`.
 - **Träffen:** `t_klick`, klicket i ljudet (±7 ms, Golf SG). **mätt.**
 - **Adressen:** medel över start −0,40…−0,10 s. Saknas starten: toppen −1,2 s
   i stället för starten. **Finish:** medel över träffen +1,0…+1,2 s. Samma
@@ -216,7 +224,8 @@ gjordes det i research 5 (2026-10-23, `docs/research/5_matt_i_original.md` och 5
   Båda vyerna. Saknas starten, eller är den osäker (M40, eller utan stilla adress
   framifrån, M4), saknas tempot och baksvingens
   tid; nedsvingens tid (`nedsving_s` = träff − topp) räknas ändå, eftersom den inte
-  beror på starten (S1e).
+  beror på starten (S1e). Orsaken följer med i `kvalitet.saknas`: `start_saknas` eller
+  `start_osaker` (S3b lager 1).
 - **Gräns i katalogen:** 2,5–3,1 grönt (Blast Motion, tour), gult inom golvet 0,2 och rött
   längre bort (M62, BESLUT B87; förut aldrig rött). **tillverkare, läst i original**
   (research 5c §5). Blast definierar
@@ -1670,7 +1679,7 @@ värden i `CaptureTests`.
 - **Mätningens version** (`ShotMeasuring.version`, **2** sedan starten bakifrån ur
   posen, M40, **3** sedan M41–M43, nedsvingens tid utan starten och spridningen, S1e, **4**
   sedan ledvinklarna bara räknas när segmenten syns, M52, **5** sedan en start utan stilla
-  adress framifrån är osäker, M4): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
+  adress framifrån är osäker, M4, **6** sedan rensningen, M53, och för långa segment, M52): ett slag mätt med en äldre (`version` saknas = 1) mäts om när passet
   öppnas, som vid en ny längd. Jämförelsen är `<`, så att en nyare version aldrig mäts
   om med en äldre app. **räkning.**
 - **Vad som provas var.** Linux (`MatningTests`): samma mått och positioner som S1 på
@@ -2839,6 +2848,58 @@ som tar slut eller NaN i analysen. **antagande** (gränserna), **räkning** (res
 - **Provat:** `test_matt.SynligaSegment` (gränsen, och en påhittad sving med en rak
   förkortad arm och 6 % fel i armbågen: saknas förkortad, mäts hel) och
   `MattTests.testVinklarna`.
+- **För långt (2026-11-05, S3b lager 1):** ett segment som syns **längre än 115 %** av sin
+  längd i adressen saknas också. Ett stelt segment kan bara bli kortare i 2D när det vrids
+  ut ur bildens plan, så längre betyder att en punkt är fel. **antagande** (115 %: research
+  S3b, geometri; ingen publicerad golfgräns hittades). Förutsätter att segmentet ligger i
+  bildens plan i adressen; bakifrån pekar främre överarmen något bort från kameran (≈ 0,94),
+  så en arm i planet vid toppen syns ≈ 1,06: under gränsen. `segment_orsak` i `matt.py`,
+  `Matt.segmentOrsak` i Swift. Mätningens version 6 (MS14).
+- **Orsaken följer med** (`kvalitet.saknas`): `led_saknas` (en punkt saknas i fasen eller i
+  adressen), `segment_kort` eller `segment_langt`, så att appen och Claudes underlag kan säga
+  varför vinkeln saknas. Provat: `test_rensa.LangaSegment` (armbågen 20 cm fel i 0,2 s kring
+  toppen ger `segment_langt`) och fixturen `fo_lang_arm` i båda språken.
+
+## M53 — Rensningen före mätningen: byten och spikar (S3b lager 1)
+
+Posemodellen kan byta plats på vänster och höger i några rutor, eller kasta en punkt långt
+bort i en eller ett par rutor. Båda syns i tidsserien utan facit, och tas bort **innan** något
+mäts (`tools/pc/rensa.py`, `Rensning.swift`). Allt räknas på tiderna och i **bålens längd i
+bild** (medianen av axelmitt–höftmitt över klippet, px), så att gränserna i m/s gäller oavsett
+kamerans avstånd: px per m = bålen / (M2:s kvot axelhöjd − höfthöjd × längden).
+
+- **Bytet.** Grupperna som byter tillsammans: armbågarna och handlederna, knäna och
+  fotlederna, höfterna, axlarna. Rutan jämförs med förra rutan där gruppen syns (högst
+  **0,05 s** bort): det raka avståndet (främre mot främre, bakre mot bakre) mot det korsade.
+  Korsat under **halva** det raka, med sidorna minst **0,2 bål** isär för något av gruppens
+  par, är en **växling**. En verklig rörelse korsar aldrig så fort: med sidorna 10 cm isär
+  skulle det kräva ≈ 100 m/s. Två växlingar i följd inom **0,25 s** är ett byte, och rutorna
+  mellan dem byts tillbaka. En ensam växling (klippet börjar bytt, eller bytet varar längre)
+  **rättas inte**, eftersom det inte går att veta vilken sida som är rätt, men den räknas
+  (`byten_oklara`). Sidor som ligger nära varandra (bakifrån skymmer höfterna och benen
+  varandra) prövas inte; där betyder ett byte lite för måtten.
+- **Spiken.** Ett steg ut fortare än ledens högsta rimliga fart och minst **0,25 bål** långt,
+  och inom **3 rutor** ett steg tillbaka, också över farten, mer än **120°** från steget ut och
+  minst **halva** dess längd. Rutorna däremellan räknas som saknade (luckan i M3 tar resten).
+  En verklig snabb rörelse (händerna i nedsvingen) håller riktningen från ruta till ruta.
+  Fartgränserna, m/s: händerna 15, armbågarna 12, axlarna och näsan 6, knäna och fotlederna
+  5, höfterna 4. Minsta längden gör att skakningen inte tas för spikar: med 10 px brus
+  (≈ 2,5 cm) tas högst en enstaka ruta per led bort.
+- **Ordningen:** bytena först, så att ett kort byte inte ser ut som två spikar.
+- **Vad som rapporteras** (`kvalitet.rensning`): bytta rutor per grupp, växlingar utan partner
+  per grupp och borttagna rutor per led. Bara det som hände står med.
+- **Källorna:** research S3b (2026-11-05). Sports2D (BSD-3) tar bort avvikare och
+  interpolerar luckor under 10 rutor men rättar **inte** byten mellan vänster och höger; därav
+  det egna testet. Hampel-filtret på andra differensen valdes bort tills vidare: ut- och
+  tillbaka-testet är enklare att göra lika i Python och Swift och räcker för enstaka rutor.
+- **Gränserna är antaganden** (geometri och fysik, inga publicerade golfvärden): farterna,
+  0,25 bål, 0,2 bål, 0,25 s och 120°. Kalibreras mot riktiga pass: hur många rutor tas bort
+  på ett vanligt pass, och syns de på kontaktarket (S3b lager 2)?
+- **Provat:** `test_rensa` (inga falska larm på 32 rena påhittade svingar med upp till 6 px
+  brus; fyra inlagda spikar och tre korta byten tas bort exakt; måtten efter rensningen som
+  utan felen; en ensam växling rättas inte), och fixturerna `fo_fel` och `dtl_fel`
+  (vänsterspelaren) med samma rensning i Python och Swift (`MattTests`). De 14 äldre
+  fixturerna ger samma tal som före rensningen. Mätningens version 6 (MS14).
 
 ## M60 — Spåren i granskningen (S4f)
 

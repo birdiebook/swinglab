@@ -10,9 +10,23 @@ public struct SvingResultat: Sendable {
     /// P-positionerna (BESLUT B32). METOD M28
     public let positioner: Positioner
     public let matt: [String: Double]
+    /// Rensningen, toppens platå och varför mått saknas (METOD M53, M4, M52, M5).
+    public let kvalitet: Kvalitet
 
     /// Det sessionen och katalogen behöver.
     public var svingMatt: SvingMatt { SvingMatt(vy: vy, matt: matt) }
+}
+
+/// Vad mätningen vet om sin egen kvalitet för en sving (PLAN S3b lager 1).
+public struct Kvalitet: Equatable, Sendable {
+    /// Vad rensningen gjorde. METOD M53
+    public let rensning: Rensning
+    /// Hur länge händerna stod inom 2 % av vägen från sin högsta punkt, s; nil när vägen
+    /// inte går att räkna. Mäts och visas, ingen spärr än. METOD M4
+    public let toppPlataS: Double?
+    /// Mått som saknas → orsaken: "led_saknas", "segment_kort", "segment_langt" (METOD M52),
+    /// "start_saknas", "start_osaker" (tempot och baksvingen, METOD M5).
+    public let saknas: [String: String]
 }
 
 /// Svingens mått per vy, i Sportsbox-form, portade från Golf SG
@@ -42,6 +56,12 @@ public enum Matt {
     public static let handbanaNivaer = [0.25, 0.50, 0.75]
     /// Kortare segment i bild än så mot adressen = vinkeln i leden mäts inte. METOD M52
     public static let segmentMin = 0.70
+    /// Längre än så mot adressen = en punkt är fel (ett stelt segment kan inte växa). METOD M52
+    public static let segmentMax = 1.15
+    /// Toppens platå = händerna inom 2 % av vägen adress → topp från toppen. METOD M4
+    public static let plataAndel = 0.02
+    /// Platån söks högst så långt från toppen åt vardera hållet. METOD M4
+    public static let plataSokS = 0.30
     /// Kortare axellinje i bild vid toppen, cm = axlarna skymmer varandra. METOD M39
     public static let axlarMinCm = 15.0
 
@@ -109,11 +129,45 @@ public enum Matt {
     /// rak i bild hur den än är vriden, men felet i punkterna förstärks. METOD M52
     public static func bojningSynlig(_ a: Punkt, _ mitt: Punkt, _ c: Punkt,
                                      _ a0: Punkt, _ mitt0: Punkt, _ c0: Punkt) -> Double {
+        segmentOrsak(a, mitt, c, a0, mitt0, c0) == nil ? bojning(a, mitt, c) : .nan
+    }
+
+    /// Varför ledens vinkel inte kan mätas, eller nil: "led_saknas" (en punkt saknas),
+    /// "segment_kort" (kortare i bild än `segmentMin` av adressens längd) eller
+    /// "segment_langt" (längre än `segmentMax`: en punkt är fel). Det korta före det långa. METOD M52
+    public static func segmentOrsak(_ a: Punkt, _ mitt: Punkt, _ c: Punkt,
+                                    _ a0: Punkt, _ mitt0: Punkt, _ c0: Punkt) -> String? {
+        var kvoter: [Double] = []
         for (p, q, p0, q0) in [(a, mitt, a0, mitt0), (c, mitt, c0, mitt0)] {
-            let l0 = (p0 - q0).langd
-            guard l0 > 0 && (p - q).langd >= segmentMin * l0 else { return .nan }
+            let l0 = (p0 - q0).langd, l1 = (p - q).langd
+            guard l0.isFinite && l1.isFinite && l0 > 0 else { return "led_saknas" }
+            kvoter.append(l1 / l0)
         }
-        return bojning(a, mitt, c)
+        if kvoter.contains(where: { !($0 >= segmentMin) }) { return "segment_kort" }
+        if kvoter.contains(where: { $0 > segmentMax }) { return "segment_langt" }
+        return nil
+    }
+
+    /// Toppens platå i s: hur länge händerna står inom `plataAndel` av vägen adress → topp
+    /// från sin högsta punkt, från rutan närmast toppen och utåt (högst `plataSokS`, inte
+    /// över en lucka längre än `Faser.maxLuckaS`). Samma som `matt.topp_plata`. METOD M4
+    static func toppPlata(_ t: [Double], _ g: [Punkt], _ f: Fastider) -> Double? {
+        let yTopp = Faser.vid(t, g, f.topp).y
+        let yAdr = Faser.lage(t, g, f, .adress).y
+        let vag = yAdr - yTopp
+        guard vag.isFinite && vag > 0 else { return nil }
+        let ok = t.indices.filter { g[$0].hel && abs(t[$0] - f.topp) <= plataSokS }
+        guard !ok.isEmpty else { return nil }
+        var k0 = 0
+        for i in ok.indices where abs(t[ok[i]] - f.topp) < abs(t[ok[k0]] - f.topp) { k0 = i }
+        let grans = plataAndel * vag
+        guard g[ok[k0]].y - yTopp <= grans else { return 0.0 }
+        var lo = k0, hi = k0
+        while lo > 0 && t[ok[lo]] - t[ok[lo - 1]] <= Faser.maxLuckaS && g[ok[lo - 1]].y - yTopp <= grans { lo -= 1 }
+        while hi < ok.count - 1 && t[ok[hi + 1]] - t[ok[hi]] <= Faser.maxLuckaS && g[ok[hi + 1]].y - yTopp <= grans {
+            hi += 1
+        }
+        return t[ok[hi]] - t[ok[lo]]
     }
 
     /// Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel → den
@@ -181,7 +235,11 @@ public enum Matt {
     }
 
     /// Måtten för en sving. METOD M2–M24
-    public static func mat(_ s: Sving) throws -> SvingResultat {
+    public static func mat(_ raa: Sving) throws -> SvingResultat {
+        // Byten och spikar bort först, sedan räknas allt på de rensade lederna. METOD M53
+        let (rensade, rensning) = Rensa.rensa(raa.t, raa.leder, langdM: raa.langdM)
+        let s = Sving(vy: raa.vy, hand: raa.hand, xTecken: raa.xTecken, langdM: raa.langdM, tKlick: raa.tKlick,
+                      t: raa.t, leder: rensade)
         let t = s.t
         let b = Faser.greppRegel(s.leder).map { Faser.jamna(t, $0) }
         // Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
@@ -201,10 +259,6 @@ public enum Matt {
                                    bakre: Positioner.armensHojd(axel: led(.axelB), handled: handB))
 
         func L(_ p: [Punkt], _ fas: Fas) -> Punkt { Faser.lage(t, p, f, fas) }
-        /// Böjningen i fasen, bara när båda segmenten syns i bild. METOD M52
-        func synligLed(_ a: [Punkt], _ mitt: [Punkt], _ c: [Punkt], _ fas: Fas) -> Double {
-            bojningSynlig(L(a, fas), L(mitt, fas), L(c, fas), L(a, .adress), L(mitt, .adress), L(c, .adress))
-        }
 
         // Skalan: segmentet som ligger i bildens plan i adressen. METOD M2
         let seg: Punkt
@@ -225,6 +279,19 @@ public enum Matt {
         func flyttUpp(_ p: [Punkt], _ fas: Fas) -> Double { -1.0 * (L(p, fas).y - L(p, .adress).y) * cm }
 
         var m: [String: Double] = [:]
+        var saknas: [String: String] = [:]
+        /// Vinkeln i leden som måttet `namn`, eller orsaken till att den saknas. METOD M52
+        func synlig(_ namn: String, _ a: Punkt, _ mitt: Punkt, _ c: Punkt, _ a0: Punkt, _ mitt0: Punkt, _ c0: Punkt) {
+            if let orsak = segmentOrsak(a, mitt, c, a0, mitt0, c0) {
+                saknas[namn] = orsak
+            } else {
+                m[namn] = bojning(a, mitt, c)
+            }
+        }
+        /// Böjningen i fasen, bara när båda segmenten syns rimligt i bild. METOD M52
+        func synligLed(_ namn: String, _ a: [Punkt], _ mitt: [Punkt], _ c: [Punkt], _ fas: Fas) {
+            synlig(namn, L(a, fas), L(mitt, fas), L(c, fas), L(a, .adress), L(mitt, .adress), L(c, .adress))
+        }
         switch s.vy {
         case .dtl:
             for fz in faser {                                                       // METOD M6
@@ -239,7 +306,7 @@ public enum Matt {
                 m["brost_thrust_\(fz.rawValue)"] = flyttX(C, fz)                     // METOD M10
             }
             for fz in [Fas.adress, .topp, .traff] {                                 // METOD M11
-                m["bakre_kna_\(fz.rawValue)"] = synligLed(led(.hoftB), led(.knaB), led(.fotledB), fz)   // METOD M52
+                synligLed("bakre_kna_\(fz.rawValue)", led(.hoftB), led(.knaB), led(.fotledB), fz)   // METOD M52
             }
             // Bakre överarmen mot lodlinjen nedåt, + bort från bollen. METOD M12
             let d = L(led(.armbageB), .topp) - L(led(.axelB), .topp)
@@ -261,7 +328,7 @@ public enum Matt {
                                                      + vinkelFranLod(L(led(.knaB), fz), L(led(.hoftB), fz))) / 2
             }
             for fz in [Fas.adress, .topp, .traff] {                                 // METOD M33
-                m["framre_kna_\(fz.rawValue)"] = synligLed(led(.hoftF), led(.knaF), led(.fotledF), fz)   // METOD M52
+                synligLed("framre_kna_\(fz.rawValue)", led(.hoftF), led(.knaF), led(.fotledF), fz)   // METOD M52
             }
             // Händernas djup vid toppen: greppet längs X från adressen, + mot bollen. METOD M38
             m["hand_djup_topp"] = flyttX(G, .topp)
@@ -292,21 +359,20 @@ public enum Matt {
             m["hander_fore_adress_traff"] = flyttX(G, .traff)                                       // METOD M20
             m["hander_fore_backen_traff"] = (L(G, .traff).x - L(P, .traff).x) * cm
             m["backen_resa_framat"] = m["backen_sway_traff"]! - m["backen_sway_topp"]!             // METOD M21
-            m["framre_armbage_topp"] = synligLed(led(.axelF), led(.armbageF), handF, .topp)       // METOD M22, METOD M52
+            synligLed("framre_armbage_topp", led(.axelF), led(.armbageF), handF, .topp)           // METOD M22, METOD M52
             let a0 = s.tKlick + chicken.fran, a1 = s.tKlick + chicken.till                        // METOD M23
-            m["framre_armbage_efter_traff"] = bojningSynlig(Faser.medel(t, led(.axelF), a0, a1),
-                                                            Faser.medel(t, led(.armbageF), a0, a1),
-                                                            Faser.medel(t, handF, a0, a1), L(led(.axelF), .adress),
-                                                            L(led(.armbageF), .adress), L(handF, .adress))
+            synlig("framre_armbage_efter_traff", Faser.medel(t, led(.axelF), a0, a1),
+                   Faser.medel(t, led(.armbageF), a0, a1), Faser.medel(t, handF, a0, a1),
+                   L(led(.axelF), .adress), L(led(.armbageF), .adress), L(handF, .adress))
             let fot = L(led(.fotledF), .adress) - L(led(.fotledB), .adress)                        // METOD M24
             let axl = L(led(.axelF), .adress) - L(led(.axelB), .adress)
             m["stans_bredd"] = axl.langd > 0 ? fot.langd / axl.langd : .nan
             // Måtten vid positionerna som inte är en fas. METOD M29
             if let p3 = pos.p3 {
                 m["backen_sway_p3"] = (Faser.vid(t, P, p3).x - L(P, .adress).x) * cm
-                m["framre_armbage_p3"] = bojningSynlig(Faser.vid(t, led(.axelF), p3), Faser.vid(t, led(.armbageF), p3),
-                                                       Faser.vid(t, handF, p3), L(led(.axelF), .adress),
-                                                       L(led(.armbageF), .adress), L(handF, .adress))
+                synlig("framre_armbage_p3", Faser.vid(t, led(.axelF), p3), Faser.vid(t, led(.armbageF), p3),
+                       Faser.vid(t, handF, p3), L(led(.axelF), .adress), L(led(.armbageF), .adress),
+                       L(handF, .adress))
             }
             if let p5 = pos.p5 {
                 m["backen_resa_p5"] = (Faser.vid(t, P, p5).x - L(P, .topp).x) * cm
@@ -366,7 +432,15 @@ public enum Matt {
             if ned > 0 {
                 m["tempo"] = bak / ned
             }
+        } else {                                                                    // METOD M5: varför tempot saknas
+            let orsak = f.start == nil ? "start_saknas" : "start_osaker"
+            saknas["tempo"] = orsak
+            saknas["baksving_s"] = orsak
         }
-        return SvingResultat(vy: s.vy, hand: s.hand, cmPerPx: cm, faser: f, positioner: pos, matt: m.filter { $0.value.isFinite })
+        let matt = m.filter { $0.value.isFinite }
+        let kvalitet = Kvalitet(rensning: rensning, toppPlataS: toppPlata(t, G, f),
+                                saknas: saknas.filter { matt[$0.key] == nil })
+        return SvingResultat(vy: s.vy, hand: s.hand, cmPerPx: cm, faser: f, positioner: pos, matt: matt,
+                             kvalitet: kvalitet)
     }
 }
