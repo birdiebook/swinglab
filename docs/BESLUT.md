@@ -264,7 +264,7 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   och `testflight.yml` vägrar en commit som inte är grön där.
 - **S4i:** miljön är låst och galleriets bilder jämförs med referenser (B100).
 
-## B100 — Skärmarna provas i CI: låst miljö, referenser inspelade i CI, ΔE ≤ 2 i varje punkt
+## B100 — Skärmarna provas i CI: låst miljö, referenser inspelade i CI, ΔE ≤ 2 utom i 0,001 % av punkterna
 *2026-11-05 · prövas · PLAN S4i · METOD MS40, MS41 · utvidgar B20 · research "arbete utan användarinput" (iOS-CI)*
 
 - **Varför:** galleriet (115 bilder i varje kompilera-körning) granskades bara med ögat, och
@@ -298,8 +298,8 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Bortvalt:** referenser inspelade lokalt (ingen Mac); precision 0,99 som researchen
   föreslog (en ändrad siffra är ≈0,03 % av en skärm och hade gått igenom); precision 1 (fälldes
   av glasets brus i `startvy` utan att något ändrats); ΔE 3 i stället (mindre marginal mot
-  bruset, ΔE 2,17, än 0,001 % ger); en egen gren för
-  referenserna (de hör till koden: en gren som ändrar en skärm bär sin nya referens);
+  bruset, ΔE 2,17, än 0,001 % ger); en egen gren för referenserna (de hör till koden: en gren
+  som ändrar en skärm bär sin nya referens);
   `assertSnapshot` i varje provfil (tolv ställen som ritar, och en ny provfil hade glömts);
   Prefire (`#Preview` → snapshot: galleriet har redan påhittad data per skärm); matrisen som
   referenser (fler MB för det som är till för ögat).
@@ -308,9 +308,10 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   simulatorn redan är uppe). Därför byggs provet först (`build-for-testing`, bara arm64, som det
   körs i: x86_64 byggdes för ingenting), sedan startas simulatorn av flödet och står kvar genom
   provet och jämförelsen. En simulator som startades medan arkivet byggdes gjorde bygget tre–fyra
-  gånger långsammare (tre kärnor, 2026-11-05). En avsiktlig ändring av en skärm kräver en inspelning (en
-  kompilera-körning, ≈15 min) innan kompilera är grönt och TestFlight kan byggas. Ett byte av
-  avbild, Xcode eller simulator är en egen commit med en ny inspelning.
+  gånger långsammare (tre kärnor, 2026-11-05). En avsiktlig ändring av en skärm kräver en
+  inspelning (en kompilera-körning, 15–30 min beroende på avbilden) innan kompilera är grönt och
+  TestFlight kan byggas. Ett byte av avbild, Xcode eller simulator är en egen commit med en ny
+  inspelning.
 - **Omprövas:** när avbilden tappar Xcode 26.6 eller iOS 26.5 (byt alla tre i samma commit och
   spela in); om en bild börjar skifta mellan körningar utan kodändring (då `undantag` i
   `SwingLabProvReferenser` med skälet, eller toleransen i MS40); och när `testflight.yml`, som
