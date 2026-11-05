@@ -1,20 +1,20 @@
-34bac76d44d48c86a95e0c857be55a80c73b9ea5 s3b-lager1-visning 2026-11-05T22:26:09Z run 42121035748
+b56beb6692d7f018c8e81a7a730f34e19d9ea55e ci-ui 2026-11-05T22:31:45Z run 42121876625
 == swift-release
-GRÖNT: 440 test, 0 fel, 33 s i testerna, bygget 100 s
-Långsammast (av 440):
-      2.6 s  TreDTests.testLodlinjensOchBrannviddensVagar
-      2.6 s  TreDTests.testTidenFor20SlagOchVarDenGar
-      2.4 s  TreDTests.testFigurenSomPython
-      2.0 s  TreDTests.testTelefonensVagSomPython
-      1.9 s  KlubbSparTests.testBananSomPython
-      1.2 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
-      1.1 s  TreDTests.testVinklarnaForEnVansterspelare
-      1.1 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
-      1.0 s  TreDTests.testFigurensFilTurOchRetur
-      1.0 s  TreDTests.testUtanBrusSomPythonOchExakt
-      1.0 s  KlubbSparTests.testFeletMotSanningen
-      0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
-      0.9 s  TreDTests.testInreIFilenOchUppdateras
-      0.9 s  TreDTests.testKortet
+GRÖNT: 430 test, 0 fel, 28 s i testerna, bygget 81 s
+Långsammast (av 430):
+      1.9 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      1.8 s  TreDTests.testFigurenSomPython
+      1.8 s  TreDTests.testTidenFor20SlagOchVarDenGar
+      1.5 s  KlubbSparTests.testBananSomPython
+      1.4 s  TreDTests.testTelefonensVagSomPython
+      1.0 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
+      0.9 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
+      0.9 s  KlubbSparTests.testFeletMotSanningen
+      0.8 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      0.7 s  TreDTests.testUtanBrusSomPythonOchExakt
+      0.7 s  KlickTests.testSammaKlickSomPythonPaHelaSignalen
+      0.7 s  TreDTests.testFigurensFilTurOchRetur
+      0.7 s  TreDTests.testVinklarnaForEnVansterspelare
+      0.7 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
+      0.7 s  TreDTests.testKortet
 
