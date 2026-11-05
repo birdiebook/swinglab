@@ -138,7 +138,9 @@ jobs:
         id: prov
         # Körs även när arkiveringen föll, så att resultatet visar båda. Jämförelsen med
         # referenserna körs efteråt för sig (nästa steg), när hela galleriet är ritat.
-        if: always() && steps.gen.outcome == 'success'
+        # !cancelled(), inte always(): always() körde provet också i en körning som en nyare
+        # push avbrutit, och då sparade cancel-in-progress ingen tid (2026-11-05).
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
         run: |
           set -o pipefail
           echo "$SIM ($UDID)"
@@ -149,7 +151,7 @@ jobs:
       # PLAN S4i, BESLUT B100, METOD MS40: galleriet mot Prov/Referenser, i en egen körning av
       # samma bygge. Bara i den låsta miljön, och inte när referenserna spelas in.
       - name: Skärmbilderna mot referenserna
-        if: always() && steps.gen.outcome == 'success' && env.SPELA_IN != 'ja'
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' && env.SPELA_IN != 'ja' }}
         run: |
           set -o pipefail
           if [ "${LAST:-nej}" != "ja" ]; then
@@ -168,7 +170,7 @@ jobs:
       # committas till grenen som kompilera kördes på (GITHUB_TOKEN: startar inget nytt flöde).
       # En referens vars skärm inte längre ritas tas bort.
       - name: Spela in referenserna och committa dem (spela_in)
-        if: always() && steps.gen.outcome == 'success' && env.SPELA_IN == 'ja'
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' && env.SPELA_IN == 'ja' }}
         run: |
           set -euo pipefail
           {
@@ -203,12 +205,12 @@ jobs:
           } 2>&1 | tee referenser.log
 
       - uses: actions/setup-python@v5
-        if: always() && steps.gen.outcome == 'success'
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
         with:
           python-version: "3.12"
 
       - name: PC:n läser appens paket (kontraktet, S2f)
-        if: always() && steps.gen.outcome == 'success'
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
         run: |
           set -o pipefail
           python -m pip install --quiet numpy opencv-python-headless
@@ -216,7 +218,7 @@ jobs:
             python -m unittest discover -s tools/tests -p test_appens_paket.py -v 2>&1 | tee pc.log
 
       - name: Lägg sammanfattningen på ci-resultat
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -315,7 +317,7 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         with:
           name: swinglab-paket
           path: /tmp/swinglab_prov/paket

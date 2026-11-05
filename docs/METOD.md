@@ -1956,8 +1956,10 @@ Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
   och den nya är högst **2**, `perceptualPrecision` 0,98 (biblioteket: 98–99 % ≈ ögats gräns;
   **tillverkare**, ej läst i original); **alla** punkter måste stämma, `precision` 1. En siffra
   är ≈30 × 45 px av en skärm på 1170 × 3500 px, ≈0,03 %: precision 0,99 hade släppt igenom en
-  ändrad siffra. **räkning.** ΔE 2 tar en mindre skillnad i kantutjämningen om en ny avbild
-  skulle ge en; det har inte hänt (ovan).
+  ändrad siffra. **räkning.** ΔE 2 tar en mindre skillnad i kantutjämningen mellan avbilder:
+  referenserna (avbild 20261026.0455.2) mot galleriet från b36ad7b (avbild 20261102.0473.1) var
+  bytelika i 114 av 115 bilder; `startvy` (ur appens riktiga fönster) skilde i 333 punkter med
+  högst 2 av 255 i en kanal. **mätt** 2026-11-05.
 - **Ny bild, borttagen bild:** en bild utan referens är GULT och fäller inte; en referens utan
   bild (skärmen ritades inte) är GULT. Ett fall i resten av provet syns där, inte här.
 - **Skillnadsbilden** (`resultat/<sha>.skillnad.<namn>.png`): referensen, den nya och
