@@ -317,6 +317,34 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
   fortfarande tar `macos-latest` och `latest-stable`, ska låsas till samma Xcode (Johannes
   beslut: App Store kräver med tiden en nyare Xcode).
 
+## B101 — Tillgängligheten granskas i simulatorn: appen på riktigt med påhittade pass, kända fynd i en lista som krymper
+*2026-11-05 · prövas · PLAN S4i · METOD MS42 · research "arbete utan användarinput" (iOS-CI)*
+
+- **Varför:** UX-granskningen (research 8) tog upp kontrast, små grå rader och Dynamisk text.
+  Apples granskning (`performAccessibilityAudit`: kontrast, träffytor, beskrivningar, Dynamisk
+  text, klippt text, egenskaper) prövar det på den riktiga appen, men bara ur ett UI-prov
+  (XCUITest), och en tom app säger lite.
+- **Valt:**
+  - **UI-provmålet `SwingLabProvUI`** (`Prov/UI/`) startar appen med `SWINGLAB_PROV_ROT` pekad på
+    två påhittade pass som `SwingLabProvUIPass` skriver i resten av provet
+    (`/tmp/swinglab_prov/ui-store`), och granskar Sessions, ett pass och Me, i standardstorleken
+    och AX3.
+  - **Kroken i appen** (`SwingLabApp.valjStore`) finns bara i simulatorn (`#if
+    targetEnvironment(simulator)`): TestFlight-bygget bär den inte.
+  - **Kända fynd** står i `kanda` ("skärm|storlek|typ|element"), loggas och fäller inte; ett nytt
+    fynd fäller provet; ett känt fynd som inte längre syns skrivs ut som "borta". Listan ska
+    krympa när skärmarna rättas.
+  - **GULT, inte RÖTT:** ett fall i granskningen stoppar inte TestFlight än
+    (`continue-on-error`), eftersom UI-prov är ömtåligare än bilderna och granskningen är ny.
+- **Bortvalt:** att länka in SwingDemo i appen för ett `-fixtures demo`-läge (större ändring, och
+  i TestFlight-bygget); att granska den tomma appen; att fälla på varje fynd från första dagen (då
+  stängs provet av); flödesprov med tryck genom inspelningen (kameran och Vision finns inte i
+  simulatorn, MS12).
+- **Kostnad:** ett UI-prov i varje kompilera-körning (appen startas sex gånger) och en krok i appen
+  som bara finns i simulatorn.
+- **Omprövas:** när listan är tom, eller efter en vecka utan falska fall: då kan ett nytt fynd bli
+  RÖTT och stoppa TestFlight (Johannes beslut).
+
 ## B21 — Två telefoner kopplas med Network.framework
 *2026-10-22 · gäller · Johannes ja · S2_SPEC §7.1 · S2:s förslag F7*
 

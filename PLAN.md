@@ -507,7 +507,7 @@ nyckel, läst ett kvitto utan att fråga vad talen betyder, och raderat ett pass
 
 Simulatorprovets galleri blir regressionsprov, så att arbetet med skärmarna kan fortsätta utan
 Mac och utan att någon tittar på varje bild. Underlaget: researchen "arbete utan
-användarinput" (iOS-CI). BESLUT B100, METOD MS40–MS41.
+användarinput" (iOS-CI). BESLUT B100–B101, METOD MS40–MS42.
 
 **Byggt (grenen `ci-ui`).**
 1. **Låst miljö** i `kompilera.yml`: `macos-26`, Xcode 26.6 och iPhone 17 Pro med iOS 26.5;
@@ -518,6 +518,10 @@ användarinput" (iOS-CI). BESLUT B100, METOD MS40–MS41.
    `resultat/<sha>.skillnad.<namn>.png`, en ny skärm GULT.
 3. **Matrisen:** sex huvudskärmar i standard, xxxLarge och AX3, mörkt och ljust, som
    `resultat/<sha>.matris.<namn>.png` (`SwingLabProvMatris`).
+4. **Tillgängligheten** (BESLUT B101, METOD MS42): UI-provet `SwingLabProvUI` startar appen på
+   riktigt med två påhittade pass (`SWINGLAB_PROV_ROT`, bara i simulatorn) och kör Apples
+   `performAccessibilityAudit` på Sessions, passet och Me, i standard och AX3. Kända fynd i en
+   lista som loggas och ska krympa; ett nytt fynd är GULT i sammanfattningen, inte RÖTT än.
 
 **Prövat 2026-11-05 (kompilera på grenen `ci-ui`).** Referenserna inspelade ur run 42117865310
 (commit 1afa9af, 115 bilder). En avsiktlig ändring, rubriken på Me utan sin tracking (b56beb6),
@@ -529,8 +533,8 @@ Samma körning visade glasets brus i flikraden (`startvy`), som gav toleransen 0
 **Matrisens första fynd:** i AX3 bryts "paired" mitt i ordet ("pair/ed") i Sessions, och
 "Down the line" tar tre rader; ljust och mörkt är lika (0,0 %) i alla sex skärmar.
 
-**Kvar:** XCUITest med `performAccessibilityAudit` över skärmarna (ett UI-provmål, och påhittade
-pass i appen: en startparameter som pekar Store på provets mapp), och flödesprov med tryck.
+**Kvar:** flödesprov med tryck (inspelningen och granskningens video kräver kameran och Vision,
+MS12), och att granskningens nya fynd stoppar TestFlight när den visat sig stabil (Johannes).
 
 **Klart när:** kompilera är grönt med referenserna, en avsiktlig ändring av en skärm har fällt
 jämförelsen med rätt skärm och skillnadsbild och återställningen är grön igen, och matrisen

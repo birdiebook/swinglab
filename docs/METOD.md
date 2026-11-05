@@ -1995,6 +1995,22 @@ Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
   varandra per storlek, med etiketten över; höjden per storlek och skillnaden står i
   sammanfattningen (`MATRIS:`). Jämförs inte med någon referens (B100).
 
+## MS42 — Tillgänglighetsgranskningen (S4i)
+
+- **Datan:** två analyserade påhittade pass, FO tisdag 10 november och DTL fredag 13 november
+  (järn 7, åtta svingar var, längden 1,82 m), i en egen Store i `/tmp/swinglab_prov/ui-store`,
+  skrivna med appens Store och DemoPass som i `SwingLabProvSessioner`. **räkning.**
+- **Skärmarna:** Sessions med raderna, passet (FO-raden öppnad) och Me, var och en efter en ny
+  start av appen. **Storlekarna:** standard och AX3 (`-UIPreferredContentSizeCategoryName
+  UICTContentSizeCategoryAccessibilityXL`, samma AX3 som matrisen, MS41).
+- **Granskningen:** `performAccessibilityAudit` med alla typer. Ett fynd blir nyckeln
+  "skärm|storlek|typ|element", där elementet är etiketten, annars identifieraren, annars
+  elementtypen. Nyckeln står i `kanda` → känt (loggas); annars nytt (fäller provet); en nyckel i
+  `kanda` som ingen granskning gav → "borta". Raderna i sammanfattningen: `TILLGANGLIGHET:`.
+- **Vad den inte säger:** att VoiceOver fungerar (Apple: en granskning utan fynd är inte en
+  tillgänglig app), och inget om inspelningen och granskningens video, som behöver kameran och
+  Vision (MS12).
+
 ---
 
 # Tolkningen (S5)

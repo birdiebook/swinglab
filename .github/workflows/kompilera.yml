@@ -155,7 +155,7 @@ jobs:
             { SECONDS=0; xcrun simctl boot "$UDID" || true; xcrun simctl bootstatus "$UDID" -b > /dev/null
               echo "simulatorn uppe på ${SECONDS} s"; } &&
             xcodebuild test-without-building -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
-              -destination "$MAL" -skip-testing:SwingLabProv/SwingLabProvReferenser \
+              -destination "$MAL" -skip-testing:SwingLabProv/SwingLabProvReferenser -skip-testing:SwingLabProvUI \
               ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES
           } 2>&1 | tee prov.log
 
@@ -214,6 +214,22 @@ jobs:
               echo "$status" | grep -v '^A' | sed 's/^/REFERENS:   /' | head -40 || true
             fi
           } 2>&1 | tee referenser.log
+
+      # PLAN S4i, BESLUT B101, METOD MS42: appen startad på riktigt med provets påhittade pass,
+      # och Apples granskning av Sessions, passet och Me. Bara när provet har körts (passen).
+      - name: Tillgängligheten (performAccessibilityAudit)
+        if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
+        # GULT, inte RÖTT (BESLUT B101): ett fall här gör inte körningen röd.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          if ! grep -q "PROV: UI-provets pass" prov.log; then
+            echo "TILLGANGLIGHET: körs inte, provet skrev inga pass till UI-provet" | tee ui.log
+            exit 1
+          fi
+          xcodebuild test-without-building -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
+            -destination "platform=iOS Simulator,id=$UDID,arch=arm64" -only-testing:SwingLabProvUI \
+            ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES 2>&1 | tee ui.log
 
       - uses: actions/setup-python@v5
         if: ${{ !cancelled() && steps.gen.outcome == 'success' }}
@@ -286,6 +302,20 @@ jobs:
             echo "== matrisen: textstorlek × mörkt/ljust (resultat/<sha>.matris.<namn>.png, METOD MS41)"
             if [ -f prov.log ]; then grep -E '^MATRIS: ' prov.log | sed 's/^MATRIS: //' | head -20 || true; fi
             echo
+            # BESLUT B101, METOD MS42: GULT och inte RÖTT tills granskningen visat sig stabil.
+            echo "== tillgängligheten: performAccessibilityAudit på Sessions, passet och Me (BESLUT B101, METOD MS42)"
+            if [ ! -f ui.log ]; then
+              echo "GULT: granskningen kördes inte"
+            else
+              if grep -q '\*\* TEST EXECUTE SUCCEEDED \*\*' ui.log; then
+                echo "GRÖNT: inga nya fynd ($(grep -c '^TILLGANGLIGHET: känt' ui.log || true) kända)"
+              else
+                echo "GULT: granskningen föll (nya fynd eller ett steg som inte gick), stoppar inte TestFlight än"
+                grep -E 'error:|failed -' ui.log | head -8 || true
+              fi
+              grep -E '^TILLGANGLIGHET: ' ui.log | grep -v '^TILLGANGLIGHET: känt' | sed 's/^TILLGANGLIGHET: //' | head -60 || true
+            fi
+            echo
             if [ -f prov.log ]; then
               echo "== provets mätningar (påhittad film)"
               grep -E '^PROV: ' prov.log | head -160 || true
@@ -347,6 +377,7 @@ jobs:
             arkiv.log
             prov.log
             referenser.log
+            ui.log
             miljo.txt
             pc.log
           if-no-files-found: ignore

@@ -100,6 +100,8 @@ targets:
       - path: Prov
         excludes:
           - "Referenser/**"
+          # Prov/UI är UI-provet (SwingLabProvUI), ett eget mål.
+          - "UI/**"
     dependencies:
       - target: SwingLab
       - package: SwingLabKit
@@ -126,6 +128,22 @@ targets:
         # Simulatorn kräver ingen signering.
         CODE_SIGNING_ALLOWED: "NO"
 
+  # BESLUT B101. Tillgängligheten: appen startad på riktigt (XCUIApplication) med påhittade pass,
+  # och Apples granskning per skärm. Körs av kompilera.yml efter resten av provet.
+  SwingLabProvUI:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Prov/UI
+    dependencies:
+      - target: SwingLab
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.provui
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "5.0"
+        TEST_TARGET_NAME: SwingLab
+
 schemes:
   # Eget schema, så att `SwingLab`-schemat som TestFlight arkiverar är orört.
   SwingLabProv:
@@ -133,6 +151,7 @@ schemes:
       targets:
         SwingLab: all
         SwingLabProv: [test]
+        SwingLabProvUI: [test]
     test:
       # Release som TestFlight; kompilera.yml sätter ENABLE_TESTABILITY=YES (som Idunn).
       config: Release
@@ -142,3 +161,4 @@ schemes:
       region: SE
       targets:
         - SwingLabProv
+        - SwingLabProvUI
