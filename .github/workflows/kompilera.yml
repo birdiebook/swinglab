@@ -10,6 +10,15 @@
 # Bilderna som provet ritade ligger bredvid som resultat/<sha>.<namn>.png (startvy, kvitto, slag, traff).
 # testflight.yml vägrar en commit som inte är grön här.
 #
+# Skärmbilderna (PLAN S4i, BESLUT B100, METOD MS40–MS41): miljön är låst (avbilden, Xcode och
+# simulatorn nedan), galleriet jämförs med referenserna i Prov/Referenser, och en ändrad skärm
+# blir RÖTT med referensen, den nya och skillnaden i resultat/<sha>.skillnad.<namn>.png.
+# Huvudskärmarna i tre textstorlekar och mörkt/ljust: resultat/<sha>.matris.<namn>.png, och vad
+# som faktiskt finns på maskinen: resultat/<sha>.miljo.txt.
+# Referenserna spelas in här, aldrig på en Mac: kör kompilera för hand med spela_in (Actions →
+# kompilera → Run workflow, eller `gh workflow run kompilera.yml --ref <gren> -f spela_in=true`).
+# Då ritas galleriet, kopieras till Prov/Referenser och committas till grenen.
+#
 # Kontraktet med PC:n (S2f, BESLUT B27): simulatorprovet skriver två paket med appens
 # Export (påhittad film, påhittade leder) till /tmp/swinglab_prov/paket, och PC:ns
 # tools/pc/paket.py och session.py läser dem (tools/tests/test_appens_paket.py). Därför
@@ -22,6 +31,11 @@ on:
     paths: ["App/**", "Prov/**", "SwingLabKit/**", "project.yml", ".github/workflows/kompilera.yml",
             "tools/pc/**", "tools/tests/test_appens_paket.py", "klubbmodell.json", "tools/hamta_klubbmodell.py"]
   workflow_dispatch:
+    inputs:
+      spela_in:
+        description: "Spela in skärmbildernas referenser (Prov/Referenser) och committa dem till grenen (BESLUT B100)"
+        type: boolean
+        default: false
 
 concurrency:
   group: kompilera-${{ github.ref }}
@@ -30,16 +44,68 @@ concurrency:
 jobs:
   kompilera:
     if: github.repository == 'birdiebook/swinglab'
-    runs-on: macos-latest
-    timeout-minutes: 40
+    # BESLUT B100: den låsta miljön. Avbilden, Xcode och simulatorn byts tillsammans, i samma
+    # commit som referenserna spelas in på nytt; inte macos-latest och latest-stable, som flyttar.
+    runs-on: macos-26
+    timeout-minutes: 45
     permissions:
       contents: write
+    env:
+      XCODE_APP: /Applications/Xcode_26.6.app
+      SIM_IPHONE: iPhone 17 Pro
+      SIM_IOS: "26.5"
+      SPELA_IN: ${{ github.event_name == 'workflow_dispatch' && inputs.spela_in && 'ja' || 'nej' }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
+      # Vad maskinen har, ur maskinen själv (resultat/<sha>.miljo.txt), och den låsta Xcode och
+      # simulatorn. Saknas den låsta simulatorn körs provet på den nyaste iPhonen (iOS 18.2 eller
+      # senare), men skärmbilderna jämförs inte: det blir RÖTT tills låsningen byts (BESLUT B100).
+      - name: Den låsta miljön (BESLUT B100)
+        id: miljo
+        run: |
+          set -euo pipefail
+          {
+            echo "avbild ${ImageOS:-?} ${ImageVersion:-?} · $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)) · $(uname -m) · $(sysctl -n hw.ncpu) kärnor"
+            echo "== Xcode i /Applications"
+            ls -d /Applications/Xcode*.app
+          } > miljo.txt
+          if [ ! -d "$XCODE_APP" ]; then
+            echo "RÖTT: den låsta Xcode saknas: $XCODE_APP" | tee -a miljo.txt
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          {
+            echo "== vald: $XCODE_APP: $(xcodebuild -version | tr '\n' ' ')"
+            echo "== körtiderna"
+            xcrun simctl list runtimes
+            echo "== enheterna"
+            xcrun simctl list devices available
+          } >> miljo.txt
+          xcrun simctl list devices available -j > "$RUNNER_TEMP/enheter.json"
+          python3 - "$RUNNER_TEMP/enheter.json" "$SIM_IPHONE" "$SIM_IOS" > sim.env <<'PY'
+          import json, re, sys
+          fil, namn, ios = sys.argv[1], sys.argv[2], sys.argv[3]
+          d = json.load(open(fil))["devices"]
+          for x in d.get("com.apple.CoreSimulator.SimRuntime.iOS-" + ios.replace(".", "-"), []):
+              if x["name"] == namn:
+                  print(f"UDID={x['udid']}\nLAST=ja\nSIM={namn} iOS {ios} (låst)")
+                  sys.exit(0)
+          def ver(k):
+              m = re.search(r"iOS-(\d+)-(\d+)", k)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          for k in sorted(d, key=ver, reverse=True):
+              for x in d[k]:
+                  if ver(k) >= (18, 2) and x["name"].startswith("iPhone"):
+                      v = ver(k)
+                      print(f"UDID={x['udid']}\nLAST=nej\nSIM={x['name']} iOS {v[0]}.{v[1]} (INTE den låsta {namn} iOS {ios})")
+                      sys.exit(0)
+          sys.exit("ingen iPhone med iOS 18.2 eller senare")
+          PY
+          cat sim.env >> "$GITHUB_ENV"
+          echo "== simulatorn" >> miljo.txt
+          cat sim.env | tee -a miljo.txt
+          grep '^SIM=' sim.env | cut -d= -f2- > sim.txt
 
       - name: XcodeGen 2.46.0 (låst version, kontrollerad summa)
         run: |
@@ -69,28 +135,72 @@ jobs:
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee arkiv.log
 
       - name: Bygg för simulatorn och kör provet (Release med ENABLE_TESTABILITY, som Idunn)
-        # Körs även när arkiveringen föll, så att resultatet visar båda.
+        id: prov
+        # Körs även när arkiveringen föll, så att resultatet visar båda. Jämförelsen med
+        # referenserna körs efteråt för sig (nästa steg), när hela galleriet är ritat.
         if: always() && steps.gen.outcome == 'success'
         run: |
           set -o pipefail
-          # Den nyaste iOS-körtiden med en iPhone (appen kräver iOS 18.2).
-          UDID=$(xcrun simctl list devices available -j | python3 -c '
-          import json, re, sys
-          d = json.load(sys.stdin)["devices"]
-          def ver(k):
-              m = re.search(r"iOS-(\d+)-(\d+)", k)
-              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          for k in sorted(d, key=ver, reverse=True):
-              for x in d[k]:
-                  if ver(k) >= (18, 2) and x["name"].startswith("iPhone"):
-                      print(x["udid"], file=sys.stderr, end=" ")
-                      print(x["name"], k, file=sys.stderr)
-                      print(x["udid"]); sys.exit(0)
-          sys.exit("ingen iPhone med iOS 18.2 eller senare")
-          ' 2>sim.txt)
-          cat sim.txt
+          echo "$SIM ($UDID)"
           xcodebuild test -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
-            -destination "id=$UDID" ENABLE_TESTABILITY=YES 2>&1 | tee prov.log
+            -destination "id=$UDID" -skip-testing:SwingLabProv/SwingLabProvReferenser \
+            ENABLE_TESTABILITY=YES 2>&1 | tee prov.log
+
+      # PLAN S4i, BESLUT B100, METOD MS40: galleriet mot Prov/Referenser, i en egen körning av
+      # samma bygge. Bara i den låsta miljön, och inte när referenserna spelas in.
+      - name: Skärmbilderna mot referenserna
+        if: always() && steps.gen.outcome == 'success' && env.SPELA_IN != 'ja'
+        run: |
+          set -o pipefail
+          if [ "${LAST:-nej}" != "ja" ]; then
+            echo "REFERENS: RÖTT: jämförs inte, simulatorn är inte den låsta: ${SIM:-ingen}" | tee referenser.log
+            exit 1
+          fi
+          if ! grep -qE 'Executed [0-9]+ tests?' prov.log; then
+            echo "REFERENS: RÖTT: jämförs inte, provet byggdes eller kördes inte" | tee referenser.log
+            exit 1
+          fi
+          xcodebuild test-without-building -project SwingLab.xcodeproj -scheme SwingLabProv -configuration Release \
+            -destination "id=$UDID" -only-testing:SwingLabProv/SwingLabProvReferenser \
+            ENABLE_TESTABILITY=YES 2>&1 | tee referenser.log
+
+      # BESLUT B100: referenserna spelas in i den låsta miljön, bara ur ett grönt prov, och
+      # committas till grenen som kompilera kördes på (GITHUB_TOKEN: startar inget nytt flöde).
+      # En referens vars skärm inte längre ritas tas bort.
+      - name: Spela in referenserna och committa dem (spela_in)
+        if: always() && steps.gen.outcome == 'success' && env.SPELA_IN == 'ja'
+        run: |
+          set -euo pipefail
+          {
+            if [ "${LAST:-nej}" != "ja" ]; then
+              echo "REFERENS: RÖTT: spelas inte in, simulatorn är inte den låsta: ${SIM:-ingen}"; exit 1
+            fi
+            if ! grep -q '\*\* TEST SUCCEEDED \*\*' prov.log; then
+              echo "REFERENS: RÖTT: spelas inte in, provet föll"; exit 1
+            fi
+            mkdir -p Prov/Referenser
+            for f in Prov/Referenser/*.png; do
+              [ -e "$f" ] || continue
+              [ -f "/tmp/swinglab_prov/$(basename "$f")" ] || git rm -q "$f"
+            done
+            cp /tmp/swinglab_prov/*.png Prov/Referenser/
+            git add -A Prov/Referenser
+            antal=$(ls Prov/Referenser/*.png | wc -l | tr -d ' ')
+            if git diff --cached --quiet; then
+              echo "REFERENS: SPELADE IN: $antal referenser, alla lika de som redan fanns (ingen commit)"
+            else
+              status=$(git diff --cached --name-status -- Prov/Referenser)
+              nya=$(echo "$status" | grep -c '^A' || true)
+              andrade=$(echo "$status" | grep -c '^M' || true)
+              borta=$(echo "$status" | grep -c '^D' || true)
+              git -c user.name=swinglab-ci -c user.email=swinglab-ci@users.noreply.github.com commit -q \
+                -m "Referensbilderna inspelade i kompilera (run ${GITHUB_RUN_ID})" \
+                -m "Ur ${GITHUB_SHA} på ${SIM}, $(cat xcode.txt): $nya nya, $andrade ändrade, $borta borttagna (BESLUT B100)."
+              git push -q origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+              echo "REFERENS: SPELADE IN: $antal referenser ($nya nya, $andrade ändrade, $borta borttagna) i commit $(git rev-parse HEAD) på ${GITHUB_REF_NAME}"
+              echo "$status" | grep -v '^A' | sed 's/^/REFERENS:   /' | head -40 || true
+            fi
+          } 2>&1 | tee referenser.log
 
       - uses: actions/setup-python@v5
         if: always() && steps.gen.outcome == 'success'
@@ -111,11 +221,12 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "${GITHUB_SHA} ${GITHUB_REF_NAME} $(date -u +%FT%TZ) run ${GITHUB_RUN_ID} kompilera"
-            echo "$(cat xcode.txt 2>/dev/null || echo 'Xcode okänd') · $(cat sim.txt 2>/dev/null || echo 'ingen simulator')"
+            echo "${GITHUB_SHA} ${GITHUB_REF_NAME} $(date -u +%FT%TZ) run ${GITHUB_RUN_ID} kompilera$([ "$SPELA_IN" = ja ] && echo ' spela_in' || true)"
+            echo "$(cat xcode.txt 2>/dev/null || echo 'Xcode okänd') · $(cat sim.txt 2>/dev/null || echo 'ingen simulator') · ${ImageOS:-?} ${ImageVersion:-?}"
             echo "== arkiv (telefonen, Release, utan signering: TestFlights bygge)"
             if [ ! -f arkiv.log ]; then
               echo "RÖTT: ingen arkivlogg (föll ett steg före arkiveringen)"
+              grep -E '^RÖTT' miljo.txt 2>/dev/null || true
             elif grep -q '\*\* ARCHIVE SUCCEEDED \*\*' arkiv.log; then
               echo "GRÖNT: ARCHIVE SUCCEEDED"
             else
@@ -129,6 +240,35 @@ jobs:
             else
               python3 tools/arbetssatt/ci_sammanfattning.py prov.log || true
               grep -E 'error:|\*\* TEST FAILED \*\*|\*\* TEST SUCCEEDED \*\*' prov.log | head -20 || true
+            fi
+            echo
+            # PLAN S4i, BESLUT B100, METOD MS40.
+            echo "== skärmbilderna mot referenserna (Prov/Referenser, BESLUT B100, METOD MS40)"
+            if [ ! -f referenser.log ]; then
+              echo "RÖTT: jämförelsen kördes inte"
+            else
+              grep -E '^REFERENS: ' referenser.log | sed 's/^REFERENS: //' | head -60 || true
+              if grep -q '^REFERENS: RÖTT' referenser.log; then
+                true
+              elif [ "$SPELA_IN" = "ja" ]; then
+                if ! grep -q '^REFERENS: SPELADE IN' referenser.log; then
+                  echo "RÖTT: inspelningen gick inte igenom"
+                  tail -5 referenser.log
+                fi
+              elif ! grep -q '\*\* TEST SUCCEEDED \*\*' referenser.log; then
+                echo "RÖTT: jämförelsen föll"
+                grep -E 'error:|\*\* TEST FAILED \*\*' referenser.log | head -10 || true
+              fi
+              for BILD in /tmp/swinglab_prov/skillnad/*.png; do
+                if [ -f "$BILD" ]; then echo "  bild: resultat/${GITHUB_SHA}.skillnad.$(basename "$BILD")"; fi
+              done
+            fi
+            echo
+            # METOD MS41: huvudskärmarna i tre textstorlekar, mörkt och ljust.
+            echo "== matrisen: textstorlek × mörkt/ljust (resultat/<sha>.matris.<namn>.png, METOD MS41)"
+            if [ -f prov.log ]; then grep -E '^MATRIS: ' prov.log | sed 's/^MATRIS: //' | head -20 || true; fi
+            echo
+            if [ -f prov.log ]; then
               echo "== provets mätningar (påhittad film)"
               grep -E '^PROV: ' prov.log | head -160 || true
               # S2k: förhandsbildens mätningar, också när raderna ovan nått taket.
@@ -159,8 +299,15 @@ jobs:
             mkdir -p resultat
             cp "$RUNNER_TEMP/resultat.txt" "resultat/${GITHUB_SHA}.kompilera.txt"
             cp "$RUNNER_TEMP/resultat.txt" senaste-kompilera.txt
+            if [ -f "$GITHUB_WORKSPACE/miljo.txt" ]; then cp "$GITHUB_WORKSPACE/miljo.txt" "resultat/${GITHUB_SHA}.miljo.txt"; fi
             for BILD in /tmp/swinglab_prov/*.png; do
               if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.$(basename "$BILD")"; fi
+            done
+            for BILD in /tmp/swinglab_prov/skillnad/*.png; do
+              if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.skillnad.$(basename "$BILD")"; fi
+            done
+            for BILD in /tmp/swinglab_prov/matris/*.png; do
+              if [ -f "$BILD" ]; then cp "$BILD" "resultat/${GITHUB_SHA}.matris.$(basename "$BILD")"; fi
             done
             git add -A && git -c user.name=swinglab-ci -c user.email=swinglab-ci@users.noreply.github.com commit -qm "kompilera ${GITHUB_SHA}"
             git push -q origin ci-resultat && break
@@ -181,5 +328,7 @@ jobs:
           path: |
             arkiv.log
             prov.log
+            referenser.log
+            miljo.txt
             pc.log
           if-no-files-found: ignore

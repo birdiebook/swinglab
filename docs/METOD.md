@@ -1936,6 +1936,57 @@ värden i `CaptureTests`.
 
 ---
 
+# Skärmarna i CI (S4i)
+
+Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
+(`Prov/SwingLabProvReferenser.swift`, `Prov/SwingLabProvMatris.swift`, flödet i
+`.github/workflows/kompilera.yml`). Varför och vad det kostar: BESLUT B100.
+
+## MS40 — Skärmbilderna mot referenserna (S4i)
+
+- **Miljön:** `macos-26`, Xcode 26.6 (`/Applications/Xcode_26.6.app`), iPhone 17 Pro med
+  iOS 26.5. Samma tre stod i alla 217 kompilera-resultat från 2026-10-22 till 2026-11-05, med
+  `macos-latest` och `latest-stable` (**mätt**, ci-resultat). Maskinens egen lista: avbildens
+  version, Xcode-mapparna, körtiderna och enheterna i `resultat/<sha>.miljo.txt`.
+- **Galleriet är bytelikt mellan körningar:** samma commit ritad två gånger gav samma bytes i
+  alla 115 bilder, för tre commits (5ec22b2, c95e407 och 928e1d5; den sista på två olika
+  versioner av avbilden). **mätt** 2026-11-05 ur ci-resultats historik. Därför finns inga
+  undantag, och toleransen behöver inte ta brus mellan körningar.
+- **Toleransen:** en punkt stämmer när ΔE (CIELAB, Core Images `CILabDeltaE`) mellan referensen
+  och den nya är högst **2**, `perceptualPrecision` 0,98 (biblioteket: 98–99 % ≈ ögats gräns;
+  **tillverkare**, ej läst i original); **alla** punkter måste stämma, `precision` 1. En siffra
+  är ≈30 × 45 px av en skärm på 1170 × 3500 px, ≈0,03 %: precision 0,99 hade släppt igenom en
+  ändrad siffra. **räkning.** ΔE 2 tar en mindre skillnad i kantutjämningen om en ny avbild
+  skulle ge en; det har inte hänt (ovan).
+- **Ny bild, borttagen bild:** en bild utan referens är GULT och fäller inte; en referens utan
+  bild (skärmen ritades inte) är GULT. Ett fall i resten av provet syns där, inte här.
+- **Skillnadsbilden** (`resultat/<sha>.skillnad.<namn>.png`): referensen, den nya och
+  bibliotekets skillnad (största kanalens skillnad, sträckt till full kontrast) bredvid varandra i
+  full upplösning, och en röd ram runt punkterna där någon kanal skiljer mer än **8** av 255
+  (**antagande**: över avrundningen i PNG och färgrymd). Raden säger andelen sådana punkter och
+  ramen i px.
+- **Inspelningen** (`spela_in`): bara i den låsta miljön och ur ett grönt prov (`** TEST
+  SUCCEEDED **`). Galleriets alla bilder kopieras till `Prov/Referenser/`, en referens vars bild
+  saknas tas bort, och committen går till grenen som kördes. **räkning.**
+
+## MS41 — Matrisen: textstorlek × mörkt och ljust (S4i)
+
+- **Skärmarna:** `sessions` (ur ett fönster, för List och svepet), `me`, `session-dtl` (passet),
+  `parad-granskning-dtl` (granskningen med en stillbild som yta, B35), `claude-blad` och
+  `insp-installningar-lead` (kugghjulet), med samma påhittade data som galleriets bild.
+- **Lägena:** textstorlekarna `large` (standard), `xxxLarge` (den största utan hjälpmedel) och
+  `accessibility3` (AX3), var och en mörkt och ljust: sex celler, @1x, 390 pt breda. AX5 finns
+  redan i galleriet (bilderna `-stor`).
+- **Ljust:** appen är bara mörk (B13, `.preferredColorScheme(.dark)` i `SwingLabApp`). Den ljusa
+  cellen ritar samma vy med `colorScheme` .light, och provet skriver andelen punkter där den
+  skiljer från den mörka (en kanal mer än 8 av 255, som MS40): 0 % = vyn tar bara färg ur Theme,
+  annars visar arket var den tar färg ur systemet. **räkning.**
+- **Arket** (`resultat/<sha>.matris.<namn>.png`): cellerna i en rad, mörkt och ljust bredvid
+  varandra per storlek, med etiketten över; höjden per storlek och skillnaden står i
+  sammanfattningen (`MATRIS:`). Jämförs inte med någon referens (B100).
+
+---
+
 # Tolkningen (S5)
 
 Konstanterna i PC-länken (`tools/pc/paket.py`, `analys.py`, `historik.py`,

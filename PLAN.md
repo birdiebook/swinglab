@@ -1,6 +1,6 @@
 # SwingLab — plan (utkast 2026-10-22)
 
-`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S3b · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
+`BAND` S0 · S1 ✓ · S1b ✓ · S1c · S1d · S1e · S2 · S2j nu · S2k nu · S3 · S3b · S4 · S4e nu · S4f nu · S4g nu · S4h nu · S4i nu · S5 · S5b nu · S6 · S6c nu · S6d nu · S6e · S6f nu · S6g nu · S6h · S7 · S7a · S7c nu · S7d nu · S7b nu · S8
 
 Mål: svinganalys på Sportsbox-nivå för Johannes vinterträning 2026/27, ur
 slowmotion från iPhone, down the line och face on. Telefonen filmar, mäter och
@@ -502,6 +502,29 @@ simulatorns bilder `band-passet-fo`, `band-passet-dtl`, `passet-fler`, `passet-f
 **Klart när:** Linux och simulatorn är gröna med bilderna ovan, och Johannes har öppnat ett pass
 på telefonen och direkt sett vad han ska titta på först, hittat "More measures" och bandets
 nyckel, läst ett kvitto utan att fråga vad talen betyder, och raderat ett pass med den röda Delete.
+
+## S4i — Skärmarna provas utan Mac: låst miljö, referensbilder och matrisen (2026-11-05)
+
+Simulatorprovets galleri blir regressionsprov, så att arbetet med skärmarna kan fortsätta utan
+Mac och utan att någon tittar på varje bild. Underlaget: researchen "arbete utan
+användarinput" (iOS-CI). BESLUT B100, METOD MS40–MS41.
+
+**Byggt (grenen `ci-ui`).**
+1. **Låst miljö** i `kompilera.yml`: `macos-26`, Xcode 26.6 och iPhone 17 Pro med iOS 26.5;
+   maskinens egen lista i `resultat/<sha>.miljo.txt`.
+2. **Referenserna** i `Prov/Referenser/` (galleriets bilder), inspelade i CI med `spela_in`.
+   Jämförelsen (`SwingLabProvReferenser`, swift-snapshot-testing) körs efter resten av provet;
+   en ändrad skärm är RÖTT med referensen, den nya och skillnaden i
+   `resultat/<sha>.skillnad.<namn>.png`, en ny skärm GULT.
+3. **Matrisen:** sex huvudskärmar i standard, xxxLarge och AX3, mörkt och ljust, som
+   `resultat/<sha>.matris.<namn>.png` (`SwingLabProvMatris`).
+
+**Kvar:** XCUITest med `performAccessibilityAudit` över skärmarna (ett UI-provmål, och påhittade
+pass i appen: en startparameter som pekar Store på provets mapp), och flödesprov med tryck.
+
+**Klart när:** kompilera är grönt med referenserna, en avsiktlig ändring av en skärm har fällt
+jämförelsen med rätt skärm och skillnadsbild och återställningen är grön igen, och matrisen
+ligger på ci-resultat.
 
 ## S5 — PC-länken och Claude
 

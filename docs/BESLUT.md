@@ -262,6 +262,50 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
 - **Byggt i S2a:** `.github/workflows/kompilera.yml` och målet `SwingLabProv`.
   Resultatet läses på grenen `ci-resultat` (`resultat/<sha>.kompilera.txt`),
   och `testflight.yml` vägrar en commit som inte är grön där.
+- **S4i:** miljön är låst och galleriets bilder jämförs med referenser (B100).
+
+## B100 — Skärmarna provas i CI: låst miljö, referenser inspelade i CI, ΔE ≤ 2 i varje punkt
+*2026-11-05 · prövas · PLAN S4i · METOD MS40, MS41 · utvidgar B20 · research "arbete utan användarinput" (iOS-CI)*
+
+- **Varför:** galleriet (115 bilder i varje kompilera-körning) granskades bara med ögat, och
+  inget jämförde det över tid: ett ändrat tal, en flyttad rad eller en färg utanför B13 syntes
+  bara om någon råkade titta. Och `macos-latest` med Xcode `latest-stable` kan bytas under
+  fötterna (`macos-latest` blev macOS 26 i juni 2026), så samma kod kan ge andra bilder.
+- **Valt:**
+  - **Låst miljö** i `kompilera.yml`: `runs-on: macos-26`, `/Applications/Xcode_26.6.app`
+    (xcode-select, inte setup-xcode) och simulatorn iPhone 17 Pro med iOS 26.5, samma tre som
+    varje körning sedan 2026-10-22 haft (MS40). Vad maskinen faktiskt har står i
+    `resultat/<sha>.miljo.txt`. Saknas den låsta simulatorn körs provet på den nyaste iPhonen,
+    men jämförelsen blir RÖTT (fel miljö); saknas Xcode faller allt.
+  - **Referenserna i repot,** `Prov/Referenser/<namn>.png`, en per bild i galleriet. De
+    **spelas in i CI**, aldrig på en Mac: kompilera för hand med `spela_in` ritar galleriet i den
+    låsta miljön, kopierar det dit, tar bort referenser vars skärm inte längre ritas och
+    committar till grenen. Bara ur ett grönt prov.
+  - **Jämförelsen** är swift-snapshot-testings bildjämförelse (MIT, 1.19.7, bara i provmålet):
+    **varje** punkt (precision 1) inom ΔE 2 (perceptualPrecision 0,98), MS40. Den körs för sig
+    efter resten av provet (`-only-testing`) och läser hela galleriet, så att nya provfiler
+    kommer med utan en krok i varje fil.
+  - **Ändrad skärm = RÖTT,** med referensen, den nya och skillnaden bredvid varandra i
+    `resultat/<sha>.skillnad.<namn>.png` och en rad i sammanfattningen. **Ny skärm utan
+    referens = GULT**, inte rött: den får sin referens vid nästa inspelning. RÖTT stoppar
+    TestFlight (B20), GULT gör det inte.
+  - **Matrisen** (MS41): sex huvudskärmar i tre textstorlekar och mörkt/ljust, ett kontaktark per
+    skärm. Den jämförs inte; den är till för ögat.
+- **Bortvalt:** referenser inspelade lokalt (ingen Mac); precision 0,99 som researchen
+  föreslog (en ändrad siffra är ≈0,03 % av en skärm och hade gått igenom); en egen gren för
+  referenserna (de hör till koden: en gren som ändrar en skärm bär sin nya referens);
+  `assertSnapshot` i varje provfil (tolv ställen som ritar, och en ny provfil hade glömts);
+  Prefire (`#Preview` → snapshot: galleriet har redan påhittad data per skärm); matrisen som
+  referenser (fler MB för det som är till för ögat).
+- **Kostnad:** ≈19 MB PNG i repot vid första inspelningen, sedan bara bilderna som ändras (git
+  sparar en bytelik bild en gång). En avsiktlig ändring av en skärm kräver en inspelning (en
+  kompilera-körning, ≈15 min) innan kompilera är grönt och TestFlight kan byggas. Ett byte av
+  avbild, Xcode eller simulator är en egen commit med en ny inspelning.
+- **Omprövas:** när avbilden tappar Xcode 26.6 eller iOS 26.5 (byt alla tre i samma commit och
+  spela in); om en bild börjar skifta mellan körningar utan kodändring (då `undantag` i
+  `SwingLabProvReferenser` med skälet, eller toleransen i MS40); och när `testflight.yml`, som
+  fortfarande tar `macos-latest` och `latest-stable`, ska låsas till samma Xcode (Johannes
+  beslut: App Store kräver med tiden en nyare Xcode).
 
 ## B21 — Två telefoner kopplas med Network.framework
 *2026-10-22 · gäller · Johannes ja · S2_SPEC §7.1 · S2:s förslag F7*
