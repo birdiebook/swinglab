@@ -3123,6 +3123,135 @@ analysen eller urklippet påverkas).
   och en skillnad under golvet ser liten ut. Förut zoomade axeln in till ±0,3 (research 8 punkt
   3). Bandets axel är oförändrad. **räkning** (golvet: M62, antagande).
 
+## M70 — Vridningen ur en telefon: försöket (S6e steg 0)
+
+Hur väl en telefon, FO eller DTL, skattar bäckenets och axlarnas vridning och X-factor, mätt i
+samma simulering som felbudgeten för två telefoner (`tools/pc/vridning_2d.py`, resultaten i
+[S6E_EN_TELEFON.md](S6E_EN_TELEFON.md)). Bara PC:n; inget i appen.
+
+- **Svingen:** `slumpa_sving` med adress **0,8 s** och efter finishen **0,7 s** (MK8, så att M4:s
+  fönster ryms). Höft- och axelpunkternas avstånd slumpas kring 0,11 och 0,20 av längden med
+  **±8 %** (1σ, relativt): kroppen och var posemodellen sätter punkterna skiljer mellan spelare.
+  **antagande.** Två varianter med samma slumptal: **lodrät** (`tre_d/sving.py`, vridningen kring
+  lodlinjen, ZXY, sidböjningen ger den lodräta komponenten) och **lutande** (R = Rx(böjning) ·
+  Rz(−vridning) · Ry(sidböjning): vridningen kring segmentets framåtböjda axel, adressens
+  sidböjning står kvar). Riktiga svingar ligger troligen mellan dem. **antagande.**
+- **Kamerorna och bruset:** felbudgetens (S6_FELBUDGET §3, MK8): FO och DTL 3 m bort i höfthöjd,
+  stativet ±5° runt spelaren, 240 bilder/s med 36 % tappade rutor i skurar, 2D-brus med fast
+  avvikelse per led och vy, skymning och utliggare. Klicket ±**7 ms** (MS4). Varje vy skattas för
+  sig; bara bredden ur FO och böjningen ur DTL (M72, M73) använder den andra vyn, som "parat pass".
+- **2D-kedjan som den är:** varje vys leder (konfidens under 0,3 = saknad, M1) går genom
+  `matt.mat`, som ger toppen (M4) och baksvingens start (M4, M40), alltså adressens fönster
+  (start −0,40…−0,10 s, toppen −1,2 s utan start). Träffen är klicket. **räkning.**
+- **Spåren:** rättade mot lodlinjen med homografin K · R · K⁻¹ (bildens y lodrätt, blicken vågrät),
+  med telefonens gravity ±**1°** (MK3, MS17), och jämnade med LOESS ±40 ms på 1/240 s (MK5). Sedan
+  i normerade bildkoordinater, (u − c) / f, så att perspektivet går att räkna. **standard**
+  (homografin), **antagande** (felet).
+- **Måtten:** skattarnas vinkelkurvor (M71–M73) jämnas ±30 ms (MK6), och måtten tas med
+  `tre_d/matt.py` vid 2D-toppen och klicket. **Sanningen** är samma mått på de sanna 3D-lederna
+  (MK6: toppen där händerna står högst i 3D, svingens träff, adressen ur den sanna starten).
+- **Sammanfattningen:** per skattare och mått bias, SD och P95 av |fel|; kurvans RMS från den
+  sanna starten till träffen (median över svingarna) och kurvans fel efter den sanna vinkeln, i
+  binnen **0, 15, 30, 60, 80, 100 och 180°**; passets median med **10** slag, samma kameror, fasta
+  avvikelse och spelare (B14:s trend). 120 försök per rad och 30 pass, frö 1. **räkning.**
+- **Provat:** `tools/tests/test_vridning_2d.py` (geometrin på exakt projicerade linjer, kedjan
+  utan brus på grundsvingen, båda varianterna, Monte Carlo som är deterministisk).
+
+## M71 — Framifrån: förkortningen och den stela linjen (S6e)
+
+Linjen är främre led minus bakre (höfterna eller axlarna; för en högerspelare vänster minus
+höger). Framifrån ligger den i bildens plan i adressen och vänds mot kameran av vridningen.
+
+- **a, förkortningen:** |θ| = arccos(Δx / Δx₀), med Δx med tecken så att linjen kan passera 90°,
+  Δx₀ medlet över adressens fönster. Bara den vågräta komponenten: en lodrät lutning (sidböjning)
+  läses som vridning. Tecknet ur fasen: stängd fram till där den jämnade storleken (±30 ms) är
+  minst mellan toppen och träffen + **0,10 s**, öppen efter. **standard** (förkortningen),
+  **antagande** (fasen). Uppmätt utan brus: axlarna vid toppen **+11,5°** (sidböjningen och
+  adressens djup).
+- **Den stela linjen:** linjen är lika lång som i adressen. Med ändarnas normerade bildkoordinater
+  är |A + B·δ|² + δ² = L², där A är ändarnas skillnad, B deras medel (linjens mitt sedd från
+  blicken), δ djupskillnaden i enheter av avståndet och L linjens längd ur adressen. Det är
+  hålkameran exakt för en stel linje vars mitt står kvar på adressens avstånd. Vinkeln i markplanet
+  är atan2(−δ, ΔX). Den lodräta komponenten räknas inte som djup. **standard** (geometrin).
+- **Rötterna speglas kring linjen vinkelrät mot synlinjen**, där den syns längst, inte kring
+  bildens plan: en linje i bildens plan med mitten vid sidan av blicken har också lösningen 2 ·
+  mittens vinkel från blicken (`test_spegelroten_vid_sidan_av_blicken`). Den stängda (mindre)
+  roten gäller mellan baksvingens och nedsvingens passage där linjen syns längst (±30 ms jämnad
+  längd; i nedsvingen sökt från toppen till träffen + 0,10 s), den öppna annars. Ligger adressens
+  djup redan på den stängda sidan gäller den stängda från början. **räkning.** Prövat på en
+  exakt projicerad linje: exakt (10⁻¹⁴) vid toppen och träffen, under 1° i rutan där rötterna byts.
+- **Där den brister:** nära bildens plan, där djupet är en liten skillnad av kvadrater: 2 % fel i
+  längden (mitten flyttar 1,2 % närmare vid träffen, adressens dolda djup) ger cirka 4° vid 19°.
+  Adressens djup syns inte: telefonen som står snett mot mållinjen flyttar båda linjerna lika mycket
+  (stativet ±5° ger SD 5,6° för bäckenet utan brus, men bara 1,3° för X-factor med b2, M72), och
+  axellinjen bär adressens sidböjning (cirka 6°, M72). **räkning.**
+
+## M72 — Framifrån med bålens böjning: den lutande axeln (b) och adressens djup (b2) (S6e)
+
+- **b, den lutande axeln:** linjen vrids φ kring en axel som lutar β mot bollen (mot kameran),
+  vinkelrät mot linjen i adressen (i bildens plan). Varje φ ger en linje i rummet och genom
+  hålkameran (M71) en linje i bild; φ väljs där den ligger närmast den som syns, i steg om **1°**
+  och sedan en parabel. Tecknet kommer ur den lodräta komponenten (främre änden nedåt = stängd).
+  **standard** (geometrin), **antagande** (modellen).
+- **b2, adressens djup:** den stela linjen (M71), men adressens lutning i bild kommer av en
+  sidböjning av den framåtböjda bålen, som också för den högre änden mot bollen:
+  δ₀ = tan β · ΔY₀ (ΔY₀ < 0 när främre änden står högre). Vinklarna mäts mot adressens
+  riktning. Prövat: en bål böjd 38° och sidböjd −10° ger cirka 6° djup, och b2 tar bort det
+  (`test_adressens_djup_ur_bojningen`). **räkning**, **antagande** (att lutningen är sidböjning).
+- **β:** bålens framåtböjning ur **FO-figuren** i adressen: cos β = bålen i bild / bålen ur
+  benens skala (M2: bål 0,288 och ben 0,491 av längden). Uppmätt utan brus: **27,5°** mot sanna 38°,
+  eftersom knäna böjer och benen syns kortare än 0,491 (M2:s felkälla). För b2 kostar det cirka 2°.
+  Eller ur ett **parat (eller tidigare) DTL-pass**: M6 i adressen, 38,8°. Bäckenets böjning är
+  **22/38** av bålens (felbudgetens sving §2). **antagande.**
+- **Där b brister:** en lodrät komponent i bild kommer lika gärna av sidböjning som av vridning
+  kring den böjda axeln, men de för änden åt motsatta håll i djup (sidböjning: den högre änden mot
+  bollen; vridning: den högre änden från bollen). Utan brus i grundsvingen: bäckenet −8,8° (β ur
+  DTL), X-factor +15°; i varianten "lutande" bäckenet −1,0° men axlarna −4,0 / 59,2 (fel gren när
+  axlarna passerar 90°). b används inte (BESLUT B104). **räkning.**
+- **b2** är nästan exakt utan brus i båda varianterna: bäckenet −0,1°, axlarna +1,7° och +1,5°,
+  X-factor +1,8° och +1,6°, kurvan 2,4–2,5° för axlarna. **räkning.**
+
+## M73 — Bakifrån: bredden (c) (S6e)
+
+- **c, bredden:** bakifrån pekar linjen längs blicken i adressen och breddas med vridningen. Med
+  linjens sanna längd w är djupet den större roten av |A + B·δ|² + δ² = w² (M71): den främre änden
+  längre bort så länge vinkeln är under 90°. Vinkeln i markplanet är atan2(ΔX, δ), med tecken
+  direkt (främre änden mot bollen, +X, = stängd), och adressens vinkel dras av, så att telefonens
+  läge mot mållinjen nästan inte spelar in (stativet ±5°: bäckenet +0,5 / 1,0° utan brus).
+  **standard** (geometrin).
+- **w ur tre källor:** (1) **kroppens andelar:** bålen i DTL:s adress är 0,288 av längden (M2) och
+  punkterna 0,11 (höfterna) och 0,20 (axlarna) av längden (S6_FELBUDGET §2), alltså w = bålen ·
+  0,11 / 0,288 och bålen · 0,20 / 0,288. **antagande.** (2) **ett FO-pass:** linjen i FO:s adress
+  mot benen där (M2), i DTL:s skala; benens förkortning i FO gör w cirka 6 % för stort och axlarna
+  vid toppen −19°. (3) **linjens största längd** från toppen till träffen + **1,2 s** (M4:s finish),
+  där höfterna står tvärs i finishen, efter utjämning ±**0,10 s** (maximum av en brusig kurva drar
+  uppåt: höfterna +12 % utan utjämning, +7 % med, typiskt brus). Beror på att spelaren vrider
+  höfterna 90° i finishen. **antagande.**
+- **Där den brister:** vinkeln viks där linjen står vinkelrät mot synlinjen (vid 90° mitt i blicken,
+  `test_over_90_grader_viks_vinkeln`): axlarna vid toppen (87–106°) ger −7 till −39° fel utan brus,
+  och därmed X-factor och stretchen (+18°). Axlarnas mitt flyttar cirka 0,3 m mot kameran vid toppen
+  (linjen ser 11 % längre ut). Ett fel i w på 8 % ger cirka 5° vid 45°. **räkning.**
+
+## M74 — En telefon: spannet om vridningen visas (S6e)
+
+Om vridningen ur en telefon visas som passets trend (BESLUT B103) är spannet passets SD med
+typiskt brus i simuleringen (M70, 30 pass om 10 slag), och en skillnad mot förra passet är tydlig
+först över √2 × SD (som MK7):
+
+| Mått | Vy, skattare | Passets median, bias / SD | Golv (√2 × SD) | Två telefoner (MK7) |
+|---|---|---|---|---|
+| Bäckenets vridning vid toppen | DTL c (andelarna) | +0,7 / **6,3°** | 8,9° | 15,7° |
+| Bäckenets vridning vid toppen | FO b2 | −1,9 / **11,7°** | 16,5° | 15,7° |
+| Axlarnas vridning vid toppen | FO b2 | +2,4 / **7,0°** | 9,9° | 13,7° |
+| X-factor vid toppen | FO b2 | +4,2 / **10,1°** | 14,3° | 19,2° |
+| Höfterna öppna vid träff | DTL c (andelarna) | +0,8 / **5,8°** | 8,2° | 8,5° |
+
+- **Inte:** stretchen (bias +7 till +20° i båda vyerna), axlarna och X-factor ur DTL (vikningen,
+  M73) och höfterna vid träff ur FO (SD 21,7° per sving). Inget per sving (SD över 9°). **räkning.**
+- Med bra brus: DTL c 6,8° och 5,1° (bäcken, höfter), där spelarens okända punktavstånd (±8 %)
+  dominerar, och 2,7° och 3,7° med w ur linjens största längd; FO b2 6,8–7,8°. **antagande** tills
+  S3 mätt bruset och ett riktigt parat pass prövat den stela linjen (S6E_EN_TELEFON §6).
+
 ---
 
 # Facit (S3 och S7)

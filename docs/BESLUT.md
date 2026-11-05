@@ -2128,3 +2128,59 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   om vidareförsäljning följer med).
 - **Omprövas:** bara om något blir kritiskt beroende av riktiga rörelser och ingen öppen källa
   finns.
+
+## B103 — Vridningen ur en telefon: skattning med ±spann som passets trend, bara de mått vyn bär
+*2026-11-05 · väntar (Johannes beslut) · PLAN.md S6e · METOD M70–M74 · [S6E_EN_TELEFON.md](S6E_EN_TELEFON.md)*
+
+- **Frågan:** kan en telefon, FO eller DTL, visa bäckenets och axlarnas vridning och X-factor
+  utan den andra telefonen (S6e)? Simulerat med felbudgetens svingar, kameror och 2D-brus.
+- **Förslaget:**
+  - **Inget per sving**, i någon vy: med typiskt brus är SD 9–17° per sving (P95 20–40°) för de
+    mått vyn bär, mot band som är 15–16° breda. Samma som för två telefoner utan markörer (B14).
+  - **Som passets trend** (median över minst 10 slag), utan färg och märkt som en telefons
+    skattning, med spannet ur METOD M74: **FO** bäckenet, axlarna och X-factor vid toppen;
+    **DTL** bäckenet vid toppen och höfterna vid träffen. Samma villkor som 3D-kortet och
+    Progress för två telefoner (B62).
+  - **Aldrig:** stretchen (+7 till +20° fel i båda vyerna), axlarna och X-factor ur DTL (vinkeln
+    viks vid 90°: −12 till −43°) och höfterna vid träff ur FO (SD 22° per sving).
+  - **Inget byggs i appen** förrän ett riktigt pass med två telefoner prövat skattarna, varje
+    telefon för sig mot trianguleringen (S6e steg 1). Simuleringen gynnar en telefon: de påhittade
+    linjerna är stela, och riktiga höft- och axelpunkter kanske inte sitter lika långt isär sedda
+    från alla håll.
+- **Varför:** i passets median är en telefon lika bra som två i de mått vyn bär (typiskt brus, SD):
+  DTL bäckenet 6,3° och höfterna 5,8°, FO axlarna 7,0° och X-factor 10,1°, mot två telefoner 11,1,
+  6,0, 9,7 och 13,6° (S6_FELBUDGET §6.7). Två telefoner förlorar på självkalibreringen (B38), en
+  telefon behöver ingen. Felet ligger i posemodellens 2D-fel i båda fallen.
+- **Bortvalt:** att visa ingenting ur en telefon (då kräver vridningen alltid två telefoner, fast en
+  ger lika mycket för de här måtten); att visa per sving (bruset); att bedöma mot banden (bäckenets
+  band är 16° brett mot 6–12° i passets median).
+- **Kostnad:** varje vy visar bara en del av måtten, så en spelare som filmar FO ser inte höfterna
+  vid träffen och en som filmar DTL inte X-factor. FO kräver att telefonen står vinkelrätt mot
+  mållinjen: varje grad snett är en grad i bäckenet och axlarna (inte i X-factor). DTL bygger på
+  höft- och axelpunkternas avstånd ur kroppens andelar (±8 %), tills ett parat pass mätt dem.
+- **Omprövas:** när ett riktigt parat pass prövat skattarna (S6E_EN_TELEFON §6), och när S3 mätt
+  posemodellens brus (B14).
+
+## B104 — S6e:s skattare: geometri på 2D-lederna, den stela linjen framifrån och bredden bakifrån
+*2026-11-05 · prövas · PLAN.md S6e · METOD M71–M73*
+
+- **Valt:** framifrån **den stela linjen med adressens djup (b2)**: linjen lika lång som i adressen,
+  perspektivet räknat exakt, rötterna valda ur fasen, och adressens djup ur linjens lutning och
+  bålens böjning (β ur FO-figuren). Bakifrån **bredden (c)** med linjens längd ur kroppens andelar,
+  eller uppmätt i ett parat pass. Spåren rättade mot telefonens lodlinje. Inget tränat.
+- **Varför:** utan brus ger b2 och c under 2° fel där vyn kan se, i båda svingvarianterna. De bygger
+  bara på att linjen är stel och på adressen, inte på hur svingen vrider.
+- **Bortvalt:**
+  - **Förkortningen (a):** räknar sidböjningen som vridning (axlarna +11° vid toppen utan brus).
+  - **Den lutande axeln (b):** en lodrät komponent i bild kommer lika gärna av sidböjning som av
+    vridning kring den böjda axeln, med motsatt djup. Bra när svingen vrider kring den böjda axeln,
+    dålig när den vrider kring lodlinjen med sidböjning, och hoppar ibland till fel gren (P95 över
+    100°). Böjningen används i stället bara för adressens djup (b2).
+  - **Bredden ur ett FO-pass:** benens förkortning framifrån gör linjen cirka 6 % för lång.
+  - **En tränad 3D-lyftare** (MotionBERT m.fl.): inga publicerade vikter med en licens som B92 tillåter
+    (Human3.6M, SMPL); egen träning kräver riktiga parade pass först (research 2026-11-05).
+  - **Apple Visions 3D** (`VNDetectHumanBodyPose3DRequest`): licensen är ren, men den kan bara
+    prövas på en iPhone eller Mac. Jämförs mot samma facit när ett riktigt parat pass finns.
+- **Kostnad:** varje vy har mått den inte kan bära (B103), och FO kräver en telefon vinkelrätt mot
+  mållinjen.
+- **Omprövas:** när ett riktigt parat pass visat om den stela linjen håller för posemodellens punkter.
