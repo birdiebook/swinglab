@@ -332,6 +332,15 @@ oenighet visar var vi ska leta. Tabellen med Johannes tal bor privat i Golf SG
 **Öppet från 2026-11-03:** toppen med driver på händernas platå (METOD M4), och
 klipp som börjar för sent före träffen med driver (minst 2 s behövs).
 
+**Byggt (grenen `s3b-lager1`, 2026-11-05):** lager 1 i båda räknarna. Rensningen före
+mätningen (METOD M53): korta byten mellan vänster och höger rättas, ensamma växlingar räknas,
+spikar tas bort. För långa segment (> 115 % av adressen) ger ingen ledvinkel (M52). Varje sving
+bär `kvalitet`: rensningen, toppens platå (mäts, ingen spärr, M4) och varför mått saknas, och
+orsakerna står i frågan till Claude (MT13). Påhittade svingar med inlagda fel (`fo_fel`,
+`dtl_fel`, `fo_lang_arm`). Kvar till lager 1 ✓: orsaken synlig i appens granskning, platåns
+gräns mot riktiga pass (järn och driver), och rensningens antal på ett riktigt pass mot
+kontaktarket (hur ofta slår den till, och har den rätt?).
+
 ## S4 — Vyn
 
 Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,

@@ -2868,7 +2868,9 @@ Posemodellen kan byta plats på vänster och höger i några rutor, eller kasta 
 bort i en eller ett par rutor. Båda syns i tidsserien utan facit, och tas bort **innan** något
 mäts (`tools/pc/rensa.py`, `Rensning.swift`). Allt räknas på tiderna och i **bålens längd i
 bild** (medianen av axelmitt–höftmitt över klippet, px), så att gränserna i m/s gäller oavsett
-kamerans avstånd: px per m = bålen / (M2:s kvot axelhöjd − höfthöjd × längden).
+kamerans avstånd: px per m = bålen / (M2:s kvot axelhöjd − höfthöjd × **1,80 m**). Standardlängden,
+inte spelarens: då beror rensningen, och därmed faserna, inte på längden (`TreDTests.
+testFasernaBerorInteAvLangden`, `test_rensa.OberoendeAvLangden`).
 
 - **Bytet.** Grupperna som byter tillsammans: armbågarna och handlederna, knäna och
   fotlederna, höfterna, axlarna. Rutan jämförs med förra rutan där gruppen syns (högst

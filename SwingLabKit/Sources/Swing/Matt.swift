@@ -237,7 +237,7 @@ public enum Matt {
     /// Måtten för en sving. METOD M2–M24
     public static func mat(_ raa: Sving) throws -> SvingResultat {
         // Byten och spikar bort först, sedan räknas allt på de rensade lederna. METOD M53
-        let (rensade, rensning) = Rensa.rensa(raa.t, raa.leder, langdM: raa.langdM)
+        let (rensade, rensning) = Rensa.rensa(raa.t, raa.leder)
         let s = Sving(vy: raa.vy, hand: raa.hand, xTecken: raa.xTecken, langdM: raa.langdM, tKlick: raa.tKlick,
                       t: raa.t, leder: rensade)
         let t = s.t

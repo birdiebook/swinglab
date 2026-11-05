@@ -14,7 +14,9 @@ kasta en punkt långt bort i en eller ett par rutor. Utan facit syns båda i tid
   håller riktningen från ruta till ruta. Rutorna i spiken räknas som saknade.
 
 Allt räknas på tiderna (rutorna kommer med ojämna steg) och i bålens längd i bild, så
-att gränserna i m/s gäller oavsett kamerans avstånd (METOD M2:s kvoter).
+att gränserna gäller oavsett kamerans avstånd. Farterna i m/s räknas om med en standardbål
+(M2:s kvot × 1,80 m), inte spelarens längd, så att rensningen och därmed faserna inte beror
+på längden (METOD M53).
 """
 from __future__ import annotations
 
@@ -27,6 +29,7 @@ from .format import (ARMBAGE_B, ARMBAGE_F, AXEL_B, AXEL_F, FOTLED_B, FOTLED_F, H
 
 AXELHOJD, HOFTHOJD = 0.818, 0.530     # METOD M2 (samma som matt.py)
 BAL = AXELHOJD - HOFTHOJD
+STANDARD_LANGD_M = 1.80               # METOD M53: bålen som farterna räknas om med (inte spelarens)
 
 # METOD M53: högsta rimliga fart per led i bildens plan, m/s. **antagande**
 FART_MAX = {NASA: 6.0, AXEL_F: 6.0, AXEL_B: 6.0, ARMBAGE_F: 12.0, ARMBAGE_B: 12.0,
@@ -149,7 +152,7 @@ def spikar(t: np.ndarray, xy: np.ndarray, px_per_m: float, u: float) -> dict[str
     return ut
 
 
-def rensa(t: np.ndarray, xy: np.ndarray, langd_m: float) -> tuple[np.ndarray, dict]:
+def rensa(t: np.ndarray, xy: np.ndarray) -> tuple[np.ndarray, dict]:
     """Lederna rensade (en kopia), och vad som gjordes: {"byten": {grupp: rutor},
     "byten_oklara": {grupp: växlingar}, "spikar": {led: rutor}}. Bytena först, så att ett
     kort byte inte ser ut som två spikar. Utan bålen i bild görs ingenting. METOD M53"""
@@ -158,5 +161,5 @@ def rensa(t: np.ndarray, xy: np.ndarray, langd_m: float) -> tuple[np.ndarray, di
     if not (u > 0):
         return ut, {"byten": {}, "byten_oklara": {}, "spikar": {}}
     b, o = byten(t, ut, u)
-    s = spikar(t, ut, u / (BAL * langd_m), u)
+    s = spikar(t, ut, u / (BAL * STANDARD_LANGD_M), u)
     return ut, {"byten": b, "byten_oklara": o, "spikar": s}

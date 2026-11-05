@@ -30,7 +30,7 @@ class IngaFalskaLarm(unittest.TestCase):
             for seed in range(8):
                 for brus in (0.8, 6.0):
                     s = _las(sving(vy=vy, seed=seed, brus_px=brus)[0])
-                    xy, r = RE.rensa(s.t, s.xy, s.langd_m)
+                    xy, r = RE.rensa(s.t, s.xy)
                     self.assertEqual(r, {"byten": {}, "byten_oklara": {}, "spikar": {}}, f"{vy} {seed} {brus}")
                     np.testing.assert_array_equal(xy, s.xy)
 
@@ -38,7 +38,7 @@ class IngaFalskaLarm(unittest.TestCase):
         # 10 px brus (≈ 2,5 cm): en enstaka ruta långt ut kan tas för en spik, men högst 1 %
         # av rutorna, och måtten rör sig mindre än bruset själv.
         s = _las(sving(vy="dtl", seed=23, brus_px=10.0)[0])
-        xy, r = RE.rensa(s.t, s.xy, s.langd_m)
+        xy, r = RE.rensa(s.t, s.xy)
         self.assertLess(sum(r["spikar"].values()), 0.01 * len(s.t) * 13)
         self.assertEqual(r["byten"], {})
 
@@ -47,7 +47,7 @@ class Spikar(unittest.TestCase):
     def test_spikarna_tas_bort(self) -> None:
         d, _ = sving(vy="fo", seed=5, brus_px=0.8, spikar=SPIKAR)
         s = _las(d)
-        xy, r = RE.rensa(s.t, s.xy, s.langd_m)
+        xy, r = RE.rensa(s.t, s.xy)
         self.assertEqual(r["spikar"], {"nasa": 1, "armbage_f": 3, "handled_f": 2, "hoft_f": 1})
         for namn, t0, rutor, _, _ in SPIKAR:
             j = LEDER.index(namn)
@@ -75,7 +75,7 @@ class Byten(unittest.TestCase):
     def test_korta_byten_ratta(self) -> None:
         ren = _las(sving(vy="fo", seed=5, brus_px=0.8)[0])
         s = _las(sving(vy="fo", seed=5, brus_px=0.8, byten=BYTEN)[0])
-        xy, r = RE.rensa(s.t, s.xy, s.langd_m)
+        xy, r = RE.rensa(s.t, s.xy)
         self.assertEqual(set(r["byten"]), {"armar", "ben", "hofter"})
         self.assertEqual(r["byten_oklara"], {})
         np.testing.assert_allclose(xy, ren.xy, atol=1e-9)
@@ -91,7 +91,7 @@ class Byten(unittest.TestCase):
         # Klippet börjar bytt och byter tillbaka efter 0,5 s: vilken sida som är rätt går
         # inte att veta ur bytet, så inget rättas, men växlingen räknas.
         s = _las(sving(vy="fo", seed=5, brus_px=0.8, fran=0.0, byten=[["armar", 0.0, 0.5]])[0])
-        xy, r = RE.rensa(s.t, s.xy, s.langd_m)
+        xy, r = RE.rensa(s.t, s.xy)
         self.assertEqual(r["byten"], {})
         self.assertEqual(r["byten_oklara"], {"armar": 1})
         np.testing.assert_array_equal(xy, s.xy)
@@ -103,6 +103,15 @@ class Byten(unittest.TestCase):
         xy[:, HOFT_F] = [[0, 0], [0, 0], [5, 0], [0, 0]]
         xy[:, HOFT_B] = [[5, 0], [5, 0], [0, 0], [5, 0]]
         self.assertEqual(RE.byten(t, xy, u=100.0), ({}, {}))
+
+
+class OberoendeAvLangden(unittest.TestCase):
+    def test_samma_rensning_med_annan_langd(self) -> None:
+        # Farterna räknas om med en standardbål, så att faserna inte beror på längden. METOD M53
+        d, _ = sving(vy="fo", seed=5, brus_px=0.8, spikar=SPIKAR, byten=BYTEN)
+        a, b = M.mat(_las(d)), M.mat(_las(dict(d, spelarens_langd_m=1.60)))
+        self.assertEqual(a["kvalitet"]["rensning"], b["kvalitet"]["rensning"])
+        self.assertEqual(a["faser"], b["faser"])
 
 
 class LangaSegment(unittest.TestCase):

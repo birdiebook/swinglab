@@ -49,6 +49,9 @@ public enum Rensa {
     public static let byteSepMin = 0.2
     /// Ett byte är högst så långt; längre rättas inte. METOD M53
     public static let byteMaxS = 0.25
+    /// Bålen som farterna räknas om med (inte spelarens), så att faserna inte beror på
+    /// längden. METOD M53
+    public static let standardLangdM = 1.80
 
     /// Punkterna som byter sida tillsammans, i Pythons ordning. METOD M53
     public static let grupper: [(namn: String, par: [(Led, Led)])] = [
@@ -175,12 +178,12 @@ public enum Rensa {
 
     /// Lederna rensade, och vad som gjordes. Bytena först, så att ett kort byte inte ser
     /// ut som två spikar. Utan bålen i bild görs ingenting. METOD M53
-    public static func rensa(_ t: [Double], _ leder: [[Punkt]], langdM: Double) -> ([[Punkt]], Rensning) {
+    public static func rensa(_ t: [Double], _ leder: [[Punkt]]) -> ([[Punkt]], Rensning) {
         var ut = leder
         let u = balPx(ut)
         guard u > 0 else { return (ut, Rensning()) }
         let (b, o) = byten(t, &ut, u: u)
-        let s = spikar(t, &ut, pxPerM: u / (Matt.bal * langdM), u: u)
+        let s = spikar(t, &ut, pxPerM: u / (Matt.bal * standardLangdM), u: u)
         return (ut, Rensning(byten: b, bytenOklara: o, spikar: s))
     }
 }

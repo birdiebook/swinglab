@@ -226,7 +226,7 @@ def mat(s: Sving) -> dict:
     (METOD M4) och varför vissa mått saknas (METOD M52, M5)."""
     t = s.t
     # Byten och spikar bort först, sedan räknas allt på de rensade lederna. METOD M53
-    xy, rensning = RE.rensa(t, s.xy, s.langd_m)
+    xy, rensning = RE.rensa(t, s.xy)
     s = dataclasses.replace(s, xy=xy)
     b = F.jamna(t, F.grepp_regel(s.xy))
     # Armbågarna mäts mot den egna handleden, inte greppregelns ersatta. METOD M22
