@@ -95,7 +95,11 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - Prov
+      # Referensbilderna (BESLUT B100) läses ur källträdet, inte ur provets bunt: annars
+      # komprimeras och kopieras 115 PNG in i appen vid varje bygge.
+      - path: Prov
+        excludes:
+          - "Referenser/**"
     dependencies:
       - target: SwingLab
       - package: SwingLabKit
