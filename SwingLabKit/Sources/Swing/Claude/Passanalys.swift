@@ -7,12 +7,16 @@ public struct Slagrad: Sendable {
     public let klubba: String?
     public let matt: [String: Double]
     public let forstaSerien: Bool
+    /// Mått som saknas → orsaken (`Kvalitet.saknas`, S3b lager 1); tomt när inget saknas
+    /// eller slaget mättes före version 6.
+    public let saknas: [String: String]
 
-    public init(vy: Vy, klubba: String?, matt: [String: Double], forstaSerien: Bool) {
+    public init(vy: Vy, klubba: String?, matt: [String: Double], forstaSerien: Bool, saknas: [String: String] = [:]) {
         self.vy = vy
         self.klubba = klubba
         self.matt = matt
         self.forstaSerien = forstaSerien
+        self.saknas = saknas
     }
 }
 

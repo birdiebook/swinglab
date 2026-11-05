@@ -120,11 +120,11 @@
       "synk_ms": 0.5,
       "aterprojektion_px": 2.7,
       "matt": {
-       "backen_vrid_topp": 37.18945697280581,
-       "brost_vrid_topp": 95.51372985723602,
-       "xfaktor_topp": 58.3242728844302,
-       "xfaktor_stretch": 6.493137767381825,
-       "hofter_oppna_traff": 23.221543761915214
+       "backen_vrid_topp": 36.79762193303375,
+       "brost_vrid_topp": 95.49449535642638,
+       "xfaktor_topp": 58.696873423392624,
+       "xfaktor_stretch": 6.493137767381818,
+       "hofter_oppna_traff": 23.61337880168726
       }
      },
      {
@@ -137,11 +137,11 @@
       "synk_ms": 5.5,
       "aterprojektion_px": 3.4,
       "matt": {
-       "backen_vrid_topp": 26.95094454271113,
-       "brost_vrid_topp": 94.30011657154054,
-       "xfaktor_topp": 67.34917202882941,
-       "xfaktor_stretch": 11.778851046213035,
-       "hofter_oppna_traff": 40.900195165268904
+       "backen_vrid_topp": 26.888762474501156,
+       "brost_vrid_topp": 94.27324416052912,
+       "xfaktor_topp": 67.38448168602797,
+       "xfaktor_stretch": 11.778851046213106,
+       "hofter_oppna_traff": 40.962377233478904
       }
      },
      {
@@ -154,11 +154,11 @@
       "synk_ms": 5.3,
       "aterprojektion_px": 3.1,
       "matt": {
-       "backen_vrid_topp": 55.22434242628173,
-       "brost_vrid_topp": 92.31774854921407,
-       "xfaktor_topp": 37.09340612293234,
-       "xfaktor_stretch": 33.88112687678851,
-       "hofter_oppna_traff": 34.25160537633215
+       "backen_vrid_topp": 52.534389153638564,
+       "brost_vrid_topp": 93.07701192549875,
+       "xfaktor_topp": 40.542622771860195,
+       "xfaktor_stretch": 33.88112687678854,
+       "hofter_oppna_traff": 36.94155864897531
       }
      },
      {
@@ -171,11 +171,11 @@
       "synk_ms": -0.7,
       "aterprojektion_px": 3.0,
       "matt": {
-       "backen_vrid_topp": 32.51194954992145,
-       "brost_vrid_topp": 81.64767105284304,
-       "xfaktor_topp": 49.13572150292159,
-       "xfaktor_stretch": 6.424131281182142,
-       "hofter_oppna_traff": 48.853595174843896
+       "backen_vrid_topp": 34.0639860814427,
+       "brost_vrid_topp": 81.51909586790195,
+       "xfaktor_topp": 47.45510978645926,
+       "xfaktor_stretch": 6.424131281182113,
+       "hofter_oppna_traff": 47.30155864332264
       }
      },
      {
@@ -390,11 +390,11 @@
       "synk_ms": 0.5,
       "aterprojektion_px": 2.7,
       "matt": {
-       "backen_vrid_topp": 37.18945697280581,
-       "brost_vrid_topp": 95.51372985723602,
-       "xfaktor_topp": 58.3242728844302,
-       "xfaktor_stretch": 6.493137767381825,
-       "hofter_oppna_traff": 23.221543761915214
+       "backen_vrid_topp": 36.79762193303375,
+       "brost_vrid_topp": 95.49449535642638,
+       "xfaktor_topp": 58.696873423392624,
+       "xfaktor_stretch": 6.493137767381818,
+       "hofter_oppna_traff": 23.61337880168726
       }
      }
     ],

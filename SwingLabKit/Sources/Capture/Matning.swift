@@ -32,6 +32,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     /// Bakifrån med klubban markerad: flyktpunkten är bildens mitt (ingen riktpinne), så
     /// across/laid off vid toppen märks "assumed" (METOD M48); nil = inte aktuellt.
     public var klubbaFlyktpunktAntagen: Bool?
+    /// Mått som saknas → orsaken (`Kvalitet.saknas`, S3b lager 1); nil = inget saknas, eller
+    /// mätt före version 6.
+    public var missing: [String: String]?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -92,6 +95,7 @@ public enum ShotMeasuring {
             }
             ut.values = r.matt.filter { $0.value.isFinite }
             ut.startUncertain = r.faser.startOsaker ? true : nil
+            ut.missing = r.kvalitet.saknas.isEmpty ? nil : r.kvalitet.saknas
             ut.start = r.faser.start.flatMap { $0.isFinite ? $0 : nil }
             // Klubbans mått ur markeringarna (S7a, METOD M46–M49) bland slagets mått, och rutan
             // han valde för P2, P6 och P8 som slagets position (M45). Samma som PC:ns analys.
@@ -209,6 +213,11 @@ extension PassState {
     /// Måtten för slagen som räknas, i passets ordning, med passets vy.
     public var countedSwings: [SvingMatt] {
         shots.filter(\.counts).compactMap { s in s.measure.map { SvingMatt(vy: setup.view, matt: $0.values) } }
+    }
+
+    /// Varför mått saknas, för samma slag och i samma ordning som `countedSwings` (S3b lager 1).
+    public var countedMissing: [[String: String]] {
+        shots.filter(\.counts).compactMap { s in s.measure.map { $0.missing ?? [:] } }
     }
 
     /// Passet som vyerna ser det (Swing/Visning): dagen, klubban, svingarna som räknas och

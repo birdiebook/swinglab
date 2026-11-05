@@ -372,7 +372,15 @@ def fraga_data(analys: dict, enh: list[dict], ovningar: list[dict], katalog: dic
         varden = [A.avrunda(m, s["matt"][m]) for s in sv
                   if s["vy"] == vy and m in s["matt"] and math.isfinite(s["matt"][m])]
         rad = {"fel": b["id"], "namn": K[b["id"]]["namn"], "vy": b["vy"], "matt": m, "enhet": b["enhet"],
-               "varden": varden, "median": b["visat"], "status": b["status"], "gront": _spann(m, b["spann"])}
+               "varden": varden}
+        # Varför måttet saknas i en del svingar: orsaken och antalet (S3b lager 1, METOD M52, M5).
+        orsaker: dict[str, int] = {}
+        for s in sv:
+            if s["vy"] == vy and m not in s["matt"] and m in s.get("saknas", {}):
+                orsaker[s["saknas"][m]] = orsaker.get(s["saknas"][m], 0) + 1
+        if orsaker:
+            rad["saknas"] = dict(sorted(orsaker.items()))
+        rad.update({"median": b["visat"], "status": b["status"], "gront": _spann(m, b["spann"])})
         if b.get("gult") is not None:
             rad["gult"] = _spann(m, b["gult"])
         rad["gransens_sort"] = _gransens_sort(b)
@@ -450,7 +458,8 @@ def analysera_historik(historik: dict, katalog: dict | None = None, kedjor: dict
     enh: list[dict] = []
     for p in sorted(historik["pass"], key=lambda x: x["pass"]):
         slag = [{"vy": s["vy"], "serie": 1, "klubba": s.get("klubba"), "matt": s["matt"],
-                 "forsta_serien": s["forsta_serien"]} for s in p["slag"]]
+                 "forsta_serien": s["forsta_serien"], **({"saknas": s["saknas"]} if s.get("saknas") else {})}
+                for s in p["slag"]]
         a = A.analysera_rader(p["pass"], slag, p.get("langd"), enh, katalog=katalog, kedjor=kedjor, skapad="")
         enh = enh + A.enheter(a)
     return enh
@@ -684,11 +693,21 @@ def facit_fragor() -> dict[str, dict]:
     """Påhittade historiker bara för frågan (BESLUT B97), utan svar:
 
     - `fa`: en sving framifrån med drivern efter ett pass med fyra, så att medianen saknas men
-      talet per sving finns."""
+      talet per sving finns;
+    - `saknas`: åtta svingar framifrån där armbågen vid toppen saknas i tre (segmentet för
+      kort) och tempot i en (starten osäker): orsakerna och antalen står i frågan (S3b lager 1)."""
     rng = random.Random(97)
-    return {"fa": {"pass": [_pass(rng, "20261102-203825", {"fo": 4}, {"backen_sway_topp": -6.0}, klubba="dr"),
-                            _pass(rng, "20261103-114927", {"fo": 1}, {"backen_sway_topp": -6.0}, klubba="dr")],
-                   "att_jobba_pa": [], "skapad": "2026-11-03T11:50:20+01:00"}}
+    ut = {"fa": {"pass": [_pass(rng, "20261102-203825", {"fo": 4}, {"backen_sway_topp": -6.0}, klubba="dr"),
+                          _pass(rng, "20261103-114927", {"fo": 1}, {"backen_sway_topp": -6.0}, klubba="dr")],
+                 "att_jobba_pa": [], "skapad": "2026-11-03T11:50:20+01:00"}}
+    rng = random.Random(53)
+    p = _pass(rng, "20261105-190000", {"fo": 8}, {"framre_armbage_topp": 6.0}, klubba="dr")
+    for i, (m, orsak) in enumerate([("framre_armbage_topp", "segment_kort")] * 3 + [("tempo", "start_osaker")]):
+        s = p["slag"][i]
+        del s["matt"][m]
+        s["saknas"] = {m: orsak} if m != "tempo" else {"baksving_s": orsak, "tempo": orsak}
+    ut["saknas"] = {"pass": [p], "att_jobba_pa": [], "skapad": "2026-11-05T19:30:00+01:00"}
+    return ut
 
 
 def _svar_text(fil: dict, fore: str = "", efter: str = "", markning: str = "json", indrag: int | None = None) -> str:

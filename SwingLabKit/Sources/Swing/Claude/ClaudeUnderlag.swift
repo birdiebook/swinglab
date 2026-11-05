@@ -309,9 +309,17 @@ public struct ClaudeUnderlag: Sendable {
             if varden.isEmpty && tid.allSatisfy({ $0 == nil }) { continue }
             var p: [(String, JSONVarde)] = [
                 ("fel", .text(b.id)), ("namn", .text(k.namn)), ("vy", .text(b.vy)), ("matt", .text(m)),
-                ("enhet", .text(b.enhet)), ("varden", .lista(varden.map { JSONVarde.tal($0) })), ("median", .d(b.visat)),
-                ("status", .text(b.status.rawValue)), ("gront", Self.spann(m, b.spann)),
+                ("enhet", .text(b.enhet)), ("varden", .lista(varden.map { JSONVarde.tal($0) })),
             ]
+            // Varför måttet saknas i en del svingar: orsaken och antalet (S3b lager 1, METOD M52, M5).
+            var orsaker: [String: Int] = [:]
+            for s in a.slag where s.vy.rawValue == vy && s.matt[m] == nil {
+                if let o = s.saknas[m] { orsaker[o, default: 0] += 1 }
+            }
+            if !orsaker.isEmpty {
+                p.append(("saknas", .o(orsaker.keys.sorted().map { ($0, JSONVarde.i(orsaker[$0]!)) })))
+            }
+            p += [("median", .d(b.visat)), ("status", .text(b.status.rawValue)), ("gront", Self.spann(m, b.spann))]
             if b.gult != nil { p.append(("gult", Self.spann(m, b.gult))) }
             p.append(("gransens_sort", .text(Self.gransensSort(b))))
             if let bas = b.baslinje {

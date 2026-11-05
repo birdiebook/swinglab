@@ -2423,7 +2423,9 @@ med antaget 2D-brus. **Inget här är mätt på riktiga svingar än.**
 - **Datan:** `svingar` per vy; `tidigare` = de **5** senaste tidigare passen med samma klubba
   och längd (BESLUT B56); `matt` = varje aktivt fel i katalogens ordning med `varden` (måttet
   per sving i passets ordning, avrundat som det visas, MT3; för `bada` ur tempots vy, MT9),
-  `median` (analysens, null under tre svingar, M25), `status`, `gront` och `gult` (avrundade som
+  `saknas` när måttet saknas i någon sving med en känd orsak (orsaken → antal svingar, sorterat:
+  `led_saknas`, `segment_kort`, `segment_langt` ur M52, `start_saknas`, `start_osaker` ur M5;
+  S3b lager 1, 2026-11-05; slag mätta före version 6 har inga orsaker), `median` (analysens, null under tre svingar, M25), `status`, `gront` och `gult` (avrundade som
   måttet), `gransens_sort` (`kontrollerad`, `inte_last_i_original` = B10, `egen_baslinje`,
   `ingen_an`), `baslinje` och `mot_forra` när de finns, `tidigare` = analysens median i varje
   tidigare pass, och `ovningar` (katalogens och kedjornas texter) för gula, röda och okända fel.

@@ -25,8 +25,10 @@ final class ClaudeTests: XCTestCase {
             let slag = (p["slag"]?.somLista ?? []).map { s -> Slagrad in
                 var matt: [String: Double] = [:]
                 for (k, v) in s["matt"]?.somObjekt?.par ?? [] { matt[k] = v.somTal }
+                var saknas: [String: String] = [:]
+                for (k, v) in s["saknas"]?.somObjekt?.par ?? [] { saknas[k] = v.somText }
                 return Slagrad(vy: s["vy"]?.somText == "dtl" ? .dtl : .fo, klubba: s["klubba"]?.somText, matt: matt,
-                               forstaSerien: s["forsta_serien"] == .bool(true))
+                               forstaSerien: s["forsta_serien"] == .bool(true), saknas: saknas)
             }
             return Passrader(pass: p["pass"]?.somText ?? "", langd: p["langd"]?.somTal, slag: slag)
         }

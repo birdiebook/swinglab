@@ -2094,3 +2094,37 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
   trycket. Det långa trycket syns inte på raden.
 - **Omprövas:** efter några pass med frågan: om Claudes val skiljer sig från skillens, eller om
   Johannes saknar Focus från frågan.
+
+## B98 — Förträning på ImageNet godtas under B92, för posemodellen som för klubbmodellen
+*2026-11-05 · gäller · Johannes beslut 2026-11-05 · research S3b (posemodellerna) · förtydligar B92*
+
+- **Frågan:** de flesta bildmodeller tränas i två steg: först lär de sig se på ImageNet (vars
+  bilder bara får användas för forskning), sedan tränas de på uppgiften med öppen data (COCO,
+  CC BY 4.0). Ärver modellen ImageNets begränsning? Det är oprövat juridiskt; i praktiken
+  bygger nästan alla kommersiella bildmodeller på sådan förträning.
+- **Valt:** förträning på ImageNet godtas, så länge **träningen på uppgiften** bara använder
+  data och kod som B92 tillåter. Det är samma sak som klubbmodellen redan gör (RF-DETR, YOLOX,
+  B92), så beslutet gör regeln konsekvent i stället för att ändra den.
+- **Vad det öppnar:** RTMPose tränad bara på COCO (troligen förtränad på ImageNet, inte
+  kontrollerat) och ViTPose tränad bara på COCO (MAE-förtränad på ImageNet) som kandidater mot
+  Vision. **Fortfarande stängt:** allt tränat på COCO-WholeBody (CC BY-NC: RTMW, DWPose,
+  RTMPose-wholebody), Halpe/Body7-vikterna, Sapiens, YOLO-NAS-Pose, Human3.6M- och SMPL-baserade
+  vikter, och rtmlibs standarddetektor (tränad på Human-Art).
+- **Bortvalt:** att kräva förträning på bara öppen data. Då återstår i praktiken bara Vision och
+  MediaPipe, och klubbmodellen skulle också behöva tränas om.
+- **Kostnad:** en kvarstående juridisk gråzon, samma som för klubbmodellen.
+- **Omprövas:** om appen någon gång ska säljas, eller om rättsläget för förträning klarnar.
+
+## B99 — Inga svingar ur CMU:s mocap-bibliotek; testerna bygger på egna figurer och publicerade tal
+*2026-11-05 · gäller · Johannes beslut 2026-11-05 · research S3b (syntetiskt facit)*
+
+- **Frågan:** CMU Motion Capture Database (försöksperson 64) har tio riktiga golfsvingar, de
+  enda öppna som hittades. Villkoren är CMU:s egen notis, ingen standardlicens: fri att kopiera
+  och ändra, får ingå i produkter men inte säljas vidare, "even in converted form".
+- **Valt:** CMU används inte. Johannes vill bygga så att appen går att sälja, med egen eller
+  öppen data. De påhittade svingarna (`generera.py`, `tre_d/sving.py`) står kvar, och tal ur
+  artiklar (fakta, t.ex. Horan 2012 och Neal 2007) får styra deras former och spann.
+- **Bortvalt:** härledda testsvingar ur CMU med källangivelse (fungerar tekniskt, men villkoret
+  om vidareförsäljning följer med).
+- **Omprövas:** bara om något blir kritiskt beroende av riktiga rörelser och ingen öppen källa
+  finns.
