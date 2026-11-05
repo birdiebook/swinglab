@@ -242,6 +242,17 @@ final class SaknasTests: XCTestCase {
         XCTAssertTrue(utan.kort.allSatisfy { $0.saknas == nil && $0.info?.saknas == [] })
     }
 
+    /// Det som övas syns alltid (BESLUT B86) och står överst; saknas det i alla svingar säger
+    /// toppen det också, där talet skulle stå.
+    func testFocusSomSaknasIAllaSvingar() throws {
+        let l = Passvisning(katalog: try katalog(), pass: [foPass()], ovas: ["chicken_wing"]).lista(i: .fo)
+        XCTAssertEqual(l.topp?.kort.map(\.id), ["chicken_wing"])
+        XCTAssertEqual(l.topp?.kort.first?.ejMatt, true)
+        XCTAssertEqual(l.toppUpplasning, "Focus: Lead arm fold, not measured")
+        XCTAssertEqual(l.kort.last?.id, "chicken_wing")                     // utan läge sist (METOD M63)
+        XCTAssertFalse(l.fler.contains { $0.id == "chicken_wing" })
+    }
+
     /// Tempot bakifrån utan start: orsaken står överst i bladet, och M40:s källrad står inte också där.
     func testTempotBakifranMedOrsakerna() throws {
         let k = try katalog()

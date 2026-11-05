@@ -349,8 +349,8 @@ or away from the camera", i passet med antalet svingar per orsak); ett slag mät
 får bara att det saknas. SwingLabKit `Saknas` (koderna i ord och passets räkning), `Pass.saknas`,
 `Positionsmatt.rader(saknas:)`, `Infoblad.saknas`; appen `PassShotsView.visning` (passet bär
 `countedMissing`), `ReviewRows`, `PositionsradVy`, `MattkortVy` och `InfobladVy`. Prov: `SaknasTests`
-(Linux) och `Prov/SwingLabProvSaknas.swift` (bilderna `saknas-passet-fo`, `saknas-passet-dtl`,
-`saknas-granskning`, `saknas-granskning-stor` och fem infoblad). Kvar till lager 1 ✓ härifrån:
+(Linux) och `Prov/SwingLabProvSaknas.swift` (bilderna `saknas-passet-fo`, `saknas-passet-focus`,
+`saknas-passet-dtl`, `saknas-granskning`, `saknas-granskning-stor` och fem infoblad). Kvar till lager 1 ✓ härifrån:
 platåns gräns och rensningens antal (ovan), och att Johannes sett orsaken på telefonen.
 
 ## S4 — Vyn

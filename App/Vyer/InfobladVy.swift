@@ -14,17 +14,14 @@ struct InfobladVy: View {
                 .typsnitt(22, .semibold)
                 .foregroundStyle(Theme.text)
                 .padding(.bottom, 4)
+            // Raderna direkt i bladets stack, som vad och varför, så att de bryts i hela bredden.
+            ForEach(Array(blad.saknas.enumerated()), id: \.offset) { i, rad in
+                Text(verbatim: rad)
+                    .typsnitt(16, i == 0 ? .semibold : .regular, siffror: true)
+                    .foregroundStyle(Theme.text)
+            }
             if !blad.saknas.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(blad.saknas.enumerated()), id: \.offset) { i, rad in
-                        Text(verbatim: rad)
-                            .typsnitt(16, i == 0 ? .semibold : .regular, siffror: true)
-                            .foregroundStyle(Theme.text)
-                    }
-                }
-                .padding(.bottom, 14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+                Rectangle().fill(Theme.line).frame(height: 1)
             }
             Text(verbatim: blad.vad)
                 .typsnitt(16)

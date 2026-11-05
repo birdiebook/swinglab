@@ -975,59 +975,79 @@ struct ReviewTimeline: View {
 struct PositionsradVy: View {
     let rad: Positionsrad
 
-    @ViewBuilder private var varde: some View {
-        if rad.ejMatt {
-            // Bryts hellre än kortas vid stor text (research 8 punkt 10).
-            Text("Not measured")
-                .typsnitt(13, .medium)
-                .foregroundStyle(Theme.secondary)
-                .multilineTextAlignment(.trailing)
-                .frame(minWidth: 70, alignment: .trailing)
-        } else {
-            HStack(alignment: .firstTextBaseline, spacing: rad.enhet == "°" ? 0 : 3) {
-                Text(rad.varde)
-                    .typsnitt(15, .medium, siffror: true)
-                    .foregroundStyle(rad.varde == "—" ? Theme.tertiary : Theme.text)
-                if !rad.enhet.isEmpty && rad.varde != "—" {
-                    Text(rad.enhet)
-                        .typsnitt(11)
+    /// Namnet och märkningen under det. `bryts` = namnet får brytas (raden under varandra).
+    private func namn(bryts: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(rad.namn)
+                .typsnitt(14)
+                .foregroundStyle(rad.ovas ? Theme.acc : Theme.secondary)
+                .lineLimit(bryts ? nil : 1)
+            HStack(spacing: 8) {
+                if let m = rad.markning { MarkningVy(markning: m) }
+                if let u = rad.under {
+                    Text(u)
+                        .typsnitt(11, .semibold)
                         .foregroundStyle(Theme.tertiary)
                 }
             }
-            .frame(minWidth: 70, alignment: .trailing)
+        }
+    }
+
+    /// Där talet skulle stå när måttet saknas i slaget (BESLUT B109).
+    private var ejMattText: some View {
+        Text("Not measured")
+            .typsnitt(13, .medium)
+            .foregroundStyle(Theme.secondary)
+    }
+
+    @ViewBuilder private var innehall: some View {
+        if rad.ejMatt {
+            // Bredvid namnet när det får plats, annars under det, så att det aldrig bryts mitt i
+            // ett ord vid stor text (research 8 punkt 10).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    namn(bryts: false)
+                    Spacer(minLength: 6)
+                    ejMattText.fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    namn(bryts: true)
+                    ejMattText
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            HStack(spacing: 10) {
+                namn(bryts: false)
+                Spacer(minLength: 6)
+                if let s = rad.spann {
+                    SpannVy(spann: s, kompakt: true, accent: rad.ovas, lage: rad.lage)
+                        .frame(width: 84)
+                }
+                LageSymbol(lage: rad.lage, storlek: 10)          // BESLUT B87
+                HStack(alignment: .firstTextBaseline, spacing: rad.enhet == "°" ? 0 : 3) {
+                    Text(rad.varde)
+                        .typsnitt(15, .medium, siffror: true)
+                        .foregroundStyle(rad.varde == "—" ? Theme.tertiary : Theme.text)
+                    if !rad.enhet.isEmpty && rad.varde != "—" {
+                        Text(rad.enhet)
+                            .typsnitt(11)
+                            .foregroundStyle(Theme.tertiary)
+                    }
+                }
+                .frame(minWidth: 70, alignment: .trailing)
+            }
         }
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(rad.namn)
-                    .typsnitt(14)
-                    .foregroundStyle(rad.ovas ? Theme.acc : Theme.secondary)
-                    .lineLimit(1)
-                HStack(spacing: 8) {
-                    if let m = rad.markning { MarkningVy(markning: m) }
-                    if let u = rad.under {
-                        Text(u)
-                            .typsnitt(11, .semibold)
-                            .foregroundStyle(Theme.tertiary)
-                    }
-                }
-            }
-            Spacer(minLength: 6)
-            if let s = rad.spann {
-                SpannVy(spann: s, kompakt: true, accent: rad.ovas, lage: rad.lage)
-                    .frame(width: 84)
-            }
-            LageSymbol(lage: rad.lage, storlek: 10)              // BESLUT B87
-            varde
-        }
-        .padding(.vertical, 7)
-        .frame(minHeight: 38)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(rad.upplasning)
-        .infoblad(rad.info)                      // BESLUT B41
+        innehall
+            .padding(.vertical, 7)
+            .frame(minHeight: 38)
+            .overlay(alignment: .bottom) { Rectangle().fill(Theme.hair).frame(height: 1) }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(rad.upplasning)
+            .infoblad(rad.info)                  // BESLUT B41
     }
 }
 

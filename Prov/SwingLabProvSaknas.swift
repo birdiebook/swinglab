@@ -7,12 +7,13 @@
 //                  utan kod), främre armbågen vid toppen i sex (en med armen mot kameran) och chicken
 //                  wing i ingen (fem med en punkt fel, två utan punkt); "More measures" utfällt;
 //   bladen         infobladet för tempot och chicken wing: raden och orsakerna med antalen;
+//   Focus          chicken wing övas men saknas i alla svingar: toppen säger "Not measured";
 //   granskningen   raderna vid P4 för slaget med armen mot kameran och vid P9 för slaget före
 //                  version 6: "Not measured" där talet skulle stå, sist bland raderna, och bladen med
 //                  och utan orsak; samma rader med största textstorleken;
 //   passet DTL     sex svingar utan tempo (fyra med osäker start, två utan start): kortet under "More
 //                  measures" med raden, och bladet med orsakerna i stället för M40:s källrad.
-// Bilderna: saknas-passet-fo, saknas-blad-tempo, saknas-blad-chicken-wing, saknas-granskning,
+// Bilderna: saknas-passet-fo, saknas-blad-tempo, saknas-blad-chicken-wing, saknas-passet-focus, saknas-granskning,
 // saknas-granskning-stor, saknas-blad-slag, saknas-blad-slag-utan-orsak, saknas-passet-dtl,
 // saknas-blad-tempo-dtl.
 
@@ -83,6 +84,12 @@ extension SwingLabProvVyer {
                      accent: false)
         try rendera(InfobladVy(blad: try XCTUnwrap(tempo.info)), namn: "saknas-blad-tempo", accent: false)
         try rendera(InfobladVy(blad: try XCTUnwrap(cw.info)), namn: "saknas-blad-chicken-wing", accent: false)
+        // Chicken wing övas (Focus) men saknas i alla svingar: toppen säger "Not measured".
+        let vf = try XCTUnwrap(PassShotsView.visning(fo, earlier: [], ovas: ["chicken_wing"]))
+        let lf = vf.lista(i: .fo)
+        XCTAssertEqual(lf.topp?.kort.map(\.id), ["chicken_wing"])
+        XCTAssertEqual(lf.toppUpplasning, "Focus: Lead arm fold, not measured")
+        try ritaBand(PassetVy(visning: vf, vy: .fo), namn: "saknas-passet-focus", farger: [.gron, .gul, .rod], accent: true)
 
         // Granskningen: slag 7 vid toppen (armen mot kameran) och slag 8 vid P9 (före version 6).
         let p4 = ReviewRows.rows(pass: fo, shot: fo.shots[6], position: "P4", baseline: [:])

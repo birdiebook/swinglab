@@ -2139,7 +2139,8 @@ Första riktiga passet (2026-10-24) hade fel vy-etiketter, och då gick 3D inte 
 - **Valt:**
   - **Där talet skulle stå, att det saknas:** granskningens rad säger "Not measured" (grått, inget
     spann, sist bland raderna). Passets kort säger under talet "Measured in 5 of 8 swings", eller
-    "—" och "Not measured in any of the 8 swings". Inget när alla svingar har talet.
+    "—" och "Not measured in any of the 8 swings". Inget när alla svingar har talet. Övas måttet
+    och saknas i alla svingar säger Focus överst "Not measured" i stället för "—".
   - **Varför, ett tryck bort, överst i måttets infoblad** (B41: bladet är platsen för text som
     beskriver): en mening på enkel engelska för slaget ("Not measured in this swing: the lead arm
     pointed toward or away from the camera."), och i passet en rad per orsak med antalet svingar.

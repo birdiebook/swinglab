@@ -1981,9 +1981,10 @@ Texter), prövad i `SaknasTests`. Python har ingen motsvarighet: urklippet till 
 koderna och antalen (MT13), och inget som PC:n läser ändras (B12).
 
 - **Raden:** ett aktivt mått vid positionen utan tal i slaget säger **"Not measured"** där talet
-  skulle stå, i grått, utan spann och utan läge. Det står därför sist bland raderna (M63). Ett
-  avstängt mått är "—" som förut, och klubbans mått visas bara på ett slag där klubban är
-  markerad (M29), också som förut. **räkning.**
+  skulle stå, i grått, utan spann och utan läge. Det står därför sist bland raderna (M63). Ryms
+  namnet och "Not measured" inte på en rad (stor text) står "Not measured" under namnet, i stället
+  för att brytas mitt i ett ord. Ett avstängt mått är "—" som förut, och klubbans mått visas bara på
+  ett slag där klubban är markerad (M29), också som förut. **räkning.**
 - **Orsaken, ett tryck bort:** infobladet (B41) börjar med en mening före vad, varför, tecknet och
   källan, skild från dem med en tunn linje: "Not measured in this swing: the lead arm pointed toward
   or away from the camera." Utan kod (slaget mättes före version 6, eller måttet har ingen kontroll
@@ -2038,11 +2039,15 @@ koderna och antalen (MT13), och inget som PC:n läser ändras (B12).
 - **Tempot och M40:** källraden "no tempo when the start is unclear from behind" (M40) gäller bara
   ett pass utan orsakerna. Med dem står orsaken överst i bladet i stället, så att den inte står två
   gånger. VoiceOver: "Swing tempo, Not measured in any of the 6 swings".
+- **Det som övas** syns alltid (B86) och står överst (M63). Saknas det i alla svingar säger toppen
+  "Not measured" där talet skulle stå, i stället för "—" (VoiceOver "Focus: Lead arm fold, not
+  measured"). **räkning.**
 - **Vad som provas var.** Linux (`SaknasTests`): räkningen, ordningen och sammanslagningen,
   ett slag, raden i alla svingar, utan orsakerna som förut, tempot bakifrån utan M40:s rad, klubbans
-  källa och ett avstängt fel. Simulatorn (`Prov/SwingLabProvSaknas.swift`): appens
+  källa, ett avstängt fel och Focus som saknas. Simulatorn (`Prov/SwingLabProvSaknas.swift`): appens
   `PassShotsView.visning` på ett påhittat FO- och DTL-pass, bilderna `saknas-passet-fo`,
-  `saknas-passet-dtl`, `saknas-blad-tempo`, `saknas-blad-chicken-wing` och `saknas-blad-tempo-dtl`.
+  `saknas-passet-focus`, `saknas-passet-dtl`, `saknas-blad-tempo`, `saknas-blad-chicken-wing` och
+  `saknas-blad-tempo-dtl`.
 
 ## MS30 — Klippen mellan telefonerna (S6g)
 
