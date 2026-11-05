@@ -24,6 +24,8 @@ MIN_PER_SIDA = 2            # METOD M35: rutor med värde som krävs före och e
 NARA_S = 0.020              # METOD M35: så nära toppen får rutnätet inte ha en lucka …
 LUCKA_S = 0.020             # METOD M35: … längre än så, annars saknas toppen
 GENOMSVING_ANDEL = 0.10     # METOD M36: finishen = handens fart under 10 % av genomsvingens toppfart
+SMAL_SIGMA_S = 0.005        # METOD M58: den smalare utjämningen som toppfarten jämförs med (2/3 av M3:s σ)
+FILTER_KVOT = 0.85          # METOD M58: toppfarten under så stor andel av den smalare = känslig för utjämningen
 
 
 def rutnat(a: float, b: float) -> np.ndarray:
@@ -32,17 +34,18 @@ def rutnat(a: float, b: float) -> np.ndarray:
     return a + np.arange(n + 1) * STEG_S
 
 
-def _fonster(t: np.ndarray, ok: np.ndarray, tau: float) -> tuple[list[int], list[float]] | None:
+def _fonster(t: np.ndarray, ok: np.ndarray, tau: float,
+             sigma: float = F.SIGMA_S) -> tuple[list[int], list[float]] | None:
     """Rutorna med värde inom 3σ från τ och deras gaussvikter, i tidsordning, eller
     None utan minst MIN_PER_SIDA rutor med värde före τ och lika många efter: en
     ensam ruta på ena sidan styr annars lutningen med hela sitt brus. METOD M35"""
-    grans = F.TRUNKERA * F.SIGMA_S
+    grans = F.TRUNKERA * sigma
     js = [int(j) for j in np.where(ok & (np.abs(t - tau) <= grans))[0]]
     fore = sum(1 for j in js if t[j] < tau)
     efter = sum(1 for j in js if t[j] > tau)
     if fore < MIN_PER_SIDA or efter < MIN_PER_SIDA:
         return None
-    return js, [math.exp(-0.5 * ((float(t[j]) - tau) / F.SIGMA_S) ** 2) for j in js]
+    return js, [math.exp(-0.5 * ((float(t[j]) - tau) / sigma) ** 2) for j in js]
 
 
 def _lutning(dt: list[float], y: list[float], w: list[float]) -> float:
@@ -63,13 +66,13 @@ def _lutning(dt: list[float], y: list[float], w: list[float]) -> float:
     return num / den
 
 
-def hastighet(t: np.ndarray, p: np.ndarray, tau: np.ndarray) -> np.ndarray:
+def hastighet(t: np.ndarray, p: np.ndarray, tau: np.ndarray, sigma: float = F.SIGMA_S) -> np.ndarray:
     """Punktens hastighet (len(tau), 2) i px/s ur de råa lägena p (n, 2), NaN där
-    den inte går att räkna. METOD M35"""
+    den inte går att räkna. `sigma` = utjämningen (M3; den smalare i M58). METOD M35"""
     ok = np.isfinite(p).all(axis=1)
     v = np.full((len(tau), 2), np.nan)
     for i, tc in enumerate(tau):
-        r = _fonster(t, ok, float(tc))
+        r = _fonster(t, ok, float(tc), sigma)
         if r is None:
             continue
         js, w = r
@@ -85,14 +88,15 @@ def fart(t: np.ndarray, p: np.ndarray, tau: np.ndarray) -> np.ndarray:
     return np.array([math.hypot(a, b) for a, b in v]) if len(v) else np.array([])
 
 
-def handens_fart(t: np.ndarray, fram: np.ndarray, bak: np.ndarray, tau: np.ndarray, bada: bool) -> np.ndarray:
+def handens_fart(t: np.ndarray, fram: np.ndarray, bak: np.ndarray, tau: np.ndarray, bada: bool,
+                 sigma: float = F.SIGMA_S) -> np.ndarray:
     """Greppets fart i px/s: medlet av handledernas hastigheter, var och en anpassad
     på sin egen råa serie. Inte greppregelns punkt (M1): den hoppar 1–2 cm när en
     handled försvinner, och hoppet blir en falsk fart. Med `bada` krävs båda
     handlederna (toppfarten, M35); annars gäller den ena där bara den går att räkna
     (finishens tid, M36, som bara jämför farten med sin egen topp: den yttre
     handleden går ≈ 3 % fortare). METOD M35, METOD M36"""
-    vf, vb = hastighet(t, fram, tau), hastighet(t, bak, tau)
+    vf, vb = hastighet(t, fram, tau, sigma), hastighet(t, bak, tau, sigma)
     ut = np.full(len(tau), np.nan)
     for i in range(len(tau)):
         f, b = bool(np.isfinite(vf[i]).all()), bool(np.isfinite(vb[i]).all())
@@ -187,3 +191,20 @@ def finish_tid(tau: np.ndarray, s: np.ndarray) -> float | None:
                 return None
             return float(tau[k0] + (troskel - s[k0]) / (s[k1] - s[k0]) * (tau[k1] - tau[k0]))
     return None
+
+
+def kvot_mot_smal(tau: np.ndarray, topp: tuple[float, float], smal) -> float | None:
+    """Toppen med den vanliga utjämningen (värdet ur `maxpunkt`) delad med det största värdet
+    med den smalare (`smal(tider)`, samma enhet) på rutnätets punkter inom NARA_S från toppens
+    tid. Under FILTER_KVOT är toppen smal mot utjämningen: ett hopp i lederna eller en topp som
+    utjämningen äter. Inte det största värdet över hela nedsvingen: bruset drar den smalare
+    seriens största värde uppåt (det största av brusiga punkter, M35). None när den smalare
+    saknas där. METOD M58"""
+    nara = tau[np.abs(tau - topp[1]) <= NARA_S]
+    if len(nara) == 0:
+        return None
+    s = np.asarray(smal(nara), float)
+    s = s[np.isfinite(s)]
+    if len(s) == 0 or not (s.max() > 0):
+        return None
+    return float(topp[0] / s.max())

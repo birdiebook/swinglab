@@ -10,13 +10,18 @@ public struct Slagrad: Sendable {
     /// Mått som saknas → orsaken (`Kvalitet.saknas`, S3b lager 1); tomt när inget saknas
     /// eller slaget mättes före version 6.
     public let saknas: [String: String]
+    /// Mått som visas men är osäkra → orsakerna (`Kvalitet.varningar`, METOD M54); tomt när
+    /// inget varnas eller slaget mättes före version 7.
+    public let varningar: [String: [String]]
 
-    public init(vy: Vy, klubba: String?, matt: [String: Double], forstaSerien: Bool, saknas: [String: String] = [:]) {
+    public init(vy: Vy, klubba: String?, matt: [String: Double], forstaSerien: Bool, saknas: [String: String] = [:],
+                varningar: [String: [String]] = [:]) {
         self.vy = vy
         self.klubba = klubba
         self.matt = matt
         self.forstaSerien = forstaSerien
         self.saknas = saknas
+        self.varningar = varningar
     }
 }
 

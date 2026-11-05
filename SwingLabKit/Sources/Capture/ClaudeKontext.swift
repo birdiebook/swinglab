@@ -12,10 +12,10 @@ extension PassState {
     /// (METOD MT2, som `visningsPass`).
     public var claudeRader: Passrader {
         let v = visningsPass
-        let saknas = countedMissing
+        let saknas = countedMissing, varningar = countedWarnings
         let slag = v.svingar.enumerated().map { i, s in
             Slagrad(vy: s.vy, klubba: setup.club, matt: s.matt, forstaSerien: i < v.serie1,
-                    saknas: i < saknas.count ? saknas[i] : [:])
+                    saknas: i < saknas.count ? saknas[i] : [:], varningar: i < varningar.count ? varningar[i] : [:])
         }
         return Passrader(pass: id, langd: measuredHeight?.heightM, slag: slag)
     }

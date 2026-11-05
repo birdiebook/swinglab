@@ -319,6 +319,14 @@ public struct ClaudeUnderlag: Sendable {
             if !orsaker.isEmpty {
                 p.append(("saknas", .o(orsaker.keys.sorted().map { ($0, JSONVarde.i(orsaker[$0]!)) })))
             }
+            // Varför måttet är osäkert i svingar där det visas: orsaken och antalet (METOD M54).
+            var varn: [String: Int] = [:]
+            for s in a.slag where s.vy.rawValue == vy && s.matt[m] != nil {
+                for o in s.varningar[m] ?? [] { varn[o, default: 0] += 1 }
+            }
+            if !varn.isEmpty {
+                p.append(("varningar", .o(varn.keys.sorted().map { ($0, JSONVarde.i(varn[$0]!)) })))
+            }
             p += [("median", .d(b.visat)), ("status", .text(b.status.rawValue)), ("gront", Self.spann(m, b.spann))]
             if b.gult != nil { p.append(("gult", Self.spann(m, b.gult))) }
             p.append(("gransens_sort", .text(Self.gransensSort(b))))

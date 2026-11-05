@@ -54,7 +54,16 @@ SEGMENT_MAX = 1.15               # METOD M52: längre än så mot adressen = en 
 PLATA_ANDEL = 0.02               # METOD M4: toppens platå = händerna inom 2 % av vägen adress → topp från toppen
 PLATA_SOK_S = 0.30               # METOD M4: platån söks högst så långt från toppen åt vardera hållet
 AXLAR_MIN_CM = 15.0              # METOD M39: kortare axellinje i bild vid toppen = axlarna skymmer varandra
-MATVERSION = 6                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen, 4 = synliga segment (M52), 5 = stilla adress (M4), 6 = rensningen (M53) och för långa segment (M52)
+MATVERSION = 7                   # METOD M40, MS14: mätningens version; 2 = starten bakifrån ur posen, 3 = M41–M43 och spridningen, 4 = synliga segment (M52), 5 = stilla adress (M4), 6 = rensningen (M53) och för långa segment (M52), 7 = varningarna (M54)
+
+# Varningarna: mått som visas men är osäkra (METOD M54). Gränserna är antaganden.
+PLATA_BRED_S = 0.08              # METOD M55: bredare platå än så = toppen prövas mot en andra signal
+TOPP_OENIG_S = 0.05              # METOD M55: signalerna mer än så isär = toppen osäker
+LUCKA_FONSTER_S = 0.05           # METOD M56: rutorna så nära måttets ögonblick räknas
+LUCKA_ANDEL = 0.20               # METOD M56: större andel saknade av måttets egna leder där = varning
+SYNK_ANDEL = 0.10                # METOD M57: händerna i klicket högre än så över sin lägsta punkt = träffen osäker
+NEDSVING_RIMLIG = (0.20, 0.45)   # METOD M59: en nedsving utanför (s) = toppen eller träffen fel
+TEMPO_RIMLIGT = (2.0, 4.5)       # METOD M59: ett tempo utanför = toppen, starten eller träffen fel
 
 FASER = ("adress", "topp", "traff", "finish")
 EFTER = ("topp", "traff", "finish")
@@ -160,6 +169,154 @@ def topp_plata(t: np.ndarray, G: np.ndarray, f: F.Faser) -> float | None:
     return float(t[ok[hi]] - t[ok[lo]])
 
 
+# Måtten som beror på toppens tid (METOD M55, M59) och på träffens (METOD M57), utöver de som
+# slutar på _traff (lägen i klicket) och fönster från toppen till klicket.
+TOPPENS = ("tempo", "baksving_s", "nedsving_s")
+TRAFFENS = ("brost_bojning_tapp", "backen_resa_framat", "tempo", "nedsving_s", "genomsving_s", "handfart_max",
+            "handfart_max_fore_traff_ms", "framre_arm_vinkelfart_max", "backen_lyft_min", "backen_skifte_ms")
+FARTERNAS = ("handfart_max", "handfart_max_fore_traff_ms")                           # METOD M58
+GREPP = -1   # METOD M56: händerna efter greppregeln (M1), saknade bara när båda handlederna saknas
+# Kontrollernas tal i `kvalitet`, när de går att räkna (METOD M54): följer med i analysen för kalibreringen.
+KONTROLLER = ("topp_plata_s", "topp_andra_s", "traff_hojd", "handfart_kvot")
+AXLAR, HOFTER = (AXEL_F, AXEL_B), (HOFT_F, HOFT_B)
+
+
+def traffens_matt(namn: str) -> bool:
+    """Måttet beror på träffens tid: ett läge i klicket, eller en tid, fart eller ett fönster
+    som slutar där. METOD M57"""
+    return namn.endswith("_traff") or namn in TRAFFENS
+
+
+def luckornas_leder(namn: str) -> tuple[tuple[int, ...], tuple[str, ...]]:
+    """Måttets egna leder och ögonblicken det läses i, för luckorna kring fasen: ("start",
+    "topp", "traff", "P3", "P5", "handfart", "vinkelfart"). Mått som är medel över ett fönster
+    (adressen, finishen, efter träffen) eller sökningar över svingen (handens bana, skiftet,
+    genomsvingen) har inga ögonblick. GREPP = händerna efter greppregeln. METOD M56"""
+    if namn in ("tempo", "baksving_s"):
+        tider: tuple[str, ...] = ("start", "topp")
+    elif namn == "nedsving_s" or namn == "backen_recentrering":
+        tider = ("topp",)
+    elif namn.startswith("handfart_max"):
+        tider = ("handfart",)
+    elif namn == "framre_arm_vinkelfart_max":
+        tider = ("vinkelfart",)
+    elif namn == "backen_resa_framat":
+        tider = ("topp", "traff")
+    elif namn == "backen_resa_p5":
+        tider = ("topp", "P5")
+    elif namn == "brost_bojning_tapp":
+        tider = ("traff",)
+    elif namn == "framre_armbage_efter_traff":
+        tider = ()
+    elif namn.endswith("_topp"):
+        tider = ("topp",)
+    elif namn.endswith("_traff"):
+        tider = ("traff",)
+    elif namn.endswith("_p3"):
+        tider = ("P3",)
+    else:
+        tider = ()
+    if namn in TOPPENS:
+        leder: tuple[int, ...] = (GREPP,)
+    elif namn.startswith("handfart"):
+        leder = (HANDLED_F, HANDLED_B)
+    elif namn.startswith("framre_arm_vinkelfart"):
+        leder = (AXEL_F, HANDLED_F)
+    elif namn.startswith("framre_arm_plan"):
+        leder = (AXEL_F, AXEL_B, HANDLED_F)
+    elif namn.startswith("framre_armbage"):
+        leder = (AXEL_F, ARMBAGE_F, HANDLED_F)
+    elif namn.startswith("bakre_armbage"):
+        leder = (AXEL_B, ARMBAGE_B)
+    elif namn.startswith("framre_kna_sway"):
+        leder = (KNA_F,)
+    elif namn.startswith("bakre_kna_sway"):
+        leder = (KNA_B,)
+    elif namn.startswith("framre_kna"):
+        leder = (HOFT_F, KNA_F, FOTLED_F)
+    elif namn.startswith("bakre_kna"):
+        leder = (HOFT_B, KNA_B, FOTLED_B)
+    elif namn.startswith("backen_bojning"):
+        leder = AXLAR + HOFTER + (KNA_B,)
+    elif namn.startswith(("brost_bojning", "sidbojning", "sway_gap")):
+        leder = AXLAR + HOFTER
+    elif namn.startswith(("brost", "axellinje")):
+        leder = AXLAR
+    elif namn.startswith(("backen", "hoftlinje")):
+        leder = HOFTER
+    elif namn.startswith("huvud"):
+        leder = (NASA,)
+    elif namn.startswith("hander_fore_backen"):
+        leder = (GREPP,) + HOFTER
+    elif namn.startswith(("hand_", "hander_")):
+        leder = (GREPP,)
+    else:
+        leder = ()
+    return (leder, tider) if leder and tider else ((), ())
+
+
+def saknad_andel(t: np.ndarray, xy: np.ndarray, led: int, tc: float) -> float:
+    """Andelen av rutorna inom LUCKA_FONSTER_S från tc där leden saknas (låg konfidens eller
+    borttagen av rensningen, M1, M53); GREPP saknas bara där båda handlederna saknas (M1). Rutor
+    som telefonen inte gav alls räknas inte: där gäller M3:s lucka. 1 utan rutor. METOD M56"""
+    sel = np.abs(t - tc) <= LUCKA_FONSTER_S
+    n = int(sel.sum())
+    if n == 0:
+        return 1.0
+    if led == GREPP:
+        ute = ~np.isfinite(xy[sel, HANDLED_F]).all(axis=1) & ~np.isfinite(xy[sel, HANDLED_B]).all(axis=1)
+    else:
+        ute = ~np.isfinite(xy[sel, led]).all(axis=1)
+    return int(ute.sum()) / n
+
+
+def varningar(matt: dict[str, float], kontroller: dict, plata: float | None, t: np.ndarray, xy: np.ndarray,
+              f: F.Faser, pos: dict, tider: dict[str, float]) -> dict[str, list[str]]:
+    """Mått som visas men är osäkra → orsakerna, sorterade (METOD M54). Bara mått som finns:
+    ett mått som saknas har sin orsak i `saknas`.
+
+    - "topp_osaker": platån bredare än PLATA_BRED_S och den andra signalen mer än TOPP_OENIG_S
+      från toppen (M55), på tempot, baksvingen och nedsvingen;
+    - "luckor_kring_fasen": mer än LUCKA_ANDEL saknade av måttets egna leder kring dess
+      ögonblick (M56);
+    - "traff_osaker": händerna i klicket mer än SYNK_ANDEL av vägen över sin lägsta punkt
+      (M57), på måtten som beror på träffen;
+    - "filterkanslig": handens toppfart under FILTER_KVOT av den smalare utjämningens (M58);
+    - "fas_orimlig": nedsvingen eller tempot utanför det rimliga (M59)."""
+    ut: dict[str, set[str]] = {}
+
+    def varna(namn: str, orsak: str) -> None:
+        if namn in matt:
+            ut.setdefault(namn, set()).add(orsak)
+
+    d2 = kontroller.get("topp_andra_s")
+    if plata is not None and plata > PLATA_BRED_S and d2 is not None and abs(d2) > TOPP_OENIG_S:   # METOD M55
+        for namn in TOPPENS:
+            varna(namn, "topp_osaker")
+    ogonblick = {"start": f.start, "topp": f.topp, "traff": f.traff, "P3": pos.get("P3"), "P5": pos.get("P5"),
+                 **tider}
+    for namn in matt:                                                                              # METOD M56
+        leder, nar = luckornas_leder(namn)
+        if any(ogonblick.get(x) is not None and saknad_andel(t, xy, j, ogonblick[x]) > LUCKA_ANDEL
+               for x in nar for j in leder):
+            varna(namn, "luckor_kring_fasen")
+    h = kontroller.get("traff_hojd")
+    if h is not None and h > SYNK_ANDEL:                                                           # METOD M57
+        for namn in matt:
+            if traffens_matt(namn):
+                varna(namn, "traff_osaker")
+    k = kontroller.get("handfart_kvot")
+    if k is not None and k < FA.FILTER_KVOT:                                                       # METOD M58
+        for namn in FARTERNAS:
+            varna(namn, "filterkanslig")
+    ned, tempo = matt.get("nedsving_s"), matt.get("tempo")                                         # METOD M59
+    if ((ned is not None and not NEDSVING_RIMLIG[0] <= ned <= NEDSVING_RIMLIG[1])
+            or (tempo is not None and not TEMPO_RIMLIGT[0] <= tempo <= TEMPO_RIMLIGT[1])):
+        for namn in TOPPENS:
+            varna(namn, "fas_orimlig")
+    return {k: sorted(v) for k, v in sorted(ut.items())}
+
+
 def arm_mot_axlar(axel_f: np.ndarray, axel_b: np.ndarray, hand: np.ndarray) -> float:
     """Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel →
     den egna handleden) i bild, grader, + när armen pekar brantare uppåt än axellinjen
@@ -261,6 +418,8 @@ def mat(s: Sving) -> dict:
 
     m: dict[str, float] = {}
     saknas: dict[str, str] = {}
+    tider: dict[str, float] = {}                 # farternas toppar, för luckorna kring dem (METOD M56)
+    kontroller: dict[str, float | None] = {}     # kontrollernas tal, för kalibreringen (METOD M54)
 
     def synlig(namn: str, a, mitt, c, a0, mitt0, c0) -> None:
         """Vinkeln i leden som måttet `namn`, eller orsaken till att den saknas. METOD M52"""
@@ -357,9 +516,14 @@ def mat(s: Sving) -> dict:
         if hf is not None:
             m["handfart_max"] = hf[0] / 100.0                       # m/s
             m["handfart_max_fore_traff_ms"] = (f.traff - hf[1]) * 1000.0
+            tider["handfart"] = hf[1]
+            # Samma topp med en smalare utjämning: känslig för utjämningen? METOD M58
+            kontroller["handfart_kvot"] = FA.kvot_mot_smal(nedsving, hf, lambda tau: FA.handens_fart(
+                t, s.xy[:, HANDLED_F], s.xy[:, HANDLED_B], tau, True, FA.SMAL_SIGMA_S) * cm)
         af = FA.maxpunkt(nedsving, FA.vinkelfart(t, s.xy[:, AXEL_F], s.xy[:, HANDLED_F], nedsving))
         if af is not None:
             m["framre_arm_vinkelfart_max"] = af[0]
+            tider["vinkelfart"] = af[1]
 
     for fz in EFTER:                                                 # METOD M31, METOD M32
         m[f"brost_lyft_{fz}"] = flytt(C, 1, fz, -1.0)
@@ -399,8 +563,14 @@ def mat(s: Sving) -> dict:
         saknas["tempo"] = saknas["baksving_s"] = orsak
 
     matt = {k: float(v) for k, v in m.items() if v is not None and math.isfinite(v)}
-    kvalitet = {"rensning": rensning, "topp_plata_s": topp_plata(t, G, f),
-                "saknas": {k: v for k, v in sorted(saknas.items()) if k not in matt}}
+    plata = topp_plata(t, G, f)
+    t2 = F.andra_toppen(t, G, b[:, AXEL_F], hand_f, f, s.vy)                      # METOD M55
+    kontroller["topp_andra_s"] = None if t2 is None else t2 - f.topp
+    kontroller["traff_hojd"] = F.traffens_hojd(t, G, f)                          # METOD M57
+    kvalitet = {"rensning": rensning, "topp_plata_s": plata,
+                "saknas": {k: v for k, v in sorted(saknas.items()) if k not in matt},
+                "varningar": varningar(matt, kontroller, plata, t, s.xy, f, pos, tider),
+                **{k: v for k, v in kontroller.items() if v is not None}}
     return {"vy": s.vy, "hand": s.hand, "cm_per_px": cm,
             "faser": {"start": f.start, "topp": f.topp, "traff": f.traff, "start_osaker": f.start_osaker},
             "positioner": pos, "matt": matt, "kvalitet": kvalitet}

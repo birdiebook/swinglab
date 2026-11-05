@@ -35,6 +35,9 @@ public struct ShotMeasure: Codable, Equatable, Sendable {
     /// Mått som saknas → orsaken (`Kvalitet.saknas`, S3b lager 1); nil = inget saknas, eller
     /// mätt före version 6.
     public var missing: [String: String]?
+    /// Mått som visas men är osäkra → orsakerna (`Kvalitet.varningar`, METOD M54); nil = inga
+    /// varningar, eller mätt före version 7.
+    public var warnings: [String: [String]]?
 
     public init(heightM: Double, heightAssumed: Bool, cmPerPx: Double? = nil, positions: [String: Double] = [:],
                 values: [String: Double] = [:], problem: String? = nil) {
@@ -57,8 +60,9 @@ public enum ShotMeasuring {
     /// Mätningens version: ett slag mätt med en äldre mäts om. 2 = starten bakifrån ur
     /// posen (METOD M40), 3 = M41–M43 och spridningen (S1e), 4 = synliga segment (METOD M52),
     /// 5 = stilla adress framifrån (METOD M4), 6 = rensningen (METOD M53) och för långa
-    /// segment (METOD M52). Samma som PC:ns `matt.MATVERSION`. METOD MS14
-    public static let version = 6
+    /// segment (METOD M52), 7 = varningarna (METOD M54). Samma som PC:ns `matt.MATVERSION`.
+    /// METOD MS14
+    public static let version = 7
     /// Längderna som går att välja i appen, cm (inom formatets 1,0–2,5 m). METOD MS14
     public static let heightChoicesCm = 140...210
 
@@ -96,6 +100,7 @@ public enum ShotMeasuring {
             ut.values = r.matt.filter { $0.value.isFinite }
             ut.startUncertain = r.faser.startOsaker ? true : nil
             ut.missing = r.kvalitet.saknas.isEmpty ? nil : r.kvalitet.saknas
+            ut.warnings = r.kvalitet.varningar.isEmpty ? nil : r.kvalitet.varningar
             ut.start = r.faser.start.flatMap { $0.isFinite ? $0 : nil }
             // Klubbans mått ur markeringarna (S7a, METOD M46–M49) bland slagets mått, och rutan
             // han valde för P2, P6 och P8 som slagets position (M45). Samma som PC:ns analys.
@@ -218,6 +223,12 @@ extension PassState {
     /// Varför mått saknas, för samma slag och i samma ordning som `countedSwings` (S3b lager 1).
     public var countedMissing: [[String: String]] {
         shots.filter(\.counts).compactMap { s in s.measure.map { $0.missing ?? [:] } }
+    }
+
+    /// Vilka mått som visas men är osäkra och varför, för samma slag och i samma ordning som
+    /// `countedSwings` (METOD M54).
+    public var countedWarnings: [[String: [String]]] {
+        shots.filter(\.counts).compactMap { s in s.measure.map { $0.warnings ?? [:] } }
     }
 
     /// Passet som vyerna ser det (Swing/Visning): dagen, klubban, svingarna som räknas och

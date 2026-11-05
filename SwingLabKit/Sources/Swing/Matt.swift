@@ -27,6 +27,15 @@ public struct Kvalitet: Equatable, Sendable {
     /// Mått som saknas → orsaken: "led_saknas", "segment_kort", "segment_langt" (METOD M52),
     /// "start_saknas", "start_osaker" (tempot och baksvingen, METOD M5).
     public let saknas: [String: String]
+    /// Mått som visas men är osäkra → orsakerna, sorterade: "topp_osaker", "luckor_kring_fasen",
+    /// "traff_osaker", "filterkanslig", "fas_orimlig" (METOD M54–M59). Bara mått som finns.
+    public let varningar: [String: [String]]
+    /// Den andra signalens topp minus toppen, s; nil när den inte går att räkna. METOD M55
+    public let toppAndraS: Double?
+    /// Händerna i klicket över sin lägsta punkt, andel av vägen adress → topp. METOD M57
+    public let traffHojd: Double?
+    /// Handens toppfart mot den smalare utjämningens (bara framifrån). METOD M58
+    public let handfartKvot: Double?
 }
 
 /// Svingens mått per vy, i Sportsbox-form, portade från Golf SG
@@ -64,6 +73,33 @@ public enum Matt {
     public static let plataSokS = 0.30
     /// Kortare axellinje i bild vid toppen, cm = axlarna skymmer varandra. METOD M39
     public static let axlarMinCm = 15.0
+
+    // Varningarna: mått som visas men är osäkra (METOD M54). Gränserna är antaganden.
+    /// Bredare platå än så = toppen prövas mot en andra signal. METOD M55
+    public static let plataBredS = 0.08
+    /// Signalerna mer än så isär = toppen osäker. METOD M55
+    public static let toppOenigS = 0.05
+    /// Rutorna så nära måttets ögonblick räknas. METOD M56
+    public static let luckaFonsterS = 0.05
+    /// Större andel saknade av måttets egna leder där = varning. METOD M56
+    public static let luckaAndel = 0.20
+    /// Händerna i klicket högre än så över sin lägsta punkt = träffen osäker. METOD M57
+    public static let synkAndel = 0.10
+    /// En nedsving utanför (s) = toppen eller träffen fel. METOD M59
+    public static let nedsvingRimlig = (fran: 0.20, till: 0.45)
+    /// Ett tempo utanför = toppen, starten eller träffen fel. METOD M59
+    public static let tempoRimligt = (fran: 2.0, till: 4.5)
+    /// Måtten som beror på toppens tid. METOD M55, METOD M59
+    public static let toppens = ["tempo", "baksving_s", "nedsving_s"]
+    /// Måtten som beror på träffens tid utöver de som slutar på _traff. METOD M57
+    public static let traffens: Set<String> = ["brost_bojning_tapp", "backen_resa_framat", "tempo", "nedsving_s",
+                                               "genomsving_s", "handfart_max", "handfart_max_fore_traff_ms",
+                                               "framre_arm_vinkelfart_max", "backen_lyft_min", "backen_skifte_ms"]
+    /// Handens fart och dess tid. METOD M58
+    public static let farternas = ["handfart_max", "handfart_max_fore_traff_ms"]
+    /// Händerna efter greppregeln (M1) bland luckornas leder: saknade bara när båda handlederna
+    /// saknas. METOD M56
+    public static let grepp = -1
 
     static let faser: [Fas] = [.adress, .topp, .traff, .finish]
     static let efter: [Fas] = [.topp, .traff, .finish]
@@ -168,6 +204,144 @@ public enum Matt {
             hi += 1
         }
         return t[ok[hi]] - t[ok[lo]]
+    }
+
+    /// Måttet beror på träffens tid: ett läge i klicket, eller en tid, fart eller ett fönster
+    /// som slutar där. Samma som `matt.traffens_matt`. METOD M57
+    public static func traffensMatt(_ namn: String) -> Bool {
+        namn.hasSuffix("_traff") || traffens.contains(namn)
+    }
+
+    /// Måttets egna leder (`Led.rawValue`, `grepp` = händerna) och ögonblicken det läses i, för
+    /// luckorna kring fasen: "start", "topp", "traff", "P3", "P5", "handfart", "vinkelfart". Mått
+    /// som är medel över ett fönster eller sökningar över svingen har inga. Samma ordning och
+    /// regler som `matt.luckornas_leder`. METOD M56
+    public static func luckornasLeder(_ namn: String) -> (leder: [Int], tider: [String]) {
+        let tider: [String]
+        if namn == "tempo" || namn == "baksving_s" {
+            tider = ["start", "topp"]
+        } else if namn == "nedsving_s" || namn == "backen_recentrering" {
+            tider = ["topp"]
+        } else if namn.hasPrefix("handfart_max") {
+            tider = ["handfart"]
+        } else if namn == "framre_arm_vinkelfart_max" {
+            tider = ["vinkelfart"]
+        } else if namn == "backen_resa_framat" {
+            tider = ["topp", "traff"]
+        } else if namn == "backen_resa_p5" {
+            tider = ["topp", "P5"]
+        } else if namn == "brost_bojning_tapp" {
+            tider = ["traff"]
+        } else if namn == "framre_armbage_efter_traff" {
+            tider = []
+        } else if namn.hasSuffix("_topp") {
+            tider = ["topp"]
+        } else if namn.hasSuffix("_traff") {
+            tider = ["traff"]
+        } else if namn.hasSuffix("_p3") {
+            tider = ["P3"]
+        } else {
+            tider = []
+        }
+        func r(_ l: [Led]) -> [Int] { l.map(\.rawValue) }
+        func borjar(_ p: [String]) -> Bool { p.contains { namn.hasPrefix($0) } }
+        let axlar = r([.axelF, .axelB]), hofter = r([.hoftF, .hoftB])
+        let leder: [Int]
+        if toppens.contains(namn) {
+            leder = [grepp]
+        } else if borjar(["handfart"]) {
+            leder = r([.handledF, .handledB])
+        } else if borjar(["framre_arm_vinkelfart"]) {
+            leder = r([.axelF, .handledF])
+        } else if borjar(["framre_arm_plan"]) {
+            leder = r([.axelF, .axelB, .handledF])
+        } else if borjar(["framre_armbage"]) {
+            leder = r([.axelF, .armbageF, .handledF])
+        } else if borjar(["bakre_armbage"]) {
+            leder = r([.axelB, .armbageB])
+        } else if borjar(["framre_kna_sway"]) {
+            leder = r([.knaF])
+        } else if borjar(["bakre_kna_sway"]) {
+            leder = r([.knaB])
+        } else if borjar(["framre_kna"]) {
+            leder = r([.hoftF, .knaF, .fotledF])
+        } else if borjar(["bakre_kna"]) {
+            leder = r([.hoftB, .knaB, .fotledB])
+        } else if borjar(["backen_bojning"]) {
+            leder = axlar + hofter + r([.knaB])
+        } else if borjar(["brost_bojning", "sidbojning", "sway_gap"]) {
+            leder = axlar + hofter
+        } else if borjar(["brost", "axellinje"]) {
+            leder = axlar
+        } else if borjar(["backen", "hoftlinje"]) {
+            leder = hofter
+        } else if borjar(["huvud"]) {
+            leder = r([.nasa])
+        } else if borjar(["hander_fore_backen"]) {
+            leder = [grepp] + hofter
+        } else if borjar(["hand_", "hander_"]) {
+            leder = [grepp]
+        } else {
+            leder = []
+        }
+        return leder.isEmpty || tider.isEmpty ? ([], []) : (leder, tider)
+    }
+
+    /// Andelen av rutorna inom `luckaFonsterS` från tc där leden saknas (låg konfidens eller
+    /// borttagen av rensningen); `grepp` saknas bara där båda handlederna saknas (M1). Rutor som
+    /// telefonen inte gav räknas inte (där gäller M3:s lucka). 1 utan rutor. METOD M56
+    static func saknadAndel(_ t: [Double], _ leder: [[Punkt]], led: Int, _ tc: Double) -> Double {
+        var n = 0, ute = 0
+        for k in t.indices where abs(t[k] - tc) <= luckaFonsterS {
+            n += 1
+            let borta = led == grepp
+                ? !leder[Led.handledF.rawValue][k].hel && !leder[Led.handledB.rawValue][k].hel
+                : !leder[led][k].hel
+            if borta { ute += 1 }
+        }
+        return n == 0 ? 1.0 : Double(ute) / Double(n)
+    }
+
+    /// Mått som visas men är osäkra → orsakerna, sorterade. Bara mått som finns: ett mått som
+    /// saknas har sin orsak i `saknas`. `kontroller` = kontrollernas tal ("topp_andra_s",
+    /// "traff_hojd", "handfart_kvot"), `tider` = farternas toppar. Samma som `matt.varningar`.
+    /// METOD M54
+    static func varningar(_ matt: [String: Double], kontroller: [String: Double], plata: Double?, _ t: [Double],
+                          _ leder: [[Punkt]], _ f: Fastider, _ pos: Positioner,
+                          tider: [String: Double]) -> [String: [String]] {
+        var ut: [String: Set<String>] = [:]
+        func varna(_ namn: String, _ orsak: String) {
+            if matt[namn] != nil { ut[namn, default: []].insert(orsak) }
+        }
+        if let p = plata, p > plataBredS, let d2 = kontroller["topp_andra_s"], abs(d2) > toppOenigS {   // METOD M55
+            for n in toppens { varna(n, "topp_osaker") }
+        }
+        var ogonblick: [String: Double] = ["topp": f.topp, "traff": f.traff]
+        if let s = f.start { ogonblick["start"] = s }
+        if let p3 = pos.p3 { ogonblick["P3"] = p3 }
+        if let p5 = pos.p5 { ogonblick["P5"] = p5 }
+        for (k, v) in tider { ogonblick[k] = v }
+        for namn in matt.keys {                                                                          // METOD M56
+            let (lederna, nar) = luckornasLeder(namn)
+            let glest = nar.contains { x in
+                guard let tc = ogonblick[x] else { return false }
+                return lederna.contains { saknadAndel(t, leder, led: $0, tc) > luckaAndel }
+            }
+            if glest { varna(namn, "luckor_kring_fasen") }
+        }
+        if let h = kontroller["traff_hojd"], h > synkAndel {                                              // METOD M57
+            for namn in matt.keys where traffensMatt(namn) { varna(namn, "traff_osaker") }
+        }
+        if let k = kontroller["handfart_kvot"], k < Farter.filterKvot {                                   // METOD M58
+            for n in farternas { varna(n, "filterkanslig") }
+        }
+        let ned = matt["nedsving_s"], tempo = matt["tempo"]                                               // METOD M59
+        let orimlig = (ned.map { !($0 >= nedsvingRimlig.fran && $0 <= nedsvingRimlig.till) } ?? false)
+            || (tempo.map { !($0 >= tempoRimligt.fran && $0 <= tempoRimligt.till) } ?? false)
+        if orimlig {
+            for n in toppens { varna(n, "fas_orimlig") }
+        }
+        return ut.mapValues { $0.sorted() }
     }
 
     /// Vinkeln från axellinjen (främre axel → bakre) till främre armen (främre axel → den
@@ -280,6 +454,8 @@ public enum Matt {
 
         var m: [String: Double] = [:]
         var saknas: [String: String] = [:]
+        var tider: [String: Double] = [:]          // farternas toppar, för luckorna kring dem (METOD M56)
+        var handfartKvot: Double? = nil            // METOD M58
         /// Vinkeln i leden som måttet `namn`, eller orsaken till att den saknas. METOD M52
         func synlig(_ namn: String, _ a: Punkt, _ mitt: Punkt, _ c: Punkt, _ a0: Punkt, _ mitt0: Punkt, _ c0: Punkt) {
             if let orsak = segmentOrsak(a, mitt, c, a0, mitt0, c0) {
@@ -388,10 +564,17 @@ public enum Matt {
             if let hf = Farter.maxpunkt(nedsving, hand.map { $0 * cm }) {
                 m["handfart_max"] = hf.varde / 100.0                                // m/s
                 m["handfart_max_fore_traff_ms"] = (f.traff - hf.tid) * 1000.0
+                tider["handfart"] = hf.tid
+                // Samma topp med en smalare utjämning: känslig för utjämningen? METOD M58
+                handfartKvot = Farter.kvotMotSmal(nedsving, hf) { tau in
+                    Farter.handensFart(t, fram: s.led(.handledF), bak: s.led(.handledB), tau, bada: true,
+                                       sigma: Farter.smalSigmaS).map { $0 * cm }
+                }
             }
             if let af = Farter.maxpunkt(nedsving, Farter.vinkelfart(t, fran: s.led(.axelF), till: s.led(.handledF),
                                                                     nedsving)) {
                 m["framre_arm_vinkelfart_max"] = af.varde
+                tider["vinkelfart"] = af.tid
             }
         }
 
@@ -438,8 +621,18 @@ public enum Matt {
             saknas["baksving_s"] = orsak
         }
         let matt = m.filter { $0.value.isFinite }
-        let kvalitet = Kvalitet(rensning: rensning, toppPlataS: toppPlata(t, G, f),
-                                saknas: saknas.filter { matt[$0.key] == nil })
+        let plata = toppPlata(t, G, f)
+        let toppAndra = Faser.andraToppen(t, G, axelF: led(.axelF), handF: handF, f, vy: s.vy).map { $0 - f.topp }
+        let traffHojd = Faser.traffensHojd(t, G, f)                                 // METOD M57
+        var kontroller: [String: Double] = [:]                                      // METOD M54
+        if let v = toppAndra { kontroller["topp_andra_s"] = v }                     // METOD M55
+        if let v = traffHojd { kontroller["traff_hojd"] = v }
+        if let v = handfartKvot { kontroller["handfart_kvot"] = v }
+        let kvalitet = Kvalitet(rensning: rensning, toppPlataS: plata,
+                                saknas: saknas.filter { matt[$0.key] == nil },
+                                varningar: varningar(matt, kontroller: kontroller, plata: plata, t, s.leder, f, pos,
+                                                     tider: tider),
+                                toppAndraS: toppAndra, traffHojd: traffHojd, handfartKvot: handfartKvot)
         return SvingResultat(vy: s.vy, hand: s.hand, cmPerPx: cm, faser: f, positioner: pos, matt: matt,
                              kvalitet: kvalitet)
     }

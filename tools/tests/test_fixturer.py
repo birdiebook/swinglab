@@ -45,6 +45,9 @@ class Fixturerna(unittest.TestCase):
     def test_svingarna_finns(self) -> None:
         self.assertEqual(list(self.f["svingar"]), list(gen.FIXTURSVINGAR))
 
+    def test_varningarnas_tabeller(self) -> None:
+        self.assertEqual(json.loads(self.f["kontrolltabeller"]), gen.kontrolltabeller())
+
     def test_pythons_tal_stammer_for_varje_sving(self) -> None:
         for namn, (indata, python) in self.f["svingar"].items():
             with self.subTest(sving=namn):
@@ -108,6 +111,18 @@ class Fixturerna(unittest.TestCase):
         self.assertIsNone(lucka["positioner"]["P5"])               # 0,104 s: saknas (METOD M3, M28)
         self.assertNotIn("backen_resa_p5", lucka["matt"])
         self.assertIn("backen_sway_p3", lucka["matt"])
+        # Varningarna (METOD M54–M59): varje kontroll har en sving med felet, i båda språken.
+        varn = {n: json.loads(p)["kvalitet"]["varningar"] for n, (_, p) in self.f["svingar"].items()}
+        orsaker = {n: {o for v in d.values() for o in v} for n, d in varn.items()}
+        self.assertEqual(orsaker["fo_topp_plata"], {"topp_osaker", "fas_orimlig"})
+        self.assertEqual(orsaker["dtl_topp_plata"], {"topp_osaker", "fas_orimlig"})
+        self.assertEqual(varn["fo_lucka_topp"], {"framre_armbage_topp": ["luckor_kring_fasen"]})
+        self.assertEqual(orsaker["dtl_dold_klick"], {"traff_osaker"})
+        self.assertEqual(orsaker["fo_fartfel"], {"filterkanslig"})
+        self.assertEqual(orsaker["fo_nara_traff"], {"traff_osaker", "fas_orimlig"})
+        self.assertEqual({n for n, o in orsaker.items() if o},
+                         {"fo_topp_plata", "dtl_topp_plata", "fo_lucka_topp", "dtl_dold_klick", "fo_fartfel",
+                          "fo_nara_traff", "fo_luckor", "fo_lucka_arm"})
 
     def test_sessionen_stammer(self) -> None:
         s = json.loads(self.f["session"])

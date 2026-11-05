@@ -110,11 +110,17 @@ def mat_paket(p: Paket, langd_m: float) -> list[dict]:
                     r["positioner"][m["position"]] = m["t"]
             rad["klubba_markerad"] = any(m["grepp"] is not None for m in km)
         rad.update(cm_per_px=r["cm_per_px"], faser=r["faser"], positioner=r["positioner"], matt=r["matt"])
-        # Varför mått saknas och vad rensningen gjorde, när något finns (S3b lager 1, METOD M52, M53).
+        # Varför mått saknas, vilka som visas men är osäkra och vad rensningen gjorde, när något
+        # finns (S3b lager 1, METOD M52, M53, M54), och kontrollernas tal för kalibreringen.
         if r["kvalitet"]["saknas"]:
             rad["saknas"] = r["kvalitet"]["saknas"]
+        if r["kvalitet"]["varningar"]:
+            rad["varningar"] = r["kvalitet"]["varningar"]
         if any(r["kvalitet"]["rensning"].values()):
             rad["rensning"] = {k: v for k, v in r["kvalitet"]["rensning"].items() if v}
+        kontroller = {k: r["kvalitet"][k] for k in M.KONTROLLER if r["kvalitet"].get(k) is not None}
+        if kontroller:
+            rad["kontroller"] = kontroller
         ut.append(rad)
     # Första serien: de fem första mätta slagen i den första serien. METOD MT2
     forsta = [r for r in ut if "matt" in r and r["serie"] == serier[0]][:FORSTA_SERIEN_SLAG]
@@ -358,11 +364,13 @@ def svingar_for(analys: dict, kl) -> list[dict]:
 
 
 def _sving(r: dict) -> dict:
-    """Ett mätt slag som sving: vyn och måtten, och varför mått saknas när något gör det
-    (S3b lager 1)."""
+    """Ett mätt slag som sving: vyn och måtten, varför mått saknas och vilka som visas men är
+    osäkra, när något gör det (S3b lager 1, METOD M54)."""
     s = {"vy": r["vy"], "matt": r["matt"]}
     if r.get("saknas"):
         s["saknas"] = r["saknas"]
+    if r.get("varningar"):
+        s["varningar"] = r["varningar"]
     return s
 
 

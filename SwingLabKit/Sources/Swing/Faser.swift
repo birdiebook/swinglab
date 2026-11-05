@@ -69,6 +69,10 @@ public enum Faser {
     public static let brusK = 3.0
     /// Skakningen över 1,5 % av vägen = starten osäker. METOD M40
     public static let osakerAndel = 0.015
+    /// Den andra signalens vändning söks högst så långt från toppen. METOD M55
+    public static let andraToppSokS = 0.30
+    /// Händernas lägsta punkt söks högst så långt från klicket. METOD M57
+    public static let synkFonsterS = 0.10
 
     /// Händerna sitter ihop på greppet: en saknad handled tar den andras plats.
     /// Saknas båda är händerna borta i rutan. METOD M1
@@ -340,5 +344,63 @@ public enum Faser {
         case .topp: return vid(t, p, f.topp)
         case .traff: return vid(t, p, f.traff)
         }
+    }
+
+    /// Toppen ur en andra signal, som vändningen (GolfDB: där klubban byter riktning), inom
+    /// `andraToppSokS` från toppen: framifrån där främre armen (axeln → den egna handleden)
+    /// vridit längst bakåt (vinkeln mot lodlinjen nedåt, räknad vidare från ruta till ruta, som
+    /// M37), bakifrån där händerna vänder i sidled (längst från adressens x åt det håll de gick i
+    /// baksvingen). Serierna utjämnade (M3); tiden förfinas med parabeln genom rutan och dess
+    /// grannar (M4). nil när vändningen ligger i fönstrets kant, en granne ligger mer än
+    /// `maxLuckaS` bort eller signalen inte går att räkna. Varnar bara: toppen är fortfarande
+    /// händernas högsta punkt. Samma som `faser.andra_toppen`. METOD M55
+    public static func andraToppen(_ t: [Double], _ g: [Punkt], axelF: [Punkt], handF: [Punkt], _ f: Fastider,
+                                   vy: Vy) -> Double? {
+        var ok: [Int] = []
+        var s: [Double] = []
+        if vy == .fo {
+            var raa: [Double] = []
+            for k in t.indices where abs(t[k] - f.topp) <= andraToppSokS {
+                let d = handF[k] - axelF[k]
+                guard d.hel else { continue }
+                ok.append(k)
+                raa.append(Matt.grader(atan2(-d.x, d.y)))
+            }
+            guard ok.count >= 3 else { return nil }
+            s = [0.0]
+            for i in 1..<ok.count { s.append(s[i - 1] + Farter.vinkel(raa[i] - raa[i - 1])) }
+        } else {
+            let xAdr = lage(t, g, f, .adress).x, xTopp = vid(t, g, f.topp).x
+            guard xAdr.isFinite && xTopp.isFinite else { return nil }
+            let tecken = xTopp >= xAdr ? 1.0 : -1.0
+            for k in t.indices where g[k].hel && abs(t[k] - f.topp) <= andraToppSokS {
+                ok.append(k)
+                s.append(tecken * g[k].x)
+            }
+            guard ok.count >= 3 else { return nil }
+        }
+        var j = 0
+        for i in 1..<s.count where s[i] > s[j] { j = i }
+        guard j > 0 && j < ok.count - 1 else { return nil }
+        let a = ok[j - 1], b = ok[j], c = ok[j + 1]
+        guard t[b] - t[a] <= maxLuckaS && t[c] - t[b] <= maxLuckaS else { return nil }
+        return toppunkt(t[a], -s[j - 1], t[b], -s[j], t[c], -s[j + 1])
+    }
+
+    /// Händerna i klicket (M3) över sin lägsta punkt (störst y bland rutorna) inom
+    /// `synkFonsterS` från klicket, som andel av vägen adress → topp: nära 0 när klicket ligger
+    /// där händerna är som lägst. nil när något av det saknas. Samma som `faser.traffens_hojd`.
+    /// METOD M57
+    public static func traffensHojd(_ t: [Double], _ g: [Punkt], _ f: Fastider) -> Double? {
+        var lagst = -Double.infinity
+        var n = 0
+        for k in t.indices where g[k].hel && abs(t[k] - f.traff) <= synkFonsterS {
+            lagst = Swift.max(lagst, g[k].y)
+            n += 1
+        }
+        let yk = vid(t, g, f.traff).y
+        let vag = lage(t, g, f, .adress).y - vid(t, g, f.topp).y
+        guard n > 0 && yk.isFinite && vag.isFinite && vag > 0 else { return nil }
+        return (lagst - yk) / vag
     }
 }

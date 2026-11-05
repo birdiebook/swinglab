@@ -34,6 +34,10 @@ POSE_ANDEL = 0.03        # METOD M40: starten = posen har rört sig 3 % av väge
 BRUS_K = 3.0             # METOD M40: … men minst 3 gånger posens skakning i adressen
 OSAKER_ANDEL = 0.015     # METOD M40: skakningen över 1,5 % av vägen = starten osäker
 
+# Toppens andra signal och träffen mot videon (METOD M55, M57): varnar, ändrar inget
+ANDRA_TOPP_SOK_S = 0.30  # METOD M55: den andra signalens vändning söks högst så långt från toppen
+SYNK_FONSTER_S = 0.10    # METOD M57: händernas lägsta punkt söks högst så långt från klicket
+
 
 class SvingFel(ValueError):
     """Svingen går inte att mäta (händerna syns inte, skalan saknas)."""
@@ -256,3 +260,61 @@ def lage(t: np.ndarray, p: np.ndarray, f: Faser, fas: str) -> np.ndarray:
     if fas == "traff":
         return vid(t, p, f.traff)
     raise ValueError(f"okänd fas: {fas}")
+
+
+def _vinkel180(d: float) -> float:
+    """Vinkelskillnaden i grader, lagd i (−180, 180]."""
+    return d - 360.0 * math.ceil((d - 180.0) / 360.0)
+
+
+def andra_toppen(t: np.ndarray, G: np.ndarray, axel_f: np.ndarray, hand_f: np.ndarray, f: Faser,
+                 vy: str) -> float | None:
+    """Toppen ur en andra signal, som vändningen (GolfDB: där klubban byter riktning), inom
+    ANDRA_TOPP_SOK_S från toppen: framifrån där främre armen (axeln → den egna handleden)
+    vridit längst bakåt (vinkeln mot lodlinjen nedåt, räknad vidare från ruta till ruta, som
+    M37), bakifrån där händerna vänder i sidled (längst
+    från adressens x åt det håll de gick i baksvingen). Alla serier utjämnade (M3). Tiden
+    förfinas med parabeln genom rutan och dess grannar (M4). None när vändningen ligger i
+    fönstrets kant, en granne saknas eller ligger mer än MAX_LUCKA_S bort, eller signalen
+    inte går att räkna. Varnar bara: toppen är fortfarande händernas högsta punkt. METOD M55"""
+    if vy == "fo":
+        d = hand_f - axel_f
+        ok = np.where(np.isfinite(d).all(axis=1) & (np.abs(t - f.topp) <= ANDRA_TOPP_SOK_S))[0]
+        if len(ok) < 3:
+            return None
+        # Vinkeln räknas vidare från ruta till ruta, så att ett varv förbi ±180° (armen vrider
+        # nästan ett halvt varv från toppen till träffen) inte blir ett hopp.
+        raa = [math.degrees(math.atan2(-d[k, 0], d[k, 1])) for k in ok]
+        s = np.zeros(len(ok))
+        for i in range(1, len(ok)):
+            s[i] = s[i - 1] + _vinkel180(raa[i] - raa[i - 1])
+    else:
+        x_adr = lage(t, G, f, "adress")[0]
+        x_topp = vid(t, G, f.topp)[0]
+        if not (math.isfinite(x_adr) and math.isfinite(x_topp)):
+            return None
+        tecken = 1.0 if x_topp >= x_adr else -1.0
+        ok = np.where(_hela(G) & (np.abs(t - f.topp) <= ANDRA_TOPP_SOK_S))[0]
+        if len(ok) < 3:
+            return None
+        s = tecken * G[ok, 0]
+    j = int(np.argmax(s))
+    if not 0 < j < len(ok) - 1:
+        return None
+    a, b, c = ok[j - 1], ok[j], ok[j + 1]
+    if t[b] - t[a] > MAX_LUCKA_S or t[c] - t[b] > MAX_LUCKA_S:
+        return None
+    return float(toppunkt(t[a], -s[j - 1], t[b], -s[j], t[c], -s[j + 1]))
+
+
+def traffens_hojd(t: np.ndarray, G: np.ndarray, f: Faser) -> float | None:
+    """Händerna i klicket (M3) över sin lägsta punkt (störst y bland rutorna) inom
+    SYNK_FONSTER_S från klicket, som andel av vägen adress → topp. Nära 0 när klicket ligger
+    där händerna är som lägst; långt från 0 när klicket och videon inte går ihop. None när
+    något av det saknas. METOD M57"""
+    sel = np.where(_hela(G) & (np.abs(t - f.traff) <= SYNK_FONSTER_S))[0]
+    yk = vid(t, G, f.traff)[1]
+    vag = lage(t, G, f, "adress")[1] - vid(t, G, f.topp)[1]
+    if len(sel) == 0 or not (math.isfinite(yk) and math.isfinite(vag) and vag > 0):
+        return None
+    return float((G[sel, 1].max() - yk) / vag)

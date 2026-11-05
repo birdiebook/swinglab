@@ -72,6 +72,10 @@ FO = {
     # Noll på platåerna, och bara höfterna: axlarna och händerna rörs inte.
     "sway_ut": 0.0,
     "lyft_ned": 0.0,
+    # Överkroppen sjunker så här många cm under så här många s fram till toppen och kommer
+    # tillbaka i nedsvingen (METOD M55): händerna når sin högsta punkt tidigt på en bred platå,
+    # medan armen vrider (framifrån) och händerna rör sig i sidled (bakifrån) fram till toppen.
+    "sjunk_topp": (0.0, 0.0),
 }
 DTL = {
     "bojning": (40, 38, 34, 10),       # bröstets böjning, grader, + mot bollen
@@ -91,6 +95,7 @@ DTL = {
     "axel_dx": (1.5, 1.5, 1.5, 1.5),
     "axel_dz": (0, 0, 0, 0),
     "lyft_ned": 0.0,                   # bäckenet sjunker extra mitt i nedsvingen, cm (METOD M43)
+    "sjunk_topp": (0.0, 0.0),          # som framifrån (METOD M55)
 }
 
 
@@ -129,6 +134,18 @@ def baksving_bula(t: np.ndarray) -> np.ndarray:
 def nedsving_bula(t: np.ndarray) -> np.ndarray:
     """Bulan mellan toppens och träffens platåer. METOD M43"""
     return bula(t, TIDER["topp"] + 0.06, TIDER["klick"] - 0.04)
+
+
+def sjunk(t: np.ndarray, p: dict) -> np.ndarray:
+    """Överkroppens sänkning i cm (≤ 0): mjukt ner `cm` under `d` s fram till toppen, och
+    tillbaka mellan toppen och träffens platå. Noll utan `sjunk_topp`. METOD M55"""
+    d, cm = p["sjunk_topp"]
+    if not d > 0:
+        return np.zeros_like(t)
+    tt, tb = TIDER["topp"], TIDER["klick"] - 0.04
+    ned = smoothstep((t - (tt - d)) / d)
+    upp = smoothstep((t - tt) / (tb - tt))
+    return -cm * np.where(t <= tt, ned, 1.0 - upp)
 
 
 def _rad(v):
@@ -197,6 +214,7 @@ def figur_fo(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     L[:, 5] = L[:, 3] + fa * under
     L[:, 6] = L[:, 5] + 2.0 * under                   # bakre handen under den främre på greppet
     L[:, 4] = (L[:, 2] + L[:, 6]) / 2 - [0.0, 3.0]
+    L[:, :7, 1] += sjunk(t, p)[:, None]                # överkroppen (METOD M55)
     return L
 
 
@@ -234,6 +252,7 @@ def figur_dtl(t: np.ndarray, p: dict, langd_cm: float) -> np.ndarray:
     G = _p(px0 + 32.0 - 20.0 * u + utanfor + 15.0 * v, pz0 - 12.0 + p["hander_upp"] * u + p["hander_finish"] * v)
     L[:, 5], L[:, 6] = G + [0.5, 1.0], G - [0.5, 1.0]
     L[:, 3] = (L[:, 1] + L[:, 5]) / 2
+    L[:, :7, 1] += sjunk(t, p)[:, None]                # överkroppen (METOD M55)
     return L
 
 
@@ -540,7 +559,7 @@ def facit_start_3d(s3) -> float:
 
 def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.75, brus_px: float = 0.8,
                saknas: float = SAKNAS, fran: float = 0.0, decimaler: int = 2, variera: bool = False,
-               profil: str | None = None) -> tuple[dict, dict]:
+               profil: str | None = None, klick_fel: float = 0.0) -> tuple[dict, dict]:
     """(svingen som dict i filformatet, facit) för en påhittad 3D-sving (`tre_d/sving.py`)
     sedd bakifrån av en kamera DOLD_KAMERA[0] m bakom spelaren på höjden `hojd` m. Händerna
     går först mot kameran och syns knappt i bilden, och står kameran över dem ser de ut
@@ -548,7 +567,8 @@ def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.
     och vinklar, `slumpa_sving`) i stället för grundsvingen; då gäller inte `baksving`.
     `profil` = posemodellens brus ur `tre_d/kamera.py` ("bra", "typiskt", …) i stället
     för vitt brus om `brus_px`: fast avvikelse, vandring, utliggare och skymda leder
-    (konfidens under 0,3 = saknad, METOD M1). Facit: starten på den verkliga banan
+    (konfidens under 0,3 = saknad, METOD M1). `klick_fel` flyttar bara mätningens klick (s),
+    som ett klick som inte går ihop med videon (METOD M57). Facit: starten på den verkliga banan
     (`facit_start_3d`), toppen och träffen ur svingens tider, och tempot därur."""
     from .tre_d import kamera as KM
     from .tre_d import sving as S3
@@ -578,7 +598,7 @@ def sving_dold(seed: int = 1, hojd: float = DOLD_KAMERA[1], baksving: float = 0.
 
     rutor = [{"t": round(float(t[i]), 6), "leder": [led(i, j) for j in range(13)]} for i in range(len(t))]
     d = {"format": 1, "vy": "dtl", "hand": "hoger", "x_mot_bollen": 1, "spelarens_langd_m": round(s3.langd, 4),
-         "t_klick": round(s3.t_traff, 6), "rutor": rutor}
+         "t_klick": round(s3.t_traff + klick_fel, 6), "rutor": rutor}
     start = facit_start_3d(s3)
     facit = {"_start": start, "_topp": s3.t_topp, "_traff": s3.t_traff,
              "tempo": (s3.t_topp - start) / (s3.t_traff - s3.t_topp)}
@@ -684,6 +704,22 @@ FIXTURSVINGAR = {
     # Främre armbågen 20 cm fel i 0,3 s kring toppen (för länge för en spik): ett segment syns
     # längre än i adressen, och vinkeln saknas med orsaken (METOD M52).
     "fo_lang_arm": ("fo", "hoger", 27, 0.8, (), {"spikar": (("armbage_f", 2.05, 48, 0, -20),)}),
+    # Varningarna (METOD M54). Som drivern 2026-11-03: överkroppen sjunker 5 cm de sista 0,15 s
+    # före toppen, så att händerna når sin högsta punkt tidigt på en bred platå medan armen vrider
+    # (framifrån) och händerna vänder i sidled (bakifrån) först vid toppen: tempot, baksvingen och
+    # nedsvingen varnas (M55), och tempot under 2 är orimligt (M59).
+    "fo_topp_plata": ("fo", "hoger", 28, 0.8, (), {"sjunk_topp": (0.15, 5.0)}),
+    "dtl_topp_plata": ("dtl", "hoger", 29, 0.8, (), {"sjunk_topp": (0.15, 5.0)}),
+    # Främre handleden borta 45 ms vid toppen (interpoleras, M3): armbågens vinkel vid toppen
+    # varnas (M56), men inte händernas mått (greppregeln tar den bakre).
+    "fo_lucka_topp": ("fo", "hoger", 30, 0.8, (("handled_v", 2.17, 2.215),), {}),
+    # 3D-svingen bakifrån med klicket 60 ms sent mot videon: måtten vid och efter träffen
+    # varnas (M57).
+    "dtl_dold_klick": ("dtl", "hoger", 31, 0.8, (), {"dold": True, "klick_fel": 0.06}),
+    # Båda handlederna 8 cm fel i två rutor vid handens toppfart (under rensningens 0,25 bål):
+    # toppfarten är känslig för utjämningen (M58).
+    "fo_fartfel": ("fo", "hoger", 32, 0.8, (), {
+        "spikar": (("handled_f", 2.325, 2, 8, 0), ("handled_b", 2.325, 2, 8, 0))}),
 }
 FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decimal, för att hålla filen liten
 
@@ -691,7 +727,8 @@ FRAN_S = 0.50          # fixturerna börjar 0,5 s in i klippet och har en decima
 def fixtursving(namn: str) -> str:
     vy, hand, seed, brus, dolj, ovrigt = FIXTURSVINGAR[namn]
     if ovrigt.get("dold"):
-        return till_json(sving_dold(seed=seed, brus_px=brus, fran=0.0, decimaler=1)[0])   # hela klippet (M40)
+        return till_json(sving_dold(seed=seed, brus_px=brus, fran=0.0, decimaler=1,       # hela klippet (M40)
+                                    klick_fel=ovrigt.get("klick_fel", 0.0))[0])
     return till_json(sving(vy, hand, seed=seed, brus_px=brus, dolj=dolj, fran=FRAN_S, decimaler=1, **ovrigt)[0])
 
 
@@ -699,6 +736,15 @@ def resultat_json(text: str) -> dict:
     r = M.mat(las(text))
     return {"cm_per_px": r["cm_per_px"], "faser": r["faser"], "positioner": r["positioner"], "matt": r["matt"],
             "kvalitet": r["kvalitet"]}
+
+
+def kontrolltabeller() -> dict:
+    """Varningarnas tabeller för varje mått i båda vyerna (METOD M56, M57): måttets leder och
+    ögonblick, och om det beror på träffen, så att Swift prövas på alla mått och inte bara på
+    dem som varnar i fixturerna."""
+    namn = sorted(set(M.MATT["dtl"]) | set(M.MATT["fo"]))
+    return {"luckor": {m: [list(M.luckornas_leder(m)[0]), list(M.luckornas_leder(m)[1])] for m in namn},
+            "traffens": [m for m in namn if M.traffens_matt(m)]}
 
 
 def session_fixtur() -> dict:
@@ -738,6 +784,10 @@ def swift_kalla() -> str:
     delar += [
         "    ]",
         "",
+        "    /// Varningarnas tabeller per mått: lederna och ögonblicken (METOD M56) och måtten som",
+        "    /// beror på träffen (METOD M57).",
+        "    static let kontrolltabeller = " + _raa(json.dumps(kontrolltabeller())),
+        "",
         "    /// Två påhittade pass (måtten per sving), och Pythons sammanfattning,",
         "    /// jämförelse och bedömning mot katalogen.",
         "    static let session = " + _raa(json.dumps(session_fixtur(), ensure_ascii=False)),
@@ -752,11 +802,11 @@ NAMN = re.compile(r'^        \("(\w+)", #"""$', re.M)
 
 
 def las_fixturer(text: str) -> dict:
-    """Fixturfilens delar tillbaka: katalogen, svingarna och sessionen."""
+    """Fixturfilens delar tillbaka: katalogen, svingarna, varningarnas tabeller och sessionen."""
     raa = RAA.findall(text)
     namn = NAMN.findall(text)
     svingar = {n: (raa[1 + 2 * i], raa[2 + 2 * i]) for i, n in enumerate(namn)}
-    return {"katalog": raa[0], "svingar": svingar, "session": raa[-1]}
+    return {"katalog": raa[0], "svingar": svingar, "kontrolltabeller": raa[-2], "session": raa[-1]}
 
 
 def main(argv=None) -> int:

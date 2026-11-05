@@ -39,7 +39,8 @@ struct PythonSving: Decodable {
         }
     }
 
-    /// Rensningen, toppens platå och orsakerna (METOD M53, M4, M52).
+    /// Rensningen, toppens platå, orsakerna, varningarna och kontrollernas tal (METOD M53, M4,
+    /// M52, M54).
     struct Kvalitet: Decodable {
         struct Rensning: Decodable {
             let byten: [String: Int]
@@ -55,10 +56,17 @@ struct PythonSving: Decodable {
         let rensning: Rensning
         let toppPlataS: Double?
         let saknas: [String: String]
+        let varningar: [String: [String]]
+        let toppAndraS: Double?
+        let traffHojd: Double?
+        let handfartKvot: Double?
 
         enum CodingKeys: String, CodingKey {
-            case rensning, saknas
+            case rensning, saknas, varningar
             case toppPlataS = "topp_plata_s"
+            case toppAndraS = "topp_andra_s"
+            case traffHojd = "traff_hojd"
+            case handfartKvot = "handfart_kvot"
         }
     }
 
@@ -119,6 +127,24 @@ struct PythonSession: Decodable {
     let bedomning: [PythonBedomning]
     /// "nu"/"forra" → katalogens spridning (METOD M44)
     let spridning: [String: [PythonSpridning]]
+}
+
+/// Varningarnas tabeller ur Python (METOD M56, M57): mått → [leder, ögonblick], och måtten som
+/// beror på träffen.
+struct PythonKontrolltabeller: Decodable {
+    let luckor: [String: [[JSONTal]]]
+    let traffens: [String]
+
+    /// En leds index eller ett ögonblicks namn i tabellen.
+    enum JSONTal: Decodable, Equatable {
+        case tal(Int)
+        case text(String)
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.singleValueContainer()
+            if let i = try? c.decode(Int.self) { self = .tal(i) } else { self = .text(try c.decode(String.self)) }
+        }
+    }
 }
 
 func avkoda<T: Decodable>(_ typ: T.Type, _ json: String) throws -> T {

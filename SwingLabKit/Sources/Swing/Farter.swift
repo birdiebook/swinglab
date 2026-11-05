@@ -20,6 +20,10 @@ public enum Farter {
     public static let luckaS = 0.020
     /// Finishen = handens fart under 10 % av genomsvingens toppfart. METOD M36
     public static let genomsvingAndel = 0.10
+    /// Den smalare utjämningen som toppfarten jämförs med (2/3 av M3:s σ). METOD M58
+    public static let smalSigmaS = 0.005
+    /// Toppfarten under så stor andel av den smalare = känslig för utjämningen. METOD M58
+    public static let filterKvot = 0.85
 
     /// Tiderna a, a + 1 ms, … till och med b. METOD M35
     public static func rutnat(_ a: Double, _ b: Double) -> [Double] {
@@ -30,13 +34,14 @@ public enum Farter {
 
     /// Rutorna med värde inom 3σ från τ och deras gaussvikter, i tidsordning, eller
     /// nil utan minst minPerSida rutor med värde före τ och lika många efter. METOD M35
-    static func fonster(_ t: [Double], _ ok: [Bool], _ tau: Double) -> (js: [Int], w: [Double])? {
-        let grans = Faser.trunkera * Faser.sigmaS
+    static func fonster(_ t: [Double], _ ok: [Bool], _ tau: Double,
+                        sigma: Double = Faser.sigmaS) -> (js: [Int], w: [Double])? {
+        let grans = Faser.trunkera * sigma
         let js = t.indices.filter { ok[$0] && abs(t[$0] - tau) <= grans }
         let fore = js.filter { t[$0] < tau }.count, efter = js.filter { t[$0] > tau }.count
         guard fore >= minPerSida && efter >= minPerSida else { return nil }
         return (js, js.map { j in
-            let d = (t[j] - tau) / Faser.sigmaS
+            let d = (t[j] - tau) / sigma
             return exp(-0.5 * (d * d))
         })
     }
@@ -59,11 +64,12 @@ public enum Farter {
     }
 
     /// Punktens hastighet i px/s på rutnätet tau ur de råa lägena p, saknad där den
-    /// inte går att räkna. METOD M35
-    public static func hastighet(_ t: [Double], _ p: [Punkt], _ tau: [Double]) -> [Punkt] {
+    /// inte går att räkna. `sigma` = utjämningen (M3; den smalare i M58). METOD M35
+    public static func hastighet(_ t: [Double], _ p: [Punkt], _ tau: [Double],
+                                 sigma: Double = Faser.sigmaS) -> [Punkt] {
         let ok = p.map { $0.hel }
         return tau.map { tc in
-            guard let f = fonster(t, ok, tc) else { return .saknad }
+            guard let f = fonster(t, ok, tc, sigma: sigma) else { return .saknad }
             let dt = f.js.map { t[$0] - tc }
             return Punkt(lutning(dt, f.js.map { p[$0].x }, f.w), lutning(dt, f.js.map { p[$0].y }, f.w))
         }
@@ -79,8 +85,8 @@ public enum Farter {
     /// Med `bada` krävs båda (toppfarten); annars gäller den ena där bara den går att
     /// räkna (finishens tid). METOD M35, METOD M36
     public static func handensFart(_ t: [Double], fram: [Punkt], bak: [Punkt], _ tau: [Double],
-                                   bada: Bool) -> [Double] {
-        let vf = hastighet(t, fram, tau), vb = hastighet(t, bak, tau)
+                                   bada: Bool, sigma: Double = Faser.sigmaS) -> [Double] {
+        let vf = hastighet(t, fram, tau, sigma: sigma), vb = hastighet(t, bak, tau, sigma: sigma)
         return tau.indices.map { i in
             let f = vf[i].hel, b = vb[i].hel
             if f && b { return hypot((vf[i].x + vb[i].x) / 2, (vf[i].y + vb[i].y) / 2) }
@@ -145,6 +151,19 @@ public enum Farter {
         let k0 = idx[j - 1], k2 = idx[j + 1]
         let tc = Faser.toppunkt(tau[k0], -s[k0], tau[k1], -s[k1], tau[k2], -s[k2])
         return (parabel(tau[k0], s[k0], tau[k1], s[k1], tau[k2], s[k2], tc), tc)
+    }
+
+    /// Toppen med den vanliga utjämningen (värdet ur `maxpunkt`) delad med det största värdet
+    /// med den smalare (`smal(tider)`, samma enhet) på rutnätets punkter inom `naraS` från
+    /// toppens tid. Inte det största över hela nedsvingen: bruset drar den smalare seriens
+    /// största värde uppåt. nil när den smalare saknas där. Samma som `farter.kvot_mot_smal`.
+    /// METOD M58
+    public static func kvotMotSmal(_ tau: [Double], _ topp: (varde: Double, tid: Double),
+                                   smal: ([Double]) -> [Double]) -> Double? {
+        let nara = tau.filter { abs($0 - topp.tid) <= naraS }
+        guard !nara.isEmpty else { return nil }
+        guard let m = smal(nara).filter(\.isFinite).max(), m > 0 else { return nil }
+        return topp.varde / m
     }
 
     /// Finishen i tid: första gången efter toppfarten på rutnätet som handens fart

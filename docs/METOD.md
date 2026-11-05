@@ -2905,6 +2905,154 @@ testFasernaBerorInteAvLangden`, `test_rensa.OberoendeAvLangden`).
   (vänsterspelaren) med samma rensning i Python och Swift (`MattTests`). De 14 äldre
   fixturerna ger samma tal som före rensningen. Mätningens version 6 (MS14).
 
+## M54 — Varningarna: mått som visas men är osäkra (S3b lager 1)
+
+Ett mått som är **fel** saknas och bär sin orsak i `kvalitet.saknas` (M52, M5). Ett mått som
+**visas men är osäkert** bär sina orsaker i `kvalitet.varningar`: mått → sorterad lista med
+orsaker, bara för mått som finns (BESLUT B106). Kontrollerna ändrar inga tal och ingen fas:
+toppen är fortfarande händernas högsta punkt och träffen klicket (BESLUT B107).
+
+| Orsak | Kontroll | Mått som varnas |
+|---|---|---|
+| `topp_osaker` | platån bred och en andra signal för toppen långt bort (M55) | tempo, baksving, nedsving |
+| `luckor_kring_fasen` | måttets egna leder saknas kring dess ögonblick (M56) | måttet |
+| `traff_osaker` | klicket där händerna inte är som lägst (M57) | måtten som beror på träffen |
+| `filterkanslig` | toppfarten krymper med utjämningen (M58) | handens fart och dess tid |
+| `fas_orimlig` | nedsvingen eller tempot orimligt (M59) | tempo, baksving, nedsving |
+
+- **Kontrollernas tal** står i `kvalitet` när de går att räkna: `topp_plata_s` (M4),
+  `topp_andra_s` (M55), `traff_hojd` (M57) och `handfart_kvot` (M58), och följer med i
+  analysens rader som `kontroller` (`matt.KONTROLLER`), så att gränserna kan kalibreras mot
+  riktiga pass utan att räkna om. Analysens rad bär `varningar` när något varnas.
+- **Flödet:** `matt.mat` → analysens rader (`analys.py`, `_sving`) → frågan till Claude (MT13);
+  på telefonen `Matt.mat` → `ShotMeasure.warnings` → `Slagrad.varningar` → `fragaData` (MS14).
+  Appen visar dem inte än (granskningen, lager 1 och 2).
+- **Gränserna är antaganden** (research S3b, kvalitetskontroller, tabellens 16 kontroller;
+  inga publicerade golfvärden), utom där en rad säger annat. Mätningens version 7 (MS14,
+  BESLUT B108).
+- **Provat** på påhittade svingar: fem svingar med inlagda fel (`fo_topp_plata`,
+  `dtl_topp_plata`, `fo_lucka_topp`, `dtl_dold_klick`, `fo_fartfel`) ger sina orsaker i
+  Python och Swift (`test_varningar`, `MattTests.testVarningarna`); de 17 äldre fixturerna
+  ger samma tal som förut, och varnar bara där felet finns (`fo_luckor`, `fo_lucka_arm`,
+  `fo_nara_traff`). Rena svingar (figuren, 20 frön per vy, 0,8 och 3 px brus) varnar aldrig.
+  Varningarnas tabeller (leder, ögonblick, träffens mått) jämförs mått för mått mellan
+  språken (`Fixturer.kontrolltabeller`).
+
+## M55 — Toppens andra signal (topp_osaker)
+
+- **Problemet** (M4, öppen fråga): med driver kan händerna stå nästan still högst upp medan
+  armen och klubban fortsätter, och händernas högsta punkt hamnar då tidigt på platån. Toppen
+  står kvar som händernas högsta punkt (BESLUT B107); kontrollen varnar.
+- **Den andra signalen** (`faser.andra_toppen`, `Faser.andraToppen`), som vändningen (GolfDB:
+  "där klubban byter riktning"), inom **0,30 s** från toppen (`ANDRA_TOPP_SOK_S`, som platåns
+  sökning): **framifrån** där främre armen (axeln → den egna handleden, utjämnade, M3) vridit
+  längst bakåt, vinkeln mot lodlinjen nedåt räknad vidare från ruta till ruta (armen vrider
+  nästan ett halvt varv från toppen till träffen; utan det tog ett varv förbi ±180° en ruta i
+  nedsvingen för vändningen, uppmätt på 3D-modellen); **bakifrån** där händerna vänder i sidled
+  (längst från adressens x åt det håll de gick i baksvingen). Tiden förfinas som toppen (M4).
+  Ingen signal när vändningen ligger i fönstrets kant eller en granne ligger mer än 0,10 s bort
+  (M3); då varnas inget. `kvalitet.topp_andra_s` = signalens topp − toppen.
+- **Varningen:** platån (M4) bredare än **0,08 s** (`PLATA_BRED_S`) och signalerna mer än
+  **0,05 s** isär (`TOPP_OENIG_S`) → `topp_osaker` på tempot, baksvingen och nedsvingen (alla
+  tre räknas från toppen). **antagande** (research S3b: 0,08 och 0,05 s). En toppfel på 0,05 s
+  flyttar tempot cirka 0,5 med en nedsving på 0,3 s.
+- **Uppmätt:** figuren (20 frön, 0,8 / 3 px) −0,011…+0,010 / −0,045…+0,026 s framifrån och
+  −0,034…+0,024 / −0,050…+0,033 s bakifrån; ingen varning. 3D-modellen (`tre_d/sving.py`,
+  20 slumpade svingar, kameran 3 m bort i höfthöjd): framifrån −0,036…+0,044 s även med
+  posemodellens brus "typiskt"; **bakifrån vänder händerna i sidled systematiskt efter sin högsta
+  punkt, +0,037…+0,057 s utan brus**, och `topp_osaker` kommer på 1–2 av 20 svingar. Bakifrån
+  mäter signalerna alltså olika saker (händerna sjunker innan de går ut mot bollen), och
+  gränsen bakifrån ska prövas på riktiga pass.
+- **Fixturerna** `fo_topp_plata` och `dtl_topp_plata` (`generera.py`, `sjunk_topp`): överkroppen
+  sjunker 5 cm de sista 0,15 s före toppen och kommer tillbaka i nedsvingen, så att händernas
+  högsta punkt kommer 0,07–0,09 s före vändningen på en platå på 0,11–0,14 s; tempot blir ≈ 1,85
+  mot figurens 3,2 (som drivern 2026-11-03), och också M59 varnar.
+- **Klubbans topp (M49) används inte:** klubbans P4 är rutan Johannes markerar, föreslagen ur
+  kroppens topp (M45), inte en egen vändning. Prövas när markeringarna finns på riktiga pass.
+
+## M56 — Luckor kring fasen (luckor_kring_fasen)
+
+- **Regeln:** för varje mått som visas räknas, för var och en av **måttets egna leder** och
+  varje **ögonblick** det läses i, andelen av rutorna inom **±0,05 s** där leden saknas (låg
+  konfidens, M1, eller borttagen av rensningen, M53). Över **20 %** för någon led → varning.
+  **antagande** (research S3b, kontroll 6). Värdet i ögonblicket är då interpolerat över en
+  lucka (M3 interpolerar upp till 0,10 s).
+- **Lederna och ögonblicken** (`matt.luckornas_leder`, `Matt.luckornasLeder`): lägena vid
+  toppen och träffen (`_topp`, `_traff`) och vid P3 och P5 med sina leder (bäckenet = höfterna,
+  bröstet = axlarna, sidböjningen = axlarna och höfterna, huvudet = näsan, armbågen = axeln,
+  armbågen och den egna handleden …); tempot och baksvingen händerna vid starten och toppen,
+  nedsvingen händerna vid toppen; handens fart båda handlederna vid toppfartens tid, armens
+  vinkelfart axeln och handleden vid sin. **Händerna** (greppregeln, M1) saknas bara när båda
+  handlederna saknas. Mått som är medel över ett fönster (adressen, finishen, efter träffen)
+  eller sökningar över svingen (handens bana, skiftet, genomsvingen, stansen) har inget
+  ögonblick och prövas inte.
+- **Rutor som telefonen inte gav alls** räknas inte: de saknas för alla leder, och där gäller
+  M3:s lucka (de påhittade svingarna saknar 36 % av rutnätet, som i oktober).
+- **Provat:** `fo_lucka_topp` (främre handleden borta 45 ms vid toppen) varnar armbågens vinkel
+  men inte händernas mått; `fo_luckor` varnar huvudet vid toppen (näsan borta 0,05 s) och
+  `fo_lucka_arm` armbågen vid P3. **Uppmätt på 3D-modellen** med posemodellens brus "bra"
+  (skymda leder): varning på 19 av 20 svingar i båda vyerna, framifrån bäckenets mått vid toppen
+  (höfterna saknas i 14–23 % av rutorna) och bakifrån främre knäets (27–32 %). Hur ofta det
+  händer på riktiga pass avgör gränsen.
+
+## M57 — Träffen: klicket mot videon (traff_osaker)
+
+- **Kontrollen:** händernas höjd i klicket (M3) över deras lägsta punkt (störst y bland rutorna)
+  inom **±0,10 s** från klicket, som andel av vägen adress → topp (`kvalitet.traff_hojd`,
+  `faser.traffens_hojd`, `Faser.traffensHojd`). Över **10 %** → `traff_osaker` på måtten som
+  beror på träffen: lägena i klicket (`_traff`), tappet, resan framåt, tempot, nedsvingen,
+  genomsvingen, farterna och fönstren från toppen till klicket (`matt.traffens_matt`). Inte
+  baksvingen och finishen (fönstret 1,0–1,2 s efter flyttar sig lite). **antagande.**
+- **Varför händernas lägsta punkt och inte toppfarten:** händerna är som lägst nära träffen för
+  alla svingar (armens båge runt axeln), medan handens toppfart kommer 50–190 ms före träffen
+  beroende på svingen (Sportsbox tour 69 ms, M35; 3D-modellen 110–134 ms, figuren ≈ 175 ms).
+- **Uppmätt på 3D-modellen** (10 svingar per fall): rätt klick ≤ 0,05 även med brus "typiskt";
+  klicket 0,05 s sent 0,15–0,28, 0,05 s tidigt 0,08–0,12 framifrån men 0,04–0,09 bakifrån
+  (missas), och ±0,10 s alltid över 0,30. Figuren står still vid träffen (±0,04 s) och ger
+  under 0,02 även med klicket 0,10 s fel; därför är fixturen 3D-svingen `dtl_dold_klick`
+  (klicket 60 ms sent, 0,32), och `fo_nara_traff` (klicket 0,16 s före figurens träff) varnar
+  också (0,32).
+- **Klicket är fortfarande träffen** (±7 ms, M4; BESLUT B107). Varningen säger att klicket och
+  videon inte går ihop: fel klick (ett annat ljud), eller fel synk mellan ljud och bild.
+
+## M58 — Handens fart: känslig för utjämningen (filterkanslig)
+
+- **Kontrollen:** toppfarten (M35) delad med det största värdet med en **smalare utjämning**
+  (σ = **5 ms**, 2/3 av M3:s 7,5 ms, `SMAL_SIGMA_S`) på rutnätets punkter inom **20 ms** från
+  toppens tid (M35:s `NARA_S`). Under **0,85** (`FILTER_KVOT`) → `filterkanslig` på
+  `handfart_max` och `handfart_max_fore_traff_ms`. En verklig topp är bred (≈ 0,1 s) och
+  krymper knappt med utjämningen; ett hopp i lederna eller en topp vid träffen krymper mycket.
+  **antagande** (research S3b, kontroll 14: 12 mot 20 Hz, kvoten 0,85; Augustus 2020 via
+  researchen, ej läst i original).
+- **Varför nära toppen och inte största värdet över nedsvingen:** bruset drar den smalare
+  seriens största värde uppåt (det största av brusiga punkter), och med 36 % saknade rutor går
+  den smalare toppen ofta inte att räkna (M35:s luckor). Uppmätt med största värdet och
+  σ = 4,5 ms (12 mot 20 Hz): figuren med 3 px gick att räkna på 9 av 20 och varnade på 1,
+  3D-modellen med brus "bra" på 1 av 14 och "typiskt" på 2 av 14. Nära toppen med 5 ms: figuren
+  ingen av 18 (0,8 och 3 px, lägst 0,871), 3D-modellen ingen av 20 med "bra" (lägst 0,853) och
+  1 av 20 med "typiskt" (utliggare på 50 px i 3 % av rutorna).
+- **Fixturen** `fo_fartfel`: båda handlederna 8 cm fel i två rutor vid toppfarten (under
+  rensningens 0,25 bål, M53, så inte en spik): kvoten 0,66. Uppmätt på figuren (8 frön): 8 cm i
+  2–3 rutor ger 0,77–0,96 och varnar på hälften, 5 cm 0,85–0,98 och varnar på 1 av 16. Kontrollen
+  fångar alltså grova hopp, inte små.
+- **Bara handens fart.** Samma kvot för armens vinkelfart (M37) var för känslig för bruset
+  (figuren med 3 px: lägst 0,83, 4 av 20 under gränsen) och räknas inte.
+
+## M59 — Fasernas längd (fas_orimlig), och adressens symmetri (bortvald)
+
+- **Kontrollen:** nedsvingen utanför **0,20–0,45 s** eller tempot utanför **2,0–4,5** →
+  `fas_orimlig` på tempot, baksvingen och nedsvingen: toppen, starten eller klicket är troligen
+  fel. **antagande** (research S3b, kontroll 12, ej källbelagt; tour med driver 0,23–0,32 s,
+  M5). Baksvingen behöver ingen egen gräns: toppen söks 0,05–1,5 s före klicket och en
+  baksving under 0,5 s ger ingen start (M4). Gränsen är en varning, inte ett fel: en verklig
+  snabb amatör kan ha tempo under 2.
+- **Provat:** `fo_nara_traff` (nedsvingen 0,14 s, tempot 6,6) och plattopparna (M55, tempot
+  ≈ 1,8) varnar; rena figurer och 3D-svingar inte.
+- **Adressens symmetri framifrån (research kontroll 16) byggdes inte:** främre och bakre
+  överarm och underarm i adressen skilde 13–37 % på 3D-modellen utan brus (den bakre armen är
+  böjd och förkortad framifrån), så gränsen 20 % hade varnat på 18 av 20 rena svingar. Låren
+  är lika, men inget mått framifrån jämför med lårets längd.
+
 ## M60 — Spåren i granskningen (S4f)
 
 Ett spår är en punkts bana genom hela slaget i granskningen (PLAN S4f, BESLUT B70). Det är

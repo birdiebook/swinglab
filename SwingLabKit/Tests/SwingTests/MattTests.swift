@@ -19,7 +19,9 @@ final class MattTests: XCTestCase {
         XCTAssertEqual(Fixturer.svingar.map { $0.namn }, ["fo", "fo_vanster", "dtl", "dtl_lucka", "fo_luckor", "dtl_kort",
                                                        "fo_kort_arm", "fo_lucka_arm", "dtl_vanster", "fo_lucka_fart",
                                                        "fo_nara_traff", "dtl_dold", "dtl_osaker", "dtl_utan_pose",
-                                                       "fo_fel", "dtl_fel", "fo_lang_arm"])
+                                                       "fo_fel", "dtl_fel", "fo_lang_arm", "fo_topp_plata",
+                                                       "dtl_topp_plata", "fo_lucka_topp", "dtl_dold_klick", "fo_fartfel"])
+        var varnade = 0
         var jamforda = 0
         var positioner = 0
         for f in Fixturer.svingar {
@@ -38,6 +40,18 @@ final class MattTests: XCTestCase {
             XCTAssertEqual(r.kvalitet.rensning.bytenOklara, python.kvalitet.rensning.bytenOklara, "\(f.namn): oklara")
             XCTAssertEqual(r.kvalitet.rensning.spikar, python.kvalitet.rensning.spikar, "\(f.namn): spikar")
             XCTAssertEqual(r.kvalitet.saknas, python.kvalitet.saknas, "\(f.namn): saknas")
+            // Varningarna och kontrollernas tal, som i Python. METOD M54–M59
+            XCTAssertEqual(r.kvalitet.varningar, python.kvalitet.varningar, "\(f.namn): varningar")
+            varnade += r.kvalitet.varningar.isEmpty ? 0 : 1
+            XCTAssertEqual(r.kvalitet.toppAndraS == nil, python.kvalitet.toppAndraS == nil, "\(f.namn): andra toppen")
+            if let a = r.kvalitet.toppAndraS, let b = python.kvalitet.toppAndraS {
+                XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): andra toppen")
+            }
+            for (namn, a, b) in [("träffens höjd", r.kvalitet.traffHojd, python.kvalitet.traffHojd),
+                                 ("fartens kvot", r.kvalitet.handfartKvot, python.kvalitet.handfartKvot)] {
+                XCTAssertEqual(a == nil, b == nil, "\(f.namn): \(namn)")
+                if let a, let b { XCTAssertTrue(Self.lika(a, b), "\(f.namn): \(namn) Swift \(a) Python \(b)") }
+            }
             XCTAssertEqual(r.kvalitet.toppPlataS == nil, python.kvalitet.toppPlataS == nil, "\(f.namn): platån")
             if let a = r.kvalitet.toppPlataS, let b = python.kvalitet.toppPlataS {
                 XCTAssertEqual(a, b, accuracy: Self.tid, "\(f.namn): platån")
@@ -60,14 +74,79 @@ final class MattTests: XCTestCase {
             }
         }
         // Kvittot: testet jämförde verkligen måtten
-        // (58 + 50 + 45 + 36 + 48 + 36 + 55 + 54 + 45 + 55 + 57 + 45 + 43 + 37 + 58 + 44 + 57 = 823;
+        // (58 + 50 + 45 + 36 + 48 + 36 + 55 + 54 + 45 + 55 + 57 + 45 + 43 + 37 + 58 + 44 + 57
+        //  + 58 + 44 + 58 + 45 + 58 = 1086;
         // S1c: händernas djup i varje DTL-sving, armen mot axellinjen där axlarna är vridna;
         // S1e: recentreringen och skiftet framifrån, bäckenets lägsta punkt och lyftet in i
         // träffen i båda vyerna, utom där höften saknas i fönstret, och nedsvingens tid
-        // också utan säker start; M53: fo_fel, dtl_fel och fo_lang_arm efter rensningen) och
-        // positionerna (17 × 7 − 6 saknade = 113).
-        XCTAssertEqual(jamforda, 823)
-        XCTAssertEqual(positioner, 113)
+        // också utan säker start; M53: fo_fel, dtl_fel och fo_lang_arm efter rensningen; M54:
+        // de fem svingarna med varningarnas fel) och positionerna (22 × 7 − 6 saknade = 148),
+        // och varningar i de åtta svingarna med ett fel som kontrollerna ska se.
+        XCTAssertEqual(jamforda, 1086)
+        XCTAssertEqual(positioner, 148)
+        XCTAssertEqual(varnade, 8)
+    }
+
+    /// Varningarnas tabeller är Pythons för varje mått i båda vyerna (METOD M56, M57).
+    func testVarningarnasTabeller() throws {
+        let py = try avkoda(PythonKontrolltabeller.self, Fixturer.kontrolltabeller)
+        let alla = Set(Matt.namnDTL + Matt.namnFO)
+        XCTAssertEqual(Set(py.luckor.keys), alla)
+        for (namn, rad) in py.luckor {
+            let (leder, tider) = Matt.luckornasLeder(namn)
+            XCTAssertEqual(leder.map { PythonKontrolltabeller.JSONTal.tal($0) }, rad[0], namn)
+            XCTAssertEqual(tider.map { PythonKontrolltabeller.JSONTal.text($0) }, rad[1], namn)
+        }
+        XCTAssertEqual(Set(alla.filter { Matt.traffensMatt($0) }), Set(py.traffens))
+    }
+
+    /// Varningarna (METOD M54–M59): de inlagda felen ger sina orsaker, och bara på mått som visas.
+    func testVarningarna() throws {
+        func sving(_ namn: String) throws -> SvingResultat {
+            try Matt.mat(Sving.las(json: Fixturer.svingar.first(where: { $0.namn == namn })!.indata))
+        }
+        for namn in ["fo_topp_plata", "dtl_topp_plata"] {                            // METOD M55
+            let r = try sving(namn)
+            XCTAssertGreaterThan(try XCTUnwrap(r.kvalitet.toppPlataS), Matt.plataBredS, namn)
+            XCTAssertGreaterThan(try XCTUnwrap(r.kvalitet.toppAndraS), Matt.toppOenigS, namn)
+            XCTAssertEqual(r.kvalitet.varningar["tempo"], ["fas_orimlig", "topp_osaker"], namn)
+        }
+        XCTAssertEqual(try sving("fo_lucka_topp").kvalitet.varningar,                  // METOD M56
+                       ["framre_armbage_topp": ["luckor_kring_fasen"]])
+        let klick = try sving("dtl_dold_klick")                                          // METOD M57
+        XCTAssertEqual(Set(klick.kvalitet.varningar.keys), Set(klick.matt.keys.filter { Matt.traffensMatt($0) }))
+        XCTAssertEqual(try sving("fo_fartfel").kvalitet.varningar,                     // METOD M58
+                       ["handfart_max": ["filterkanslig"], "handfart_max_fore_traff_ms": ["filterkanslig"]])
+        for r in try Fixturer.svingar.map({ try Matt.mat(Sving.las(json: $0.indata)) }) {
+            XCTAssertTrue(Set(r.kvalitet.varningar.keys).isSubset(of: Set(r.matt.keys)))
+            XCTAssertTrue(r.kvalitet.varningar.values.allSatisfy { $0 == $0.sorted() })
+        }
+        // Andelen saknade kring ett ögonblick, och greppet saknas bara när båda handlederna saknas.
+        let t = (0..<10).map { Double($0) / 100 }
+        var leder = [[Punkt]](repeating: [Punkt](repeating: Punkt(0, 0), count: 10), count: Sving.antalLeder)
+        for k in 2..<5 { leder[Led.nasa.rawValue][k] = .saknad }
+        for k in 3..<7 { leder[Led.handledF.rawValue][k] = .saknad }
+        for k in 5..<9 { leder[Led.handledB.rawValue][k] = .saknad }
+        XCTAssertEqual(Matt.saknadAndel(t, leder, led: Led.nasa.rawValue, 0.035), 3.0 / 9.0, accuracy: 1e-12)
+        XCTAssertEqual(Matt.saknadAndel(t, leder, led: Matt.grepp, 0.065), 2.0 / 8.0, accuracy: 1e-12)
+        XCTAssertEqual(Matt.saknadAndel(t, leder, led: Led.handledF.rawValue, 0.065), 4.0 / 8.0, accuracy: 1e-12)
+        XCTAssertEqual(Matt.saknadAndel(t, leder, led: Led.nasa.rawValue, 5.0), 1.0)
+        // Främre armen förbi lodrätt uppåt: vinkeln räknas vidare från ruta till ruta. METOD M55
+        let tt = (0..<144).map { 1.7 + Double($0) / 240 }
+        let arm = tt.map { ti -> Punkt in
+            let v = (190 - 2500 * (ti - 2.0) * (ti - 2.0)) * Double.pi / 180
+            return Punkt(-sin(v) * 50, cos(v) * 50)
+        }
+        let f = Fastider(start: 1.0, topp: 2.0, traff: 2.3, adressFran: 0.6, adressTill: 0.9, finishFran: 3.3,
+                         finishTill: 3.5, startOsaker: false)
+        let noll = [Punkt](repeating: Punkt(0, 0), count: tt.count)
+        XCTAssertEqual(try XCTUnwrap(Faser.andraToppen(tt, arm, axelF: noll, handF: arm, f, vy: .fo)), 2.0, accuracy: 1e-3)
+        // Kvoten mot den smalare utjämningen, bara nära toppen. METOD M58
+        let tau = Farter.rutnat(0.0, 0.1)
+        let tio: ([Double]) -> [Double] = { $0.map { _ in 10.0 } }
+        let ingen: ([Double]) -> [Double] = { $0.map { _ in Double.nan } }
+        XCTAssertEqual(try XCTUnwrap(Farter.kvotMotSmal(tau, (varde: 8.0, tid: 0.05), smal: tio)), 0.8, accuracy: 1e-12)
+        XCTAssertNil(Farter.kvotMotSmal(tau, (varde: 8.0, tid: 0.05), smal: ingen))
     }
 
     func testDePahittadeFormerna() throws {

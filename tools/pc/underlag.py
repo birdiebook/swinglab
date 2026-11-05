@@ -380,6 +380,14 @@ def fraga_data(analys: dict, enh: list[dict], ovningar: list[dict], katalog: dic
                 orsaker[s["saknas"][m]] = orsaker.get(s["saknas"][m], 0) + 1
         if orsaker:
             rad["saknas"] = dict(sorted(orsaker.items()))
+        # Varför måttet är osäkert i svingar där det visas: orsaken och antalet (METOD M54).
+        varn: dict[str, int] = {}
+        for s in sv:
+            if s["vy"] == vy and m in s["matt"]:
+                for o in s.get("varningar", {}).get(m, []):
+                    varn[o] = varn.get(o, 0) + 1
+        if varn:
+            rad["varningar"] = dict(sorted(varn.items()))
         rad.update({"median": b["visat"], "status": b["status"], "gront": _spann(m, b["spann"])})
         if b.get("gult") is not None:
             rad["gult"] = _spann(m, b["gult"])
@@ -458,7 +466,7 @@ def analysera_historik(historik: dict, katalog: dict | None = None, kedjor: dict
     enh: list[dict] = []
     for p in sorted(historik["pass"], key=lambda x: x["pass"]):
         slag = [{"vy": s["vy"], "serie": 1, "klubba": s.get("klubba"), "matt": s["matt"],
-                 "forsta_serien": s["forsta_serien"], **({"saknas": s["saknas"]} if s.get("saknas") else {})}
+                 "forsta_serien": s["forsta_serien"], **{k: s[k] for k in ("saknas", "varningar") if s.get(k)}}
                 for s in p["slag"]]
         a = A.analysera_rader(p["pass"], slag, p.get("langd"), enh, katalog=katalog, kedjor=kedjor, skapad="")
         enh = enh + A.enheter(a)
@@ -695,7 +703,10 @@ def facit_fragor() -> dict[str, dict]:
     - `fa`: en sving framifrån med drivern efter ett pass med fyra, så att medianen saknas men
       talet per sving finns;
     - `saknas`: åtta svingar framifrån där armbågen vid toppen saknas i tre (segmentet för
-      kort) och tempot i en (starten osäker): orsakerna och antalen står i frågan (S3b lager 1)."""
+      kort) och tempot i en (starten osäker): orsakerna och antalen står i frågan (S3b lager 1);
+    - `varningar`: sex svingar framifrån där tempot saknas i en och visas men är osäkert i tre
+      (toppen i två, träffen i två, en med båda), och swayen vid toppen i en: `varningar` står
+      efter `saknas`, orsakerna sorterade (METOD M54)."""
     rng = random.Random(97)
     ut = {"fa": {"pass": [_pass(rng, "20261102-203825", {"fo": 4}, {"backen_sway_topp": -6.0}, klubba="dr"),
                           _pass(rng, "20261103-114927", {"fo": 1}, {"backen_sway_topp": -6.0}, klubba="dr")],
@@ -707,6 +718,16 @@ def facit_fragor() -> dict[str, dict]:
         del s["matt"][m]
         s["saknas"] = {m: orsak} if m != "tempo" else {"baksving_s": orsak, "tempo": orsak}
     ut["saknas"] = {"pass": [p], "att_jobba_pa": [], "skapad": "2026-11-05T19:30:00+01:00"}
+    rng = random.Random(54)
+    p = _pass(rng, "20261105-210000", {"fo": 6}, {}, klubba="dr")
+    s0 = p["slag"][0]
+    del s0["matt"]["tempo"]
+    s0["saknas"] = {"baksving_s": "start_osaker", "tempo": "start_osaker"}
+    for i, v in ((1, {"tempo": ["topp_osaker"]}), (2, {"tempo": ["topp_osaker", "traff_osaker"]}),
+                 (3, {"axellinje_lutning_traff": ["traff_osaker"], "tempo": ["traff_osaker"]}),
+                 (4, {"backen_sway_topp": ["luckor_kring_fasen"]})):
+        p["slag"][i]["varningar"] = v
+    ut["varningar"] = {"pass": [p], "att_jobba_pa": [], "skapad": "2026-11-05T21:30:00+01:00"}
     return ut
 
 
