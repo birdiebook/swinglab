@@ -1,20 +1,20 @@
-08f0ca663e5a3923183c5cc9a3903327af28d3cf ci-ui 2026-11-06T00:22:18Z run 42135957297
+c9d34c5aa3daad6a32e9502b3c0e15e6a4b8b0a0 ci-ui 2026-11-06T00:41:23Z run 42138282804
 == swift-release
-GRÖNT: 430 test, 0 fel, 32 s i testerna, bygget 99 s
+GRÖNT: 430 test, 0 fel, 34 s i testerna, bygget 98 s
 Långsammast (av 430):
-      2.7 s  TreDTests.testLodlinjensOchBrannviddensVagar
+      2.6 s  TreDTests.testLodlinjensOchBrannviddensVagar
       2.4 s  TreDTests.testTidenFor20SlagOchVarDenGar
       2.4 s  TreDTests.testFigurenSomPython
-      2.1 s  TreDTests.testTelefonensVagSomPython
       2.0 s  KlubbSparTests.testBananSomPython
+      2.0 s  TreDTests.testTelefonensVagSomPython
       1.2 s  InspelningTests.testStrommenGerSammaKlickSomHelaSignalenIBitar
       1.2 s  TreDTests.testTvaSerierMedOsakerVinkelSaknadeFaserOchTvetydigaKlick
-      1.1 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
+      1.1 s  TreDTests.testFigurensFilTurOchRetur
       1.0 s  KlubbSparTests.testFeletMotSanningen
-      1.0 s  TreDTests.testFigurensFilTurOchRetur
+      1.0 s  TreDTests.testInreIFilenOchUppdateras
       1.0 s  TreDTests.testVinklarnaForEnVansterspelare
+      1.0 s  TreDTests.testVinklarnaVisarSpelarenFranRattHall
       0.9 s  TreDTests.testBraBrusVansterMedLodlinjeUtanParJson
       0.9 s  TreDTests.testKortet
-      0.9 s  TreDTests.testInreIFilenOchUppdateras
       0.9 s  TreDTests.testUtanBrusSomPythonOchExakt
 
