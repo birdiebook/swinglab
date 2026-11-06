@@ -117,7 +117,9 @@ struct GeometriVy: View {
 }
 
 /// Ett mått i passet: rubriken och märkningen, namnet, talet med enheten, förändringen
-/// mot förra passet, geometrin där den är måttet och spannet.
+/// mot förra passet, geometrin där den är måttet och spannet. Saknas måttet i en del av
+/// svingarna säger en grå rad under talet det ("Measured in 5 of 8 swings"), och infobladet
+/// varför (S3b lager 1, BESLUT B109, METOD MS22).
 struct MattkortVy: View {
     let kort: Mattkort
     @State private var visaNyckel = false
@@ -143,6 +145,7 @@ struct MattkortVy: View {
                                 LageSymbol(lage: kort.lage, storlek: 14)       // BESLUT B87
                             }
                             if let d = kort.skillnad { Under(text: d) }
+                            if let s = kort.saknas { Under(text: s).fixedSize(horizontal: false, vertical: true) }
                         }
                         Spacer(minLength: 0)
                         if let g = kort.geometri { GeometriVy(geometri: g) }
@@ -163,8 +166,14 @@ struct MattkortVy: View {
                         NyckelKnapp { visaNyckel = true }
                     }
                 } else {
-                    // Ett saknat eller avstängt mått: bara strecket, utan enhet.
+                    // Ett saknat eller avstängt mått: bara strecket, utan enhet, och hur många svingar
+                    // det saknas i när passet vet varför (S3b lager 1, METOD MS22).
                     StortTal(varde: kort.varde, enhet: kort.varde == "—" ? "" : kort.enhet, avstangt: true)
+                    if let s = kort.saknas {
+                        Under(text: s)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 8)
+                    }
                 }
             }
         }

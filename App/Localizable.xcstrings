@@ -1057,6 +1057,17 @@
         }
       }
     },
+    "Not measured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not measured"
+          }
+        }
+      }
+    },
     "On the hands' line, at hand height, aimed along the target line": {
       "extractionState": "manual",
       "localizations": {

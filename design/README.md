@@ -27,7 +27,9 @@ Uppställning → Inspelning → Granskning → Passet. Att jobba på öppnas fr
    villkor i tal. Märkningarna är små symboler med en kort etikett: Your usual (egen
    baslinje, B87), off (avstängt mått). B10 (gräns ej läst i original) står bara i
    infobladets källa sedan S4h (BESLUT B94). **Undantag (B94):** kvittot och Claude-felet
-   är en mening med vad man gör, och felsökningens tal ligger bakom "Details".
+   är en mening med vad man gör, och felsökningens tal ligger bakom "Details". Ett mått som
+   saknas säger det där talet skulle stå ("Not measured", "Measured in 5 of 8 swings"), och
+   varför står överst i infobladet, ett tryck bort (BESLUT B109).
 6. **Svart, vitt och gråskala.** En enda accent (regel 10). En dämpad signalfärg bara där
    den bär information (en varning i uppställningen). Inga skuggor, inga
    gradienter, raka eller lätt rundade hörn (2–4 px), tunna linjer.

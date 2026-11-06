@@ -228,10 +228,14 @@ struct PassShotsView: View {
         }
     }
 
-    /// `ovas` = felen i Att jobba på: deras kort bär accenten (BESLUT B31).
+    /// `ovas` = felen i Att jobba på: deras kort bär accenten (BESLUT B31). Passet bär varför mått
+    /// saknas i svingarna (S3b lager 1, BESLUT B109), så att korten kan säga det; de tidigare passen
+    /// ger bara baslinjen och "vs" och behöver det inte. METOD MS22
     static func visning(_ p: PassState, earlier: [PassState], ovas: Set<String> = []) -> Passvisning? {
         guard let k = AppKatalog.katalog, p.shots.contains(where: { $0.measure != nil }) else { return nil }
-        return Passvisning(katalog: k, pass: earlier.map(\.visningsPass) + [p.visningsPass], ovas: ovas)
+        var nu = p.visningsPass
+        nu.saknas = p.countedMissing
+        return Passvisning(katalog: k, pass: earlier.map(\.visningsPass) + [nu], ovas: ovas)
     }
 
     private func analyze() {

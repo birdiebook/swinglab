@@ -75,10 +75,14 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public var ovas = false
     /// Infobladet som ett tryck på kortet öppnar (BESLUT B41).
     public var info: Infoblad? = nil
-    /// Tempot saknas för att starten är osäker bakifrån: VoiceOver säger det (METOD M40).
+    /// Måttet saknas i passet ("—"), och kortet vet varför: VoiceOver säger det (METOD M40, MS22).
     public var ejMatt = false
     /// Läget mot bandet eller den egna baslinjen: prick, ring eller pil (METOD M62, BESLUT B87).
     public var lage: Bandlage = .ingen
+    /// Måttet saknas i en del av svingarna eller i alla: "Measured in 5 of 8 swings", "Not measured
+    /// in any of the 8 swings"; orsakerna står i infobladet (S3b lager 1, BESLUT B109). nil = alla
+    /// har talet, eller passet bär inte orsakerna. METOD MS22
+    public var saknas: String? = nil
 
     public init(id: String, matt: String, namn: String, rubrik: String, vy: Vy?, markning: Markning?,
                 varde: String, enhet: String, skillnad: String?, spann: Spann?, geometri: Geometri?) {
@@ -98,10 +102,16 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     /// Kortet i ord för VoiceOver: "Sway −2.4 cm, target from 0 cm, last −3.6 cm, +1.2 cm vs Jan 6, …".
     public var upplasning: String {
         var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet == ": 1" ? "" : enhet))"]
-        if ejMatt { d.append(Texter.ejMatt) }
+        // Utan tal säger raden om det saknade direkt efter namnet, annars efter jämförelsen (MS22).
+        if varde == "—", let s = saknas {
+            d.append(s)
+        } else if ejMatt {
+            d.append(Texter.ejMatt)
+        }
         if let l = lage.upplasning(baslinje: spann?.arBaslinje ?? false) { d.append(l) }
         if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
         if let k = skillnad { d.append(k) }
+        if varde != "—", let s = saknas { d.append(s) }
         if let m = markning { d.append(m.upplasning) }
         return d.joined(separator: ", ")
     }
@@ -121,12 +131,26 @@ public struct Mattkort: Identifiable, Equatable, Sendable {
     public static func kort(_ fel: Katalog.Fel, nu: Pass, tidigare: [Pass]) -> Mattkort {
         var k = kortUtanBlad(fel, nu: nu, tidigare: tidigare)
         k.info = Infoblad(visat(fel, nu: nu), namn: k.namn)
-        if k.startOsaker(nu), let b = k.info {                     // METOD M40
+        if let r = rakning(fel, nu: nu) {
+            // Varför måttet saknas i en del av svingarna, med orsakerna överst i bladet (S3b lager 1,
+            // BESLUT B109). Ersätter tempots källrad nedan: orsaken står en gång. METOD MS22
+            k.saknas = r.rad
+            k.info = k.info?.medSaknas(r.blad)
+            k.ejMatt = k.varde == "—"
+        } else if k.startOsaker(nu), let b = k.info {              // METOD M40
             k.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
                               kalla: "\(b.kalla), \(Texter.startOsakerKalla)")
             k.ejMatt = true
         }
         return k
+    }
+
+    /// Svingarna med och utan felets mått i passet `nu`, för ett aktivt fel som mäts i svingen:
+    /// inte klubbans källa (BESLUT B88), där svingarna utan markering inte saknar något. nil när
+    /// passet inte bär orsakerna eller alla svingar har talet. METOD MS22
+    static func rakning(_ fel: Katalog.Fel, nu: Pass) -> Saknas.Rakning? {
+        guard fel.aktiv, visat(fel, nu: nu).matt == fel.matt else { return nil }
+        return Saknas.pass(nu, matt: fel.matt, grupp: fel.grupp)
     }
 
     /// Felet som det visas i passet `nu`: klubbans källa när klubban är markerad i passet

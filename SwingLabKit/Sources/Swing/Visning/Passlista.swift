@@ -93,6 +93,7 @@ public struct Passlista: Equatable, Sendable {
         guard let t = topp else { return nil }
         let delar = t.kort.map { k -> String in
             var d = k.varde == "—" ? k.namn : "\(k.namn) \(Tal.medEnhet(k.varde, k.enhet == ": 1" ? "" : k.enhet))"
+            if k.ejMatt { d += ", \(Texter.ejMatt)" }                     // BESLUT B109, METOD MS22
             if let l = k.lage.upplasning(baslinje: k.spann?.arBaslinje ?? false) { d += ", \(l)" }
             return d
         }

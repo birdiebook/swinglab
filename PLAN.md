@@ -356,6 +356,18 @@ händerna vänder i sidled 0,04–0,06 s efter sin högsta punkt på 3D-modellen
 skymda leder i 3D-modellen når; klickets 10 %; fartens 0,85; fastiderna), och varningarna i
 appens granskning.
 
+**Byggt (grenen `s3b-lager1-visning`, 2026-11-05): orsaken i appen** (BESLUT B109, METOD MS21,
+MS22). Där talet skulle stå säger appen att måttet saknas: granskningens rad "Not measured", passets
+kort "Measured in 5 of 8 swings" eller "Not measured in any of the 8 swings". Varför står överst i
+måttets infoblad, ett tryck bort, på enkel engelska och aldrig som kod ("the lead arm pointed toward
+or away from the camera", i passet med antalet svingar per orsak); ett slag mätt före version 6
+får bara att det saknas. SwingLabKit `Saknas` (koderna i ord och passets räkning), `Pass.saknas`,
+`Positionsmatt.rader(saknas:)`, `Infoblad.saknas`; appen `PassShotsView.visning` (passet bär
+`countedMissing`), `ReviewRows`, `PositionsradVy`, `MattkortVy` och `InfobladVy`. Prov: `SaknasTests`
+(Linux) och `Prov/SwingLabProvSaknas.swift` (bilderna `saknas-passet-fo`, `saknas-passet-focus`,
+`saknas-passet-dtl`, `saknas-granskning`, `saknas-granskning-stor` och fem infoblad). Kvar till lager 1 ✓ härifrån:
+platåns gräns och rensningens antal (ovan), och att Johannes sett orsaken på telefonen.
+
 ## S4 — Vyn
 
 Passet, Att jobba på, Utveckling och Idag i formspråket B13 med accenten B31,

@@ -123,9 +123,17 @@ struct PassToppVy: View {
                             .foregroundStyle(Theme.text)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 8)
-                        Text(verbatim: Tal.medEnhet(k.varde, k.varde == "—" ? "" : k.enhet))
-                            .typsnitt(17, .medium, siffror: true)
-                            .foregroundStyle(Theme.text)
+                        if k.ejMatt {
+                            // Det som övas saknas i passet: det står där talet skulle stå (BESLUT B109).
+                            Text("Not measured")
+                                .typsnitt(15, .medium)
+                                .foregroundStyle(Theme.secondary)
+                                .multilineTextAlignment(.trailing)
+                        } else {
+                            Text(verbatim: Tal.medEnhet(k.varde, k.varde == "—" ? "" : k.enhet))
+                                .typsnitt(17, .medium, siffror: true)
+                                .foregroundStyle(Theme.text)
+                        }
                         LageSymbol(lage: k.lage, storlek: symbol)
                             .frame(width: symbol)
                     }

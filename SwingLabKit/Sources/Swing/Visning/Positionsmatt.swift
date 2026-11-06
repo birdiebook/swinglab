@@ -20,10 +20,16 @@ public struct Positionsrad: Identifiable, Equatable, Sendable {
     public var info: Infoblad? = nil
     /// Läget mot bandet eller den egna baslinjen: prick, ring eller pil (METOD M62, BESLUT B87).
     public var lage: Bandlage = .ingen
+    /// Måttet saknas i slaget: raden säger "Not measured" där talet skulle stå, och orsaken står
+    /// först i infobladet (S3b lager 1, BESLUT B109). Ett avstängt mått är "—" som förut. METOD MS21
+    public var ejMatt = false
+    /// Orsaken i ord (`Saknas.orsak`), för VoiceOver; nil utan kod (mätt före version 6).
+    public var orsak: String? = nil
 
     /// Raden i ord för VoiceOver.
     public var upplasning: String {
         var d = [varde == "—" ? namn : "\(namn) \(Tal.medEnhet(varde, enhet))"]
+        if ejMatt { d += [Texter.ejMatt] + (orsak.map { [$0] } ?? []) }
         if let u = under { d.append(u) }
         if let l = lage.upplasning(baslinje: spann?.arBaslinje ?? false) { d.append(l) }
         if let s = spann, !s.upplasning.isEmpty { d.append(s.upplasning) }
@@ -42,9 +48,12 @@ public enum Positionsmatt {
     /// band bara på järnpass, BESLUT B86; nil = järn).
     /// `flyktpunktAntagen` = bakifrån utan riktpinne: källraden för across/laid off säger att
     /// flyktpunkten är antagen (METOD M48).
+    /// `saknas` = slagets orsaker, mått → mätningens kod (`ShotMeasure.missing`, S3b lager 1); nil
+    /// eller ingen kod för måttet: raden säger bara att det saknas. METOD MS21
     public static func rader(_ k: Katalog, vy: Vy, position: String, varden: [String: Double],
                              baslinje: [String: [Double]] = [:], ovas: Set<String> = [],
-                             flyktpunktAntagen: Bool = false, klubba: String? = nil) -> [Positionsrad] {
+                             flyktpunktAntagen: Bool = false, klubba: String? = nil,
+                             saknas: [String: String]? = nil) -> [Positionsrad] {
         var ut: [Positionsrad] = []
         var tagna = Set<String>()
         for f0 in k.fel where Vyfilter.visas(f0.vy, i: vy) && f0.visas(ovas: ovas) {
@@ -57,6 +66,7 @@ public enum Positionsmatt {
                         under: f.fas == "efter_traff" ? Texter.afterImpact : nil)
             r.ovas = ovas.contains(f.id)
             r.info = Infoblad(f, namn: r.namn)
+            if f.aktiv { markera(&r, varden: varden, kod: saknas?[f.matt], vy: vy) }
             ut.append(r)
         }
         for m in k.matt where m.visas && Vyfilter.visas(m.vy, i: vy) && m.positioner.contains(position)
@@ -75,9 +85,19 @@ public enum Positionsmatt {
                 r.info = Infoblad(namn: b.namn, vad: b.vad, varfor: b.varfor, tecken: b.tecken,
                                   kalla: "\(b.kalla), \(Texter.flyktpunktAntagen)")
             }
+            markera(&r, varden: varden, kod: saknas?[nyckel], vy: vy)
             ut.append(r)
         }
         return ut
+    }
+
+    /// Ett aktivt mått utan tal i slaget saknas: raden säger det, och infobladet börjar med varför
+    /// (S3b lager 1, BESLUT B109). Orsaken är mätningens kod; utan kod bara att det saknas. METOD MS21
+    static func markera(_ r: inout Positionsrad, varden: [String: Double], kod: String?, vy: Vy) {
+        guard !(varden[r.matt].map(\.isFinite) ?? false) else { return }
+        r.ejMatt = true
+        r.orsak = Saknas.orsak(kod, matt: r.matt, vy: vy)
+        r.info = r.info?.medSaknas([Saknas.slag(kod, matt: r.matt, vy: vy)])
     }
 
     static func rad(_ matt: String, etikett: String? = nil, varden: [String: Double], gront: [Double?]?, golv: Double?,
