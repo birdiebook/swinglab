@@ -802,6 +802,38 @@ En modell som skattar djupet ur 2D-lederna (monokulär lyftning). Ett stort jobb
 och facit att utreda (S6:s två telefoner är facit). Görs senare, om två telefoner känns
 krångligt i praktiken.
 
+**Steg 0, mätverktyget och geometrin (grenen `s6e-vridning-2d`, 2026-11-05):** research
+2026-11-05 fann ingen publicerad 3D-lyftare vars vikter B92 tillåter, och rådde att bygga facit
+först. `tools/pc/vridning_2d.py` filmar felbudgetens påhittade svingar med en FO- och en
+DTL-kamera (brus, skymning, stativets läge, klicket), kör 2D-kedjan som den är (`matt.mat` ger
+toppen och adressen) och skattar vridningen ur en vy i taget med ren geometri: förkortningen
+(a), den lutande axeln (b), den stela linjen med perspektivet och adressens djup (b2) och
+bredden bakifrån (c). Allt mot 3D-sanningen, per sving, i passets median och efter vinkeln, för
+fyra brusnivåer, två svingvarianter och olika höjder och avstånd. Resultatet:
+[docs/S6E_EN_TELEFON.md](docs/S6E_EN_TELEFON.md), METOD M70–M74, BESLUT B103–B104, testerna i
+`tools/tests/test_vridning_2d.py`.
+
+- **Per sving räcker en telefon inte** (SD 9–17° med typiskt brus), precis som två inte gör det.
+- **I passets median är en telefon lika bra som två i de mått vyn bär:** DTL bäckenet vid toppen
+  6,3° och höfterna vid träffen 5,8°, FO axlarna vid toppen 7,0° och X-factor 10,1° (SD, typiskt
+  brus), mot två telefoner 11,1, 6,0, 9,7 och 13,6°.
+- **Varje vy har mått den inte kan bära:** DTL viker axlarna vid 90° (och därmed X-factor),
+  stretchen får +7 till +20° fel i båda, FO:s höfter vid träffen är brusiga.
+- **FO kräver att telefonen står vinkelrätt mot mållinjen** (en grad snett = en grad i bäckenet och
+  axlarna, inte i X-factor). DTL bygger på höft- och axelpunkternas avstånd ur kroppens andelar.
+- **Förslaget (B103, väntar på Johannes):** visa som en telefons skattning med ±spann, bara som
+  passets trend och bara de mått vyn bär, utan färg; aldrig stretchen. Inget i appen före steg 1.
+
+**Steg 1 (inte gjort):** ett riktigt pass med två telefoner, där skattarna körs på varje telefons
+paket för sig och jämförs med trianguleringen per sving och i passets median. Det prövar det
+simuleringen inte kan: att posemodellens höft- och axelpunkter sitter lika långt isär sedda från
+alla håll (den stela linjen) och adressens djup. Samma pass mäter Johannes punktavstånd för DTL.
+Sedan: en kontroll i uppställningen att FO står vinkelrätt mot mållinjen, och Apple Visions 3D
+på telefonen mot samma facit.
+
+**Klart när:** steg 1 har visat att passets median ur en telefon ligger inom M74:s spann från
+två telefoners median på samma pass, för de mått B103 föreslår, och Johannes har beslutat B103.
+
 ### S6f — Visaren på PC:n (Johannes 2026-10-24)
 
 Första riktiga passet med två telefoner (2026-10-24) gav ingen 3D: telefonerna var märkta
