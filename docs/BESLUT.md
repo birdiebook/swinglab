@@ -337,6 +337,9 @@ arkitekten gjort; de **prövas** och omprövas efter telefonproven (S2_SPEC §11
     krympa när skärmarna rättas.
   - **GULT, inte RÖTT:** ett fall i granskningen stoppar inte TestFlight än
     (`continue-on-error`), eftersom UI-prov är ömtåligare än bilderna och granskningen är ny.
+- **Prövat 2026-11-05:** 14 fynd i den första granskningen (run 42133122437), alla i `kanda`;
+  nästa körning grön (run 42135853361). Den klippta texten i passet i AX3 kom bara i den första
+  (MS42): granskningen är inte helt stabil, vilket är skälet till GULT.
 - **Bortvalt:** att länka in SwingDemo i appen för ett `-fixtures demo`-läge (större ändring, och
   i TestFlight-bygget); att granska den tomma appen; att fälla på varje fynd från första dagen (då
   stängs provet av); flödesprov med tryck genom inspelningen (kameran och Vision finns inte i

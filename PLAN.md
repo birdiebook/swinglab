@@ -529,6 +529,9 @@ gav RÖTT i run 42121876809: "ändrad me: 0.027 % av punkterna i (137, 110)–(1
 referensen, den nya och skillnaden i `resultat/b56beb6….skillnad.me.png`. Återställd i 7f1f952;
 run 42130165284 (4caebf7) är grön: 115 av 115 lika, 114 bytelika och `startvy` inom toleransen.
 Samma körning visade glasets brus i flikraden (`startvy`), som gav toleransen 0,001 % (MS40).
+Tillgängligheten: första granskningen (run 42133122437) gav 14 fynd i 12 nycklar, som står i
+listan över kända; run 42135853361 (184777d) är grön i allt: arkivet, 56 prov, 115 av 115
+skärmar och "inga nya fynd (12 kända)".
 
 **Matrisens första fynd:** i AX3 bryts "paired" mitt i ordet ("pair/ed") i Sessions, och
 "Down the line" tar tre rader; ljust och mörkt är lika (0,0 %) i alla sex skärmar.

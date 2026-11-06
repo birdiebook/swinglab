@@ -2013,6 +2013,9 @@ Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
   Me), för små träffytor ("Back" i passets rad överst, "Left" i handvalet på Me) och Dynamisk text
   bara delvis i passets rad överst ("Tue, Nov 10", "Send to PC"). AX3: Sessions och Me utan fynd,
   passet med klippt text (två) och en för liten träffyta, utan element. **mätt.**
+- **Inte helt stabil:** den klippta texten i passet i AX3 kom i den första granskningen men inte i
+  den andra (run 42135853361, samma kod), som då skrev "borta". Nyckeln står kvar i `kanda`; en
+  rad tas bort först när fyndet varit borta i flera körningar. Därför GULT (BESLUT B101).
 - **Vad den inte säger:** att VoiceOver fungerar (Apple: en granskning utan fynd är inte en
   tillgänglig app), och inget om inspelningen och granskningens video, som behöver kameran och
   Vision (MS12).
