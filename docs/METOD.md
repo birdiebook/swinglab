@@ -2007,6 +2007,12 @@ Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
   "skärm|storlek|typ|element", där elementet är etiketten, annars identifieraren, annars
   elementtypen. Nyckeln står i `kanda` → känt (loggas); annars nytt (fäller provet); en nyckel i
   `kanda` som ingen granskning gav → "borta". Raderna i sammanfattningen: `TILLGANGLIGHET:`.
+- **Första granskningen** (2026-11-05, kompilera run 42133122437): 14 fynd i 12 nycklar, som står
+  i `kanda`. Standardstorleken: kontrast "nearly passed" för de små grå raderna (passets
+  etiketter som "FO · TOP · + TO TARGET" och "OUTSIDE RANGE", "swings" i Sessions, "CLUBS" på
+  Me), för små träffytor ("Back" i passets rad överst, "Left" i handvalet på Me) och Dynamisk text
+  bara delvis i passets rad överst ("Tue, Nov 10", "Send to PC"). AX3: Sessions och Me utan fynd,
+  passet med klippt text (två) och en för liten träffyta, utan element. **mätt.**
 - **Vad den inte säger:** att VoiceOver fungerar (Apple: en granskning utan fynd är inte en
   tillgänglig app), och inget om inspelningen och granskningens video, som behöver kameran och
   Vision (MS12).

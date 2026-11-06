@@ -20,7 +20,21 @@ final class SwingLabProvUI: XCTestCase {
     static let ax3 = "UICTContentSizeCategoryAccessibilityXL"
 
     /// Kända fynd, "skärm|storlek|typ|element". Krymper när skärmarna rättas. METOD MS42
-    static let kanda: Set<String> = []
+    /// Första granskningen 2026-11-05 (kompilera run 42133122437): 14 fynd, 12 nycklar.
+    static let kanda: Set<String> = [
+        "passet|AX3|träffyta|-",  // Hit area is too small
+        "passet|AX3|klippt text|-",  // Text clipped
+        "sessions|standard|kontrast|swings",  // Contrast nearly passed
+        "passet|standard|träffyta|Back",  // Hit area is too small
+        "passet|standard|dynamisk text|Send to PC",  // Dynamic Type font sizes are partially unsupported
+        "passet|standard|dynamisk text|Tue, Nov 10",  // Dynamic Type font sizes are partially unsupported
+        "passet|standard|kontrast|OUTSIDE RANGE",  // Contrast nearly passed
+        "passet|standard|kontrast|FO · TOP · + TO TARGET",  // Contrast nearly passed
+        "passet|standard|kontrast|FO · TOP–IMPACT · + TO TARGET",  // Contrast nearly passed
+        "passet|standard|kontrast|AUDIO · START–TOP–IMPACT",  // Contrast nearly passed
+        "me|standard|träffyta|Left",  // Hit area is too small
+        "me|standard|kontrast|CLUBS",  // Contrast nearly passed
+    ]
 
     static let typer: [(typ: XCUIAccessibilityAuditType, namn: String)] = [
         (.contrast, "kontrast"), (.elementDetection, "element"), (.hitRegion, "träffyta"),
@@ -112,6 +126,9 @@ final class SwingLabProvUI: XCTestCase {
             var element = "-"
             if let e = issue.element {
                 element = !e.label.isEmpty ? e.label : !e.identifier.isEmpty ? e.identifier : "elementtyp \(e.elementType.rawValue)"
+                // Hårda mellanslag (Texter.skilje) som vanliga, så att listan går att skriva.
+                element = element.replacingOccurrences(of: "\u{00A0}", with: " ")
+                    .replacingOccurrences(of: "\u{202F}", with: " ")
             }
             let nyckel = "\(skarm)|\(storlek)|\(typ)|\(element)"
             Self.sedda.insert(nyckel)
