@@ -232,5 +232,7 @@ extension SwingLabProvVyer {
         try XCTUnwrap(bild.pngData()).write(to: URL(fileURLWithPath: "\(Self.ut)/\(namn).png"))
         print("PROV: skrev \(namn).png ur ett fönster (\(Int(bild.size.width * bild.scale))×\(Int(bild.size.height * bild.scale)) px)")
         try provaFormspraket(bild, namn: namn, accent: accent)
+        // Huvudskärmarna också i fler textstorlekar och ljust (PLAN S4i, METOD MS41).
+        if Self.matrisSkarmar.contains(namn) { try await matrisFonster(vy, namn: namn) }
     }
 }

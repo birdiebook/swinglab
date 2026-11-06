@@ -85,6 +85,8 @@ final class SwingLabProvVyer: XCTestCase {
         try png.write(to: URL(fileURLWithPath: "\(Self.ut)/\(namn).png"))
         print("PROV: skrev \(namn).png (\(Int(bild.size.width * bild.scale))×\(Int(bild.size.height * bild.scale)) px)")
         try provaFormspraket(bild, namn: namn, accent: accent)
+        // Huvudskärmarna också i fler textstorlekar och ljust (PLAN S4i, METOD MS41).
+        if Self.matrisSkarmar.contains(namn) { try matris(vy, namn: namn) }
     }
 
     /// Gråskala och den enda accenten (B13 regel 6, B31), botten svart, och något ljust ritat.

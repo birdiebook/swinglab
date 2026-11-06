@@ -12,6 +12,10 @@ options:
 packages:
   SwingLabKit:
     path: SwingLabKit
+  # Bildjämförelsen i simulatorprovet (PLAN S4i, BESLUT B100): MIT, låst version, bara i provet.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.7
 targets:
   SwingLab:
     type: application
@@ -91,7 +95,13 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - Prov
+      # Referensbilderna (BESLUT B100) läses ur källträdet, inte ur provets bunt: annars
+      # komprimeras och kopieras 115 PNG in i appen vid varje bygge.
+      - path: Prov
+        excludes:
+          - "Referenser/**"
+          # Prov/UI är UI-provet (SwingLabProvUI), ett eget mål.
+          - "UI/**"
     dependencies:
       - target: SwingLab
       - package: SwingLabKit
@@ -104,6 +114,9 @@ targets:
       # 3D på telefonen (S6c-1): byggs och körs på Darwin redan nu, före appen (S6c-2).
       - package: SwingLabKit
         product: TreD
+      # Skärmbilderna mot referenserna (SwingLabProvReferenser, BESLUT B100); appen länkar inte in det.
+      - package: SnapshotTesting
+        product: SnapshotTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.prov
@@ -115,6 +128,22 @@ targets:
         # Simulatorn kräver ingen signering.
         CODE_SIGNING_ALLOWED: "NO"
 
+  # BESLUT B101. Tillgängligheten: appen startad på riktigt (XCUIApplication) med påhittade pass,
+  # och Apples granskning per skärm. Körs av kompilera.yml efter resten av provet.
+  SwingLabProvUI:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Prov/UI
+    dependencies:
+      - target: SwingLab
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.birdiebook.swinglab.provui
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "5.0"
+        TEST_TARGET_NAME: SwingLab
+
 schemes:
   # Eget schema, så att `SwingLab`-schemat som TestFlight arkiverar är orört.
   SwingLabProv:
@@ -122,6 +151,7 @@ schemes:
       targets:
         SwingLab: all
         SwingLabProv: [test]
+        SwingLabProvUI: [test]
     test:
       # Release som TestFlight; kompilera.yml sätter ENABLE_TESTABILITY=YES (som Idunn).
       config: Release
@@ -131,3 +161,4 @@ schemes:
       region: SE
       targets:
         - SwingLabProv
+        - SwingLabProvUI

@@ -101,6 +101,8 @@ INTE_TEXT = {
     # Sessions (S4e, BESLUT B64): flikens, parets, plustecknets och svepets symboler.
     "list.bullet", "link", "plus", "trash",
     "claude://", "ej_i_analysen", "swinglab.telefon",
+    # UI-provets påhittade pass (PLAN S4i, BESLUT B101): miljövariabeln, bara i simulatorn.
+    "SWINGLAB_PROV_ROT",
 
     # Klubbans märkning (S7c, BESLUT B59): punkternas nummer på ytan, gissningen "1?", och
     # positionen med SwingLabKits namn för VoiceOver.

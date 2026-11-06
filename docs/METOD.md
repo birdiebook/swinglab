@@ -1948,6 +1948,92 @@ värden i `CaptureTests`.
 
 ---
 
+# Skärmarna i CI (S4i)
+
+Konstanterna i simulatorprovets jämförelse med referenserna och i matrisen
+(`Prov/SwingLabProvReferenser.swift`, `Prov/SwingLabProvMatris.swift`, flödet i
+`.github/workflows/kompilera.yml`). Varför och vad det kostar: BESLUT B100.
+
+## MS40 — Skärmbilderna mot referenserna (S4i)
+
+- **Miljön:** `macos-26`, Xcode 26.6 (`/Applications/Xcode_26.6.app`), iPhone 17 Pro med
+  iOS 26.5. Samma tre stod i alla 217 kompilera-resultat från 2026-10-22 till 2026-11-05, med
+  `macos-latest` och `latest-stable` (**mätt**, ci-resultat). Maskinens egen lista: avbildens
+  version, Xcode-mapparna, körtiderna och enheterna i `resultat/<sha>.miljo.txt`.
+- **Galleriet är bytelikt mellan körningar:** samma commit ritad två gånger gav samma bytes i
+  alla 115 bilder, för tre commits (5ec22b2, c95e407 och 928e1d5; den sista på två olika
+  versioner av avbilden). **mätt** 2026-11-05 ur ci-resultats historik. Därför finns inga
+  undantag, och toleransen behöver inte ta brus mellan körningar.
+- **Toleransen:** en punkt stämmer när ΔE (Core Images `CILabDeltaE`) mellan referensen och den
+  nya är högst **2**, `perceptualPrecision` 0,98 (biblioteket: 98–99 % ≈ ögats gräns;
+  **tillverkare**, ej läst i original), och **alla utom 0,001 %** av punkterna måste stämma,
+  `precision` 0,99999 (≈30 punkter på en hel skärm, 3 på kvittot). **mätt** 2026-11-05:
+  - Bilderna ur ImageRenderer (114 av 115) är bytelika mellan körningar och mellan avbilderna
+    20261026.0455.2 och 20261102.0473.1.
+  - `startvy` (appens riktiga fönster) skiljer mellan körningar, också på samma avbild, i flikraden
+    med systemets glas: 333 punkter med högst 2 av 255 i en kanal, varav ≈2 över ΔE 2 (högst
+    2,17). Med precision 1 föll den utan att något ändrats (run 42121876809).
+  - Den avsiktliga ändringen (rubriken på Me utan sin tracking, b56beb6) var 0,0277 % av
+    punkterna (≈465) med ΔE upp till ≈100: den fäller också med 0,001 %.
+  En siffra är ≈30 × 45 px av en skärm på 1170 × 3500 px, ≈0,03 %: precision 0,99, som researchen
+  föreslog, hade släppt igenom en ändrad siffra. **räkning.** Det som slipper igenom är en ändring
+  på färre än 0,001 % av punkterna, t.ex. en enstaka punkt eller prick.
+- **Lika inom toleransen:** en bild som inte är bytelik men klarar jämförelsen står på en egen rad
+  ("inom toleransen: startvy (333 punkter skiljer, högst 2 av 255)"), så att bruset syns över tid.
+- **Ny bild, borttagen bild:** en bild utan referens är GULT och fäller inte; en referens utan
+  bild (skärmen ritades inte) är GULT. Ett fall i resten av provet syns där, inte här.
+- **Skillnadsbilden** (`resultat/<sha>.skillnad.<namn>.png`): referensen, den nya och
+  bibliotekets skillnad (största kanalens skillnad, sträckt till full kontrast) bredvid varandra i
+  full upplösning, och en röd ram runt punkterna där någon kanal skiljer mer än **8** av 255
+  (**antagande**: över avrundningen i PNG och färgrymd). Raden säger andelen sådana punkter och
+  ramen i px.
+- **Inspelningen** (`spela_in`): bara i den låsta miljön och ur ett grönt prov (`** TEST
+  SUCCEEDED **`). Galleriets alla bilder kopieras till `Prov/Referenser/`, en referens vars bild
+  saknas tas bort, och committen går till grenen som kördes. **räkning.**
+
+## MS41 — Matrisen: textstorlek × mörkt och ljust (S4i)
+
+- **Skärmarna:** `sessions` (ur ett fönster, för List och svepet), `me`, `session-dtl` (passet),
+  `parad-granskning-dtl` (granskningen med en stillbild som yta, B35), `claude-blad` och
+  `insp-installningar-lead` (kugghjulet), med samma påhittade data som galleriets bild.
+- **Lägena:** textstorlekarna `large` (standard), `xxxLarge` (den största utan hjälpmedel) och
+  `accessibility3` (AX3), var och en mörkt och ljust: sex celler, @1x, 390 pt breda. AX5 finns
+  redan i galleriet (bilderna `-stor`).
+- **Ljust:** appen är bara mörk (B13, `.preferredColorScheme(.dark)` i `SwingLabApp`). Den ljusa
+  cellen ritar samma vy med `colorScheme` .light, och provet skriver andelen punkter där den
+  skiljer från den mörka (en kanal mer än 8 av 255, som MS40): 0 % = vyn tar bara färg ur Theme,
+  annars visar arket var den tar färg ur systemet. **räkning.**
+- **Arket** (`resultat/<sha>.matris.<namn>.png`): cellerna i en rad, mörkt och ljust bredvid
+  varandra per storlek, med etiketten över; höjden per storlek och skillnaden står i
+  sammanfattningen (`MATRIS:`). Jämförs inte med någon referens (B100).
+
+## MS42 — Tillgänglighetsgranskningen (S4i)
+
+- **Datan:** två analyserade påhittade pass, FO tisdag 10 november och DTL fredag 13 november
+  (järn 7, åtta svingar var, längden 1,82 m), i en egen Store i `/tmp/swinglab_prov/ui-store`,
+  skrivna med appens Store och DemoPass som i `SwingLabProvSessioner`. **räkning.**
+- **Skärmarna:** Sessions med raderna, passet (FO-raden öppnad) och Me, var och en efter en ny
+  start av appen. **Storlekarna:** standard och AX3 (`-UIPreferredContentSizeCategoryName
+  UICTContentSizeCategoryAccessibilityXL`, samma AX3 som matrisen, MS41).
+- **Granskningen:** `performAccessibilityAudit` med alla typer. Ett fynd blir nyckeln
+  "skärm|storlek|typ|element", där elementet är etiketten, annars identifieraren, annars
+  elementtypen. Nyckeln står i `kanda` → känt (loggas); annars nytt (fäller provet); en nyckel i
+  `kanda` som ingen granskning gav → "borta". Raderna i sammanfattningen: `TILLGANGLIGHET:`.
+- **Första granskningen** (2026-11-05, kompilera run 42133122437): 14 fynd i 12 nycklar, som står
+  i `kanda`. Standardstorleken: kontrast "nearly passed" för de små grå raderna (passets
+  etiketter som "FO · TOP · + TO TARGET" och "OUTSIDE RANGE", "swings" i Sessions, "CLUBS" på
+  Me), för små träffytor ("Back" i passets rad överst, "Left" i handvalet på Me) och Dynamisk text
+  bara delvis i passets rad överst ("Tue, Nov 10", "Send to PC"). AX3: Sessions och Me utan fynd,
+  passet med klippt text (två) och en för liten träffyta, utan element. **mätt.**
+- **Inte helt stabil:** den klippta texten i passet i AX3 kom i den första granskningen men inte i
+  den andra (run 42135853361, samma kod), som då skrev "borta". Nyckeln står kvar i `kanda`; en
+  rad tas bort först när fyndet varit borta i flera körningar. Därför GULT (BESLUT B101).
+- **Vad den inte säger:** att VoiceOver fungerar (Apple: en granskning utan fynd är inte en
+  tillgänglig app), och inget om inspelningen och granskningens video, som behöver kameran och
+  Vision (MS12).
+
+---
+
 # Tolkningen (S5)
 
 Konstanterna i PC-länken (`tools/pc/paket.py`, `analys.py`, `historik.py`,
